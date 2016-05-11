@@ -1,0 +1,265 @@
+import os, csv, Queue
+import numpy as np
+from netCDF4 import Dataset
+from impacts import nc4writer
+from helpers import header
+
+costs_suffix = '-costs'
+levels_suffix = '-levels'
+suffix = "-aggregated"
+
+costs_command = "Rscript generate/cost_curves.R \"%s\" %s" # resultfile tempsfile
+
+checkfile = 'check-2016-04-30b.txt'
+
+batchfilter = lambda batch: 'batch' in batch
+targetdirfilter = lambda targetdir: 'SSP3' in targetdir and 'Env-Growth' in targetdir and checkfile not in os.listdir(targetdir)
+
+# The full population, if we just read it.  Only 1 at a time (it's big!)
+# Tuple of (get_population, minyear, maxyear, population)
+cached_population = None
+
+def get_cached_population(get_population, years):
+    global cached_population
+
+    minyear = min(years)
+    maxyear = max(years)
+
+    if cached_population is not None:
+        if cached_population[0] == get_population and cached_population[1] == minyear and cached_population[2] == maxyear:
+            return cached_population[3]
+
+    print "Loading pop..."
+    stweight = get_population(minyear, maxyear)
+    print "Loaded."
+
+    cached_population = (get_population, minyear, maxyear, stweight)
+    return stweight
+
+def iterdir(basedir):
+    for filename in os.listdir(basedir):
+        yield filename, os.path.join(os.path.join(basedir, filename))
+
+def iterresults(outdir):
+    for batch, batchpath in iterdir(outdir):
+        if not batchfilter(batch):
+            continue
+        for clim_scenario, cspath in iterdir(batchpath):
+            for clim_model, cmpath in iterdir(cspath):
+                for econ_model, empath in iterdir(cmpath):
+                    for econ_scenario, espath in iterdir(empath):
+                        if not targetdirfilter(espath):
+                            continue
+                        yield batch, clim_scenario, clim_model, econ_scenario, econ_model, espath
+
+def get_years(reader, limityears=None):
+    if 'year' in reader.variables:
+        readeryears = reader.variables['year'][:]
+    elif 'years' in reader.variables:
+        readeryears = reader.variables['years'][:]
+    else:
+        raise RuntimeError("Cannot find years variable")
+
+    if limityears is not None:
+        readeryears = limityears(readeryears)
+
+    if len(readeryears) == 0:
+        raise ValueError("Incomplete!")
+
+    return readeryears
+
+def copy_yearreg_variable(writer, variable, key, dstvalues, suffix):
+    column = writer.createVariable(key, 'f8', ('year', 'region'))
+    column.units = variable.units
+    if hasattr(variable, 'long_title'):
+        column.long_title = variable.long_title
+    if hasattr(variable, 'source'):
+        column.source = variable.source + " " + suffix
+
+    column[:, :] = dstvalues
+
+def iter_yearreg_variables(reader):
+    for key in reader.variables.keys():
+        if ('year', 'region') == reader.variables[key].dimensions:
+            print key
+            variable = reader.variables[key]
+
+            yield key, variable
+
+def make_aggregates(targetdir, filename, get_population, dimensions_template=None, metainfo=None, limityears=None):
+    # Find all variables that containing the region dimension
+    reader = Dataset(os.path.join(targetdir, filename), 'r', format='NETCDF4')
+    if dimensions_template is None:
+        dimreader = reader
+    else:
+        dimreader = Dataset(dimensions_template, 'r', format='NETCDF4')
+
+    readeryears = get_years(dimreader, limityears)
+
+    writer = Dataset(os.path.join(targetdir, filename[:-4] + suffix + '.nc4'), 'w', format='NETCDF4')
+
+    regions = dimreader.variables['regions'][:].tolist()
+
+    # Collect all levels of aggregation
+    originals = {} # { prefix: [region] }
+    for region in regions:
+        original = region
+        while len(region) > 3:
+            region = region[:region.rindex('.')]
+            if region in originals:
+                originals[region].append(original)
+            else:
+                originals[region] = [original]
+
+    # Add the FUND regions
+    dependencies = []
+    with open('aggloms/world/macro-regions.csv', 'r') as fp:
+        aggreader = csv.reader(header.deparse(fp, dependencies))
+        headrow = aggreader.next()
+        for row in aggreader:
+            fundregion = 'FUND-' + row[headrow.index('FUND')]
+            if fundregion not in originals:
+                originals[fundregion] = []
+
+            iso3 = row[headrow.index('region-key')]
+            if iso3 not in originals:
+                continue
+
+            originals[fundregion].extend(originals[iso3])
+
+    # Collect all prefixes with > 1 region
+    prefixes = [''] # '' = world
+    for prefix in originals:
+        if originals[prefix] > 1:
+            prefixes.append(prefix)
+
+    if metainfo is None:
+        writer.description = reader.description + " (aggregated)"
+        writer.version = reader.version
+        writer.dependencies = ', '.join(dependencies) + ', ' + reader.version
+        writer.author = reader.author
+    else:
+        writer.description = metainfo['description']
+        writer.version = metainfo['version']
+        writer.dependencies = ', '.join(dependencies) + ', ' + metainfo['version']
+        writer.author = metainfo['author']
+
+    years = nc4writer.make_years_variable(writer)
+    years[:] = readeryears
+
+    stweight = get_cached_population(get_population, years)
+
+    nc4writer.make_regions_variable(writer, prefixes, 'aggregated')
+
+    original_indices = {regions[ii]: ii for ii in range(len(regions))}
+
+    for key, variable in iter_yearreg_variables(reader):
+        dstvalues = np.zeros((len(years), len(prefixes)))
+        srcvalues = variable[:, :]
+        for ii in range(len(prefixes)):
+            numers = np.zeros(srcvalues.shape[0])
+            denoms = np.zeros(srcvalues.shape[0])
+
+            if prefixes[ii] == '':
+                withinregions = regions
+            else:
+                withinregions = originals[prefixes[ii]]
+
+            for original in withinregions:
+                weights = stweight.get_time(original)
+                numers += weights * srcvalues[:, original_indices[original]]
+                denoms += weights
+
+            dstvalues[:, ii] = numers / denoms
+
+        copy_yearreg_variable(writer, variable, key, dstvalues, "(aggregated)")
+
+    reader.close()
+    if dimensions_template is not None:
+        dimreader.close()
+    writer.close()
+
+def make_costs_aggregate(targetdir, filename, get_population):
+    # Assume the following IAM and SSP
+    econ_model = 'OCED Env-Growth'
+    econ_scenario = 'SSP3_v9_130325'
+    dimensions_template = "/shares/gcp/outputs/temps/rcp45/CCSM4/temps.nc4"
+    metainfo = dict(description="Upper and lower bounds costs of adaptation calculation.",
+                    version="DEADLY-2016-04-22",
+                    dependencies="TEMPERATURES, ADAPTATION-ALL-AGES",
+                    author="Tamma Carleton")
+    limityears = lambda years: years[1:]
+
+    make_aggregates(targetdir, filename, get_population, dimensions_template=dimensions_template, metainfo=metainfo, limityears=limityears)
+
+def make_levels(targetdir, filename, get_population):
+    # Find all variables that containing the region dimension
+    reader = Dataset(os.path.join(targetdir, filename), 'r', format='NETCDF4')
+    regions = reader.variables['regions'][:].tolist()
+
+    writer = Dataset(os.path.join(targetdir, filename[:-4] + levels_suffix + '.nc4'), 'w', format='NETCDF4')
+
+    writer.description = reader.description + " (levels)"
+    writer.version = reader.version
+    writer.dependencies = reader.version
+    writer.author = reader.author
+
+    years = nc4writer.make_years_variable(writer)
+    years[:] = get_years(reader)
+    nc4writer.make_regions_variable(writer, regions, 'regions')
+
+    stweight = get_cached_population(get_population, years)
+
+    for key, variable in iter_yearreg_variables(reader):
+        dstvalues = np.zeros((len(years), len(regions)))
+        srcvalues = variable[:, :]
+        for ii in range(len(regions)):
+            dstvalues[:, ii] = srcvalues[:, ii] * stweight.get_time(regions[ii])
+
+        copy_yearreg_variable(writer, variable, key, dstvalues, "(levels)")
+
+    reader.close()
+    writer.close()    
+
+if __name__ == '__main__':
+    import sys
+    from datastore import population
+    outputdir = sys.argv[1]
+
+    halfweight = population.SpaceTimeBipartiteData(1981, 2100, None)
+
+    for batch, clim_scenario, clim_model, econ_scenario, econ_model, targetdir in iterresults(outputdir):
+        print targetdir
+        print econ_model, econ_scenario
+
+        get_population = lambda year0, year1: halfweight.load_population(year0, year1, econ_model, econ_scenario)
+
+        with open(os.path.join(targetdir, checkfile), 'w') as fp:
+            fp.write("START")
+
+        for filename in os.listdir(targetdir):
+            if filename[-4:] == '.nc4' and suffix not in filename and costs_suffix not in filename and levels_suffix not in filename:
+                print filename
+
+                try:
+                    if filename in ['interpolated_mortality_all_ages.nc4', 'interpolated_mortality65_plus.nc4']:
+                        # Generate costs
+                        tempsfile = '/shares/gcp/outputs/temps/%s/%s/temps.nc4' % (clim_scenario, clim_model)
+                        os.system(costs_command % (os.path.join(targetdir, filename), tempsfile))
+
+                        # Aggregate costs
+                        make_costs_aggregate(targetdir, filename[:-4] + costs_suffix + '.nc4', get_population)
+
+                    # Generate total deaths
+                    make_levels(targetdir, filename, get_population)
+
+                    # Aggregate impacts
+                    make_aggregates(targetdir, filename, get_population)
+
+                except Exception as ex:
+                    print "Failed."
+                    print ex
+
+        with open(os.path.join(targetdir, checkfile), 'w') as fp:
+            fp.write("END")
+
