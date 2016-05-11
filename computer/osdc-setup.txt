@@ -1,0 +1,40 @@
+VM setup:
+Add 
+export no_proxy="griffin-objstore.opensciencedatacloud.org"
+function with_proxy() {
+     PROXY='http://cloud-proxy:3128'
+     http_proxy="${PROXY}" https_proxy="${PROXY}" $@
+}
+to .bashrc
+with_proxy sudo -E apt-get update
+with_proxy sudo -E apt-get install git
+sudo chown ubuntu:ubuntu /mnt
+mkdir /mnt/gcp
+rsync -avz jrising@dmas.berkeley.edu:/shares/gcp/data /mnt/gcp/data
+rsync -avz jrising@dmas.berkeley.edu:/shares/gcp/BCSD /mnt/gcp/BCSD
+with_proxy git clone https://jrising@bitbucket.org/ClimateImpactLab/socioeconomics.git
+with_proxy git clone https://github.com/jrising/open-estimate.git
+with_proxy sudo -E apt-get install python-pip
+sudo python setup.py develop
+with_proxy sudo -E apt-get install python-numpy python-scipy
+with_proxy sudo -E apt-get install python-netcdf
+with_proxy sudo -E pip install cython
+with_proxy sudo -E apt-get install libhdf5-serial-dev
+with_proxy sudo -E pip install h5py
+with_proxy sudo -E apt-get install netcdf-bin
+with_proxy sudo -E apt-get install libnetcdfc++4
+with_proxy sudo -E apt-get install libnetcdf-dev
+with_proxy git clone https://github.com/Unidata/netcdf4-python.git
+cd netcdf4-python
+python setup.py build
+sudo -E python setup.py install
+with_proxy sudo -E pip install gspread
+with_proxy sudo -E pip install oauth2client==1.5.2
+with_proxy sudo -E pip install pycrypto
+with_proxy sudo -E apt-get install libffi-dev
+with_proxy sudo -E pip install statsmodels
+with_proxy sudo -E apt-get install libblas-dev liblapack-dev
+with_proxy sudo -E apt-get install gfortran
+with_proxy sudo -E pip install scipy==0.14
+sudo apt-get remove python-scipy
+Change path to weather in generate/montecarlo.py
