@@ -42,6 +42,48 @@ def readncdf(filepath, variable):
 
     return yyyyddd, weather
 
+def available_years(template):
+    """
+    Returns the list of years available for a given template.
+    Called with a template like the one used in WeatherBundle: `path/filename_%d.nc`
+    """
+    basedir, filetemplate = os.path.split(template)
+    # Turn this into a regex
+    filetemplate = filetemplate.replace('%d', '(\\d{4})')
+
+    years = []
+    for filename in os.listdir(basedir):
+        m = re.match(filetemplate, filename)
+        if m:
+            years.append(int(m.group(1)))
+
+    return years
+
+def guess_historical(template):
+    """
+    Returns a plausible path to historical data.
+    Called with a template like the one used in WeatherBundle: `path/filename_%d.nc`
+    """
+    scenarioindex = template.index('rcp')
+    scenario = template[scenarioindex:scenarioindex+5]
+
+    return template.replace(scenario, 'historical')
+
+def guess_variable(filename):
+    """
+    Guess what the weather variable is from the filename.
+    """
+    if filename[0:7] == 'tas_day':
+        return 'DayNumber'
+    if filename[0:6] in ['tasmin', 'tasmax']:
+        return filename[0:6]
+    if filename[0:3] == 'tas':
+        return 'tas'
+    if filename[0:2] == 'pr':
+        return 'pr'
+
+    return None
+
 def iterate_bundles(basedir):
     """
     Return bundles for each RCP and model.
@@ -69,7 +111,7 @@ class WeatherBundle(object):
     def __init__(self, hierarchy='hierarchy.csv'):
         self.dependencies = []
         self.hierarchy = hierarchy
-        
+
     def load_regions(self):
         mapping = {} # color to hierid
 
@@ -126,6 +168,33 @@ class WeatherBundle(object):
 
         for rr in range(len(self.regions)):
             yield self.regions[rr], [regioncolbins[ii][:,rr].ravel().tolist()[0] for ii in range(len(binlimits) - 1)]
+
+class SingleWeatherBundle(WeatherBundle):
+    def __init__(self, template, year1, variable, hierarchy='hierarchy.csv'):
+        super(SingleWeatherBundle, self).__init__(hierarchy)
+        self.template = template
+        self.year1 = year1
+        self.variable = variable
+
+        self.load_regions()
+        self.load_metainfo(self.template % (year1), variable)
+
+    def is_historical(self):
+        return False
+
+    def yearbundles(self, maxyear=np.inf):
+        year = self.year1
+        while os.path.exists(self.template % (year)) and year <= maxyear:
+            yield readncdf(self.template % (year), self.variable)
+            year += 1
+
+    def get_years(self):
+        year = self.year1
+        while os.path.exists(self.template % (year)):
+            years.append(year)
+            year += 1
+
+        return years
 
 class UnivariatePastFutureWeatherBundle(WeatherBundle):
     def __init__(self, pasttemplate, pastyear1, futuretemplate, futureyear1,
