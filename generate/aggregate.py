@@ -10,7 +10,7 @@ suffix = "-aggregated"
 
 costs_command = "Rscript generate/cost_curves.R \"%s\" %s" # resultfile tempsfile
 
-checkfile = 'check-2016-04-30b.txt'
+checkfile = 'check-2016-05-02.txt'
 
 batchfilter = lambda batch: 'batch' in batch
 targetdirfilter = lambda targetdir: 'SSP3' in targetdir and 'Env-Growth' in targetdir and checkfile not in os.listdir(targetdir)
@@ -192,20 +192,31 @@ def make_costs_aggregate(targetdir, filename, get_population):
 
     make_aggregates(targetdir, filename, get_population, dimensions_template=dimensions_template, metainfo=metainfo, limityears=limityears)
 
-def make_levels(targetdir, filename, get_population):
+def make_levels(targetdir, filename, get_population, dimensions_template=None, metainfo=None, limityears=None):
     # Find all variables that containing the region dimension
     reader = Dataset(os.path.join(targetdir, filename), 'r', format='NETCDF4')
-    regions = reader.variables['regions'][:].tolist()
+    if dimensions_template is None:
+        dimreader = reader
+    else:
+        dimreader = Dataset(dimensions_template, 'r', format='NETCDF4')
+
+    regions = dimreader.variables['regions'][:].tolist()
 
     writer = Dataset(os.path.join(targetdir, filename[:-4] + levels_suffix + '.nc4'), 'w', format='NETCDF4')
 
-    writer.description = reader.description + " (levels)"
-    writer.version = reader.version
-    writer.dependencies = reader.version
-    writer.author = reader.author
+    if metainfo is None:
+        writer.description = reader.description + " (levels)"
+        writer.version = reader.version
+        writer.dependencies = reader.version
+        writer.author = reader.author
+    else:
+        writer.description = metainfo['description']
+        writer.version = metainfo['version']
+        writer.dependencies = metainfo['version']
+        writer.author = metainfo['author']
 
     years = nc4writer.make_years_variable(writer)
-    years[:] = get_years(reader)
+    years[:] = get_years(dimreader, limityears)
     nc4writer.make_regions_variable(writer, regions, 'regions')
 
     stweight = get_cached_population(get_population, years)
@@ -219,7 +230,22 @@ def make_levels(targetdir, filename, get_population):
         copy_yearreg_variable(writer, variable, key, dstvalues, "(levels)")
 
     reader.close()
+    if dimensions_template is not None:
+        dimreader.close()
     writer.close()    
+
+def make_costs_levels(targetdir, filename, get_population):
+    # Assume the following IAM and SSP
+    econ_model = 'OCED Env-Growth'
+    econ_scenario = 'SSP3_v9_130325'
+    dimensions_template = "/shares/gcp/outputs/temps/rcp45/CCSM4/temps.nc4"
+    metainfo = dict(description="Upper and lower bounds costs of adaptation calculation.",
+                    version="DEADLY-2016-04-22",
+                    dependencies="TEMPERATURES, ADAPTATION-ALL-AGES",
+                    author="Tamma Carleton")
+    limityears = lambda years: years[1:]
+
+    make_levels(targetdir, filename, get_population, dimensions_template=dimensions_template, metainfo=metainfo, limityears=limityears)
 
 if __name__ == '__main__':
     import sys
@@ -246,6 +272,9 @@ if __name__ == '__main__':
                         # Generate costs
                         tempsfile = '/shares/gcp/outputs/temps/%s/%s/temps.nc4' % (clim_scenario, clim_model)
                         os.system(costs_command % (os.path.join(targetdir, filename), tempsfile))
+
+                        # Levels of costs
+                        make_costs_levels(targetdir, filename[:-4] + costs_suffix + '.nc4', get_population)
 
                         # Aggregate costs
                         make_costs_aggregate(targetdir, filename[:-4] + costs_suffix + '.nc4', get_population)
