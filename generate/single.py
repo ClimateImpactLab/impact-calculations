@@ -3,6 +3,9 @@ import standard
 from impacts import weather, effectset
 from adaptation import adapting_curve
 
+# e.g.,
+# python -m generate.single /home/yuan/nasa_bcsd/grid2reg/CCSM4/tas_ndays/rcp85/tas_day_aggregated_rcp85_r1i1p1_CCSM4_ OECD\ Env-Growth,SSP3_v9_130325 /shares/gcp/outputs/diagnostics/areaagg/
+
 get_model = effectset.get_model_server
 pvals = effectset.ConstantPvals(.5)
 
