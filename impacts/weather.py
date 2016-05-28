@@ -42,6 +42,22 @@ def readncdf(filepath, variable):
 
     return yyyyddd, weather
 
+def readncdf_binned(filepath, variable):
+    """
+    Return month, perbin [12 x BINS x REGIONS]
+    """
+
+    rootgrp = Dataset(filepath, 'r', format='NETCDF4')
+    weather = rootgrp.variables[variable][:,:,:]
+    months = rootgrp.variables['month'][:]
+    rootgrp.close()
+
+    m = re.search('\\d{4}', filepath)
+    if m:
+        months = int(m.group(0)) * 1000 + months
+
+    return months, weather
+
 def available_years(template):
     """
     Returns the list of years available for a given template.
@@ -75,6 +91,8 @@ def guess_variable(filename):
     """
     if filename[0:7] == 'tas_day':
         return 'DayNumber'
+    if filename[0:11] == 'number_days':
+        return 'tas'
     if filename[0:6] in ['tasmin', 'tasmax']:
         return filename[0:6]
     if filename[0:3] == 'tas':
@@ -170,11 +188,12 @@ class WeatherBundle(object):
             yield self.regions[rr], [regioncolbins[ii][:,rr].ravel().tolist()[0] for ii in range(len(binlimits) - 1)]
 
 class SingleWeatherBundle(WeatherBundle):
-    def __init__(self, template, year1, variable, hierarchy='hierarchy.csv'):
+    def __init__(self, template, year1, variable, hierarchy='hierarchy.csv', readncdf=readncdf):
         super(SingleWeatherBundle, self).__init__(hierarchy)
         self.template = template
         self.year1 = year1
         self.variable = variable
+        self.readncdf = readncdf
 
         self.load_regions()
         self.load_metainfo(self.template % (year1), variable)
@@ -185,7 +204,7 @@ class SingleWeatherBundle(WeatherBundle):
     def yearbundles(self, maxyear=np.inf):
         year = self.year1
         while os.path.exists(self.template % (year)) and year <= maxyear:
-            yield readncdf(self.template % (year), self.variable)
+            yield self.readncdf(self.template % (year), self.variable)
             year += 1
 
     def get_years(self):
@@ -198,13 +217,14 @@ class SingleWeatherBundle(WeatherBundle):
 
 class UnivariatePastFutureWeatherBundle(WeatherBundle):
     def __init__(self, pasttemplate, pastyear1, futuretemplate, futureyear1,
-                 variable, hierarchy='hierarchy.csv'):
+                 variable, hierarchy='hierarchy.csv', readncdf=readncdf):
         super(UnivariatePastFutureWeatherBundle, self).__init__(hierarchy)
         self.pasttemplate = pasttemplate
         self.pastyear1 = pastyear1
         self.futuretemplate = futuretemplate
         self.futureyear1 = futureyear1
         self.variable = variable
+        self.readncdf = readncdf
 
         self.load_regions()
         self.load_metainfo(self.pasttemplate % (pastyear1), variable)
@@ -214,11 +234,11 @@ class UnivariatePastFutureWeatherBundle(WeatherBundle):
 
     def yearbundles(self, maxyear=np.inf):
         for year in range(self.pastyear1, min(self.futureyear1, maxyear)):
-            yield readncdf(self.pasttemplate % (year), self.variable)
+            yield self.readncdf(self.pasttemplate % (year), self.variable)
 
         year = self.futureyear1
         while os.path.exists(self.futuretemplate % (year)) and year <= maxyear:
-            yield readncdf(self.futuretemplate % (year), self.variable)
+            yield self.readncdf(self.futuretemplate % (year), self.variable)
             year += 1
 
     def get_years(self):
@@ -233,7 +253,7 @@ class UnivariatePastFutureWeatherBundle(WeatherBundle):
 
 class RepeatedHistoricalWeatherBundle(WeatherBundle):
     def __init__(self, pasttemplate, pastyear_start, pastyear_end, futureyear_end, variable,
-                 seed, hierarchy='hierarchy.csv'):
+                 seed, hierarchy='hierarchy.csv', readncdf=readncdf):
         super(RepeatedHistoricalWeatherBundle, self).__init__(hierarchy)
 
         self.pasttemplate = pasttemplate
@@ -241,6 +261,7 @@ class RepeatedHistoricalWeatherBundle(WeatherBundle):
         self.pastyear_end = pastyear_end
         self.futureyear_end = futureyear_end
         self.variable = variable
+        self.readncdf = readncdf
 
         # Generate the full list of past years
         self.pastyears = []
@@ -278,7 +299,7 @@ class RepeatedHistoricalWeatherBundle(WeatherBundle):
     def yearbundles(self, maxyear=np.inf):
         year = self.pastyear_start
         for pastyear in self.pastyears:
-            yyyyddd, weather = readncdf(self.pasttemplate % (pastyear), self.variable)
+            yyyyddd, weather = self.readncdf(self.pasttemplate % (pastyear), self.variable)
             yield (1000 * year) + (yyyyddd % 1000), weather
             year += 1
 
