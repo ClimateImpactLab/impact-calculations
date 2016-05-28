@@ -20,13 +20,14 @@ try:
     pasttemplate = weather.guess_historical(weather_template)
     pastyear1 = min(weather.available_years(pasttemplate))
 
-    weatherbundle = weather.UnivariatePastFutureWeatherBundle(pasttemplate, pastyear1, weather_template, futureyear1, variable)
+    weatherbundle = weather.UnivariatePastFutureWeatherBundle(pasttemplate, pastyear1, weather_template, futureyear1, variable, readncdf=weather.readncdf_binned)
 except:
     print "Failed to connect to historical data."
-    weatherbundle = weather.SingleWeatherBundle(weather_template, futureyear1, variable)
+    weatherbundle = weather.SingleWeatherBundle(weather_template, futureyear1, variable, readncdf=weather.readncdf_binned)
 
 economicmodel = adapting_curve.SSPEconomicModel(econ_model_scenario[0], econ_model_scenario[1], [])
-os.makedirs(targetdir)
+if not os.path.exists(targetdir):
+    os.makedirs(targetdir)
 
 effectset.make_pval_file(targetdir, pvals)
-standard.produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_farmers=True)
+standard.produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only="interpolation", do_farmers=True)
