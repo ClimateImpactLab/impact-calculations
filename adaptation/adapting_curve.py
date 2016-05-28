@@ -212,19 +212,31 @@ class BinsIncomeDensityPredictorator(object):
     def get_update(self, region, year, temps):
         """Allow temps = None for dumb farmer who cannot adapt to temperature."""
         if temps is not None:
-            di = 0
-            belowprev = 0
-            for ii in range(len(self.binlimits) - 2):
-                belowupper = float(np.sum(temps < self.binlimits[ii+1]))
+            if len(temps.shape) == 2:
+                if temps.shape[0] == 12 and temps.shape[1] == len(self.binlimits) - 1:
+                    di = 0
+                    for ii in range(len(self.binlimits) - 1):
+                        if ii == self.dropbin:
+                            di = -1
+                            continue
 
-                if ii == self.dropbin:
+                        rm_add(self.temp_predictors[region][ii+di], np.sum(temps[:, ii]), self.numtempyears)
+                else:
+                    raise RuntimeError("Unknown format for temps")
+            else:
+                di = 0
+                belowprev = 0
+                for ii in range(len(self.binlimits) - 2):
+                    belowupper = float(np.sum(temps < self.binlimits[ii+1]))
+
+                    if ii == self.dropbin:
+                        belowprev = belowupper
+                        di = -1
+                        continue
+
+                    rm_add(self.temp_predictors[region][ii+di], belowupper - belowprev, self.numtempyears)
                     belowprev = belowupper
-                    di = -1
-                    continue
-
-                rm_add(self.temp_predictors[region][ii+di], belowupper - belowprev, self.numtempyears)
-                belowprev = belowupper
-            rm_add(self.temp_predictors[region][-1], len(temps) - belowprev, self.numtempyears)
+                rm_add(self.temp_predictors[region][-1], len(temps) - belowprev, self.numtempyears)
 
         if region in self.econ_predictors:
             gdppc = self.economicmodel.get_gdppc_year(region, year)
@@ -244,14 +256,22 @@ class BinsIncomeDensityPredictorator(object):
 region_stepcurves = {}
 
 class InstantAdaptingStepCurve(AdaptableCurve):
-    def __init__(self, beta_generator, get_predictors):
+    def __init__(self, beta_generator, get_predictors, bin_limits):
         self.beta_generator = beta_generator
         self.get_predictors = get_predictors
         self.region = None
         self.curr_curve = None
+        self.bin_limits = bin_limits
+
+        bin_limits = np.array(bin_limits)
+        if bin_limits[0] == -np.inf:
+            bin_limits[0] = bin_limits[1] - 10
+        if bin_limits[-1] == np.inf:
+            bin_limits[-1] = bin_limits[-2] + 10
+        self.xx = (bin_limits[1:] + bin_limits[:-1]) / 2
 
     def create(self, region, predictors):
-        copy = self.__class__(self.beta_generator, self.get_predictors)
+        copy = self.__class__(self.beta_generator, self.get_predictors, self.bin_limits)
         copy.region = region
         copy.curr_curve = self.beta_generator.get_curve(predictors, None)
         region_stepcurves[region] = copy
@@ -266,16 +286,16 @@ class InstantAdaptingStepCurve(AdaptableCurve):
         return self.curr_curve(x)
 
 class ComatoseInstantAdaptingStepCurve(InstantAdaptingStepCurve):
-    def __init__(self, beta_generator, get_predictors):
-        super(ComatoseInstantAdaptingStepCurve, self).__init__(beta_generator, get_predictors)
+    def __init__(self, beta_generator, get_predictors, bin_limits):
+        super(ComatoseInstantAdaptingStepCurve, self).__init__(beta_generator, get_predictors, bin_limits)
 
     def update(self, year, temps):
         # Ignore for the comatose farmer
         pass
 
 class DumbInstantAdaptingStepCurve(InstantAdaptingStepCurve):
-    def __init__(self, beta_generator, get_predictors):
-        super(DumbInstantAdaptingStepCurve, self).__init__(beta_generator, get_predictors)
+    def __init__(self, beta_generator, get_predictors, bin_limits):
+        super(DumbInstantAdaptingStepCurve, self).__init__(beta_generator, get_predictors, bin_limits)
 
     def update(self, year, temps):
         # Set temps to None so no adaptation to them
