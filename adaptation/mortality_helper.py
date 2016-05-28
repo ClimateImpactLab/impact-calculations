@@ -9,9 +9,10 @@ if do_singlebin:
     predcols = ['meandays_self', 'log gdppc', 'log popop']
 else:
     predcols = ['meandays_nInfC_n17C', 'meandays_n17C_n12C', 'meandays_n12C_n7C', 'meandays_n7C_n2C', 'meandays_n2C_3C', 'meandays_3C_8C', 'meandays_8C_13C', 'meandays_13C_18C', 'meandays_23C_28C', 'meandays_28C_33C', 'meandays_33C_InfC', 'log gdppc', 'log popop']
+bin_limits = [-np.inf, -17, -12, -7, -2, 3, 8, 13, 18, 23, 28, 33, np.inf]
 
 def prepare_interp_raw(predictorsdir, weatherbundle, economicmodel, pvals, get_data, farmer='full'):
-    predgen = BinsIncomeDensityPredictorator(weatherbundle, economicmodel, [-np.inf, -17, -12, -7, -2, 3, 8, 13, 18, 23, 28, 33, np.inf], 8, 15, 3, 2015)
+    predgen = BinsIncomeDensityPredictorator(weatherbundle, economicmodel, bin_limits, 8, 15, 3, 2015)
 
     dependencies = []
     beta_generator = curvegen.make_curve_generator(surface_space, predictorsdir, predcols, dependencies, do_singlebin, pvals.get_seed())
@@ -19,11 +20,11 @@ def prepare_interp_raw(predictorsdir, weatherbundle, economicmodel, pvals, get_d
     curve_get_predictors = lambda region, year, temps: predgen.get_update(region, year, temps)[0]
 
     if farmer == 'full':
-        curve = InstantAdaptingStepCurve(beta_generator, curve_get_predictors)
+        curve = InstantAdaptingStepCurve(beta_generator, curve_get_predictors, bin_limits)
     elif farmer == 'coma':
-        curve = ComatoseInstantAdaptingStepCurve(beta_generator, curve_get_predictors)
+        curve = ComatoseInstantAdaptingStepCurve(beta_generator, curve_get_predictors, bin_limits)
     elif farmer == 'dumb':        
-        curve = DumbInstantAdaptingStepCurve(beta_generator, curve_get_predictors)
+        curve = DumbInstantAdaptingStepCurve(beta_generator, curve_get_predictors, bin_limits)
     else:
         print "Unknown farmer type: " + farmer
 
