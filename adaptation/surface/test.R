@@ -10,6 +10,9 @@ data {
     cov_matrix[K] Sigma[N]; // VCV across betas
 
     matrix[N, L] x[K]; // predictors across regions
+
+    real<lower=0> smooth1; // prior on slope
+    real<lower=0> smooth2; // prior on second derivative
 }
 transformed data {
     // Optimization: only compute decomposition once
@@ -18,25 +21,44 @@ transformed data {
       CholL[ii] <- cholesky_decompose(Sigma[ii]);
 }
 parameters {
-    vector[K] theta[N]; // true effects
+    vector[K] theta_z[N]; // z-scores of true effects
     vector[L] gamma[K]; // surface parameters
     real<lower=0> tau[K]; // variance in hyper equation
     //cov_matrix[N] Tau[K]; // VCV across thetas
 }
 transformed parameters {
+    vector[K] theta[N]; // true effects
     vector[N] transtheta[K]; // transpose of theta
-    for (ii in 1:N)
+    for (ii in 1:N) {
+      theta[ii] <- beta[ii] + CholL[ii] * theta_z[ii];
       for (kk in 1:K)
         transtheta[kk][ii] <- theta[ii][kk];
+    }
 }
 model {
+    // Add on the priors
+    if (smooth1 > 0) {
+      for (ii in 1:N)
+        for (kk in 2:K)
+          theta_z[ii][kk-1] - theta_z[ii][kk] ~ normal(0, 1 / smooth1);
+    }
+
+    if (smooth2 > 0) {
+      for (ii in 1:N)
+        for (kk in 3:K)
+          2 * theta_z[ii][kk-1] - theta_z[ii][kk] - theta_z[ii][kk-2] ~ normal(0, 1 / smooth2);
+    }
+
     // observed betas drawn from true parameters
-    for (ii in 1:N)
-      beta[ii] ~ multi_normal_cholesky(theta[ii], CholL[ii]);
+    for (ii in 1:N) {
+      theta_z[ii] ~ normal(0, 1);
+      // implies: beta[ii] ~ multi_normal_cholesky(theta[ii], CholL[ii]);
+    }
     // true parameters produced by linear expression
-    for (kk in 1:K)
+    for (kk in 1:K) {
       increment_log_prob(normal_log(transtheta[kk], x[kk] * gamma[kk], tau[kk]));
       //increment_log_prob(multi_normal_log(transtheta[kk], x[kk] * gamma[kk], Tau[kk]));
+    }
 }
 "
 
@@ -44,8 +66,8 @@ model {
 basedir <- "../../../data/adaptation/vcvs"
 dirs <- c("BRAZIL", "CHINA", "INDIA", "MEXICO")
 
-betadir <- "../../../data/adaptation/final-inputs" # XXX: update this
-adms <- c("BRA_adm1.csv", "CHN_adm1.csv", "IND_adm1.csv", "MEX_adm1.csv")
+betadir <- "../../../data/adaptation/inputs-apr-7"
+adms <- c("BRA_adm1.csv", "CHN_adm1.csv", "IND_adm1.csv", "MEX_adm1.csv", "FRA_adm1.csv", "USA_adm1.csv")
 
 bincols1 <- c('bin_nInfC_n17C', 'bin_n17C_n12C', 'bin_n12C_n7C', 'bin_n7C_n2C', 'bin_n2C_3C', 'bin_3C_8C', 'bin_8C_13C', 'bin_13C_18C', 'bin_23C_28C', 'bin_28C_33C', 'bin_33C_InfC')
 bincols2 <- c('bin_nInf_n17C', 'bin_n17C_n12C', 'bin_n12C_n7C', 'bin_n7C_n2C', 'bin_n2C_3C', 'bin_3C_8C', 'bin_8C_13C', 'bin_13C_18C', 'bin_23C_28C', 'bin_28C_33C', 'bin_33C_Inf')
@@ -87,6 +109,35 @@ for (ii in 1:length(dirs)) {
     }
 }
 
+if (length(adms) > length(dirs)) {
+    for (ii in (length(dirs) + 1):length(adms)) {
+
+        betas <- read.csv(paste(betadir, adms[ii], sep='/'))
+        binbetas <- tryCatch({
+            betas[, bincols1]
+        }, error=function(e) {
+            betas[, bincols2]
+        })
+        names(binbetas) <- bincols1
+        allbetas <- rbind(allbetas, binbetas)
+        for (jj in 1:length(meandaycols1)) {
+            rows <- tryCatch({
+                cbind(data.frame(const=1), betas[, c(meandaycols1[jj], 'popop', 'gdppc')])
+            }, error=function(e) {
+                cbind(data.frame(const=1), betas[, c(meandaycols2[jj], 'popop', 'gdppc')])
+            })
+            names(rows) <- c('const', 'mdays', 'popop', 'gdppc')
+            allpreds[[jj]] <- rbind(allpreds[[jj]], rows)
+        }
+
+        for (jj in 1:nrow(betas)) {
+            vcv <- diag(11)
+            names(vcv) <- c("bin_nInfC_n17C", "bin_n17C_n12C", "bin_n12C_n7C", "bin_n7C_n2C", "bin_n2C_3C", "bin_3C_8C", "bin_8C_13C", "bin_13C_18C", "bin_23C_28C", "bin_28C_33C", "bin_33C_InfC")
+            allvcv[[length(allvcv)+1]] <- vcv
+        }
+    }
+}
+
 K <- ncol(allvcv[[1]])
 N <- length(allvcv)
 L <- 4
@@ -106,14 +157,46 @@ for (ii in 1:N)
 
 allbetas[is.na(allbetas)] <- 0
 
-stan.data <- list(N=N, K=K, L=L, beta=allbetas[1:N,], Sigma=allvcv2[1:N,,], x=allpreds2[, 1:N,])
-
 library(rstan)
 
-fit <- stan(model_code=stan.model, data=stan.data,
-            iter = 1000, chains = 4)
+binlos <- c(-Inf, -17, -12, -7, -2, 3, 8, 13, 23, 28, 33)
+binhis <- c(-17, -12, -7, -2, 3, 8, 13, 18, 28, 33, Inf)
 
-la <- extract(fit, permute=T)
+fit <- NULL
+
+for (smooth1 in c(0, 1)) {
+    for (smooth2 in c(0, 1)) {
+        stan.data <- list(N=N, K=K, L=L, beta=allbetas[1:N,], Sigma=allvcv2[1:N,,], x=allpreds2[, 1:N,],
+                          smooth1=smooth1, smooth2=smooth2)
+
+        if (is.null(fit))
+            fit <- stan(model_code=stan.model, data=stan.data,
+                        iter = 1000, chains = 4)
+        else
+            fit <- stan(fit=fit, data=stan.data,
+                        iter = 1000, chains = 4)
+
+        print(fit)
+
+        la <- extract(fit, permute=T)
+
+        ## Output bin surface parameters
+        result <- data.frame()
+        for (kk in 1:K) {
+            result <- rbind(result, data.frame(method='fullba', binlo=binlos[kk], binhi=binhis[kk],
+                                               intercept_coef=mean(la$gamma[, kk, 1]),
+                                               bindays_coef=mean(la$gamma[, kk, 2]),
+                                               gdppc_coef=mean(la$gamma[, kk, 3]),
+                                               popop_coef=mean(la$gamma[, kk, 4]),
+                                               intercept_serr=sd(la$gamma[, kk, 1]),
+                                               bindays_serr=sd(la$gamma[, kk, 2]),
+                                               gdppc_serr=sd(la$gamma[, kk, 3]),
+                                               popop_serr=sd(la$gamma[, kk, 4])))
+        }
+
+        write.csv(result, paste0("fullbayes", smooth1, smooth2, ".csv"), row.names=F)
+    }
+}
 
 library(ggplot2)
 

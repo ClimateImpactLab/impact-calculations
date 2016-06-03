@@ -125,7 +125,7 @@ if __name__ == '__main__':
     import helpers.header as headre
 
     do_singlebin = False
-    do_leaveone = True
+    do_leaveone = False
 
     predictorsdir = sys.argv[1]
     predcols = ['meandays_self', 'log gdppc', 'log popop']
@@ -149,7 +149,7 @@ if __name__ == '__main__':
                 for binlo, binhi, means, serrs, predictors in all_predictors(predictorsdir, predcols, dependencies, allowinf=True):
                     if len(means) < todrop:
                         break
-                    
+
                     means = means[:todrop] + means[todrop+1:]
                     serrs = serrs[:todrop] + serrs[todrop+1:]
                     predictors = predictors[:todrop] + predictors[todrop+1:]
@@ -168,7 +168,7 @@ if __name__ == '__main__':
                     if binlos[jj] == 28.:
                         print fit.params[jj*4:(jj+1)*4][2]
                     writer.writerow([binlos[jj], binhis[jj]] + map(lambda x: x[0], fit.params[jj*4:(jj+1)*4]) + fit.bse[jj*4:(jj+1)*4].tolist())
-                
+
                 todrop += 1
             exit()
 
