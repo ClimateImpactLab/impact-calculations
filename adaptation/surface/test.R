@@ -1,4 +1,4 @@
-setwd("~/research/gcp/impact-calculations/adaptation/surface")
+##setwd("~/research/gcp/impact-calculations/adaptation/surface")
 
 stan.model <- "
 data {
@@ -11,8 +11,7 @@ data {
 
     matrix[N, L] x[K]; // predictors across regions
 
-    real<lower=0> smooth1; // prior on slope
-    real<lower=0> smooth2; // prior on second derivative
+    real<lower=0> smooth; // prior on second derivative
 }
 transformed data {
     // Optimization: only compute decomposition once
@@ -37,16 +36,10 @@ transformed parameters {
 }
 model {
     // Add on the priors
-    if (smooth1 > 0) {
-      for (ii in 1:N)
-        for (kk in 2:K)
-          theta_z[ii][kk-1] - theta_z[ii][kk] ~ normal(0, 1 / smooth1);
-    }
-
-    if (smooth2 > 0) {
+    if (smooth > 0) {
       for (ii in 1:N)
         for (kk in 3:K)
-          2 * theta_z[ii][kk-1] - theta_z[ii][kk] - theta_z[ii][kk-2] ~ normal(0, 1 / smooth2);
+          2 * theta_z[ii][kk-1] - theta_z[ii][kk] - theta_z[ii][kk-2] ~ normal(0, 1 / smooth);
     }
 
     // observed betas drawn from true parameters
@@ -164,38 +157,35 @@ binhis <- c(-17, -12, -7, -2, 3, 8, 13, 18, 28, 33, Inf)
 
 fit <- NULL
 
-for (smooth1 in c(0, 1)) {
-    for (smooth2 in c(0, 1)) {
-        stan.data <- list(N=N, K=K, L=L, beta=allbetas[1:N,], Sigma=allvcv2[1:N,,], x=allpreds2[, 1:N,],
-                          smooth1=smooth1, smooth2=smooth2)
+for (smooth in c(0, 1, 2)) {
+    stan.data <- list(N=N, K=K, L=L, beta=allbetas[1:N,], Sigma=allvcv2[1:N,,], x=allpreds2[, 1:N,], smooth=smooth)
 
-        if (is.null(fit))
-            fit <- stan(model_code=stan.model, data=stan.data,
-                        iter = 1000, chains = 4)
-        else
-            fit <- stan(fit=fit, data=stan.data,
-                        iter = 1000, chains = 4)
+    if (is.null(fit))
+        fit <- stan(model_code=stan.model, data=stan.data,
+                    iter = 1000, chains = 4)
+    else
+        fit <- stan(fit=fit, data=stan.data,
+                    iter = 1000, chains = 4)
 
-        print(fit)
+    print(fit)
 
-        la <- extract(fit, permute=T)
+    la <- extract(fit, permute=T)
 
-        ## Output bin surface parameters
-        result <- data.frame()
-        for (kk in 1:K) {
-            result <- rbind(result, data.frame(method='fullba', binlo=binlos[kk], binhi=binhis[kk],
-                                               intercept_coef=mean(la$gamma[, kk, 1]),
-                                               bindays_coef=mean(la$gamma[, kk, 2]),
-                                               gdppc_coef=mean(la$gamma[, kk, 3]),
-                                               popop_coef=mean(la$gamma[, kk, 4]),
-                                               intercept_serr=sd(la$gamma[, kk, 1]),
-                                               bindays_serr=sd(la$gamma[, kk, 2]),
-                                               gdppc_serr=sd(la$gamma[, kk, 3]),
-                                               popop_serr=sd(la$gamma[, kk, 4])))
-        }
-
-        write.csv(result, paste0("fullbayes", smooth1, smooth2, ".csv"), row.names=F)
+    ## Output bin surface parameters
+    result <- data.frame()
+    for (kk in 1:K) {
+        result <- rbind(result, data.frame(method='fullba', binlo=binlos[kk], binhi=binhis[kk],
+                                           intercept_coef=mean(la$gamma[, kk, 1]),
+                                           bindays_coef=mean(la$gamma[, kk, 2]),
+                                           gdppc_coef=mean(la$gamma[, kk, 3]),
+                                           popop_coef=mean(la$gamma[, kk, 4]),
+                                           intercept_serr=sd(la$gamma[, kk, 1]),
+                                           bindays_serr=sd(la$gamma[, kk, 2]),
+                                           gdppc_serr=sd(la$gamma[, kk, 3]),
+                                           popop_serr=sd(la$gamma[, kk, 4])))
     }
+
+    write.csv(result, paste0("fullbayes", smooth, ".csv"), row.names=F)
 }
 
 library(ggplot2)
