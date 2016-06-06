@@ -12,6 +12,7 @@ data {
     matrix[N, L] x[K]; // predictors across regions
 
     real<lower=0> smooth; // prior on second derivative
+    real<lower=0> maxgamma; // limits on gamma
 }
 transformed data {
     // Optimization: only compute decomposition once
@@ -21,7 +22,7 @@ transformed data {
 }
 parameters {
     vector[K] theta_z[N]; // z-scores of true effects
-    vector[L] gamma[K]; // surface parameters
+    vector<lower=-maxgamma, upper=maxgamma>[L] gamma[K]; // surface parameters
     real<lower=0> tau[K]; // variance in hyper equation
     //cov_matrix[N] Tau[K]; // VCV across thetas
 }
@@ -74,6 +75,8 @@ allpreds <- list(matrix(0, 0, 4), matrix(0, 0, 4), matrix(0, 0, 4), matrix(0, 0,
 
 for (ii in 1:length(dirs)) {
     betas <- read.csv(paste(betadir, adms[ii], sep='/'))
+    betas$loggdppc <- log(betas$gdppc)
+    betas$logpopop <- log(betas$popop)
     binbetas <- tryCatch({
         betas[, bincols1]
     }, error=function(e) {
@@ -83,9 +86,9 @@ for (ii in 1:length(dirs)) {
     allbetas <- rbind(allbetas, binbetas)
     for (jj in 1:length(meandaycols1)) {
         rows <- tryCatch({
-            cbind(data.frame(const=1), betas[, c(meandaycols1[jj], 'popop', 'gdppc')])
+            cbind(data.frame(const=1), betas[, c(meandaycols1[jj], 'logpopop', 'loggdppc')])
         }, error=function(e) {
-            cbind(data.frame(const=1), betas[, c(meandaycols2[jj], 'popop', 'gdppc')])
+            cbind(data.frame(const=1), betas[, c(meandaycols2[jj], 'logpopop', 'loggdppc')])
         })
         names(rows) <- c('const', 'mdays', 'popop', 'gdppc')
         allpreds[[jj]] <- rbind(allpreds[[jj]], rows)
@@ -104,8 +107,9 @@ for (ii in 1:length(dirs)) {
 
 if (length(adms) > length(dirs)) {
     for (ii in (length(dirs) + 1):length(adms)) {
-
         betas <- read.csv(paste(betadir, adms[ii], sep='/'))
+        betas$loggdppc <- log(betas$gdppc)
+        betas$logpopop <- log(betas$popop)
         binbetas <- tryCatch({
             betas[, bincols1]
         }, error=function(e) {
@@ -115,9 +119,9 @@ if (length(adms) > length(dirs)) {
         allbetas <- rbind(allbetas, binbetas)
         for (jj in 1:length(meandaycols1)) {
             rows <- tryCatch({
-                cbind(data.frame(const=1), betas[, c(meandaycols1[jj], 'popop', 'gdppc')])
+                cbind(data.frame(const=1), betas[, c(meandaycols1[jj], 'logpopop', 'loggdppc')])
             }, error=function(e) {
-                cbind(data.frame(const=1), betas[, c(meandaycols2[jj], 'popop', 'gdppc')])
+                cbind(data.frame(const=1), betas[, c(meandaycols2[jj], 'logpopop', 'loggdppc')])
             })
             names(rows) <- c('const', 'mdays', 'popop', 'gdppc')
             allpreds[[jj]] <- rbind(allpreds[[jj]], rows)
@@ -157,8 +161,10 @@ binhis <- c(-17, -12, -7, -2, 3, 8, 13, 18, 28, 33, Inf)
 
 fit <- NULL
 
+print(colMeans(abs(allbetas)))
+
 for (smooth in c(0, 1, 2)) {
-    stan.data <- list(N=N, K=K, L=L, beta=allbetas[1:N,], Sigma=allvcv2[1:N,,], x=allpreds2[, 1:N,], smooth=smooth)
+    stan.data <- list(N=N, K=K, L=L, beta=allbetas[1:N,], Sigma=allvcv2[1:N,,], x=allpreds2[, 1:N,], smooth=smooth, maxgamma=max(colMeans(abs(allbetas))))
 
     if (is.null(fit))
         fit <- stan(model_code=stan.model, data=stan.data,
