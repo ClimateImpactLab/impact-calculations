@@ -13,6 +13,7 @@ data {
 
     real<lower=0> smooth; // prior on second derivative
     int<lower=0> dropped; // index of dropped bin
+    real<lower=0> maxsigma; // upper limit on sigma
     real<lower=0> maxgamma; // limits on gamma
 }
 transformed data {
@@ -24,7 +25,7 @@ transformed data {
 parameters {
     vector[K] theta_z[N]; // z-scores of true effects
     vector<lower=-maxgamma, upper=maxgamma>[L] gamma[K]; // surface parameters
-    real<lower=0> tau[K]; // variance in hyper equation
+    real<lower=0, upper=maxsigma> tau[K]; // variance in hyper equation
     //cov_matrix[N] Tau[K]; // VCV across thetas
 }
 transformed parameters {
@@ -165,6 +166,7 @@ for (ii in 1:N)
 
 allbetas[is.na(allbetas)] <- 0
 
+library(matrixStats)
 library(rstan)
 
 binlos <- c(-Inf, -17, -12, -7, -2, 3, 8, 13, 23, 28, 33)
@@ -175,7 +177,7 @@ fit <- NULL
 print(colMeans(abs(allbetas)))
 
 for (smooth in c(0, 2, 4)) {
-    stan.data <- list(N=N, K=K, L=L, beta=allbetas[1:N,], Sigma=allvcv2[1:N,,], x=allpreds2[, 1:N,], smooth=smooth, dropped=9, maxgamma=max(colMeans(abs(allbetas))))
+    stan.data <- list(N=N, K=K, L=L, beta=allbetas[1:N,], Sigma=allvcv2[1:N,,], x=allpreds2[, 1:N,], smooth=smooth, dropped=9, maxsigma=max(colSds(as.matrix(allbetas))), maxgamma=max(colMeans(abs(allbetas))))
 
     if (is.null(fit))
         fit <- stan(model_code=stan.model, data=stan.data,
