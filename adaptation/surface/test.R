@@ -178,7 +178,7 @@ fit <- NULL
 
 print(colMeans(abs(allbetas)))
 
-for (smooth in c(0, 2, 4)) {
+for (smooth in c(2, 0, 4)) {
     stan.data <- list(N=N, K=K, L=L, beta=allbetas[1:N,], Sigma=allvcv2[1:N,,], x=allpreds2[, 1:N,], smooth=smooth, dropped=9, maxsigma=max(colSds(as.matrix(allbetas))), maxgamma=max(colMeans(abs(allbetas))))
 
     if (is.null(fit))
