@@ -13,8 +13,8 @@ data {
 
     real<lower=0> smooth; // prior on second derivative
     int<lower=0> dropped; // index of dropped bin
-    real<lower=0> maxsigma; // upper limit on sigma
-    real<lower=0> maxgamma; // limits on gamma
+    //real<lower=0> maxsigma; // upper limit on sigma
+    //real<lower=0> maxgamma; // limits on gamma
 }
 transformed data {
     // Optimization: only compute decomposition once
@@ -24,8 +24,10 @@ transformed data {
 }
 parameters {
     vector[K] theta_z[N]; // z-scores of true effects
-    vector<lower=-maxgamma, upper=maxgamma>[L] gamma[K]; // surface parameters
-    real<lower=0, upper=maxsigma> tau[K]; // variance in hyper equation
+    //vector<lower=-maxgamma, upper=maxgamma>[L] gamma[K]; // surface parameters
+    //real<lower=0, upper=maxsigma> tau[K]; // variance in hyper equation
+    vector[L] gamma[K]; // surface parameters
+    real<lower=0> tau[K]; // variance in hyper equation
     //cov_matrix[N] Tau[K]; // VCV across thetas
 }
 transformed parameters {
