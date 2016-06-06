@@ -3,7 +3,7 @@
 stan.model <- "
 data {
     int<lower=1> N; // number of study regions
-    int<lower=1> K; // number of coefficients
+    int<lower=1> K; // number of coefficients (not including dropped)
     int<lower=1> L; // number of predictors, including intercept
 
     vector[K] beta[N]; // estimated effects
@@ -12,6 +12,7 @@ data {
     matrix[N, L] x[K]; // predictors across regions
 
     real<lower=0> smooth; // prior on second derivative
+    int<lower=0> dropped; // index of dropped bin
     real<lower=0> maxgamma; // limits on gamma
 }
 transformed data {
@@ -39,8 +40,18 @@ model {
     // Add on the priors
     if (smooth > 0) {
       for (ii in 1:N)
-        for (kk in 3:K)
-          2 * theta_z[ii][kk-1] - theta_z[ii][kk] - theta_z[ii][kk-2] ~ normal(0, 1 / smooth);
+        for (kk in 3:(K+1)) {
+          if (kk < dropped)
+            2 * theta_z[ii][kk-1] - theta_z[ii][kk] - theta_z[ii][kk-2] ~ normal(0, 1 / smooth);
+          else if (kk == dropped)
+            2 * theta_z[ii][kk-1] - theta_z[ii][kk-2] ~ normal(0, 1 / smooth);
+          else if (kk == dropped + 1)
+            - theta_z[ii][kk-1] - theta_z[ii][kk-2] ~ normal(0, 1 / smooth);
+          else if (kk == dropped + 2)
+            2 * theta_z[ii][kk-2] - theta_z[ii][kk-1] ~ normal(0, 1 / smooth);
+          else
+            2 * theta_z[ii][kk-2] - theta_z[ii][kk-1] - theta_z[ii][kk-3] ~ normal(0, 1 / smooth);
+        }
     }
 
     // observed betas drawn from true parameters
@@ -164,7 +175,7 @@ fit <- NULL
 print(colMeans(abs(allbetas)))
 
 for (smooth in c(0, 1, 2)) {
-    stan.data <- list(N=N, K=K, L=L, beta=allbetas[1:N,], Sigma=allvcv2[1:N,,], x=allpreds2[, 1:N,], smooth=smooth, maxgamma=max(colMeans(abs(allbetas))))
+    stan.data <- list(N=N, K=K, L=L, beta=allbetas[1:N,], Sigma=allvcv2[1:N,,], x=allpreds2[, 1:N,], smooth=smooth, dropped=9, maxgamma=max(colMeans(abs(allbetas))))
 
     if (is.null(fit))
         fit <- stan(model_code=stan.model, data=stan.data,
