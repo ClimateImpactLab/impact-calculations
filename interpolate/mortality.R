@@ -33,7 +33,7 @@ for (ii in 1:length(adms)) {
 
     ## Add observations and associated data to BayesObservations
     for (jj in 1:nrow(betas)) {
-        if (ii <= length(dirs) {
+        if (ii <= length(dirs)) {
             ## Get the VCV
             file <- paste0(tolower(dirs[ii]), '_allage_state', betas$id[jj], '_VCV.csv')
 
