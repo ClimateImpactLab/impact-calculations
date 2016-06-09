@@ -1,74 +1,8 @@
 ##setwd("~/research/gcp/impact-calculations/adaptation/surface")
 
-stan.model <- "
-data {
-    int<lower=1> N; // number of study regions
-    int<lower=1> K; // number of coefficients (not including dropped)
-    int<lower=1> L; // number of predictors, including intercept
+source("bayeser.R")
 
-    vector[K] beta[N]; // estimated effects
-    cov_matrix[K] Sigma[N]; // VCV across betas
-
-    matrix[N, L] x[K]; // predictors across regions
-
-    real<lower=0> smooth; // prior on second derivative
-    int<lower=0> dropped; // index of dropped bin
-    //real<lower=0> maxsigma; // upper limit on sigma
-    //real<lower=0> maxgamma; // limits on gamma
-}
-transformed data {
-    // Optimization: only compute decomposition once
-    matrix[K, K] CholL[N];
-    for (ii in 1:N)
-      CholL[ii] <- cholesky_decompose(Sigma[ii]);
-}
-parameters {
-    vector[K] theta_z[N]; // z-scores of true effects
-    //vector<lower=-maxgamma, upper=maxgamma>[L] gamma[K]; // surface parameters
-    //real<lower=0, upper=maxsigma> tau[K]; // variance in hyper equation
-    vector[L] gamma[K]; // surface parameters
-    real<lower=0> tau[K]; // variance in hyper equation
-    //cov_matrix[N] Tau[K]; // VCV across thetas
-}
-transformed parameters {
-    vector[K] theta[N]; // true effects
-    vector[N] transtheta[K]; // transpose of theta
-    for (ii in 1:N) {
-      theta[ii] <- beta[ii] + CholL[ii] * theta_z[ii];
-      for (kk in 1:K)
-        transtheta[kk][ii] <- theta[ii][kk];
-    }
-}
-model {
-    // Add on the priors
-    if (smooth > 0) {
-      for (ii in 1:N)
-        for (kk in 3:(K+1)) {
-          if (kk < dropped)
-            2 * theta_z[ii][kk-1] - theta_z[ii][kk] - theta_z[ii][kk-2] ~ normal(0, 1 / smooth);
-          else if (kk == dropped)
-            2 * theta_z[ii][kk-1] - theta_z[ii][kk-2] ~ normal(0, 1 / smooth);
-          else if (kk == dropped + 1)
-            - theta_z[ii][kk-1] - theta_z[ii][kk-2] ~ normal(0, 1 / smooth);
-          else if (kk == dropped + 2)
-            2 * theta_z[ii][kk-2] - theta_z[ii][kk-1] ~ normal(0, 1 / smooth);
-          else
-            2 * theta_z[ii][kk-2] - theta_z[ii][kk-1] - theta_z[ii][kk-3] ~ normal(0, 1 / smooth);
-        }
-    }
-
-    // observed betas drawn from true parameters
-    for (ii in 1:N) {
-      theta_z[ii] ~ normal(0, 1);
-      // implies: beta[ii] ~ multi_normal_cholesky(theta[ii], CholL[ii]);
-    }
-    // true parameters produced by linear expression
-    for (kk in 1:K) {
-      increment_log_prob(normal_log(transtheta[kk], x[kk] * gamma[kk], tau[kk]));
-      //increment_log_prob(multi_normal_log(transtheta[kk], x[kk] * gamma[kk], Tau[kk]));
-    }
-}
-"
+bayeser <- BayeserObservations()
 
 ## Read all values
 basedir <- "../../../data/adaptation/vcvs"
@@ -82,11 +16,6 @@ bincols2 <- c('bin_nInf_n17C', 'bin_n17C_n12C', 'bin_n12C_n7C', 'bin_n7C_n2C', '
 meandaycols1 <- c('meandays_nInf_n17C', 'meandays_n17C_n12C', 'meandays_n12C_n7C', 'meandays_n7C_n2C', 'meandays_n2C_3C', 'meandays_3C_8C', 'meandays_8C_13C', 'meandays_13C_18C', 'meandays_23C_28C', 'meandays_28C_33C', 'meandays_33C_Inf')
 meandaycols2 <- c('meandays_nInfC_n17C', 'meandays_n17C_n12C', 'meandays_n12C_n7C', 'meandays_n7C_n2C', 'meandays_n2C_3C', 'meandays_3C_8C', 'meandays_8C_13C', 'meandays_13C_18C', 'meandays_23C_28C', 'meandays_28C_33C', 'meandays_33C_InfC')
 
-allbetas <- matrix(0, 0, 11)
-allvcv <- list()
-allpreds <- list(matrix(0, 0, 4), matrix(0, 0, 4), matrix(0, 0, 4), matrix(0, 0, 4), matrix(0, 0, 4),
-                 matrix(0, 0, 4), matrix(0, 0, 4), matrix(0, 0, 4), matrix(0, 0, 4), matrix(0, 0, 4), matrix(0, 0, 4))
-
 for (ii in 1:length(dirs)) {
     betas <- read.csv(paste(betadir, adms[ii], sep='/'))
     betas$loggdppc <- log(betas$gdppc)
@@ -97,16 +26,6 @@ for (ii in 1:length(dirs)) {
         betas[, bincols2]
     })
     names(binbetas) <- bincols1
-    allbetas <- rbind(allbetas, binbetas)
-    for (jj in 1:length(meandaycols1)) {
-        rows <- tryCatch({
-            cbind(data.frame(const=1), betas[, c(meandaycols1[jj], 'logpopop', 'loggdppc')])
-        }, error=function(e) {
-            cbind(data.frame(const=1), betas[, c(meandaycols2[jj], 'logpopop', 'loggdppc')])
-        })
-        names(rows) <- c('const', 'mdays', 'popop', 'gdppc')
-        allpreds[[jj]] <- rbind(allpreds[[jj]], rows)
-    }
 
     for (jj in 1:nrow(betas)) {
         file <- paste0(tolower(dirs[ii]), '_allage_state', betas$id[jj], '_VCV.csv')
@@ -116,6 +35,19 @@ for (ii in 1:length(dirs)) {
         if (vcv[2, 3] != vcv[3, 2])
             error("not symmtric!")
         allvcv[[length(allvcv)+1]] <- vcv
+
+        predses <- matrix(0, 0, 4)
+        for (kk in 1:length(meandaycols1)) {
+            row <- tryCatch({
+                cbind(data.frame(const=1), betas[jj, c(meandaycols1[kk], 'logpopop', 'loggdppc')])
+            }, error=function(e) {
+                cbind(data.frame(const=1), betas[jj, c(meandaycols2[kk], 'logpopop', 'loggdppc')])
+            })
+            names(row) <- c('const', 'mdays', 'popop', 'gdppc')
+            predses <- rbind(predses, row)
+        }
+
+        bayeser <- addObs(bayeser, binbetas[jj,], vcv, predses)
     }
 }
 
@@ -130,64 +62,35 @@ if (length(adms) > length(dirs)) {
             betas[, bincols2]
         })
         names(binbetas) <- bincols1
-        allbetas <- rbind(allbetas, binbetas)
-        for (jj in 1:length(meandaycols1)) {
-            rows <- tryCatch({
-                cbind(data.frame(const=1), betas[, c(meandaycols1[jj], 'logpopop', 'loggdppc')])
-            }, error=function(e) {
-                cbind(data.frame(const=1), betas[, c(meandaycols2[jj], 'logpopop', 'loggdppc')])
-            })
-            names(rows) <- c('const', 'mdays', 'popop', 'gdppc')
-            allpreds[[jj]] <- rbind(allpreds[[jj]], rows)
-        }
 
         for (jj in 1:nrow(betas)) {
             vcv <- diag(as.numeric(betas[jj, c("se_nInfC_n17C", "se_n17C_n12C", "se_n12C_n7C", "se_n7C_n2C", "se_n2C_3C", "se_3C_8C", "se_8C_13C", "se_13C_18C", "se_23C_28C", "se_28C_33C", "se_33C_InfC")]))
-	    vcv[is.na(vcv)] <- 1
+            vcv[is.na(vcv)] <- 1
             names(vcv) <- c("bin_nInfC_n17C", "bin_n17C_n12C", "bin_n12C_n7C", "bin_n7C_n2C", "bin_n2C_3C", "bin_3C_8C", "bin_8C_13C", "bin_13C_18C", "bin_23C_28C", "bin_28C_33C", "bin_33C_InfC")
-            allvcv[[length(allvcv)+1]] <- vcv
+
+            predses <- matrix(0, 0, 4)
+            for (kk in 1:length(meandaycols1)) {
+                row <- tryCatch({
+                    cbind(data.frame(const=1), betas[jj, c(meandaycols1[kk], 'logpopop', 'loggdppc')])
+                }, error=function(e) {
+                    cbind(data.frame(const=1), betas[jj, c(meandaycols2[kk], 'logpopop', 'loggdppc')])
+                })
+                names(row) <- c('const', 'mdays', 'popop', 'gdppc')
+                predses <- rbind(predses, row)
+            }
+
+            bayeser <- addObs(bayeser, binbetas[jj,], vcv, predses)
         }
     }
 }
-
-K <- ncol(allvcv[[1]])
-N <- length(allvcv)
-L <- 4
-
-allpreds2 <- array(0, c(K, N, 4))
-for (jj in 1:K)
-    allpreds2[jj, , ] <- as.matrix(allpreds[[jj]])
-
-allvcv2 <- array(0, c(N, K, K))
-for (ii in 1:N)
-    allvcv2[ii, , ] <- as.matrix(allvcv[[ii]])
-
-for (ii in 1:N)
-    for (jj in 1:K)
-        if (allvcv2[ii, jj, jj] == 0)
-            allvcv2[ii, jj, jj] <- 1
-
-allbetas[is.na(allbetas)] <- 0
-
-library(matrixStats)
-library(rstan)
 
 binlos <- c(-Inf, -17, -12, -7, -2, 3, 8, 13, 23, 28, 33)
 binhis <- c(-17, -12, -7, -2, 3, 8, 13, 18, 28, 33, Inf)
 
 fit <- NULL
 
-print(colMeans(abs(allbetas)))
-
 for (smooth in c(2, 0, 4)) {
-    stan.data <- list(N=N, K=K, L=L, beta=allbetas[1:N,], Sigma=allvcv2[1:N,,], x=allpreds2[, 1:N,], smooth=smooth, dropped=9, maxsigma=max(colSds(as.matrix(allbetas))), maxgamma=max(colMeans(abs(allbetas))))
-
-    if (is.null(fit))
-        fit <- stan(model_code=stan.model, data=stan.data,
-                    iter = 1000, chains = 4)
-    else
-        fit <- stan(fit=fit, data=stan.data,
-                    iter = 1000, chains = 4)
+    fit <- estimate(bayeser)
 
     print(fit)
 
