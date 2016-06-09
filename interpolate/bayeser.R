@@ -1,3 +1,4 @@
+library(methods)
 library(matrixStats)
 library(rstan)
 
