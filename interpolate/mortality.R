@@ -1,15 +1,15 @@
-##setwd("~/research/gcp/impact-calculations/adaptation/surface")
+##setwd("~/research/gcp/impact-calculations/interpolate")
 
 ## Create a BayesObservations object to hold the data
 source("bayeser.R")
 bayeser <- BayeserObservations()
 
 ## VCV files
-basedir <- "../../../data/adaptation/vcvs"
+basedir <- "../../data/adaptation/vcvs"
 dirs <- c("BRAZIL", "CHINA", "INDIA", "MEXICO")
 
 ## Beta files-- may be longer than VCV list
-betadir <- "../../../data/adaptation/inputs-apr-7"
+betadir <- "../../data/adaptation/inputs-apr-7"
 adms <- c("BRA_adm1.csv", "CHN_adm1.csv", "IND_adm1.csv", "MEX_adm1.csv", "FRA_adm1.csv", "USA_adm1.csv")
 
 ## Two definitions of column names
@@ -75,7 +75,7 @@ if (length(adms) > length(dirs)) {
         ## Add observations and associated data to BayesObservations
         for (jj in 1:nrow(betas)) {
             ## Construct diagonal VCV
-            vcv <- diag(as.numeric(betas[jj, c("se_nInfC_n17C", "se_n17C_n12C", "se_n12C_n7C", "se_n7C_n2C", "se_n2C_3C", "se_3C_8C", "se_8C_13C", "se_13C_18C", "se_23C_28C", "se_28C_33C", "se_33C_InfC")]))
+            vcv <- diag(as.numeric(betas[jj, c("se_nInfC_n17C", "se_n17C_n12C", "se_n12C_n7C", "se_n7C_n2C", "se_n2C_3C", "se_3C_8C", "se_8C_13C", "se_13C_18C", "se_23C_28C", "se_28C_33C", "se_33C_InfC")]))^2
             vcv[is.na(vcv)] <- 1
             names(vcv) <- c("bin_nInfC_n17C", "bin_n17C_n12C", "bin_n12C_n7C", "bin_n7C_n2C", "bin_n2C_3C", "bin_3C_8C", "bin_8C_13C", "bin_13C_18C", "bin_23C_28C", "bin_28C_33C", "bin_33C_InfC")
 

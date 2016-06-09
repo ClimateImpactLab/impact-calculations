@@ -22,8 +22,8 @@ transformed data {
       CholL[ii] <- cholesky_decompose(Sigma[ii]);
 }
 parameters {
-    vector[K] theta_z[N]; // z-scores of true effects
     vector[L] gamma[K]; // surface parameters
+    vector[K] theta_z[N]; // z-scores of true effects
     real<lower=0> tau[K]; // variance in hyper equation
 }
 transformed parameters {
