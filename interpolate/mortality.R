@@ -40,7 +40,6 @@ for (ii in 1:length(dirs)) {
         names(vcv) <- c("bin_nInfC_n17C", "bin_n17C_n12C", "bin_n12C_n7C", "bin_n7C_n2C", "bin_n2C_3C", "bin_3C_8C", "bin_8C_13C", "bin_13C_18C", "bin_23C_28C", "bin_28C_33C", "bin_33C_InfC")
         if (vcv[2, 3] != vcv[3, 2])
             error("not symmtric!")
-        allvcv[[length(allvcv)+1]] <- vcv
 
         ## Construct a matrix of predictors
         predses <- matrix(0, 0, 4)
