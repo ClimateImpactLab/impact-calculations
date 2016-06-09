@@ -19,7 +19,7 @@ meandaycols1 <- c('meandays_nInf_n17C', 'meandays_n17C_n12C', 'meandays_n12C_n7C
 meandaycols2 <- c('meandays_nInfC_n17C', 'meandays_n17C_n12C', 'meandays_n12C_n7C', 'meandays_n7C_n2C', 'meandays_n2C_3C', 'meandays_3C_8C', 'meandays_8C_13C', 'meandays_13C_18C', 'meandays_23C_28C', 'meandays_28C_33C', 'meandays_33C_InfC')
 
 ## Read all for which we have VCVs
-for (ii in 1:length(dirs)) {
+for (ii in 1:length(adms)) {
     ## Read betas
     betas <- read.csv(paste(betadir, adms[ii], sep='/'))
     betas$loggdppc <- log(betas$gdppc)
@@ -33,13 +33,20 @@ for (ii in 1:length(dirs)) {
 
     ## Add observations and associated data to BayesObservations
     for (jj in 1:nrow(betas)) {
-        ## Get the VCV
-        file <- paste0(tolower(dirs[ii]), '_allage_state', betas$id[jj], '_VCV.csv')
+        if (ii <= length(dirs) {
+            ## Get the VCV
+            file <- paste0(tolower(dirs[ii]), '_allage_state', betas$id[jj], '_VCV.csv')
 
-        vcv <- read.csv(paste(basedir, dirs[ii], file, sep='/'))
-        names(vcv) <- c("bin_nInfC_n17C", "bin_n17C_n12C", "bin_n12C_n7C", "bin_n7C_n2C", "bin_n2C_3C", "bin_3C_8C", "bin_8C_13C", "bin_13C_18C", "bin_23C_28C", "bin_28C_33C", "bin_33C_InfC")
-        if (vcv[2, 3] != vcv[3, 2])
-            error("not symmtric!")
+            vcv <- read.csv(paste(basedir, dirs[ii], file, sep='/'))
+            names(vcv) <- c("bin_nInfC_n17C", "bin_n17C_n12C", "bin_n12C_n7C", "bin_n7C_n2C", "bin_n2C_3C", "bin_3C_8C", "bin_8C_13C", "bin_13C_18C", "bin_23C_28C", "bin_28C_33C", "bin_33C_InfC")
+            if (vcv[2, 3] != vcv[3, 2])
+                error("not symmtric!")
+        } else {
+            ## Construct diagonal VCV
+            vcv <- diag(as.numeric(betas[jj, c("se_nInfC_n17C", "se_n17C_n12C", "se_n12C_n7C", "se_n7C_n2C", "se_n2C_3C", "se_3C_8C", "se_8C_13C", "se_13C_18C", "se_23C_28C", "se_28C_33C", "se_33C_InfC")]))^2
+            vcv[is.na(vcv)] <- 1
+            names(vcv) <- c("bin_nInfC_n17C", "bin_n17C_n12C", "bin_n12C_n7C", "bin_n7C_n2C", "bin_n2C_3C", "bin_3C_8C", "bin_8C_13C", "bin_13C_18C", "bin_23C_28C", "bin_28C_33C", "bin_33C_InfC")
+        }
 
         ## Construct a matrix of predictors
         predses <- matrix(0, 0, 4)
@@ -54,44 +61,6 @@ for (ii in 1:length(dirs)) {
         }
 
         bayeser <- addObs(bayeser, binbetas[jj,], vcv, predses)
-    }
-}
-
-## Reading remaining betas without VCVs
-if (length(adms) > length(dirs)) {
-    for (ii in (length(dirs) + 1):length(adms)) {
-        ## Read betas
-        betas <- read.csv(paste(betadir, adms[ii], sep='/'))
-        betas$loggdppc <- log(betas$gdppc)
-        betas$logpopop <- log(betas$popop)
-        binbetas <- tryCatch({
-            betas[, bincols1]
-        }, error=function(e) {
-            betas[, bincols2]
-        })
-        names(binbetas) <- bincols1
-
-        ## Add observations and associated data to BayesObservations
-        for (jj in 1:nrow(betas)) {
-            ## Construct diagonal VCV
-            vcv <- diag(as.numeric(betas[jj, c("se_nInfC_n17C", "se_n17C_n12C", "se_n12C_n7C", "se_n7C_n2C", "se_n2C_3C", "se_3C_8C", "se_8C_13C", "se_13C_18C", "se_23C_28C", "se_28C_33C", "se_33C_InfC")]))^2
-            vcv[is.na(vcv)] <- 1
-            names(vcv) <- c("bin_nInfC_n17C", "bin_n17C_n12C", "bin_n12C_n7C", "bin_n7C_n2C", "bin_n2C_3C", "bin_3C_8C", "bin_8C_13C", "bin_13C_18C", "bin_23C_28C", "bin_28C_33C", "bin_33C_InfC")
-
-            ## Construct a matrix of predictors
-            predses <- matrix(0, 0, 4)
-            for (kk in 1:length(meandaycols1)) {
-                row <- tryCatch({
-                    cbind(data.frame(const=1), betas[jj, c(meandaycols1[kk], 'logpopop', 'loggdppc')])
-                }, error=function(e) {
-                    cbind(data.frame(const=1), betas[jj, c(meandaycols2[kk], 'logpopop', 'loggdppc')])
-                })
-                names(row) <- c('const', 'mdays', 'popop', 'gdppc')
-                predses <- rbind(predses, row)
-            }
-
-            bayeser <- addObs(bayeser, binbetas[jj,], vcv, predses)
-        }
     }
 }
 
