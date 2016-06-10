@@ -15,6 +15,9 @@ data {
 
     real<lower=0> smooth; // prior on second derivative
     int<lower=0> dropbin; // index of dropped bin
+
+    real<lower=0> maxsigma; // upper limit on sigma
+    real<lower=0> maxgamma; // limits on gamma
 }
 transformed data {
     // Optimization: only compute decomposition once
@@ -23,9 +26,9 @@ transformed data {
       CholL[ii] <- cholesky_decompose(Sigma[ii]);
 }
 parameters {
-    vector[L] gamma[K]; // surface parameters
+    vector<lower=-maxgamma, upper=maxgamma>[L] gamma[K]; // surface parameters
+    real<lower=0, upper=maxsigma> tau[K]; // variance in hyper equation
     vector[K] theta_z[N]; // z-scores of true effects
-    real<lower=0> tau[K]; // variance in hyper equation
 }
 transformed parameters {
     vector[K] theta[N]; // true effects
@@ -133,7 +136,7 @@ setMethod("standata",
 
               this@allbetas[is.na(this@allbetas)] <- 0
 
-              list(N=N, K=this@K, L=this@L, beta=this@allbetas, Sigma=allvcv2, x=allpreds2, smooth=smooth, dropbin=dropbin)
+              list(N=N, K=this@K, L=this@L, beta=this@allbetas, Sigma=allvcv2, x=allpreds2, smooth=smooth, dropbin=dropbin, maxsigma=max(colSds(as.matrix(this@allbetas))), maxgamma=max(colMeans(abs(this@allbetas))))
           })
 
 ## Estimate the system
