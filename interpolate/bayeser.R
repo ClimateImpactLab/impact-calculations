@@ -211,8 +211,10 @@ setMethod("standata",
 
               result <- list(N=N, K=this@K, L=this@L, beta=this@allbetas, Sigma=allvcv2, x=allpreds2, smooth=smooth, dropbin=dropbin, maxsigma=max(colSds(as.matrix(this@allbetas))), maxgamma=max(colMeans(abs(this@allbetas))))
 
-              if (!is.null(supers))
+              if (!is.null(supers)) {
                   result[["supers"]] <- supers
+                  result[["M"]] <- max(supers)
+              }
           })
 
 ## Estimate the system
