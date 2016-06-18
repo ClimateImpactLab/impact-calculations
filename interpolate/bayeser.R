@@ -209,11 +209,11 @@ setMethod("standata",
 
               this@allbetas[is.na(this@allbetas)] <- 0
 
-              result <- list(N=N, K=this@K, L=this@L, beta=this@allbetas, Sigma=allvcv2, x=allpreds2, smooth=smooth, dropbin=dropbin, maxsigma=max(colSds(as.matrix(this@allbetas))), maxgamma=max(colMeans(abs(this@allbetas))))
 
               if (!is.null(supers)) {
-                  result[["supers"]] <- supers
-                  result[["M"]] <- max(supers)
+                result <- list(N=N, M=max(supers), K=this@K, L=this@L, beta=this@allbetas, Sigma=allvcv2, supers=supers, x=allpreds2, smooth=smooth, dropbin=dropbin, maxsigma=max(colSds(as.matrix(this@allbetas))), maxgamma=max(colMeans(abs(this@allbetas))))
+              } else {
+                result <- list(N=N, K=this@K, L=this@L, beta=this@allbetas, Sigma=allvcv2, x=allpreds2, smooth=smooth, dropbin=dropbin, maxsigma=max(colSds(as.matrix(this@allbetas))), maxgamma=max(colMeans(abs(this@allbetas))))
               }
           })
 
