@@ -39,3 +39,14 @@ This returns the posterior draws, which empirically define the
 distribution of each variable.  Specifically, `la$gamma` is a 4000 x K
 x L matrix, where 4000 is the number of draws, K is the number of
 bins, and L is the number of predictors.
+
+## Loading data from DMAS
+
+Start by installing `googlesheets` in R and getting an OAuth token:
+
+```
+install.packages("googlesheets")
+library(googlesheets)
+token <- gs_auth(cache = FALSE)
+saveRDS(token, file="googlesheets_token.rds")
+```
