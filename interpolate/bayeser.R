@@ -59,8 +59,7 @@ model {
 
     // observed betas drawn from true parameters
     for (ii in 1:N) {
-      //theta_z[ii] ~ normal(0, 1);
-      theta_z[ii] ~ student_t(10, 0, 1);
+      theta_z[ii] ~ normal(0, 1);
       // implies: beta[ii] ~ multi_normal_cholesky(theta[ii], CholL[ii]);
     }
     // true parameters produced by linear expression
