@@ -43,7 +43,7 @@ for (ii in 1:length(adms)) {
                 error("not symmtric!")
         } else {
             ## Construct diagonal VCV
-            vcv <- diag(as.numeric(betas[jj, c("se_nInfC_n17C", "se_n17C_n12C", "se_n12C_n7C", "se_n7C_n2C", "se_n2C_3C", "se_3C_8C", "se_8C_13C", "se_13C_18C", "se_23C_28C", "se_28C_33C", "se_33C_InfC")]))^2
+            vcv <- diag(as.numeric(betas[jj, c("se_nInfC_n17C", "se_n17C_n12C", "se_n12C_n7C", "se_n7C_n2C", "se_n2C_3C", "se_3C_8C", "se_8C_13C", "se_13C_18C", "se_23C_28C", "se_28C_33C", "se_33C_InfC")])^2)
             vcv[is.na(vcv)] <- 1
             names(vcv) <- c("bin_nInfC_n17C", "bin_n17C_n12C", "bin_n12C_n7C", "bin_n7C_n2C", "bin_n2C_3C", "bin_3C_8C", "bin_8C_13C", "bin_13C_18C", "bin_23C_28C", "bin_28C_33C", "bin_33C_InfC")
         }
@@ -79,7 +79,7 @@ for (smooth in c(2, 0, 4)) {
 
     ## Output bin surface parameters
     result <- data.frame()
-    for (kk in 1:K) {
+    for (kk in 1:11) {
         result <- rbind(result, data.frame(method='fullba', binlo=binlos[kk], binhi=binhis[kk],
                                            intercept_coef=mean(la$gamma[, kk, 1]),
                                            bindays_coef=mean(la$gamma[, kk, 2]),
