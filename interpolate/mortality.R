@@ -83,12 +83,12 @@ for (smooth in c(2, 0, 4)) {
         result <- rbind(result, data.frame(method='fullba', binlo=binlos[kk], binhi=binhis[kk],
                                            intercept_coef=mean(la$gamma[, kk, 1]),
                                            bindays_coef=mean(la$gamma[, kk, 2]),
-                                           gdppc_coef=mean(la$gamma[, kk, 3]),
-                                           popop_coef=mean(la$gamma[, kk, 4]),
+                                           gdppc_coef=mean(la$gamma[, kk, 4]),
+                                           popop_coef=mean(la$gamma[, kk, 3]),
                                            intercept_serr=sd(la$gamma[, kk, 1]),
                                            bindays_serr=sd(la$gamma[, kk, 2]),
-                                           gdppc_serr=sd(la$gamma[, kk, 3]),
-                                           popop_serr=sd(la$gamma[, kk, 4])))
+                                           gdppc_serr=sd(la$gamma[, kk, 4]),
+                                           popop_serr=sd(la$gamma[, kk, 3])))
     }
 
     write.csv(result, paste0("fullbayes", smooth, ".csv"), row.names=F)
