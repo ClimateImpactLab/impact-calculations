@@ -126,11 +126,40 @@ def iterate_bundles(basedir):
             yield scenario, model, weatherbundle
 
 class WeatherBundle(object):
+    """A WeatherBundle object is used to access the values for a single variable
+    across years, as provided by a given GCM.
+
+    All instantiated WeatherBundles are subclasses of WeatherBundle.  Subclasses
+    must define `is_historical`, `yearbundles`, and `get_years`, as described
+    below.
+    """
+
     def __init__(self, hierarchy='hierarchy.csv'):
         self.dependencies = []
         self.hierarchy = hierarchy
 
+    def is_historical(self):
+        """Returns True if this data presents historical observations; else False."""
+        raise NotImplementedError
+
+    def yearbundles(self, maxyear=np.inf):
+        """Yields the tuple (yyyyddd, weather) for each year up to `maxyear`.
+        Each yield should should produce all and only data for a single year.
+        Typically, the data provided by yearbundles is produced by `readncdf`.
+
+        yyyyddd should be a numpy array of length 365, and integer values
+        constructed like 2016001 for the first day of 2016.
+
+        weather should be a numpy array of size REGIONS x 365.
+        """
+        raise NotImplementedError
+
+    def get_years(self):
+        """Returns a list of all years available for the given WeatherBundle."""
+        raise NotImplementedError
+
     def load_regions(self):
+        """Load the rows of hierarchy.csv associated with all known regions."""
         mapping = {} # color to hierid
 
         with open(files.datapath("regions/" + self.hierarchy), 'r') as fp:
@@ -145,9 +174,12 @@ class WeatherBundle(object):
             self.regions.append(mapping[ii + 1])
 
     def load_metainfo(self, filepath, variable):
+        """Load an metadata associated with the WeatherBundle."""
         self.version, self.units = readmeta(filepath, variable)
 
     def baseline_average(self, maxyear):
+        """Yield the average weather value up to `maxyear` for each region."""
+        
         regionsums = np.zeros(len(self.regions))
         sumcount = 0
         for yyyyddd, weather in self.yearbundles(maxyear):
@@ -161,17 +193,25 @@ class WeatherBundle(object):
             yield self.regions[ii], region_averages[ii]
 
     def baseline_values(self, maxyear):
+        """Yield the list of all weather values up to `maxyear` for each region."""
+        
+        # Construct an empty matrix to append to
         regioncols = np.array([[]] * len(self.regions)).transpose()
-        print regioncols.shape
+
+        # Append each year
         for yyyyddd, weather in self.yearbundles(maxyear):
             print int(yyyyddd[0]) / 1000
 
+            # Stack this year below the previous years
             regioncols = np.vstack((regioncols, np.matrix(np.mean(weather, axis=0))))
 
+        # Yield the entire collection of values for each region
         for ii in range(len(self.regions)):
             yield self.regions[ii], regioncols[:,ii].tolist()
 
     def baseline_bin_values(self, binlimits, maxyear):
+        """Yield the number of days within each set of sequential limits from `binlimits` for each year and each region."""
+        
         regioncolbins = []
         for ii in range(len(binlimits) - 1):
             regioncols = np.array([[]] * len(self.regions)).transpose()
