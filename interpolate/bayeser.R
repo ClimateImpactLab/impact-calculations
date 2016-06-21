@@ -194,7 +194,7 @@ setMethod("standata",
           definition = function(this, smooth=0, dropbin=9, supers=NULL, fit=NULL) {
               N <- length(this@allvcv)
 
-              allpreds2 <- array(0, c(this@K, N, 4))
+              allpreds2 <- array(0, c(this@K, N, this@L))
               for (jj in 1:this@K)
                   allpreds2[jj, , ] <- as.matrix(this@allpredses[[jj]])
 
