@@ -1,8 +1,8 @@
 ##setwd("~/research/gcp/impact-calculations/interpolate")
 
 ## Create a BayesObservations object to hold the data
-source("bayeser.R")
-bayeser <- BayeserObservations()
+source("estimate.R")
+surface <- SurfaceObservations()
 
 ## VCV files
 basedir <- "../../data/adaptation/vcvs"
@@ -60,7 +60,7 @@ for (ii in 1:length(adms)) {
             predses <- rbind(predses, row)
         }
 
-        bayeser <- addObs(bayeser, binbetas[jj,], vcv, predses)
+        surface <- addObs(surface, binbetas[jj,], vcv, predses)
     }
 }
 
@@ -68,10 +68,31 @@ for (ii in 1:length(adms)) {
 binlos <- c(-Inf, -17, -12, -7, -2, 3, 8, 13, 23, 28, 33)
 binhis <- c(-17, -12, -7, -2, 3, 8, 13, 18, 28, 33, Inf)
 
+## Test SUR
+fit <- estimate.semur(surface)
+summary(fit)
+
+result <- data.frame()
+for (kk in 1:11) {
+    result <- rbind(result, data.frame(method='seemur', binlo=binlos[kk], binhi=binhis[kk],
+                                       intercept_coef=fit$coeff[(kk-1)*4 + 1],
+                                       bindays_coef=fit$coeff[(kk-1)*4 + 2],
+                                       gdppc_coef=fit$coeff[(kk-1)*4 + 4],
+                                       popop_coef=fit$coeff[(kk-1)*4 + 3],
+                                       intercept_serr=sqrt(fit$coefCov[(kk-1)*4 + 1, (kk-1)*4 + 1]),
+                                       bindays_serr=sqrt(fit$coefCov[(kk-1)*4 + 2, (kk-1)*4 + 2]),
+                                       gdppc_serr=sqrt(fit$coefCov[(kk-1)*4 + 4, (kk-1)*4 + 4]),
+                                       popop_serr=sqrt(fit$coefCov[(kk-1)*4 + 3, (kk-1)*4 + 3])))
+}
+
+write.csv(result, "seemur.csv", row.names=F)
+
+
+## Test Bayesian
 fit <- NULL
 
 for (smooth in c(2, 0, 4)) {
-    fit <- estimate(bayeser)
+    fit <- estimate.bayes(surface)
 
     print(fit)
 
