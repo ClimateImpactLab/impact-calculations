@@ -1,6 +1,6 @@
 ## Bayesian interpolation surface
 
-* `bayeser.R` defines a class for performing the estimation
+* `estimate.R` defines a class for performing the estimation
 * `mortality.R` is a full estimation for mortality
 * `display.R` shows a comparison of the Bayesian method against others
 
@@ -8,27 +8,34 @@ See the [Bayesian testing](https://docs.google.com/document/d/1g_3ukCzndYphH5OKT
 
 ## Basic usage
 
-Create an object of type `BayeserObservations`:
+Create an object of type `SurfaceObservations`:
 ```
-source("bayeser.R")
-bayeser <- BayeserObservations()
+source("estimate.R")
+surface <- SurfaceObservations()
 ```
 
 Add each region's values for beta (K values), its VCV (using a diagonal of the SE, squared, if not avaiable) (K x K), and a matrix of predictors (K x L):
 ```
-bayeser <- addObs(bayeser, betas, vcv, predses)
+surface <- addObs(surface, betas, vcv, predses)
 ```
 
 Fit the model, by calling `estimate`:
 ```
-fit <- estimate(bayeser)
+fit <- estimate.semur(surface)
+```
+or
+```
+fit <- estimate.bayes(surface)
 ```
 
-Now you can check it, by printing `fit`.  You'll see the quantiles of
-estimated variable.  The most important values are in `gamma`, the
-slopes of the surface.  Make sure that you have a decent number of
-effective posterior draws in the printed `n_eff` column (500 - 2000),
-and that `Rhat` is near 1.
+If you use `estimate.semur`, you will get a result of type
+`systemfit`, containing `coefficients` and `coefCov`.
+
+If you use `estimate.bayes`, start by printing `fit`.  You'll see the
+quantiles of estimated variable.  The most important values are in
+`gamma`, the slopes of the surface.  Make sure that you have a decent
+number of effective posterior draws in the printed `n_eff` column (500
+- 2000), and that `Rhat` is near 1.
 
 To use the values in `fit`, call `extract`:
 ```
