@@ -1,6 +1,7 @@
 library(methods)
 library(matrixStats)
 library(rstan)
+library(systemfit)
 
 stan.model <- "
 data {
@@ -140,8 +141,8 @@ model {
     }
 }"
 
-BayeserObservations <- setClass(
-    "BayeserObservations",
+SurfaceObservations <- setClass(
+    "SurfaceObservations",
     ## Define slots
     representation(K = "numeric",
                    L = "numeric",
@@ -149,7 +150,7 @@ BayeserObservations <- setClass(
                    allvcv = "list",
                    allpredses = "list"))
 
-setMethod("initialize", "BayeserObservations",
+setMethod("initialize", "SurfaceObservations",
           function(.Object, K=11, L=4) {
               .Object@K <- K
               .Object@L <- L
@@ -170,7 +171,7 @@ setGeneric("addObs",
            })
 
 setMethod("addObs",
-          signature = "BayeserObservations",
+          signature = "SurfaceObservations",
           definition = function(this, betas, vcv, predses) {
               this@allbetas <- rbind(this@allbetas, as.matrix(betas))
               print(nrow(this@allbetas))
@@ -183,14 +184,14 @@ setMethod("addObs",
           })
 
 ## Collect Stan Data
-setGeneric("standata",
-           def = function(this, smooth=0, dropbin=9, supers=NULL, fit=NULL) {
-               standardGeneric("standata")
+setGeneric("prepdata",
+           def = function(this, smooth=0, dropbin=9) {
+               standardGeneric("prepdata")
            })
 
-setMethod("standata",
-          signature = "BayeserObservations",
-          definition = function(this, smooth=0, dropbin=9, supers=NULL, fit=NULL) {
+setMethod("prepdata",
+          signature = "SurfaceObservations",
+          definition = function(this, smooth=0, dropbin=9) {
               N <- length(this@allvcv)
 
               allpreds2 <- array(0, c(this@K, N, this@L))
@@ -208,26 +209,24 @@ setMethod("standata",
 
               this@allbetas[is.na(this@allbetas)] <- 0
 
-              result <- list(N=N, K=this@K, L=this@L, beta=this@allbetas, Sigma=allvcv2, x=allpreds2, smooth=smooth, dropbin=dropbin, maxsigma=max(colSds(as.matrix(this@allbetas))), maxgamma=max(colMeans(abs(this@allbetas))))
-
-              if (!is.null(supers)) {
-                  result[["supers"]] <- supers
-                  result[["M"]] <- max(supers)
-              }
-
-              result
+              list(N=N, K=this@K, L=this@L, beta=this@allbetas, Sigma=allvcv2, x=allpreds2, smooth=smooth, dropbin=dropbin, maxsigma=max(colSds(as.matrix(this@allbetas))), maxgamma=max(colMeans(abs(this@allbetas))))
           })
 
-## Estimate the system
-setGeneric("estimate",
+## Estimate the system using Stan
+setGeneric("estimate.bayes",
            def = function(this, smooth=0, dropbin=9, supers=NULL, fit=NULL) {
-               standardGeneric("estimate")
+               standardGeneric("estimate.bayes")
            })
 
-setMethod("estimate",
-          signature = "BayeserObservations",
+setMethod("estimate.bayes",
+          signature = "SurfaceObservations",
           definition = function(this, smooth=0, dropbin=9, supers=NULL, fit=NULL) {
-              stan.data <- standata(this, smooth=smooth, dropbin=dropbin, supers=supers, fit=fit)
+              stan.data <- prepdata(this, smooth=smooth, dropbin=dropbin)
+
+              if (!is.null(supers)) {
+                  stan.data[["supers"]] <- supers
+                  stan.data[["M"]] <- max(supers)
+              }
 
               if (is.null(fit)) {
                   if (is.null(supers))
@@ -241,4 +240,43 @@ setMethod("estimate",
                               iter = 1000, chains = 4)
 
               fit
+          })
+
+## Estimate the system using SUR
+setGeneric("estimate.semur",
+           def = function(this) {
+               standardGeneric("estimate.semur")
+           })
+
+setMethod("estimate.semur",
+          signature = "SurfaceObservations",
+          definition = function(this) {
+              data <- prepdata(this, smooth=0, dropbin=NA)
+
+              regs <- list()
+              sur.data <- data.frame(beta=c())
+              sur.names <- c()
+
+              for (ii in 1:data$K) {
+                  new.names <- paste("pred", ii, 1:data$L, sep=".")
+                  regs[[ii]] <- as.formula(paste("beta ~ 0 +", paste(new.names, collapse=" + ")))
+                  if (nrow(sur.data) > 0) {
+                      for (jj in 1:data$L)
+                          sur.data[,new.names[jj]] <- 0
+                  }
+
+                  new.data <- cbind(data$beta[,ii], matrix(0, nrow=data$N, ncol=length(sur.names)), data$x[ii,,])
+                  for (jj in 1:nrow(new.data)) {
+                      serr <- sqrt(data$Sigma[jj, ii, ii])
+                      if (serr == 0 || serr == Inf || (serr == 1 && new.data[jj, 1] == 0))
+                          new.data[jj,] <- 0
+                      else
+                          new.data[jj,] <- new.data[jj,] / serr
+                  }
+                  sur.names <- c(sur.names, new.names)
+                  colnames(new.data) <- c('beta', sur.names)
+                  sur.data <- rbind(sur.data, new.data)
+              }
+
+              systemfit(regs, data=sur.data, method="OLS")
           })

@@ -101,3 +101,5 @@ stan.data <- list(N=N, K=K, L=L, beta=t(allbetas[1:N,]), sigma=t(allsigma[1:N,])
 
 fit <- stan(model_code=stan.model.novcv, data=stan.data,
                         iter = 1000, chains = 4)
+
+save(fit, file="all-countries.RData")
