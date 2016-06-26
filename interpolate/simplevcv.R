@@ -1,14 +1,16 @@
 ##setwd("~/research/gcp/impact-calculations/interpolate")
 
-## Create a BayesObservations object to hold the data
-source("estimate.R")
-surface <- SurfaceObservations()
+allbetas <- matrix(0, 0, 11)
+allvcv <- list()
+allpreds <- list(matrix(0, 0, 4), matrix(0, 0, 4), matrix(0, 0, 4), matrix(0, 0, 4),
+                 matrix(0, 0, 4), matrix(0, 0, 4), matrix(0, 0, 4), matrix(0, 0, 4),
+                 matrix(0, 0, 4), matrix(0, 0, 4), matrix(0, 0, 4))
 
 ## VCV files
 basedir <- "../../data/adaptation/vcvs"
 dirs <- c("BRAZIL", "CHINA", "INDIA", "MEXICO")
 
-## Beta files-- may be longer than VCV list
+## Beta files
 betadir <- "../../data/adaptation/inputs-apr-7"
 adms <- c("BRA_adm1.csv", "CHN_adm1.csv", "IND_adm1.csv", "MEX_adm1.csv", "FRA_adm1.csv", "USA_adm1.csv")
 
@@ -18,7 +20,6 @@ bincols2 <- c('bin_nInf_n17C', 'bin_n17C_n12C', 'bin_n12C_n7C', 'bin_n7C_n2C', '
 meandaycols1 <- c('meandays_nInf_n17C', 'meandays_n17C_n12C', 'meandays_n12C_n7C', 'meandays_n7C_n2C', 'meandays_n2C_3C', 'meandays_3C_8C', 'meandays_8C_13C', 'meandays_13C_18C', 'meandays_23C_28C', 'meandays_28C_33C', 'meandays_33C_Inf')
 meandaycols2 <- c('meandays_nInfC_n17C', 'meandays_n17C_n12C', 'meandays_n12C_n7C', 'meandays_n7C_n2C', 'meandays_n2C_3C', 'meandays_3C_8C', 'meandays_8C_13C', 'meandays_13C_18C', 'meandays_23C_28C', 'meandays_28C_33C', 'meandays_33C_InfC')
 
-## Read all for which we have VCVs
 for (ii in 1:length(adms)) {
     ## Read betas
     betas <- read.csv(paste(betadir, adms[ii], sep='/'))
@@ -30,13 +31,13 @@ for (ii in 1:length(adms)) {
         betas[, bincols2]
     })
     names(binbetas) <- bincols1
+    allbetas <- rbind(allbetas, binbetas)
 
     ## Add observations and associated data to BayesObservations
     for (jj in 1:nrow(betas)) {
         if (ii <= length(dirs)) {
             ## Get the VCV
             file <- paste0(tolower(dirs[ii]), '_allage_state', betas$id[jj], '_VCV.csv')
-
             vcv <- read.csv(paste(basedir, dirs[ii], file, sep='/'))
             names(vcv) <- c("bin_nInfC_n17C", "bin_n17C_n12C", "bin_n12C_n7C", "bin_n7C_n2C", "bin_n2C_3C", "bin_3C_8C", "bin_8C_13C", "bin_13C_18C", "bin_23C_28C", "bin_28C_33C", "bin_33C_InfC")
             if (vcv[2, 3] != vcv[3, 2])
@@ -48,60 +49,53 @@ for (ii in 1:length(adms)) {
             names(vcv) <- c("bin_nInfC_n17C", "bin_n17C_n12C", "bin_n12C_n7C", "bin_n7C_n2C", "bin_n2C_3C", "bin_3C_8C", "bin_8C_13C", "bin_13C_18C", "bin_23C_28C", "bin_28C_33C", "bin_33C_InfC")
         }
 
-        ## Construct a matrix of predictors
-        predses <- matrix(0, 0, 4)
-        for (kk in 1:length(meandaycols1)) {
-            row <- tryCatch({
-                cbind(data.frame(const=1), betas[jj, c(meandaycols1[kk], 'logpopop', 'loggdppc')])
-            }, error=function(e) {
-                cbind(data.frame(const=1), betas[jj, c(meandaycols2[kk], 'logpopop', 'loggdppc')])
-            })
-            names(row) <- c('const', 'mdays', 'popop', 'gdppc')
-            predses <- rbind(predses, row)
-        }
+        allvcv[[length(allvcv)+1]] <- vcv
+    }
 
-        surface <- addObs(surface, binbetas[jj,], vcv, predses)
+    ## Construct a matrix of predictors
+    for (kk in 1:length(meandaycols1)) {
+        rows <- tryCatch({
+            cbind(data.frame(const=1), betas[, c(meandaycols1[kk], 'logpopop', 'loggdppc')])
+        }, error=function(e) {
+            cbind(data.frame(const=1), betas[, c(meandaycols2[kk], 'logpopop', 'loggdppc')])
+        })
+        names(rows) <- c('const', 'mdays', 'popop', 'gdppc')
+        allpreds[[kk]] <- rbind(allpreds[[kk]], rows)
     }
 }
 
-## Fit the model for different smooths and save
+K <- 11
+N <- nrow(allbetas)
+L <- 4
+
+allpreds2 <- array(0, c(K, N, 4))
+for (jj in 1:K)
+    allpreds2[jj, , ] <- as.matrix(allpreds[[jj]])
+
+allvcv2 <- array(0, c(N, K, K))
+for (ii in 1:N)
+    allvcv2[ii, , ] <- as.matrix(allvcv[[ii]])
+
+for (ii in 1:N)
+    for (jj in 1:K)
+        if (allvcv2[ii, jj, jj] == 0)
+            allvcv2[ii, jj, jj] <- 1
+
+allbetas[is.na(allbetas)] <- 0
+
+library(rstan)
+
 binlos <- c(-Inf, -17, -12, -7, -2, 3, 8, 13, 23, 28, 33)
 binhis <- c(-17, -12, -7, -2, 3, 8, 13, 18, 28, 33, Inf)
 
-## Test SUR
-fit <- estimate.semur(surface)
-summary(fit)
+stan.data <- list(N=N, K=K, L=L, beta=t(allbetas[1:N,]), Sigma=allvcv2, x=allpreds2[, 1:N,])
 
-result <- data.frame()
-for (kk in 1:11) {
-    result <- rbind(result, data.frame(method='seemur', binlo=binlos[kk], binhi=binhis[kk],
-                                       intercept_coef=fit$coeff[(kk-1)*4 + 1],
-                                       bindays_coef=fit$coeff[(kk-1)*4 + 2],
-                                       gdppc_coef=fit$coeff[(kk-1)*4 + 4],
-                                       popop_coef=fit$coeff[(kk-1)*4 + 3],
-                                       intercept_serr=sqrt(fit$coefCov[(kk-1)*4 + 1, (kk-1)*4 + 1]),
-                                       bindays_serr=sqrt(fit$coefCov[(kk-1)*4 + 2, (kk-1)*4 + 2]),
-                                       gdppc_serr=sqrt(fit$coefCov[(kk-1)*4 + 4, (kk-1)*4 + 4]),
-                                       popop_serr=sqrt(fit$coefCov[(kk-1)*4 + 3, (kk-1)*4 + 3])))
-}
-
-write.csv(result, "seemur.csv", row.names=F)
-
-
-## Test Bayesian
-fit <- NULL
-
-for (smooth in c(2, 0, 4)) {
-    fit <- estimate.bayes(surface, smooth=smooth, dropbin=8)
-
-    print(fit)
-
+save.fit <- function(fit, file) {
     la <- extract(fit, permute=T)
 
-    ## Output bin surface parameters
     result <- data.frame()
     for (kk in 1:11) {
-        result <- rbind(result, data.frame(method='fullba', binlo=binlos[kk], binhi=binhis[kk],
+        result <- rbind(result, data.frame(binlo=binlos[kk], binhi=binhis[kk],
                                            intercept_coef=mean(la$gamma[, kk, 1]),
                                            bindays_coef=mean(la$gamma[, kk, 2]),
                                            gdppc_coef=mean(la$gamma[, kk, 4]),
@@ -112,5 +106,47 @@ for (smooth in c(2, 0, 4)) {
                                            popop_serr=sd(la$gamma[, kk, 3])))
     }
 
-    write.csv(result, paste0("fullbayes", smooth, ".csv"), row.names=F)
+    write.csv(result, file, row.names=F)
 }
+
+## B-
+stan.model.vcvpool <- "
+data {
+    int<lower=1> N; // number of study regions
+    int<lower=1> K; // number of coefficients (not including dropped)
+    int<lower=1> L; // number of predictors, including intercept
+
+    vector[N] beta[K]; // estimated effects
+    cov_matrix[K] Sigma[N]; // VCV across betas
+
+    matrix[N, L] x[K]; // predictors across regions
+}
+transformed data {
+    // Optimization: only compute decomposition once
+    matrix[K, K] CholL[N];
+
+    for (ii in 1:N)
+      CholL[ii] <- cholesky_decompose(Sigma[ii]);
+}
+parameters {
+    vector[L] gamma[K]; // surface parameters
+}
+transformed parameters {
+    vector[K] predbeta[N];
+    vector[K] transbeta[N];
+
+    for (ii in 1:N)
+      for (kk in 1:K) {
+        predbeta[ii][kk] <- x[kk][ii] * gamma[kk];
+        transbeta[ii][kk] <- beta[kk][ii];
+      }
+}
+model {
+    for (ii in 1:N)
+      transbeta[ii] ~ multi_normal_cholesky(predbeta[ii], CholL[ii]);
+}"
+
+fit <- stan(model_code=stan.model.vcvpool, data=stan.data,
+            iter = 1000, chains = 4)
+
+save.fit(fit, "simple-vcvpool-bminus.csv")
