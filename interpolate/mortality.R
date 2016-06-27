@@ -90,7 +90,7 @@ write.csv(result, "seemur.csv", row.names=F)
 ## Test Bayesian
 fit <- NULL
 
-for (smooth in c(2, 0, 4)) {
+for (smooth in c(0, 1, 2, 4, 8)) {
     fit <- estimate.bayes(surface, smooth=smooth, dropbin=8)
 
     print(fit)
