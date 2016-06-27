@@ -29,13 +29,11 @@ transformed data {
 parameters {
     vector<lower=-maxgamma, upper=maxgamma>[L] gamma[K]; // surface parameters
     real<lower=0, upper=maxsigma> tau[K]; // variance in hyper equation
-    vector[K] theta_z[N]; // z-scores of true effects
+    vector[K] theta[N]; // z-scores of true effects
 }
 transformed parameters {
-    vector[K] theta[N]; // true effects
     vector[N] transtheta[K]; // transpose of theta
     for (ii in 1:N) {
-      theta[ii] <- beta[ii] + CholL[ii] * theta_z[ii];
       for (kk in 1:K)
         transtheta[kk][ii] <- theta[ii][kk];
     }
@@ -46,23 +44,22 @@ model {
       for (ii in 1:N)
         for (kk in 3:(K+1)) {
           if (kk < dropbin)
-            2 * theta_z[ii][kk-1] - theta_z[ii][kk] - theta_z[ii][kk-2] ~ normal(0, 1 / smooth);
+            2 * gamma[ii][kk-1] - gamma[ii][kk] - gamma[ii][kk-2] ~ normal(0, 1 / smooth);
           else if (kk == dropbin)
-            2 * theta_z[ii][kk-1] - theta_z[ii][kk-2] ~ normal(0, 1 / smooth);
+            2 * gamma[ii][kk-1] - gamma[ii][kk-2] ~ normal(0, 1 / smooth);
           else if (kk == dropbin + 1)
-            - theta_z[ii][kk-1] - theta_z[ii][kk-2] ~ normal(0, 1 / smooth);
+            - gamma[ii][kk-1] - gamma[ii][kk-2] ~ normal(0, 1 / smooth);
           else if (kk == dropbin + 2)
-            2 * theta_z[ii][kk-2] - theta_z[ii][kk-1] ~ normal(0, 1 / smooth);
+            2 * gamma[ii][kk-2] - gamma[ii][kk-1] ~ normal(0, 1 / smooth);
           else
-            2 * theta_z[ii][kk-2] - theta_z[ii][kk-1] - theta_z[ii][kk-3] ~ normal(0, 1 / smooth);
+            2 * gamma[ii][kk-2] - gamma[ii][kk-1] - gamma[ii][kk-3] ~ normal(0, 1 / smooth);
         }
     }
 
     // observed betas drawn from true parameters
-    for (ii in 1:N) {
-      theta_z[ii] ~ normal(0, 1);
-      // implies: beta[ii] ~ multi_normal_cholesky(theta[ii], CholL[ii]);
-    }
+    for (ii in 1:N)
+       beta[ii] ~ multi_normal_cholesky(theta[ii], CholL[ii]);
+
     // true parameters produced by linear expression
     for (kk in 1:K) {
       increment_log_prob(normal_log(transtheta[kk], x[kk] * gamma[kk], tau[kk]));
@@ -205,7 +202,7 @@ setMethod("prepdata",
               for (ii in 1:N)
                   for (jj in 1:this@K)
                       if (allvcv2[ii, jj, jj] == 0)
-                          allvcv2[ii, jj, jj] <- 1
+                          allvcv2[ii, jj, jj] <- Inf
 
               this@allbetas[is.na(this@allbetas)] <- 0
 
