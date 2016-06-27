@@ -41,18 +41,18 @@ transformed parameters {
 model {
     // Add on the priors
     if (smooth > 0) {
-      for (ii in 1:N)
+      for (ii in 1:L)
         for (kk in 3:(K+1)) {
           if (kk < dropbin)
-            2 * gamma[ii][kk-1] - gamma[ii][kk] - gamma[ii][kk-2] ~ normal(0, 1 / smooth);
+            2 * gamma[kk-1][ii] - gamma[kk][ii] - gamma[kk-2][ii] ~ normal(0, 1 / smooth);
           else if (kk == dropbin)
-            2 * gamma[ii][kk-1] - gamma[ii][kk-2] ~ normal(0, 1 / smooth);
+            2 * gamma[kk-1][ii] - gamma[kk-2][ii] ~ normal(0, 1 / smooth);
           else if (kk == dropbin + 1)
-            - gamma[ii][kk-1] - gamma[ii][kk-2] ~ normal(0, 1 / smooth);
+            - gamma[kk-1][ii] - gamma[kk-2][ii] ~ normal(0, 1 / smooth);
           else if (kk == dropbin + 2)
-            2 * gamma[ii][kk-2] - gamma[ii][kk-1] ~ normal(0, 1 / smooth);
+            2 * gamma[kk-2][ii] - gamma[kk-1][ii] ~ normal(0, 1 / smooth);
           else
-            2 * gamma[ii][kk-2] - gamma[ii][kk-1] - gamma[ii][kk-3] ~ normal(0, 1 / smooth);
+            2 * gamma[kk-2][ii] - gamma[kk-1][ii] - gamma[kk-3][ii] ~ normal(0, 1 / smooth);
         }
     }
 
@@ -112,18 +112,18 @@ transformed parameters {
 model {
     // Add on the priors
     if (smooth > 0) {
-      for (ii in 1:N)
+      for (ii in 1:L)
         for (kk in 3:(K+1)) {
           if (kk < dropbin)
-            2 * theta_z[ii][kk-1] - theta_z[ii][kk] - theta_z[ii][kk-2] ~ normal(0, 1 / smooth);
+            2 * gamma[kk-1][ii] - gamma[kk][ii] - gamma[kk-2][ii] ~ normal(0, 1 / smooth);
           else if (kk == dropbin)
-            2 * theta_z[ii][kk-1] - theta_z[ii][kk-2] ~ normal(0, 1 / smooth);
+            2 * gamma[kk-1][ii] - gamma[kk-2][ii] ~ normal(0, 1 / smooth);
           else if (kk == dropbin + 1)
-            - theta_z[ii][kk-1] - theta_z[ii][kk-2] ~ normal(0, 1 / smooth);
+            - gamma[kk-1][ii] - gamma[kk-2][ii] ~ normal(0, 1 / smooth);
           else if (kk == dropbin + 2)
-            2 * theta_z[ii][kk-2] - theta_z[ii][kk-1] ~ normal(0, 1 / smooth);
+            2 * gamma[kk-2][ii] - gamma[kk-1][ii] ~ normal(0, 1 / smooth);
           else
-            2 * theta_z[ii][kk-2] - theta_z[ii][kk-1] - theta_z[ii][kk-3] ~ normal(0, 1 / smooth);
+            2 * gamma[kk-2][ii] - gamma[kk-1][ii] - gamma[kk-3][ii] ~ normal(0, 1 / smooth);
         }
     }
 
@@ -211,13 +211,13 @@ setMethod("prepdata",
 
 ## Estimate the system using Stan
 setGeneric("estimate.bayes",
-           def = function(this, smooth=0, dropbin=9, supers=NULL, fit=NULL) {
+           def = function(this, smooth=0, dropbin=9, supers=NULL, fit=NULL, chains=4) {
                standardGeneric("estimate.bayes")
            })
 
 setMethod("estimate.bayes",
           signature = "SurfaceObservations",
-          definition = function(this, smooth=0, dropbin=9, supers=NULL, fit=NULL) {
+          definition = function(this, smooth=0, dropbin=9, supers=NULL, fit=NULL, chains=4) {
               stan.data <- prepdata(this, smooth=smooth, dropbin=dropbin)
 
               if (!is.null(supers)) {
@@ -228,13 +228,13 @@ setMethod("estimate.bayes",
               if (is.null(fit)) {
                   if (is.null(supers))
                       fit <- stan(model_code=stan.model, data=stan.data,
-                                  iter = 1000, chains = 4)
+                                  iter = 1000, chains = chains)
                   else
                       fit <- stan(model_code=stan.model.fe, data=stan.data,
-                                  iter = 1000, chains = 4)
+                                  iter = 1000, chains = chains)
               } else
                   fit <- stan(fit=fit, data=stan.data,
-                              iter = 1000, chains = 4)
+                              iter = 1000, chains = chains)
 
               fit
           })
