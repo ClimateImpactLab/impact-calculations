@@ -91,7 +91,7 @@ write.csv(result, "seemur.csv", row.names=F)
 fit <- NULL
 
 for (smooth in c(0, 1, 2, 4, 8)) {
-    fit <- estimate.bayes(surface, smooth=smooth, dropbin=8, chains=10)
+    fit <- estimate.bayes(surface, smooth=smooth, dropbin=8, chains=20)
 
     print(fit)
 
