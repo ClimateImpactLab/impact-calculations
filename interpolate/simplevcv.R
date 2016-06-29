@@ -4,9 +4,9 @@ do.serronly <- T
 
 ## VCV files
 basedir <- "../../data/adaptation/vcvs"
-if (do.serronly)
+if (do.serronly) {
     dirs <- c()
-else
+} else
     dirs <- c("BRAZIL", "CHINA", "INDIA", "MEXICO")
 
 print(dirs)
@@ -164,8 +164,8 @@ model {
 fit <- stan(model_code=stan.model.vcvpool, data=stan.data,
             iter = 1000, chains = 4)
 
-if (do.serronly)
+if (do.serronly) {
     save.fit(fit, "simple-vcvpool-o-as-b.csv")
-else
+} else
     save.fit(fit, "simple-vcvpool-bminus.csv")
 
