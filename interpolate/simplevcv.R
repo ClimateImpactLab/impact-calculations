@@ -1,18 +1,25 @@
 ##setwd("~/research/gcp/impact-calculations/interpolate")
 
+do.serronly <- T
+
+## VCV files
+basedir <- "../../data/adaptation/vcvs"
+if (do.serronly)
+    dirs <- c()
+else
+    dirs <- c("BRAZIL", "CHINA", "INDIA", "MEXICO")
+
+print(dirs)
+
+## Beta files
+betadir <- "../../data/adaptation/inputs-apr-7"
+adms <- c("BRA_adm1.csv", "CHN_adm1.csv", "IND_adm1.csv", "MEX_adm1.csv", "FRA_adm1.csv", "USA_adm1.csv")
+
 allbetas <- matrix(0, 0, 11)
 allvcv <- list()
 allpreds <- list(matrix(0, 0, 4), matrix(0, 0, 4), matrix(0, 0, 4), matrix(0, 0, 4),
                  matrix(0, 0, 4), matrix(0, 0, 4), matrix(0, 0, 4), matrix(0, 0, 4),
                  matrix(0, 0, 4), matrix(0, 0, 4), matrix(0, 0, 4))
-
-## VCV files
-basedir <- "../../data/adaptation/vcvs"
-dirs <- c("BRAZIL", "CHINA", "INDIA", "MEXICO")
-
-## Beta files
-betadir <- "../../data/adaptation/inputs-apr-7"
-adms <- c("BRA_adm1.csv", "CHN_adm1.csv", "IND_adm1.csv", "MEX_adm1.csv", "FRA_adm1.csv", "USA_adm1.csv")
 
 ## Two definitions of column names
 bincols1 <- c('bin_nInfC_n17C', 'bin_n17C_n12C', 'bin_n12C_n7C', 'bin_n7C_n2C', 'bin_n2C_3C', 'bin_3C_8C', 'bin_8C_13C', 'bin_13C_18C', 'bin_23C_28C', 'bin_28C_33C', 'bin_33C_InfC')
@@ -44,7 +51,15 @@ for (ii in 1:length(adms)) {
                 error("not symmtric!")
         } else {
             ## Construct diagonal VCV
-            vcv <- diag(as.numeric(betas[jj, c("se_nInfC_n17C", "se_n17C_n12C", "se_n12C_n7C", "se_n7C_n2C", "se_n2C_3C", "se_3C_8C", "se_8C_13C", "se_13C_18C", "se_23C_28C", "se_28C_33C", "se_33C_InfC")])^2)
+            vcv <- diag(tryCatch({
+                as.numeric(betas[jj, c("se_nInfC_n17C", "se_n17C_n12C", "se_n12C_n7C", "se_n7C_n2C", "se_n2C_3C", "se_3C_8C", "se_8C_13C", "se_13C_18C", "se_23C_28C", "se_28C_33C", "se_33C_InfC")])
+            }, error=function(e) {
+                tryCatch({
+                    as.numeric(betas[jj, c("se_nInfC_n17C", "se_n17C_n12C", "se_n12C_n7C", "se_n7C_n2C", "se_n2C_3C", "se_3C_8C", "se_8C_13C", "se_13C_18C", "se_23C_28C", "se_28C_33C", "se_33C_InfC_pop")])
+                }, error=function(e) {
+                    as.numeric(betas[jj, c("se_nInf_n17C", "se_n17C_n12C", "se_n12C_n7C", "se_n7C_n2C", "se_n2C_3C", "se_3C_8C", "se_8C_13C", "se_13C_18C", "se_23C_28C", "se_28C_33C", "se_33C_Inf")])
+                })
+            })^2)
             vcv[is.na(vcv)] <- Inf
             names(vcv) <- c("bin_nInfC_n17C", "bin_n17C_n12C", "bin_n12C_n7C", "bin_n7C_n2C", "bin_n2C_3C", "bin_3C_8C", "bin_8C_13C", "bin_13C_18C", "bin_23C_28C", "bin_28C_33C", "bin_33C_InfC")
         }
@@ -149,4 +164,8 @@ model {
 fit <- stan(model_code=stan.model.vcvpool, data=stan.data,
             iter = 1000, chains = 4)
 
-save.fit(fit, "simple-vcvpool-bminus.csv")
+if (do.serronly)
+    save.fit(fit, "simple-vcvpool-o-as-b.csv")
+else
+    save.fit(fit, "simple-vcvpool-bminus.csv")
+
