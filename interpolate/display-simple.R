@@ -9,12 +9,15 @@ gammas.am <- read.csv("simple-novcv-aminus.csv")
 gammas.am$method <- "SE Hierarchical (A-)"
 gammas.bm <- read.csv("simple-vcvpool-bminus.csv")
 gammas.bm$method <- "VCV Pool (B-)"
+gammas.ob <- read.csv("simple-vcvpool-o-as-b.csv")
+gammas.ob$method <- "SE Pool using VCV Pool Model (O-)"
 
 ##gammas.x <- subset(read.csv("comparison-all.csv"), method == 'seemur')
 gammas.x <- read.csv("seemur.csv")
 gammas.x$method <- "SUR"
 
-gammas <- rbind(gammas.x, gammas.om)
+gammas <- rbind(gammas.x, gammas.ob)
+#gammas <- rbind(gammas.om, gammas.ob)
 
 gammas$method <- factor(gammas$method, levels=c(unique(gammas$method[gammas$method != "SUR"]), "SUR"))
 

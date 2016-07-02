@@ -1,19 +1,29 @@
 ##setwd("~/research/gcp/impact-calculations/interpolate")
 
-do.serronly <- T
-
-## VCV files
-basedir <- "../../data/adaptation/vcvs"
-if (do.serronly) {
-    dirs <- c()
-} else
-    dirs <- c("BRAZIL", "CHINA", "INDIA", "MEXICO")
-
-print(dirs)
+for (do.serronly in c('BRA', 'CHN', 'IND', 'MEX')) {
 
 ## Beta files
 betadir <- "../../data/adaptation/inputs-apr-7"
 adms <- c("BRA_adm1.csv", "CHN_adm1.csv", "IND_adm1.csv", "MEX_adm1.csv", "FRA_adm1.csv", "USA_adm1.csv")
+
+## VCV files
+basedir <- "../../data/adaptation/vcvs"
+if (do.serronly == T) {
+    dirs <- c()
+} else if (do.serronly == 'BRA') {
+    dirs <- c("BRAZIL")
+} else if (do.serronly == 'CHN') {
+    dirs <- c("CHINA")
+    adms <- c("CHN_adm1.csv", "BRA_adm1.csv", "IND_adm1.csv", "MEX_adm1.csv", "FRA_adm1.csv", "USA_adm1.csv")
+} else if (do.serronly == 'IND') {
+    dirs <- c("INDIA")
+    adms <- c("IND_adm1.csv", "CHN_adm1.csv", "BRA_adm1.csv", "MEX_adm1.csv", "FRA_adm1.csv", "USA_adm1.csv")
+} else if (do.serronly == 'MEX') {
+    dirs <- c("MEXICO")
+    adms <- c("MEX_adm1.csv", "IND_adm1.csv", "CHN_adm1.csv", "BRA_adm1.csv", "FRA_adm1.csv", "USA_adm1.csv")
+} else {
+    dirs <- c("BRAZIL", "CHINA", "INDIA", "MEXICO")
+}
 
 allbetas <- matrix(0, 0, 11)
 allvcv <- list()
@@ -164,8 +174,12 @@ model {
 fit <- stan(model_code=stan.model.vcvpool, data=stan.data,
             iter = 1000, chains = 4)
 
-if (do.serronly) {
+if (do.serronly == T) {
     save.fit(fit, "simple-vcvpool-o-as-b.csv")
-} else
+} else if (do.serronly == F) {
     save.fit(fit, "simple-vcvpool-bminus.csv")
+} else {
+    save.fit(fit, paste0("simple-vcvpool-bminus-", do.serronly, ".csv"))
+}
 
+}
