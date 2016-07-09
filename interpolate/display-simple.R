@@ -3,6 +3,8 @@ setwd("~/research/gcp/impact-calculations/interpolate")
 library(reshape2)
 library(ggplot2)
 
+do.smooth <- F
+
 gammas.om <- read.csv("simple-serrpool-ominus.csv")
 gammas.om$method <- "SE Pool (O-)"
 gammas.am <- read.csv("simple-novcv-aminus.csv")
@@ -11,15 +13,18 @@ gammas.bm <- read.csv("simple-vcvpool-bminus.csv")
 gammas.bm$method <- "VCV Pool (B-)"
 gammas.ob <- read.csv("simple-vcvpool-o-as-b.csv")
 gammas.ob$method <- "SE Pool using VCV Pool Model (O-)"
+gammas.bm.bra <- read.csv("simple-vcvpool-bminus-BRA.csv")
+gammas.bm.bra$method <- "Brazil VCV (B-)"
+gammas.bm.chn <- read.csv("simple-vcvpool-bminus-CHN.csv")
+gammas.bm.chn$method <- "China VCV (B-)"
+gammas.bm.ind <- read.csv("simple-vcvpool-bminus-IND.csv")
+gammas.bm.ind$method <- "India VCV (B-)"
+gammas.bm.mex <- read.csv("simple-vcvpool-bminus-MEX.csv")
+gammas.bm.mex$method <- "Mexico VCV (B-)"
 
 ##gammas.x <- subset(read.csv("comparison-all.csv"), method == 'seemur')
 gammas.x <- read.csv("seemur.csv")
 gammas.x$method <- "SUR"
-
-gammas <- rbind(gammas.x, gammas.ob)
-#gammas <- rbind(gammas.om, gammas.ob)
-
-gammas$method <- factor(gammas$method, levels=c(unique(gammas$method[gammas$method != "SUR"]), "SUR"))
 
 gammas.op1 <- read.csv("simple-serrsmooth-oplus1.csv")
 gammas.op1$method <- "SE Pool (O+1)"
@@ -30,7 +35,15 @@ gammas.op4$method <- "SE Pool (O+4)"
 gammas.op8 <- read.csv("simple-serrsmooth-oplus8.csv")
 gammas.op8$method <- "SE Pool (O+8)"
 
-gammas <- rbind(gammas.om, gammas.op1, gammas.op2, gammas.op4, gammas.op8)
+if (do.smooth) {
+    gammas <- rbind(gammas.om, gammas.op1, gammas.op2, gammas.op4, gammas.op8)
+} else {
+    gammas <- rbind(gammas.x, gammas.bm.bra, gammas.bm.chn, gammas.bm.ind, gammas.bm.mex, gammas.bm)
+    ##gammas <- rbind(gammas.om, gammas.ob)
+
+    gammas$method <- factor(gammas$method, levels=c(unique(gammas$method[gammas$method != "SUR"]), "SUR"))
+}
+
 
 pg <- melt(gammas[, c('method', 'binlo', 'binhi', 'intercept_coef', 'bindays_coef', 'gdppc_coef', 'popop_coef')], id.vars=c('method', 'binlo', 'binhi'))
 pg2 <- melt(gammas[, c('method', 'binlo', 'binhi', 'intercept_serr', 'bindays_serr', 'gdppc_serr', 'popop_serr')], id.vars=c('method', 'binlo', 'binhi'))

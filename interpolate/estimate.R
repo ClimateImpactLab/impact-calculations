@@ -170,8 +170,12 @@ setGeneric("addObs",
 setMethod("addObs",
           signature = "SurfaceObservations",
           definition = function(this, betas, vcv, predses) {
+              ## Check that vcv is positive definite
+              eigenvalues <- eigen(vcv)$values
+              if (any(is.complex(eigenvalues)) || any(eigenvalues < 1e-8))
+                  stop("The VCV is not symmetric or not positive definite.")
+
               this@allbetas <- rbind(this@allbetas, as.matrix(betas))
-              print(nrow(this@allbetas))
               this@allvcv[[length(this@allvcv)+1]] <- vcv
 
               for (kk in 1:nrow(predses))
