@@ -16,9 +16,6 @@ data {
 
     real<lower=0> smooth; // prior on second derivative
     int<lower=0> dropbin; // index of dropped bin
-
-    real<lower=0> maxsigma; // upper limit on sigma
-    real<lower=0> maxgamma; // limits on gamma
 }
 transformed data {
     // Optimization: only compute decomposition once
@@ -27,8 +24,8 @@ transformed data {
       CholL[ii] <- cholesky_decompose(Sigma[ii]);
 }
 parameters {
-    vector<lower=-maxgamma, upper=maxgamma>[L] gamma[K]; // surface parameters
-    real<lower=0, upper=maxsigma> tau[K]; // variance in hyper equation
+    vector[L] gamma[K]; // surface parameters
+    real tau[K]; // variance in hyper equation
     vector[K] theta[N]; // z-scores of true effects
 }
 transformed parameters {
@@ -81,9 +78,6 @@ data {
 
     real<lower=0> smooth; // prior on second derivative
     int<lower=0> dropbin; // index of dropped bin
-
-    real<lower=0> maxsigma; // upper limit on sigma
-    real<lower=0> maxgamma; // limits on gamma
 }
 transformed data {
     // Optimization: only compute decomposition once
@@ -92,9 +86,9 @@ transformed data {
       CholL[ii] <- cholesky_decompose(Sigma[ii]);
 }
 parameters {
-    vector<lower=-maxgamma, upper=maxgamma>[M] fes[K];
-    vector<lower=-maxgamma, upper=maxgamma>[L] gamma[K]; // surface parameters
-    real<lower=0, upper=maxsigma> tau[K]; // variance in hyper equation
+    vector[M] fes[K];
+    vector[L] gamma[K]; // surface parameters
+    real tau[K]; // variance in hyper equation
     vector[K] theta_z[N]; // z-scores of true effects
 }
 transformed parameters {
