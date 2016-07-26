@@ -25,7 +25,7 @@ transformed data {
 }
 parameters {
     vector[L] gamma[K]; // surface parameters
-    real tau[K]; // variance in hyper equation
+    real<lower=0> tau[K]; // variance in hyper equation
     vector[K] theta[N]; // z-scores of true effects
 }
 transformed parameters {
@@ -88,7 +88,7 @@ transformed data {
 parameters {
     vector[M] fes[K];
     vector[L] gamma[K]; // surface parameters
-    real tau[K]; // variance in hyper equation
+    real<lower=0> tau[K]; // variance in hyper equation
     vector[K] theta_z[N]; // z-scores of true effects
 }
 transformed parameters {
@@ -275,4 +275,21 @@ setMethod("estimate.semur",
               }
 
               systemfit(regs, data=sur.data, method="OLS")
+          })
+
+## Standard output
+setGeneric("estimate.write",
+           def = function(this, fit) {
+               standardGeneric("estimate.write")
+           })
+
+setMethod("estimate.write",
+          signature = "SurfaceObservations",
+          definition = function(this, fit) {
+              if (class(fit) == "systemfit") {
+                  gammas <- as.numeric(fit$coefficients)
+                  gammavcv <- as.matrix(fit$coefCov)
+                  residvcv <- as.matrix(fit$residCov)
+              } else {
+              }
           })
