@@ -165,8 +165,9 @@ setMethod("addObs",
           signature = "SurfaceObservations",
           definition = function(this, betas, vcv, predses) {
               ## Check that vcv is positive definite
-              eigenvalues <- eigen(vcv)$values
-              if (any(is.complex(eigenvalues)) || any(eigenvalues < 1e-8))
+              checkvcv <- as.matrix(vcv)
+              eigenvalues <- eigen(checkvcv[rowSums(!is.finite(checkvcv)) == 0, colSums(!is.finite(checkvcv)) == 0])$values
+              if (any(is.complex(eigenvalues)) || any(eigenvalues[eigenvalues != 0] < 1e-8))
                   stop("The VCV is not symmetric or not positive definite.")
 
               this@allbetas <- rbind(this@allbetas, as.matrix(betas))
