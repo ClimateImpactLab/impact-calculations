@@ -1,6 +1,7 @@
 ##setwd("~/research/gcp/impact-calculations/interpolate")
 
-for (do.serronly in c('BRA', 'CHN', 'IND', 'MEX')) {
+##for (do.serronly in c('BRA', 'CHN', 'IND', 'MEX')) {
+do.serronly <- F
 
 ## Beta files
 betadir <- "../../data/adaptation/inputs-apr-7"
