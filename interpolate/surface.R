@@ -210,12 +210,12 @@ setMethod("prepdata",
           })
 
 ## Estimate the system using Stan
-setGeneric("surface.bayes",
+setGeneric("estimate.bayes",
            def = function(this, smooth=0, dropbin=9, supers=NULL, fit=NULL, chains=4) {
-               standardGeneric("surface.bayes")
+               standardGeneric("estimate.bayes")
            })
 
-setMethod("surface.bayes",
+setMethod("estimate.bayes",
           signature = "SurfaceObservations",
           definition = function(this, smooth=0, dropbin=9, supers=NULL, fit=NULL, chains=4) {
               stan.data <- prepdata(this, smooth=smooth, dropbin=dropbin)
@@ -240,12 +240,12 @@ setMethod("surface.bayes",
           })
 
 ## Estimate the system using SUR
-setGeneric("surface.semur",
+setGeneric("estimate.semur",
            def = function(this) {
-               standardGeneric("surface.semur")
+               standardGeneric("estimate.semur")
            })
 
-setMethod("surface.semur",
+setMethod("estimate.semur",
           signature = "SurfaceObservations",
           definition = function(this) {
               data <- prepdata(this, smooth=0, dropbin=NA)

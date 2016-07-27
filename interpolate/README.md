@@ -21,17 +21,17 @@ surface <- addObs(surface, betas, vcv, predses)
 
 Fit the model, by calling `surface`:
 ```
-fit <- surface.semur(surface)
+fit <- estimate.semur(surface)
 ```
 or
 ```
-fit <- surface.bayes(surface)
+fit <- estimate.bayes(surface)
 ```
 
-If you use `surface.semur`, you will get a result of type
+If you use `estimate.semur`, you will get a result of type
 `systemfit`, containing `coefficients` and `coefCov`.
 
-If you use `surface.bayes`, start by printing `fit`.  You'll see the
+If you use `estimate.bayes`, start by printing `fit`.  You'll see the
 quantiles of estimated variable.  The most important values are in
 `gamma`, the slopes of the surface.  Make sure that you have a decent
 number of effective posterior draws in the printed `n_eff` column (500
