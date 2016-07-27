@@ -1,6 +1,6 @@
 ## Bayesian interpolation surface
 
-* `estimate.R` defines a class for performing the estimation
+* `surface.R` defines a class for performing the estimation
 * `mortality.R` is a full estimation for mortality
 * `display.R` shows a comparison of the Bayesian method against others
 
@@ -10,7 +10,7 @@ See the [Bayesian testing](https://docs.google.com/document/d/1g_3ukCzndYphH5OKT
 
 Create an object of type `SurfaceObservations`:
 ```
-source("estimate.R")
+source("surface.R")
 surface <- SurfaceObservations()
 ```
 
@@ -19,19 +19,19 @@ Add each region's values for beta (K values), its VCV (using a diagonal of the S
 surface <- addObs(surface, betas, vcv, predses)
 ```
 
-Fit the model, by calling `estimate`:
+Fit the model, by calling `surface`:
 ```
-fit <- estimate.semur(surface)
+fit <- surface.semur(surface)
 ```
 or
 ```
-fit <- estimate.bayes(surface)
+fit <- surface.bayes(surface)
 ```
 
-If you use `estimate.semur`, you will get a result of type
+If you use `surface.semur`, you will get a result of type
 `systemfit`, containing `coefficients` and `coefCov`.
 
-If you use `estimate.bayes`, start by printing `fit`.  You'll see the
+If you use `surface.bayes`, start by printing `fit`.  You'll see the
 quantiles of estimated variable.  The most important values are in
 `gamma`, the slopes of the surface.  Make sure that you have a decent
 number of effective posterior draws in the printed `n_eff` column (500
@@ -46,6 +46,11 @@ This returns the posterior draws, which empirically define the
 distribution of each variable.  Specifically, `la$gamma` is a 4000 x K
 x L matrix, where 4000 is the number of draws, K is the number of
 bins, and L is the number of predictors.
+
+You can write out either fitted surface by calling,
+```
+surface.write(surface, fit, "<FILENAME>.csvv", "<Short Description>", "<Version Prefix>", c(<DEPENDENCIES>))
+```
 
 ## Loading data from DMAS
 

@@ -1,7 +1,7 @@
 ##setwd("~/research/gcp/impact-calculations/interpolate")
 
 ## Create a BayesObservations object to hold the data
-source("estimate.R")
+source("surface.R")
 surface <- SurfaceObservations()
 
 ## VCV files
@@ -113,3 +113,5 @@ for (smooth in c(0, 1, 2, 4, 8)) {
 
     write.csv(result, paste0("fullbayes", smooth, ".csv"), row.names=F)
 }
+
+surface.write(surface, fit, "output.csvv", "Mortality stage 2 results", "MORTALITY-STAGE2", adms)
