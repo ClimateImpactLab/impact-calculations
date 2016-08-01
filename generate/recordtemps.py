@@ -4,7 +4,7 @@ from netCDF4 import Dataset
 from impacts import weather, nc4writer
 from adaptation.adapting_curve import rm_init, rm_add, rm_mean
 
-basedir = '/shares/gcp/BCSD/grid2reg/cmip'
+basedir = '/shares/gcp/BCSD/grid2reg/cmip5'
 outputdir = sys.argv[1]
 
 binlimits = [-np.inf, -17, -12, -7, -2, 3, 8, 13, 18, 23, 28, 33, np.inf]

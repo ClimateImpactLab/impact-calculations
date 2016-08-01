@@ -2,7 +2,7 @@ import numpy as np
 from impacts import weather
 from adaptation import adapting_curve
 
-basedir = '/shares/gcp/BCSD/grid2reg/cmip'
+basedir = '/shares/gcp/BCSD/grid2reg/cmip5'
 
 do_econ_model_only = ["OECD Env-Growth"]
 do_econ_scenario_only = ['SSP3']
