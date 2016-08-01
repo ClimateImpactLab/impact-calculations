@@ -8,7 +8,7 @@ pvals = effectset.ConstantPvals(.5)
 
 do_only = "interpolation"
 
-basedir = '/shares/gcp/BCSD/grid2reg/cmip'
+basedir = '/shares/gcp/BCSD/grid2reg/cmip5'
 
 outputdir = sys.argv[1]
 

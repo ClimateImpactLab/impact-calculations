@@ -7,7 +7,7 @@ get_model = effectset.get_model_server
 pvals = effectset.ConstantPvals(.5)
 #pvals = effectset.OnDemandRandomPvals()
 
-basedir = '/shares/gcp/BCSD/grid2reg/cmip'
+basedir = '/shares/gcp/BCSD/grid2reg/cmip5'
 
 with open("allbins.csv", 'w') as fp:
     writer = csv.writer(fp)
