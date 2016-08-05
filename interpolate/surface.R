@@ -168,7 +168,7 @@ setMethod("addObs",
               ## Check that vcv is positive definite
               checkvcv <- as.matrix(vcv)
               eigenvalues <- eigen(checkvcv[rowSums(!is.finite(checkvcv)) == 0, colSums(!is.finite(checkvcv)) == 0])$values
-              if (any(is.complex(eigenvalues)) || any(eigenvalues[eigenvalues != 0] < 1e-8))
+              if (any(is.complex(eigenvalues)) || any(eigenvalues[eigenvalues != 0] < 0))
                   stop("The VCV is not symmetric or not positive definite.")
 
               this@allbetas <- rbind(this@allbetas, as.matrix(betas))
