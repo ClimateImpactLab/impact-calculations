@@ -72,6 +72,9 @@ binhis <- c(-17, -12, -7, -2, 3, 8, 13, 18, 28, 33, Inf)
 fit <- estimate.semur(surface)
 summary(fit)
 
+surface.write(surface, fit, "output.csvv", "Mortality stage 2 results", "MORTALITY-STAGE2", adms,
+              paste(binlos, binhis, sep=" -- "), c('constant', 'meandays', 'logpopop', 'loggdppc'))
+
 result <- data.frame()
 for (kk in 1:11) {
     result <- rbind(result, data.frame(method='seemur', binlo=binlos[kk], binhi=binhis[kk],
@@ -114,4 +117,6 @@ for (smooth in c(0, 1, 2, 4, 8)) {
     write.csv(result, paste0("fullbayes", smooth, ".csv"), row.names=F)
 }
 
-surface.write(surface, fit, "output.csvv", "Mortality stage 2 results", "MORTALITY-STAGE2", adms)
+surface.write(surface, fit, "output.csvv", "Mortality stage 2 results", "MORTALITY-STAGE2", adms,
+              paste(binlos, binhis, sep=" -- "), c('constant', 'meandays', 'logpopop', 'loggdppc'))
+
