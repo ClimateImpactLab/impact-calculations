@@ -49,7 +49,7 @@ bins, and L is the number of predictors.
 
 You can write out either fitted surface by calling,
 ```
-surface.write(surface, fit, "<FILENAME>.csvv", "<Short Description>", "<Version Prefix>", c(<DEPENDENCIES>))
+surface.write(surface, fit, "<FILENAME>.csvv", "<Short Description>", "<Version Prefix>", c(<DEPENDENCIES>), c(<STAGE 1 COEFFS>), c(<STAGE 2 PREDICTORS>))
 ```
 
 ## Loading data from DMAS
