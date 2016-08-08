@@ -1,5 +1,6 @@
 import numpy as np
 from netCDF4 import Dataset
+from scipy.stats import norm
 
 temp_path = "/shares/gcp/IRI/tas_aggregated_quantiles_2012-2016.nc"
 prcp_path = "/shares/gcp/IRI/prcp_aggregated_quantiles_2012-2016.nc"
@@ -14,15 +15,20 @@ def readncdf_lastpred(filepath, variable, lead):
 
     return weather
 
-print np.mean(readncdf_firstoflast(temp_path, "mean", 0))
-print np.mean(readncdf_firstoflast(prcp_path, "mean", 0))
-
 class ForecastBundle(object):
     def __init__(self, filepath):
         self.filepath = filepath
 
-    def monthbundles(self, maxyear=np.inf, qval):
+    def monthbundles(self, qval, maxyear=np.inf):
         for lead in range(5):
             means = readncdf_lastpred(self.filepath, "mean", lead)
             sdevs = readncdf_lastpred(self.filepath, "stddev", lead)
             yield norm.ppf(qval, means, sdevs)
+
+if __name__ == '__main__':
+    print np.mean(readncdf_lastpred(temp_path, "mean", 0))
+    print np.mean(readncdf_lastpred(prcp_path, "mean", 0))
+
+    bundle = ForecastBundle(temp_path)
+    gener = bundle.monthbundles(.5)
+    print np.mean(gener.next())
