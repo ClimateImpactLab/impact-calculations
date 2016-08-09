@@ -1,9 +1,7 @@
 import sys, os
-import standard
-from impacts import effectset
-from impacts.conflict import weather
+import standard, weather, effectset
+from impacts.pvals import *
 
-get_model = effectset.get_model_server
 pvals = effectset.ConstantPvals(.5)
 
 do_only = None
