@@ -11,7 +11,7 @@ def read(filename):
         lastappend = None
         for row in reader:
             if row[0] in ['NN', 'L', 'K']:
-                data[row[0]] = float(row[1])
+                data[row[0]] = int(row[1])
                 if row[0] == 'K':
                     data['coefnames'] = row[2:]
                 elif row[0] == 'L':
@@ -23,11 +23,27 @@ def read(filename):
                 assert lastappend is not None
                 data[lastappend].append(map(float, row))
 
-        data['gamma'] = np.array(data['gamma'])
+        data['gamma'] = np.array(data['gamma'][0])
         data['gammavcv'] = np.array(data['gammavcv'])
         data['residvcv'] = np.array(data['residvcv'])
 
         return data
 
+def extract_values(data, kks):
+    indexes = []
+    for kk in kks:
+        indexes.extend(kk * data['L'] + np.arange(data['L']))
+    indexes = np.array(indexes)
+
+    gamma = data['gamma'][indexes]
+    gammavcv = data['gammavcv'][indexes][:, indexes]
+    residvcv = data['residvcv'][np.array(kks), np.array(kks)]
+
+    return dict(gamma=gamma, gammavcv=gammavcv, residvcv=residvcv)
+
 if __name__ == '__main__':
-    print read("/shares/gcp/data/adaptation/conflict/group_tp3_bayes_auto.csv")
+    data = read("/shares/gcp/data/adaptation/conflict/group_tp3_bayes_auto.csv")
+
+    print data
+    print "Extracted [0]"
+    print extract_values(data, [0])
