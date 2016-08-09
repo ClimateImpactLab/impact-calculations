@@ -28,7 +28,6 @@ def simultaneous_application(weatherbundle, calculation, get_apply_args, regions
             applications = applications[:values.shape[-1]]
 
         print "Push", int(yyyyddd[0] / 1000)
-        print "CHECK", len(applications)
 
         for ii in range(len(applications)):
             jj = ii if regions == weatherbundle.regions else weatherbundle.regions.index(regions[ii])

@@ -15,15 +15,26 @@ def readncdf_lastpred(filepath, variable, lead):
 
     return weather
 
-class ForecastBundle(object):
+def readncdf_allpred(filepath, variable, lead):
+    """
+    Yield weather for each region for each forecast month, of the given lead
+    """
+    rootgrp = Dataset(filepath, 'r', format='NETCDF4')
+    alldata = rootgrp.variables[variable][:, :, :]
+    rootgrp.close()
+
+    for month in range(alldata.shape[0]):
+        yield rootgrp.variables[variable][month, lead, :]
+
+class FirstForecastBundle(object):
     def __init__(self, filepath):
         self.filepath = filepath
 
     def monthbundles(self, qval, maxyear=np.inf):
-        for lead in range(5):
-            means = readncdf_lastpred(self.filepath, "mean", lead)
-            sdevs = readncdf_lastpred(self.filepath, "stddev", lead)
-            yield norm.ppf(qval, means, sdevs)
+        meansgen = readncdf_allpred(self.filepath, "mean", 0)
+        sdevsgen = readncdf_allpred(self.filepath, "stddev", 0)
+        for means in meansgen:
+            yield norm.ppf(qval, means, sdevsgen.next())
 
 if __name__ == '__main__':
     print np.mean(readncdf_lastpred(temp_path, "mean", 0))
