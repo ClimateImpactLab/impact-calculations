@@ -6,12 +6,12 @@ Precipitation is as a difference of polynomials (sum_k P^k - mean P^k)
 """
 
 from openest.generate.stdlib import *
-from adaptation import csvvfile, interpolate
+from adaptation import csvvfile, curvegen
 
 def prepare_csvv(csvvpath, qvals):
     data = csvvfile.read(csvvpath)
 
-    tcoeff = FlatCurveGenerator(qvals.get_seed(), *csvvfile.extract_values(data, [0]))
+    tcoeff = curvegen.FlatCurveGenerator(qvals.get_seed(), *csvvfile.extract_values(data, [0]))
     #p3coeffs = LinearInterpolatedPolynomial(extract_values(data, range(1, 4)), qvals['precipitation'])
 
     teffect = InstaZScore(tcoeff)
