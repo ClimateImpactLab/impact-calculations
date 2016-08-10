@@ -11,7 +11,7 @@ from adaptation import csvvfile, interpolate
 def prepare_csvv(csvvpath, qvals):
     data = csvvfile.read(csvvpath)
 
-    tcoeff = InterpolatedLinearCurve(qvals['temperature'], *csvvfile.extract_values(data, [0]))
+    tcoeff = FlatCurveGenerator(qvals.get_seed(), *csvvfile.extract_values(data, [0]))
     #p3coeffs = LinearInterpolatedPolynomial(extract_values(data, range(1, 4)), qvals['precipitation'])
 
     teffect = InstaZScore(tcoeff)
@@ -24,5 +24,6 @@ def prepare_csvv(csvvpath, qvals):
     #              lambda prcp: [prcp - climate_mean('prcp'),
     #                            prcp**2 - climate_mean('prcp')**2,
     #                            prcp**3 - climate_mean('prcp')**3])
+    #return Sum(teffect, p3effect)
 
-    return teffect #Sum(teffect, p3effect)
+    return teffect, data['dependencies']
