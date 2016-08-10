@@ -1,7 +1,7 @@
 import copy, os
 import numpy as np
 from openest.models.curve import StepCurve, AdaptableCurve
-from econmodels import *
+from econmodel import *
 
 ## Management of rolling means
 ## Rolling mean is [SUM, COUNT]
