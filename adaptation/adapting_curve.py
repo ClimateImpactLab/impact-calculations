@@ -94,29 +94,7 @@ class BinsIncomeDensityPredictorator(object):
 
         self.temp_predictors = temp_predictors
 
-        econ_predictors = {} # {region: ([gdppcs], density)}
-        allmeans_gdppcs = []
-        allmeans_density = []
-        for region, gdppcs, density in economicmodel.baseline_values(maxbaseline): # baseline through maxbaseline
-            if gdppcs is None or density is None:
-                if density is not None:
-                    density = rm_init([density])
-                if gdppcs is not None:
-                    gdppcs = rm_init(gdppcs[-numeconyears:])
-                econ_predictors[region] = [gdppcs, density]
-            else:
-                allmeans_gdppcs.append(np.mean(gdppcs[-numeconyears:]))
-                allmeans_density.append(density)
-                econ_predictors[region] = [rm_init(gdppcs[-numeconyears:]), rm_init([density])]
-
-        econ_predictors['mean'] = [np.mean(allmeans_gdppcs), np.mean(allmeans_density)] # don't use mean density-- all should have
-        for region in econ_predictors:
-            if econ_predictors[region][0] is None:
-                econ_predictors[region][0] = rm_init([econ_predictors['mean'][0]])
-            if econ_predictors[region][1] is None:
-                econ_predictors[region][1] = rm_init([econ_predictors['mean'][1]])
-
-        self.econ_predictors = econ_predictors
+        self.econ_predictors = economicmodel.baseline_prepared(maxbaseline, numeconyears, rm_init)
 
         self.economicmodel = economicmodel
 

@@ -28,25 +28,23 @@ class TemperaturePrecipitationPredictorator(object):
         for region, weathers in weatherbundle.baseline_average(maxbaseline): # baseline through maxbaseline
             self.weather_predictors[region] = weathers
 
-        gdppc_predictors = {}
-        allmeans = []
-        for region, gdppcs, density in economicmodel.baseline_values(maxbaseline): # baseline through maxbaseline
-            allmeans.append(np.mean(gdppcs[-numeconyears:]))
-            gdppc_predictors[region] = gdppcs[-numeconyears:]
-
-        gdppc_predictors['mean'] = np.mean(allmeans)
-
-        self.gdppc_predictors = gdppc_predictors
+        self.econ_predictors = economicmodel.baselined_prepared(maxbaseline, numeconyears, np.mean)
 
         self.economicmodel = economicmodel
 
     def get_baseline(self, region):
-        gdppcs = self.gdppc_predictors.get(region, None)
-        if gdppcs is None:
-            gdppcs = self.gdppc_predictors['mean']
-        return ((np.mean(self.temp_predictors[region]), np.mean(gdppcs)),)
+        return tuple(self.weather_predictors[region] + map(np.log, self.econ_predictors[region]))
 
 if __name__ == '__main__':
     curvegen = FlatCurveGenerator(1234, [1, 1], [[.01, 0], [0, .01]], [0])
     curve = curvegen.get_curve([2])
     print curve(0)
+
+    from impacts.weather import MultivariateHistoricalWeatherBundle
+    from adaptation.econmodel import iterate_econmodels
+
+    historicalbundle = MultivariateHistoricalWeatherBundle("/shares/gcp/BCSD/grid2reg/cmip5/historical/CCSM4/{0}/{0}_day_aggregated_historical_r1i1p1_CCSM4_{1}.nc", 1991, 2005, ['pr', 'tas'])
+    model, scenario, econmodel = (mse for mse in iterate_econmodels() if mse[0] == 'OECD Env-Growth').next()
+
+    predgen = TemperaturePrecipitationPredictorator(historicalbundle, econmodel, 15, 15, 2005)
+    print predgen.get_baseline('CAN.1.2.28')

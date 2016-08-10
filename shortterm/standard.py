@@ -15,7 +15,8 @@ def produce(targetdir, weatherbundle, qvals, do_only=None):
     #     effectset.write_ncdf(targetdir, "PropertyCrime", weatherbundle, calculation, None, "Property crime using the ACP response function.", dependencies + weatherbundle.dependencies, suffix=suffix)
 
     if do_only is None or do_only == 'interpolation':
-        baseline_get_predictors = curvegen.TemperaturePrecipitationPredictorator(historicalbundle, econmodel, 15, 15, 2005)
+        predgen = curvegen.TemperaturePrecipitationPredictorator(historicalbundle, econmodel, 15, 3, 2005)
+        baseline_get_predictors = predgen.get_baseline
 
         ## Full interpolation
         calculation, dependencies = standard.prepare_csvv("/shares/gcp/data/adaptation/conflict/group_tp3_semur_auto.csvv", qvals['intergroup'])
