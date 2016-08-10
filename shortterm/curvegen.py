@@ -28,7 +28,7 @@ class TemperaturePrecipitationPredictorator(object):
         for region, weathers in weatherbundle.baseline_average(maxbaseline): # baseline through maxbaseline
             self.weather_predictors[region] = weathers
 
-        self.econ_predictors = economicmodel.baselined_prepared(maxbaseline, numeconyears, np.mean)
+        self.econ_predictors = economicmodel.baseline_prepared(maxbaseline, numeconyears, np.mean)
 
         self.economicmodel = economicmodel
 
