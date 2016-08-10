@@ -40,6 +40,6 @@ if __name__ == '__main__':
     print np.mean(readncdf_lastpred(temp_path, "mean", 0))
     print np.mean(readncdf_lastpred(prcp_path, "mean", 0))
 
-    bundle = ForecastBundle(temp_path)
+    bundle = FirstForecastBundle(temp_path)
     gener = bundle.monthbundles(.5)
     print np.mean(gener.next())
