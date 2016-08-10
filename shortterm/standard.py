@@ -1,9 +1,10 @@
 from impacts.conflict import standard
 from impacts.weather import MultivariateHistoricalWeatherBundle
+from adaptation.econmodel import SSPEconomicModel
 
 def produce(targetdir, weatherbundle, qvals, do_only=None):
     historicalbundle = MultivariateHistoricalWeatherBundle("/shares/gcp/BCSD/grid2reg/cmip5/historical/CCSM4/{0}/{0}_day_aggregated_historical_r1i1p1_CCSM4_{1}.nc", 1991, 2005, ['pr', 'tas'])
-    econbundle = 
+    econmodel = (mse for mse in iterate_econmodels() if mse[1] == 'OECD Env-Growth').next()
 
     if do_only is None or do_only == 'acp':
         # ACP response
