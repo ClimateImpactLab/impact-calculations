@@ -354,7 +354,7 @@ class MultivariateHistoricalWeatherBundle(WeatherBundle):
         self.readncdf = readncdf
 
         self.load_regions()
-        self.load_metainfo(self.template % (self.year_start), variables[0])
+        self.load_metainfo(self.template.format(variables[0], self.year_start), variables[0])
 
     def is_historical(self):
         return True
@@ -364,11 +364,11 @@ class MultivariateHistoricalWeatherBundle(WeatherBundle):
             masteryyyyddd = None
             weathers = []
             for variable in self.variables:
-                yyyyddd, weather = self.readncdf(self.template % (variable, year), variable)
+                yyyyddd, weather = self.readncdf(self.template.format(variable, year), variable)
                 if masteryyyyddd is None:
                     masteryyyyddd = yyyyddd
                 else:
-                    assert masteryyyyddd == yyyyddd
+                    assert np.all(masteryyyyddd == yyyyddd)
 
                 weathers.append(weather)
 
