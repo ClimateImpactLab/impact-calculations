@@ -377,8 +377,32 @@ class MultivariateHistoricalWeatherBundle(WeatherBundle):
     def get_years(self):
         return range(self.year_start, self.year_end + 1)
 
+    def baseline_average(self, maxyear):
+        """Yield the average weather value up to `maxyear` for each region."""
+
+        regionsums = None
+        sumcount = 0
+        for yyyyddd, weathers in self.yearbundles(maxyear):
+            print int(yyyyddd[0]) / 1000
+
+            if regionsums is None:
+                regionsums = [np.mean(weather, axis=0) for weather in weathers]
+            else:
+                for ii in range(len(weathers)):
+                    regionsums[ii] += np.mean(weathers[ii], axis=0)
+
+            sumcount += 1
+
+        region_averages = [regionsum / sumcount for regionsum in regionsums]
+        for ii in range(len(self.regions)):
+            yield self.regions[ii], [region_averages[jj][ii] for jj in range(len(region_averages))]
+
 if __name__ == '__main__':
     template = "/shares/gcp/BCSD/grid2reg/cmip5/historical/CCSM4/{0}/{0}_day_aggregated_historical_r1i1p1_CCSM4_{1}.nc"
     weatherbundle = MultivariateHistoricalWeatherBundle(template, 1981, 2005, ['pr', 'tas'])
     yyyyddd, weathers = weatherbundle.yearbundles().next()
-    print len(yyyyddd), len(weathers), len(weathers[0])
+    print len(yyyyddd), len(weathers), len(weathers[0]) # 365, 2, 365
+
+    for region, weathers in weatherbundle.baseline_average(2005):
+        print region, weathers
+        exit()

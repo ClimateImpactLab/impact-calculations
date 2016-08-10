@@ -5,7 +5,7 @@ import helpers.header as headre
 from openest.generate import retrieve
 from adaptation import adapting_curve
 import server, nc4writer
-from pvals import *
+from pvalses import *
 
 def undercase(camelcase):
     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', camelcase)

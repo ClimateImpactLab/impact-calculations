@@ -25,8 +25,8 @@ class TemperaturePrecipitationPredictorator(object):
 
         print "Collecting baseline information..."
         self.weather_predictors = {}
-        for region, weathers in weatherbundle.baseline_values(maxbaseline): # baseline through maxbaseline
-            self.weather_predictors[region] = [weather[-numtempyears:] for weather in weathers]
+        for region, weathers in weatherbundle.baseline_average(maxbaseline): # baseline through maxbaseline
+            self.weather_predictors[region] = weathers
 
         gdppc_predictors = {}
         allmeans = []
