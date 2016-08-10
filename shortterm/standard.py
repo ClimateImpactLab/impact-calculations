@@ -21,6 +21,3 @@ def produce(targetdir, weatherbundle, qvals, do_only=None):
         calculation, dependencies = standard.prepare_csvv("/shares/gcp/data/adaptation/conflict/group_tp3_semur_auto.csvv", qvals['intergroup'])
 
         effectset.write_ncdf(targetdir, "InterpolatedInterpersonal", weatherbundle, calculation, baseline_get_predictors, "Interpolated response for interpersonal crime.", dependencies + weatherbundle.dependencies, suffix=suffix)
-
-        calculation, dependencies, curve, baseline_get_predictors = caller.call_prepare('adaptation.interpolate', weatherbundle, qvals['interpolated_intergroup'])
-        effectset.write_ncdf(targetdir, "InterpolatedIntergroup", weatherbundle, calculation, baseline_get_predictors, "Interpolated response for intergroup crime.", dependencies + weatherbundle.dependencies, suffix=suffix)
