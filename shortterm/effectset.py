@@ -2,7 +2,7 @@ import os
 import numpy as np
 from netCDF4 import Dataset
 import helpers.header as headre
-from impacts import effectset, nc4writer
+from impacts import nc4writer
 
 def simultaneous_application(qval, weatherbundle, calculation, get_apply_args, regions=None):
     if regions is None:
@@ -34,12 +34,12 @@ def simultaneous_application(qval, weatherbundle, calculation, get_apply_args, r
 
     calculation.cleanup()
 
-def write_ncdf(qval, targetdir, camelcase, weatherbundle, calculation, get_apply_args, description, calculation_dependencies, suffix=''):
+def write_ncdf(qval, targetdir, title, weatherbundle, calculation, get_apply_args, description, calculation_dependencies, suffix=''):
     my_regions = weatherbundle.regions
 
-    rootgrp = Dataset(os.path.join(targetdir, effectset.undercase(camelcase) + suffix + '.nc4'), 'w', format='NETCDF4')
+    rootgrp = Dataset(os.path.join(targetdir, title + suffix + '.nc4'), 'w', format='NETCDF4')
     rootgrp.description = description
-    rootgrp.version = headre.dated_version(camelcase)
+    rootgrp.version = headre.dated_version(title)
     rootgrp.dependencies = ', '.join([weatherbundle.version] + weatherbundle.dependencies + calculation_dependencies)
     rootgrp.author = "James Rising"
 

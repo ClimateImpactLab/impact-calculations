@@ -1,3 +1,4 @@
+import glob, os
 from impacts.conflict import standard
 from impacts.weather import MultivariateHistoricalWeatherBundle
 from adaptation.econmodel import iterate_econmodels
@@ -19,6 +20,11 @@ def produce(targetdir, weatherbundle, qvals, do_only=None, suffix=''):
         baseline_get_predictors = predgen.get_baseline
 
         ## Full interpolation
-        calculation, dependencies = standard.prepare_csvv("/shares/gcp/data/adaptation/conflict/group_tp3_semur_auto.csvv", qvals['intergroup'])
+        for filepath in glob.glob("/shares/gcp/data/adaptation/conflict/*.csvv"):
+            basename = os.path.basename(filepath)[:-5]
+            print basename
 
-        effectset.write_ncdf(qvals['weather'], targetdir, "InterpolatedInterpersonal", weatherbundle, calculation, baseline_get_predictors, "Interpolated response for interpersonal crime.", dependencies + weatherbundle.dependencies, suffix=suffix)
+            thisqvals = qvals[basename]
+            calculation, dependencies = standard.prepare_csvv(filepath, thisqvals)
+
+            effectset.write_ncdf(thisqvals['weather'], targetdir, basename, weatherbundle, calculation, baseline_get_predictors, "Interpolated response for " + basename + ".", dependencies + weatherbundle.dependencies, suffix=suffix)

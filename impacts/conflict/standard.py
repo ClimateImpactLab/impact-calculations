@@ -16,7 +16,7 @@ def prepare_csvv(csvvpath, qvals):
     tcoeff = curvegen.FlatCurveGenerator('C', 'rate', qvals.get_seed(), ggr['gamma'], ggr['gammavcv'], ggr['residvcv'])
     #p3coeffs = LinearInterpolatedPolynomial(extract_values(data, range(1, 4)), qvals['precipitation'])
 
-    teffect = InstaZScoreApply('rate', tcoeff, 'the linear temperature effect', 635) #676)
+    teffect = InstaZScoreApply('rate', tcoeff, 'the linear temperature effect', 676)
 
     #teffect = ApplyEstimated(tcoeff, 'z-score', 'delta rate',
     #    RegionalTransform(WeatherVariable('tas'), 'C', 'z-score',

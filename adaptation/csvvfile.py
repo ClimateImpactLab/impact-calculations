@@ -37,7 +37,10 @@ def extract_values(data, kks):
 
     gamma = data['gamma'][indexes]
     gammavcv = data['gammavcv'][indexes][:, indexes]
-    residvcv = data['residvcv'][np.array(kks), np.array(kks)]
+    if data['residvcv'].shape[0] > 0:
+        residvcv = data['residvcv'][np.array(kks), np.array(kks)]
+    else:
+        residvcv = []
 
     return dict(gamma=gamma, gammavcv=gammavcv, residvcv=residvcv)
 
