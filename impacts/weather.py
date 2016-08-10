@@ -175,7 +175,7 @@ class WeatherBundle(object):
 
     def baseline_average(self, maxyear):
         """Yield the average weather value up to `maxyear` for each region."""
-        
+
         regionsums = np.zeros(len(self.regions))
         sumcount = 0
         for yyyyddd, weather in self.yearbundles(maxyear):
@@ -190,7 +190,7 @@ class WeatherBundle(object):
 
     def baseline_values(self, maxyear):
         """Yield the list of all weather values up to `maxyear` for each region."""
-        
+
         # Construct an empty matrix to append to
         regioncols = np.array([[]] * len(self.regions)).transpose()
 
@@ -207,7 +207,7 @@ class WeatherBundle(object):
 
     def baseline_bin_values(self, binlimits, maxyear):
         """Yield the number of days within each set of sequential limits from `binlimits` for each year and each region."""
-        
+
         regioncolbins = []
         for ii in range(len(binlimits) - 1):
             regioncols = np.array([[]] * len(self.regions)).transpose()
@@ -341,3 +341,44 @@ class RepeatedHistoricalWeatherBundle(WeatherBundle):
 
     def get_years(self):
         return range(self.pastyear_start, self.futureyear_end + 1)
+
+class MultivariateHistoricalWeatherBundle(WeatherBundle):
+    def __init__(self, template, year_start, year_end, variables,
+                 hierarchy='hierarchy.csv', readncdf=readncdf):
+        super(MultivariateHistoricalWeatherBundle, self).__init__(hierarchy)
+
+        self.template = template
+        self.year_start = year_start
+        self.year_end = year_end
+        self.variables = variables
+        self.readncdf = readncdf
+
+        self.load_regions()
+        self.load_metainfo(self.template % (self.year_start), variables[0])
+
+    def is_historical(self):
+        return True
+
+    def yearbundles(self, maxyear=np.inf):
+        for year in self.get_years():
+            masteryyyyddd = None
+            weathers = []
+            for variable in self.variables:
+                yyyyddd, weather = self.readncdf(self.template % (variable, year), variable)
+                if masteryyyyddd is None:
+                    masteryyyyddd = yyyyddd
+                else:
+                    assert masteryyyyddd == yyyyddd
+
+                weathers.append(weather)
+
+            yield masteryyyyddd, weathers
+
+    def get_years(self):
+        return range(self.year_start, self.year_end + 1)
+
+if __name__ == '__main__':
+    template = "/shares/gcp/BCSD/grid2reg/cmip5/historical/CCSM4/{0}/{0}_day_aggregated_historical_r1i1p1_CCSM4_{1}.nc"
+    weatherbundle = MultivariateHistoricalWeatherBundle(template, 1981, 2005, ['pr', 'tas'])
+    yyyyddd, weathers = weatherbundle.yearbundles().next()
+    print len(yyyyddd), len(weathers), len(weathers[0])
