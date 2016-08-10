@@ -6,15 +6,17 @@ Precipitation is as a difference of polynomials (sum_k P^k - mean P^k)
 """
 
 from openest.generate.stdlib import *
-from adaptation import csvvfile, curvegen
+from adaptation import csvvfile
+from shortterm import curvegen
 
 def prepare_csvv(csvvpath, qvals):
     data = csvvfile.read(csvvpath)
 
-    tcoeff = curvegen.FlatCurveGenerator(qvals.get_seed(), *csvvfile.extract_values(data, [0]))
+    ggr = csvvfile.extract_values(data, [0])
+    tcoeff = curvegen.FlatCurveGenerator('C', 'rate', qvals.get_seed(), ggr['gamma'], ggr['gammavcv'], ggr['residvcv'])
     #p3coeffs = LinearInterpolatedPolynomial(extract_values(data, range(1, 4)), qvals['precipitation'])
 
-    teffect = InstaZScore(tcoeff)
+    teffect = InstaZScore(SingleWeatherApply('rate', tcoeff, 'the linear temperature effect'), 635) #676)
 
     #teffect = ApplyEstimated(tcoeff, 'z-score', 'delta rate',
     #    RegionalTransform(WeatherVariable('tas'), 'C', 'z-score',
@@ -26,4 +28,4 @@ def prepare_csvv(csvvpath, qvals):
     #                            prcp**3 - climate_mean('prcp')**3])
     #return Sum(teffect, p3effect)
 
-    return teffect, data['dependencies']
+    return teffect, [data['attrs']['version']]

@@ -1,9 +1,12 @@
 import numpy as np
 from scipy.stats import multivariate_normal
+from openest.generate.curvegen import CurveGenerator
 from openest.models.curve import FlatCurve
 
-class FlatCurveGenerator(object):
-    def __init__(self, seed, gamma, gammavcv, residvcv):
+class FlatCurveGenerator(CurveGenerator):
+    def __init__(self, indepunits, depenunits, seed, gamma, gammavcv, residvcv):
+        super(FlatCurveGenerator, self).__init__(indepunits, depenunits)
+
         if seed is None:
             self.gamma = gamma
         else:
@@ -11,8 +14,8 @@ class FlatCurveGenerator(object):
             self.gamma = multivariate_normal.rvs(gamma, gammavcv)
         self.residvcv = residvcv
 
-    def get_curve(self, predictors):
-        assert len(predictors) == len(self.gamma) - 1
+    def get_curve(self, region, *predictors):
+        assert len(predictors) == len(self.gamma) - 1, "%d <> %d" % (len(predictors), len(self.gamma) - 1)
 
         yy = self.gamma[0] + np.sum(self.gamma[1:] * np.array(predictors))
 
@@ -33,10 +36,10 @@ class TemperaturePrecipitationPredictorator(object):
         self.economicmodel = economicmodel
 
     def get_baseline(self, region):
-        return tuple(self.weather_predictors[region] + map(np.log, self.econ_predictors[region]))
+        return tuple(self.weather_predictors[region] + map(np.log, self.econ_predictors.get(region, self.econ_predictors['mean'])))
 
 if __name__ == '__main__':
-    curvegen = FlatCurveGenerator(1234, [1, 1], [[.01, 0], [0, .01]], [0])
+    curvegen = FlatCurveGenerator('X', 'Y', 1234, [1, 1], [[.01, 0], [0, .01]], [0])
     curve = curvegen.get_curve([2])
     print curve(0)
 

@@ -1,9 +1,9 @@
 from impacts.conflict import standard
 from impacts.weather import MultivariateHistoricalWeatherBundle
 from adaptation.econmodel import iterate_econmodels
-import curvegen
+import curvegen, effectset
 
-def produce(targetdir, weatherbundle, qvals, do_only=None):
+def produce(targetdir, weatherbundle, qvals, do_only=None, suffix=''):
     historicalbundle = MultivariateHistoricalWeatherBundle("/shares/gcp/BCSD/grid2reg/cmip5/historical/CCSM4/{0}/{0}_day_aggregated_historical_r1i1p1_CCSM4_{1}.nc", 1991, 2005, ['pr', 'tas'])
     model, scenario, econmodel = (mse for mse in iterate_econmodels() if mse[0] == 'OECD Env-Growth').next()
 
@@ -21,4 +21,4 @@ def produce(targetdir, weatherbundle, qvals, do_only=None):
         ## Full interpolation
         calculation, dependencies = standard.prepare_csvv("/shares/gcp/data/adaptation/conflict/group_tp3_semur_auto.csvv", qvals['intergroup'])
 
-        effectset.write_ncdf(targetdir, "InterpolatedInterpersonal", weatherbundle, calculation, baseline_get_predictors, "Interpolated response for interpersonal crime.", dependencies + weatherbundle.dependencies, suffix=suffix)
+        effectset.write_ncdf(qvals['weather'], targetdir, "InterpolatedInterpersonal", weatherbundle, calculation, baseline_get_predictors, "Interpolated response for interpersonal crime.", dependencies + weatherbundle.dependencies, suffix=suffix)

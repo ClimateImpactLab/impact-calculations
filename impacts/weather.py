@@ -138,22 +138,6 @@ class WeatherBundle(object):
         """Returns True if this data presents historical observations; else False."""
         raise NotImplementedError
 
-    def yearbundles(self, maxyear=np.inf):
-        """Yields the tuple (yyyyddd, weather) for each year up to `maxyear`.
-        Each yield should should produce all and only data for a single year.
-        Typically, the data provided by yearbundles is produced by `readncdf`.
-
-        yyyyddd should be a numpy array of length 365, and integer values
-        constructed like 2016001 for the first day of 2016.
-
-        weather should be a numpy array of size REGIONS x 365.
-        """
-        raise NotImplementedError
-
-    def get_years(self):
-        """Returns a list of all years available for the given WeatherBundle."""
-        raise NotImplementedError
-
     def load_regions(self):
         """Load the rows of hierarchy.csv associated with all known regions."""
         mapping = {} # color to hierid
@@ -172,6 +156,23 @@ class WeatherBundle(object):
     def load_metainfo(self, filepath, variable):
         """Load an metadata associated with the WeatherBundle."""
         self.version, self.units = readmeta(filepath, variable)
+
+class DailyWeatherBundle(WeatherBundle):
+    def yearbundles(self, maxyear=np.inf):
+        """Yields the tuple (yyyyddd, weather) for each year up to `maxyear`.
+        Each yield should should produce all and only data for a single year.
+        Typically, the data provided by yearbundles is produced by `readncdf`.
+
+        yyyyddd should be a numpy array of length 365, and integer values
+        constructed like 2016001 for the first day of 2016.
+
+        weather should be a numpy array of size REGIONS x 365.
+        """
+        raise NotImplementedError
+
+    def get_years(self):
+        """Returns a list of all years available for the given WeatherBundle."""
+        raise NotImplementedError
 
     def baseline_average(self, maxyear):
         """Yield the average weather value up to `maxyear` for each region."""
@@ -223,7 +224,7 @@ class WeatherBundle(object):
         for rr in range(len(self.regions)):
             yield self.regions[rr], [regioncolbins[ii][:,rr].ravel().tolist()[0] for ii in range(len(binlimits) - 1)]
 
-class SingleWeatherBundle(WeatherBundle):
+class SingleWeatherBundle(DailyWeatherBundle):
     def __init__(self, template, year1, variable, hierarchy='hierarchy.csv', readncdf=readncdf):
         super(SingleWeatherBundle, self).__init__(hierarchy)
         self.template = template
@@ -251,7 +252,7 @@ class SingleWeatherBundle(WeatherBundle):
 
         return years
 
-class UnivariatePastFutureWeatherBundle(WeatherBundle):
+class UnivariatePastFutureWeatherBundle(DailyWeatherBundle):
     def __init__(self, pasttemplate, pastyear1, futuretemplate, futureyear1,
                  variable, hierarchy='hierarchy.csv', readncdf=readncdf):
         super(UnivariatePastFutureWeatherBundle, self).__init__(hierarchy)
@@ -287,7 +288,7 @@ class UnivariatePastFutureWeatherBundle(WeatherBundle):
 
         return years
 
-class RepeatedHistoricalWeatherBundle(WeatherBundle):
+class RepeatedHistoricalWeatherBundle(DailyWeatherBundle):
     def __init__(self, pasttemplate, pastyear_start, pastyear_end, futureyear_end, variable,
                  seed, hierarchy='hierarchy.csv', readncdf=readncdf):
         super(RepeatedHistoricalWeatherBundle, self).__init__(hierarchy)
@@ -342,7 +343,7 @@ class RepeatedHistoricalWeatherBundle(WeatherBundle):
     def get_years(self):
         return range(self.pastyear_start, self.futureyear_end + 1)
 
-class MultivariateHistoricalWeatherBundle(WeatherBundle):
+class MultivariateHistoricalWeatherBundle(DailyWeatherBundle):
     def __init__(self, template, year_start, year_end, variables,
                  hierarchy='hierarchy.csv', readncdf=readncdf):
         super(MultivariateHistoricalWeatherBundle, self).__init__(hierarchy)

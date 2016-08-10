@@ -10,6 +10,16 @@ def make_years_variable(rootgrp):
 
     return years
 
+def make_months_variable(rootgrp, long_title):
+    month = rootgrp.createDimension('month', None)
+
+    months = rootgrp.createVariable('month','i4',('month',))
+    months.long_title = long_title
+    months.units = "Months"
+    months.source = "From the weather file."
+
+    return months
+
 def make_regions_variable(rootgrp, regstrs, subset):
     region = rootgrp.createDimension('region', len(regstrs))
 

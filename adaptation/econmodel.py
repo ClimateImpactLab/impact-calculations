@@ -1,4 +1,5 @@
 import csv
+import numpy as np
 from helpers import files, header
 from datastore import population, popdensity, income
 
