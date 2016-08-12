@@ -28,14 +28,14 @@ class PolynomialCurveGenerator(CSVVCurveGenerator):
         self.order = order
 
     def get_curve(self, region, *predictors):
-        assert len(predictors) * order == len(self.gamma) - order, "%d <> %d x %d" % (len(predictors), len(self.gamma), order)
+        assert len(predictors) * self.order == len(self.gamma) - self.order, "%d <> %d x %d" % (len(predictors), len(self.gamma), self.order)
 
         ccs = []
-        for oo in range(order):
-            mygamma = self.gamma[order * (len(predictors) + 1):(order + 1) * (len(predictors) + 1)]
+        for oo in range(self.order):
+            mygamma = self.gamma[oo * (len(predictors) + 1):(oo + 1) * (len(predictors) + 1)]
             ccs.append(mygamma[0]  + np.sum(mygamma[1:] * np.array(predictors)))
 
-        return PolynomialCurve(ccs)
+        return PolynomialCurve([-np.inf, np.inf], ccs)
 
 class TemperaturePrecipitationPredictorator(object):
     def __init__(self, weatherbundle, economicmodel, numtempyears, numeconyears, maxbaseline):

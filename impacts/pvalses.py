@@ -23,7 +23,7 @@ class ConstantDictionary:
     def __getitem__(self, name):
         return self.value
 
-    def get_seed(self):
+    def get_seed(self, plus=0):
         return None # for MC, have this also increment state
 
 class OnDemandRandomPvals:
@@ -64,11 +64,11 @@ class OnDemandRandomDictionary:
 
         return value
 
-    def get_seed(self):
+    def get_seed(self, plus=0):
         if self.locked:
-            return self.values['seed'][0]
+            return self.values['seed'][0] + plus
 
-        seed = int(time.time())
+        seed = int(time.time()) + plus
         if 'seed' in self.values:
             self.values['seed'].append(seed)
         else:
