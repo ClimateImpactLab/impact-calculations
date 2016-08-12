@@ -25,4 +25,4 @@ def prepare_csvv(csvvpath, qvals):
 
     p3effect = SingleWeatherApply('rate', p3curve, 'the cubic precipitation effect', np.sqrt)
 
-    return SpanInstabase(Sum([teffect, p3effect]), 556, 676), [data['attrs']['version']]
+    return SplitByMonth(SpanInstabase(Sum([teffect, p3effect]), 556, 676)), [data['attrs']['version']]
