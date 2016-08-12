@@ -52,8 +52,14 @@ def write_ncdf(qval, targetdir, title, weatherbundle, calculation, get_apply_arg
     columns = []
     # Store all in columndata, for faster feeding in
     columndata = [] # [matrix(month x region)]
+    usednames = set()
     for ii in range(len(calculation.unitses)):
-        column = rootgrp.createVariable(infos[ii]['name'], 'f8', ('month', 'region'))
+        myname = infos[ii]['name']
+        while myname in usednames:
+            myname += "2"
+        usednames.add(myname)
+            
+        column = rootgrp.createVariable(myname, 'f8', ('month', 'region'))
         column.long_title = infos[ii]['title']
         column.units = calculation.unitses[ii]
         column.source = infos[ii]['description']
