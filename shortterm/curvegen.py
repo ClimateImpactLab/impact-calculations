@@ -1,11 +1,11 @@
 import numpy as np
 from scipy.stats import multivariate_normal
 from openest.generate.curvegen import CurveGenerator
-from openest.models.curve import FlatCurve
+from openest.models.curve import FlatCurve, PolynomialCurve
 
-class FlatCurveGenerator(CurveGenerator):
+class CSVVCurveGenerator(CurveGenerator):
     def __init__(self, indepunits, depenunits, seed, gamma, gammavcv, residvcv):
-        super(FlatCurveGenerator, self).__init__(indepunits, depenunits)
+        super(CSVVCurveGenerator, self).__init__(indepunits, depenunits)
 
         if seed is None:
             self.gamma = gamma
@@ -14,12 +14,28 @@ class FlatCurveGenerator(CurveGenerator):
             self.gamma = multivariate_normal.rvs(gamma, gammavcv)
         self.residvcv = residvcv
 
+class FlatCurveGenerator(CSVVCurveGenerator):
     def get_curve(self, region, *predictors):
         assert len(predictors) == len(self.gamma) - 1, "%d <> %d" % (len(predictors), len(self.gamma) - 1)
 
         yy = self.gamma[0] + np.sum(self.gamma[1:] * np.array(predictors))
 
         return FlatCurve(yy)
+
+class PolynomialCurveGenerator(CSVVCurveGenerator):
+    def __init__(self, order, indepunits, depenunits, seed, gamma, gammavcv, residvcv):
+        super(PolynomialCurveGenerator, self).__init__(indepunits, depenunits, seed, gamma, gammavcv, residvcv)
+        self.order = order
+
+    def get_curve(self, region, *predictors):
+        assert len(predictors) * order == len(self.gamma) - order, "%d <> %d x %d" % (len(predictors), len(self.gamma), order)
+
+        ccs = []
+        for oo in range(order):
+            mygamma = self.gamma[order * (len(predictors) + 1):(order + 1) * (len(predictors) + 1)]
+            ccs.append(mygamma[0]  + np.sum(mygamma[1:] * np.array(predictors)))
+
+        return PolynomialCurve(ccs)
 
 class TemperaturePrecipitationPredictorator(object):
     def __init__(self, weatherbundle, economicmodel, numtempyears, numeconyears, maxbaseline):
