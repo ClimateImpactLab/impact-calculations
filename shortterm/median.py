@@ -10,7 +10,9 @@ outputdir = sys.argv[1]
 
 targetdir = os.path.join(outputdir, 'median', 'median')
 
-weatherbundle = weather.FirstForecastBundle(weather.temp_path)
+tbundle = weather.FirstForecastBundle(weather.temp_path)
+pbundle = weather.FirstForecastBundle(weather.prcp_path)
+weatherbundle = weather.CombinedBundle([tbundle, pbundle])
 
 if os.path.exists(targetdir):
     os.system("rm -r " + targetdir)

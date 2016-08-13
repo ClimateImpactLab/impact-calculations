@@ -24,8 +24,12 @@ def simultaneous_application(qval, weatherbundle, calculation, get_apply_args, r
 
         for ii in range(len(applications)):
             jj = ii if regions == weatherbundle.regions else weatherbundle.regions.index(regions[ii])
-
-            for monthresult in applications[ii].push([month], [values[jj]]):
+            
+            if len(values.shape) == 1:
+                valuesii = values[jj]
+            else:
+                valuesii = values[:, jj]
+            for monthresult in applications[ii].push([month], [valuesii]):
                 yield (ii, monthresult[0], monthresult[1:])
 
     for ii in range(len(applications)):
