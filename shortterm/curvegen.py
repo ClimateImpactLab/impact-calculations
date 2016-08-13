@@ -38,9 +38,10 @@ class PolynomialCurveGenerator(CSVVCurveGenerator):
         return PolynomialCurve([-np.inf, np.inf], ccs)
 
 class TemperaturePrecipitationPredictorator(object):
-    def __init__(self, weatherbundle, economicmodel, numtempyears, numeconyears, maxbaseline):
+    def __init__(self, weatherbundle, economicmodel, numtempyears, numeconyears, maxbaseline, polyorder=1):
         self.numtempyears = numtempyears
         self.numeconyears = numeconyears
+        self.polyorder = polyorder
 
         print "Collecting baseline information..."
         self.weather_predictors = {}
@@ -52,7 +53,14 @@ class TemperaturePrecipitationPredictorator(object):
         self.economicmodel = economicmodel
 
     def get_baseline(self, region):
-        return tuple(self.weather_predictors[region] + map(np.log, self.econ_predictors.get(region, self.econ_predictors['mean'])))
+        if self.polyorder == 1:
+            return tuple(self.weather_predictors[region] + map(np.log, self.econ_predictors.get(region, self.econ_predictors['mean'])))
+        else:
+            preds = np.array(self.weather_predictors[region] + map(np.log, self.econ_predictors.get(region, self.econ_predictors['mean'])))
+            allpreds = []
+            for order in range(self.polyorder):
+                allpreds.extend(preds ** (order + 1))
+            return tuple(allpreds)
 
 if __name__ == '__main__':
     curvegen = FlatCurveGenerator('X', 'Y', 1234, [1, 1], [[.01, 0], [0, .01]], [0])
