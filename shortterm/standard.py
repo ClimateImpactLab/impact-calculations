@@ -16,8 +16,8 @@ def produce(targetdir, weatherbundle, qvals, do_only=None, suffix=''):
     #     effectset.write_ncdf(targetdir, "PropertyCrime", weatherbundle, calculation, None, "Property crime using the ACP response function.", dependencies + weatherbundle.dependencies, suffix=suffix)
 
     if do_only is None or do_only == 'interpolation':
-        predgen = curvegen.TemperaturePrecipitationPredictorator(historicalbundle, econmodel, 15, 3, 2005)
-        baseline_get_predictors = predgen.get_baseline
+        predgen1 = curvegen.TemperaturePrecipitationPredictorator(historicalbundle, econmodel, 15, 3, 2005)
+        predgen3 = curvegen.TemperaturePrecipitationPredictorator(historicalbundle, econmodel, 15, 3, 2005, polyorder=3)
 
         ## Full interpolation
         for filepath in glob.glob("/shares/gcp/data/adaptation/conflict/*.csvv"):
@@ -27,4 +27,8 @@ def produce(targetdir, weatherbundle, qvals, do_only=None, suffix=''):
             thisqvals = qvals[basename]
             calculation, dependencies = standard.prepare_csvv(filepath, thisqvals)
 
-            effectset.write_ncdf(thisqvals['weather'], targetdir, basename, weatherbundle, calculation, baseline_get_predictors, "Interpolated response for " + basename + ".", dependencies + weatherbundle.dependencies, suffix=suffix)
+            if '_cubic_' in filepath or 'group_' in filepath:
+                effectset.write_ncdf(thisqvals['weather'], targetdir, basename, weatherbundle, calculation, predgen3.get_baseline, "Interpolated response for " + basename + ".", dependencies + weatherbundle.dependencies, suffix=suffix)
+            else:
+                effectset.write_ncdf(thisqvals['weather'], targetdir, basename, weatherbundle, calculation, predgen1.get_baseline, "Interpolated response for " + basename + ".", dependencies + weatherbundle.dependencies, suffix=suffix)
+
