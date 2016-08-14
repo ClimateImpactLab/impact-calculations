@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.stats import multivariate_normal
 from openest.generate.curvegen import CurveGenerator
-from openest.models.curve import FlatCurve, PolynomialCurve
+from openest.models.curve import LinearCurve, PolynomialCurve
 
 class CSVVCurveGenerator(CurveGenerator):
     def __init__(self, indepunits, depenunits, seed, gamma, gammavcv, residvcv, callback=None):
@@ -16,7 +16,7 @@ class CSVVCurveGenerator(CurveGenerator):
 
         self.callback = callback
 
-class FlatCurveGenerator(CSVVCurveGenerator):
+class LinearCurveGenerator(CSVVCurveGenerator):
     def get_curve(self, region, *predictors):
         assert len(predictors) == len(self.gamma) - 1, "%d <> %d" % (len(predictors), len(self.gamma) - 1)
 
@@ -25,7 +25,7 @@ class FlatCurveGenerator(CSVVCurveGenerator):
         if self.callback is not None:
             self.callback(region, predictors, yy)
 
-        return FlatCurve(yy)
+        return LinearCurve(yy)
 
 class PolynomialCurveGenerator(CSVVCurveGenerator):
     def __init__(self, order, indepunits, depenunits, seed, gamma, gammavcv, residvcv, callback=None):
@@ -72,7 +72,7 @@ class TemperaturePrecipitationPredictorator(object):
             return tuple(allpreds)
 
 if __name__ == '__main__':
-    curvegen = FlatCurveGenerator('X', 'Y', 1234, [1, 1], [[.01, 0], [0, .01]], [0])
+    curvegen = LinearCurveGenerator('X', 'Y', 1234, [1, 1], [[.01, 0], [0, .01]], [0])
     curve = curvegen.get_curve([2])
     print curve(0)
 
