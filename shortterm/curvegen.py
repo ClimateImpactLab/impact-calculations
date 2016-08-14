@@ -22,7 +22,7 @@ class FlatCurveGenerator(CSVVCurveGenerator):
 
         yy = self.gamma[0] + np.sum(self.gamma[1:] * np.array(predictors))
 
-        if callback is not None:
+        if self.callback is not None:
             self.callback(region, predictors, yy)
 
         return FlatCurve(yy)
@@ -41,7 +41,7 @@ class PolynomialCurveGenerator(CSVVCurveGenerator):
             mygamma = self.gamma[oo * (len(predictors) + 1):(oo + 1) * (len(predictors) + 1)]
             ccs.append(mygamma[0]  + np.sum(mygamma[1:] * np.array(predictors)))
 
-        if callback is not None:
+        if self.callback is not None:
             self.callback(region, predictors, ccs)
 
         return PolynomialCurve([-np.inf, np.inf], ccs)

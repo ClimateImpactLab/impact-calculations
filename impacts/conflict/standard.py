@@ -24,7 +24,7 @@ def prepare_csvv(csvvpath, qvals, callback):
     teffect = MonthlyZScoreApply('rate', tcurve, 'the linear temperature effect', temp_climate_mean, temp_climate_stddev, regions, lambda tp: tp[0])
 
     if '_tavg_' in csvvpath:
-        return teffect, [data['attrs']['version']]
+        return teffect, [data['attrs']['version']], data['prednames']
 
     pggr = csvvfile.extract_values(data, range(1, 4))
     p3curve = curvegen.PolynomialCurveGenerator(3, 'mm/month', 'rate', qvals.get_seed(1), pggr['gamma'], pggr['gammavcv'], pggr['residvcv'], callback=lambda r, x, y: callback('prcp', r, x, y))

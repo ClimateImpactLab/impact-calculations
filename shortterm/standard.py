@@ -45,13 +45,16 @@ def produce(targetdir, weatherbundle, qvals, do_only=None, suffix=''):
             with open(os.path.join(targetdir, basename + '-betas.csv'), 'w') as fp:
                 writer = csv.writer(fp)
 
-                header = ['region'] + predvars + ['beta-temp']
+                header = ['region'] + predvars[1:] + ['beta-temp']
                 if hasprcp:
                     header += ['beta-prcp1', 'beta-prcp2', 'beta-prcp3']
                 writer.writerow(header)
 
-                for region in predicted_betas:
-                    row = [region] + list(predicted_betas['pred']) + [predicted_betas['temp']]
-                    if hasprcp:
-                        row += predicted_betas['prcp']
+                for region in weatherbundle.regions:
+                    if regions not in predicted_betas:
+                        row = [region] + ['NA'] * (len(header) - 1)
+                    else:
+                        row = [region] + list(predicted_betas[region]['pred']) + [predicted_betas[region]['temp']]
+                        if hasprcp:
+                            row += predicted_betas[region]['prcp']
                     writer.writerow(row)
