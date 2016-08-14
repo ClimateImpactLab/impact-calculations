@@ -4,7 +4,7 @@ from netCDF4 import Dataset
 import helpers.header as headre
 from impacts import nc4writer
 
-def simultaneous_application(qval, weatherbundle, calculation, get_apply_args, regions=None):
+def simultaneous_application(qval, weatherbundle, calculation, get_apply_args, regions=None, region_callback=None):
     if regions is None:
         regions = weatherbundle.regions
 
@@ -24,7 +24,7 @@ def simultaneous_application(qval, weatherbundle, calculation, get_apply_args, r
 
         for ii in range(len(applications)):
             jj = ii if regions == weatherbundle.regions else weatherbundle.regions.index(regions[ii])
-            
+
             if len(values.shape) == 1:
                 valuesii = values[jj]
             else:
@@ -62,7 +62,7 @@ def write_ncdf(qval, targetdir, title, weatherbundle, calculation, get_apply_arg
         while myname in usednames:
             myname += "2"
         usednames.add(myname)
-            
+
         column = rootgrp.createVariable(myname, 'f8', ('month', 'region'))
         column.long_title = infos[ii]['title']
         column.units = calculation.unitses[ii]
