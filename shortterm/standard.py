@@ -5,7 +5,7 @@ from adaptation.econmodel import iterate_econmodels
 import curvegen, effectset
 
 def produce(targetdir, weatherbundle, qvals, do_only=None, suffix=''):
-    historicalbundle = MultivariateHistoricalWeatherBundle("/shares/gcp/BCSD/grid2reg/cmip5/historical/CCSM4/{0}/{0}_day_aggregated_historical_r1i1p1_CCSM4_{1}.nc", 1991, 2005, ['pr', 'tas'])
+    historicalbundle = MultivariateHistoricalWeatherBundle("/shares/gcp/BCSD/grid2reg/cmip5/historical/CCSM4/{0}/{0}_day_aggregated_historical_r1i1p1_CCSM4_{1}.nc", 1991, 2005, ['tas', 'pr'])
     model, scenario, econmodel = (mse for mse in iterate_econmodels() if mse[0] == 'OECD Env-Growth').next()
 
     # if do_only is None or do_only == 'acp':
@@ -20,41 +20,46 @@ def produce(targetdir, weatherbundle, qvals, do_only=None, suffix=''):
         predgen3 = curvegen.TemperaturePrecipitationPredictorator(historicalbundle, econmodel, 15, 3, 2005, polyorder=3)
 
         ## Full interpolation
-        for filepath in glob.glob("/shares/gcp/data/adaptation/conflict/*.csvv"):
+        for filepath in glob.glob("/shares/gcp/data/adaptation/conflict/*semur*.csvv"):
             basename = os.path.basename(filepath)[:-5]
             print basename
 
-            predicted_betas = {}
-            hasprcp = False
+            predicted_betas = {'hasprcp': False}
             def betas_callback(variable, region, predictors, betas):
                 if region in predicted_betas:
                     predicted_betas[region][variable] = betas
                 else:
                     predicted_betas[region] = {variable: betas, 'pred': predictors}
                 if variable == 'prcp':
-                    hasprcp = True
+                    predicted_betas['hasprcp'] = True
 
             thisqvals = qvals[basename]
             calculation, dependencies, predvars = standard.prepare_csvv(filepath, thisqvals, betas_callback)
 
             if '_cubic_' in filepath or 'group_' in filepath:
-                effectset.write_ncdf(thisqvals['weather'], targetdir, basename, weatherbundle, calculation, predgen3.get_baseline, "Interpolated response for " + basename + ".", dependencies + weatherbundle.dependencies, suffix=suffix)
+                columns = effectset.write_ncdf(thisqvals['weather'], targetdir, basename, weatherbundle, calculation, predgen3.get_baseline, "Interpolated response for " + basename + ".", dependencies + weatherbundle.dependencies, suffix=suffix)
             else:
-                effectset.write_ncdf(thisqvals['weather'], targetdir, basename, weatherbundle, calculation, predgen1.get_baseline, "Interpolated response for " + basename + ".", dependencies + weatherbundle.dependencies, suffix=suffix)
+                columns = effectset.write_ncdf(thisqvals['weather'], targetdir, basename, weatherbundle, calculation, predgen1.get_baseline, "Interpolated response for " + basename + ".", dependencies + weatherbundle.dependencies, suffix=suffix)
+
+            with open(os.path.join(targetdir, basename + '-sum.csv'), 'w') as fp:
+                writer = csv.writer(fp)
+                header = ['region'] + range(columns['sum'].shape[0])
+                for ii in range(len(weatherbundle.regions)):
+                    row = [weatherbundle.regions[ii]] + list(columns['sum'][:, ii])
 
             with open(os.path.join(targetdir, basename + '-betas.csv'), 'w') as fp:
                 writer = csv.writer(fp)
 
                 header = ['region'] + predvars[1:] + ['beta-temp']
-                if hasprcp:
+                if predicted_betas['hasprcp']:
                     header += ['beta-prcp1', 'beta-prcp2', 'beta-prcp3']
                 writer.writerow(header)
 
                 for region in weatherbundle.regions:
-                    if regions not in predicted_betas:
+                    if region not in predicted_betas:
                         row = [region] + ['NA'] * (len(header) - 1)
                     else:
                         row = [region] + list(predicted_betas[region]['pred']) + [predicted_betas[region]['temp']]
-                        if hasprcp:
+                        if predicted_betas['hasprcp']:
                             row += predicted_betas[region]['prcp']
                     writer.writerow(row)
