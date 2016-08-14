@@ -82,3 +82,8 @@ def write_ncdf(qval, targetdir, title, weatherbundle, calculation, get_apply_arg
 
     rootgrp.close()
 
+    byname = {}
+    for col in range(len(results)):
+        byname[infos[ii]['title']] = columndata[col]
+
+    return byname
