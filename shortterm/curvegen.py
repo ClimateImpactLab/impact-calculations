@@ -4,7 +4,7 @@ from openest.generate.curvegen import CurveGenerator
 from openest.models.curve import FlatCurve, PolynomialCurve
 
 class CSVVCurveGenerator(CurveGenerator):
-    def __init__(self, indepunits, depenunits, seed, gamma, gammavcv, residvcv):
+    def __init__(self, indepunits, depenunits, seed, gamma, gammavcv, residvcv, callback=None):
         super(CSVVCurveGenerator, self).__init__(indepunits, depenunits)
 
         if seed is None:
@@ -14,18 +14,24 @@ class CSVVCurveGenerator(CurveGenerator):
             self.gamma = multivariate_normal.rvs(gamma, gammavcv)
         self.residvcv = residvcv
 
+        self.callback = callback
+
 class FlatCurveGenerator(CSVVCurveGenerator):
     def get_curve(self, region, *predictors):
         assert len(predictors) == len(self.gamma) - 1, "%d <> %d" % (len(predictors), len(self.gamma) - 1)
 
         yy = self.gamma[0] + np.sum(self.gamma[1:] * np.array(predictors))
 
+        if callback is not None:
+            self.callback(region, predictors, yy)
+
         return FlatCurve(yy)
 
 class PolynomialCurveGenerator(CSVVCurveGenerator):
-    def __init__(self, order, indepunits, depenunits, seed, gamma, gammavcv, residvcv):
+    def __init__(self, order, indepunits, depenunits, seed, gamma, gammavcv, residvcv, callback=None):
         super(PolynomialCurveGenerator, self).__init__(indepunits, depenunits, seed, gamma, gammavcv, residvcv)
         self.order = order
+        self.callback = callback
 
     def get_curve(self, region, *predictors):
         assert len(predictors) * self.order == len(self.gamma) - self.order, "%d <> %d x %d" % (len(predictors), len(self.gamma), self.order)
@@ -34,6 +40,9 @@ class PolynomialCurveGenerator(CSVVCurveGenerator):
         for oo in range(self.order):
             mygamma = self.gamma[oo * (len(predictors) + 1):(oo + 1) * (len(predictors) + 1)]
             ccs.append(mygamma[0]  + np.sum(mygamma[1:] * np.array(predictors)))
+
+        if callback is not None:
+            self.callback(region, predictors, ccs)
 
         return PolynomialCurve([-np.inf, np.inf], ccs)
 
