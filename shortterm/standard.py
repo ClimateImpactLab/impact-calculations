@@ -36,16 +36,22 @@ def produce(targetdir, weatherbundle, qvals, do_only=None, suffix=''):
             thisqvals = qvals[basename]
             calculation, dependencies, predvars = standard.prepare_csvv(filepath, thisqvals, betas_callback)
 
-            if '_cubic_' in filepath or 'group_' in filepath:
+            if '_cubic_' in filepath:
                 columns = effectset.write_ncdf(thisqvals['weather'], targetdir, basename, weatherbundle, calculation, predgen3.get_baseline, "Interpolated response for " + basename + ".", dependencies + weatherbundle.dependencies, suffix=suffix)
             else:
                 columns = effectset.write_ncdf(thisqvals['weather'], targetdir, basename, weatherbundle, calculation, predgen1.get_baseline, "Interpolated response for " + basename + ".", dependencies + weatherbundle.dependencies, suffix=suffix)
 
-            with open(os.path.join(targetdir, basename + '-sum.csv'), 'w') as fp:
+            if '_tavg_' in filepath:
+                finalvar = 'response'
+            else:
+                finalvar = 'sum'
+            with open(os.path.join(targetdir, basename + '-final.csv'), 'w') as fp:
                 writer = csv.writer(fp)
-                header = ['region'] + range(columns['sum'].shape[0])
+                header = ['region'] + range(columns[finalvar].shape[0])
+                writer.writerow(header)
                 for ii in range(len(weatherbundle.regions)):
-                    row = [weatherbundle.regions[ii]] + list(columns['sum'][:, ii])
+                    row = [weatherbundle.regions[ii]] + list(columns[finalvar][:, ii])
+                    writer.writerow(row)
 
             with open(os.path.join(targetdir, basename + '-betas.csv'), 'w') as fp:
                 writer = csv.writer(fp)

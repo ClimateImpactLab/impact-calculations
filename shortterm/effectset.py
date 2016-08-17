@@ -84,6 +84,9 @@ def write_ncdf(qval, targetdir, title, weatherbundle, calculation, get_apply_arg
 
     byname = {}
     for col in range(len(results)):
-        byname[infos[ii]['title']] = columndata[col]
+        myname = infos[col]['name']
+        while myname in byname:
+            myname += "2"
+        byname[myname] = columndata[col]
 
     return byname
