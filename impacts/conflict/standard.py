@@ -20,7 +20,7 @@ def prepare_csvv(csvvpath, qvals, callback):
     regions = weather.FirstForecastBundle(weather.temp_climate_path).regions
 
     tggr = csvvfile.extract_values(data, [0])
-    tcurve = curvegen.FlatCurveGenerator('C', 'rate', qvals.get_seed(), tggr['gamma'], tggr['gammavcv'], tggr['residvcv'], callback=lambda r, x, y: callback('temp', r, x, y))
+    tcurve = curvegen.LinearCurveGenerator('C', 'rate', qvals.get_seed(), tggr['gamma'], tggr['gammavcv'], tggr['residvcv'], callback=lambda r, x, y: callback('temp', r, x, y))
     teffect = MonthlyZScoreApply('rate', tcurve, 'the linear temperature effect', temp_climate_mean, temp_climate_stddev, regions, lambda tp: tp[0])
 
     if '_tavg_' in csvvpath:
