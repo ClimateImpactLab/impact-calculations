@@ -1,4 +1,5 @@
-## XXX: This is now being maintained in climate/*.  Remove this when ready.
+## XXX: This needs to be updated to use WeatherReader in climate/*.
+## Remove all unclassed functions-- these are now in climate/netcdfs.py
 
 import os, re, csv
 import numpy as np
