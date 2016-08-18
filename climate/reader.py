@@ -1,4 +1,5 @@
 import os
+import numpy as np
 import netcdfs
 
 class WeatherReader(object):
@@ -34,7 +35,7 @@ class DailyWeatherReader(WeatherReader):
 
         year = self.year1
         while os.path.exists(self.template % (year)):
-            years.extend(year * 1000 + np.arange(365))
+            years.extend(year * 1000 + np.arange(1, 366))
             year += 1
 
         return years
@@ -75,21 +76,23 @@ class BinnedWeatherReader(WeatherReader):
             yield times, mmrrbb
             year += 1
 
-if __name__ == '__init__':
+if __name__ == '__main__':
     template1 = "/shares/gcp/BCSD/grid2reg/cmip5/historical/CCSM4/tas/tas_day_aggregated_historical_r1i1p1_CCSM4_%d.nc"
-    weatherreader1 = DailyWeatherReader(template1, 2006, 'tas')
+    weatherreader1 = DailyWeatherReader(template1, 1981, 'tas')
 
     print weatherreader1.get_times()[:31]
 
     for times, weather in weatherreader1.read_iterator():
         print times[:31]
-        print weather[1000, :31]
+        print weather[:31, 1000]
+        break
 
-    template2 = "/shares/gcp/BCSD/grid2reg/cmip5/historical/CCSM4/tas/tas_day_aggregated_historical_r1i1p1_CCSM4_%d.nc"
-    weatherreader2 = BinnedWeatherReader(template2, 2006, 'tas')
+    template2 = "/shares/gcp/BCSD/grid2reg/cmip5_bins/historical/CCSM4/tas/tas_Bindays_aggregated_historical_r1i1p1_CCSM4_%d.nc"
+    weatherreader2 = BinnedWeatherReader(template2, 1981, 'DayNumber')
 
     print weatherreader2.get_times()[:2]
 
     for times, weather in weatherreader2.read_iterator():
         print times[:2]
-        print weather[1000, 0]
+        print weather[0, 1000]
+        break
