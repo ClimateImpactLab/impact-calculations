@@ -1,128 +1,8 @@
-## XXX: This needs to be updated to use WeatherReader in climate/*.
-## Remove all unclassed functions-- these are now in climate/netcdfs.py
-
 import os, re, csv
 import numpy as np
 from netCDF4 import Dataset
 from helpers import files
 import helpers.header as headre
-
-def get_arbitrary_variables(path):
-    variables = {} # result of the function
-
-    # Find all netcdfs within this directory
-    for root, dirs, files in os.walk(path):
-        for filename in files:
-            # Check the filename
-            match = re.match(r'.*?(pr|tasmin|tasmax|tas).*?\.nc', filename)
-            if match:
-                variable = match.group(1)
-                filepath = os.path.join(root, filename)
-                variables[variable] = filepath # add to the result set
-                print "Found %s: %s" % (variable, filepath)
-
-    return variables
-
-def readmeta(filepath, variable):
-    """
-    Return version, units.
-    """
-    rootgrp = Dataset(filepath, 'r', format='NETCDF4')
-    version = rootgrp.version
-    units = rootgrp.variables[variable].units
-    rootgrp.close()
-
-    return version, units
-
-def readncdf(filepath, variable):
-    """
-    Return yyyyddd, weather
-    """
-    rootgrp = Dataset(filepath, 'r', format='NETCDF4')
-    weather = rootgrp.variables[variable][:,:]
-    yyyyddd = rootgrp.variables['time'][:]
-    rootgrp.close()
-
-    return yyyyddd, weather
-
-def readncdf_binned(filepath, variable):
-    """
-    Return month, perbin [12 x BINS x REGIONS]
-    """
-
-    rootgrp = Dataset(filepath, 'r', format='NETCDF4')
-    weather = rootgrp.variables[variable][:,:,:]
-    months = rootgrp.variables['month'][:]
-    rootgrp.close()
-
-    m = re.search('\\d{4}', filepath)
-    if m:
-        months = int(m.group(0)) * 1000 + months
-
-    return months, weather
-
-def available_years(template):
-    """
-    Returns the list of years available for a given template.
-    Called with a template like the one used in WeatherBundle: `path/filename_%d.nc`
-    """
-    basedir, filetemplate = os.path.split(template)
-    # Turn this into a regex
-    filetemplate = filetemplate.replace('%d', '(\\d{4})')
-
-    years = []
-    for filename in os.listdir(basedir):
-        m = re.match(filetemplate, filename)
-        if m:
-            years.append(int(m.group(1)))
-
-    return years
-
-def guess_historical(template):
-    """
-    Returns a plausible path to historical data.
-    Called with a template like the one used in WeatherBundle: `path/filename_%d.nc`
-    """
-    scenarioindex = template.index('rcp')
-    scenario = template[scenarioindex:scenarioindex+5]
-
-    return template.replace(scenario, 'historical')
-
-def guess_variable(filename):
-    """
-    Guess what the weather variable is from the filename.
-    """
-    if filename[0:7] == 'tas_day':
-        return 'DayNumber'
-    if filename[0:11] == 'number_days':
-        return 'tas'
-    if filename[0:6] in ['tasmin', 'tasmax']:
-        return filename[0:6]
-    if filename[0:3] == 'tas':
-        return 'tas'
-    if filename[0:2] == 'pr':
-        return 'pr'
-
-    return None
-
-def iterate_bundles(basedir):
-    """
-    Return bundles for each RCP and model.
-
-    basedir points to directory with both 'historical', 'rcp*'
-    """
-    # Collect the entire complement of models
-    models = os.listdir(os.path.join(basedir, 'historical'))
-
-    for scenario in os.listdir(basedir):
-        if scenario[0:3] != 'rcp':
-            continue
-
-        for model in models:
-            pasttemplate = os.path.join(basedir, 'historical', model, 'tas/tas_day_aggregated_historical_r1i1p1_' + model + '_%d.nc')
-            futuretemplate = os.path.join(basedir, scenario, model, 'tas/tas_day_aggregated_' + scenario + '_r1i1p1_' + model + '_%d.nc')
-            weatherbundle = UnivariatePastFutureWeatherBundle(pasttemplate, 1981, futuretemplate, 2006, 'tas')
-            yield scenario, model, weatherbundle
 
 class WeatherBundle(object):
     """A WeatherBundle object is used to access the values for a single variable
@@ -155,10 +35,6 @@ class WeatherBundle(object):
         self.regions = []
         for ii in range(len(mapping)):
             self.regions.append(mapping[ii + 1])
-
-    def load_metainfo(self, filepath, variable):
-        """Load an metadata associated with the WeatherBundle."""
-        self.version, self.units = readmeta(filepath, variable)
 
 class DailyWeatherBundle(WeatherBundle):
     def yearbundles(self, maxyear=np.inf):
@@ -228,71 +104,67 @@ class DailyWeatherBundle(WeatherBundle):
             yield self.regions[rr], [regioncolbins[ii][:,rr].ravel().tolist()[0] for ii in range(len(binlimits) - 1)]
 
 class SingleWeatherBundle(DailyWeatherBundle):
-    def __init__(self, template, year1, variable, hierarchy='hierarchy.csv', readncdf=readncdf):
+    def __init__(self, reader, hierarchy='hierarchy.csv'):
         super(SingleWeatherBundle, self).__init__(hierarchy)
-        self.template = template
-        self.year1 = year1
-        self.variable = variable
-        self.readncdf = readncdf
+        self.reader = reader
 
         self.load_regions()
-        self.load_metainfo(self.template % (year1), variable)
+        self.version = reader.version
+        self.units = reader.units
 
     def is_historical(self):
         return False
 
     def yearbundles(self, maxyear=np.inf):
-        year = self.year1
-        while os.path.exists(self.template % (year)) and year <= maxyear:
-            yield self.readncdf(self.template % (year), self.variable)
-            year += 1
+        for times, weathers in self.reader.read_iterator():
+            if times[0] % 1000 > maxyear:
+                break
+            yield times, weathers
 
     def get_years(self):
-        year = self.year1
-        while os.path.exists(self.template % (year)):
-            years.append(year)
-            year += 1
+        years = set()
+        for time in self.reader.get_times():
+            years.add(time % 1000)
 
-        return years
+        return list(years)
 
 class UnivariatePastFutureWeatherBundle(DailyWeatherBundle):
-    def __init__(self, pasttemplate, pastyear1, futuretemplate, futureyear1,
-                 variable, hierarchy='hierarchy.csv', readncdf=readncdf):
+    def __init__(self, pastreader, futurereader, hierarchy='hierarchy.csv'):
         super(UnivariatePastFutureWeatherBundle, self).__init__(hierarchy)
-        self.pasttemplate = pasttemplate
-        self.pastyear1 = pastyear1
-        self.futuretemplate = futuretemplate
-        self.futureyear1 = futureyear1
-        self.variable = variable
-        self.readncdf = readncdf
+        self.pastreader = pastreader
+        self.futurereader = futurereader
+
+        assert pastreader.units == futurereader.units
 
         self.load_regions()
-        self.load_metainfo(self.pasttemplate % (pastyear1), variable)
+        self.version = futurereader.version
+        self.units = futurereader.units
 
     def is_historical(self):
         return False
 
     def yearbundles(self, maxyear=np.inf):
-        for year in range(self.pastyear1, min(self.futureyear1, maxyear)):
-            yield self.readncdf(self.pasttemplate % (year), self.variable)
+        for times, weathers in self.pastreader.read_iterator():
+            if times[0] % 1000 > maxyear:
+                break
+            yield times, weathers
 
-        year = self.futureyear1
-        while os.path.exists(self.futuretemplate % (year)) and year <= maxyear:
-            yield self.readncdf(self.futuretemplate % (year), self.variable)
-            year += 1
+        for times, weathers in self.futurereader.read_iterator():
+            if times[0] % 1000 > maxyear:
+                break
+            yield times, weathers
 
     def get_years(self):
-        years = range(self.pastyear1, self.futureyear1)
+        years = set()
+        for time in self.pastreader.get_times():
+            years.add(time % 1000)
+        for time in self.futurereader.get_times():
+            years.add(time % 1000)
 
-        year = self.futureyear1
-        while os.path.exists(self.futuretemplate % (year)):
-            years.append(year)
-            year += 1
-
-        return years
+        return list(years)
 
 class RepeatedHistoricalWeatherBundle(DailyWeatherBundle):
-    def __init__(self, pasttemplate, pastyear_start, pastyear_end, futureyear_end, variable,
+    def __init__(self, pastreader, pastyear_start, pastyear_end, futureyear_end, variable,
                  seed, hierarchy='hierarchy.csv', readncdf=readncdf):
         super(RepeatedHistoricalWeatherBundle, self).__init__(hierarchy)
 
