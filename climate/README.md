@@ -31,20 +31,23 @@ version and units for the data.
 ## Files included
 
  - `reader.py`: Defines the top-level interface of `WeatherReader` and
-   two basic classes for daily weather data and binned weather data.
+   a helper class for reading data split into yearly chunks.
+
+ - `dailyreader.py`: defines two basic classes for daily weather data
+   and binned weather data.
 
  - `netcdfs.py`: Helper functions for reading NetCDFs in the CIL
    format.
 
 ## Testing it
 
-To run a simple test, call `reader.py` as follows:
+To run a simple test, call `tests/test_weatherreader.py` as follows:
 ```
-python reader.py
+python -m tests.test_weatherreader
 ```
 
 This will create a daily reader and a binned reader, with data
-corresponding to the same month.
+corresponding to the same month, and check that they correspond.
 
 ## Adding a new dataset
 
