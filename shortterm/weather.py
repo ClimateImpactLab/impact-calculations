@@ -1,3 +1,6 @@
+## XXX: This needs to be updated to use WeatherReader in climate/*.
+## Remove all unclassed functions-- these are now in climate/forecast.py
+
 import numpy as np
 from netCDF4 import Dataset
 from scipy.stats import norm
@@ -43,7 +46,7 @@ class FirstForecastBundle(WeatherBundle):
         months = rootgrp.variables['S'][:]
         months_title = rootgrp.variables['S'].units
         rootgrp.close()
-        
+
         return months, months_title
 
     def monthbundles(self, qval, maxyear=np.inf):

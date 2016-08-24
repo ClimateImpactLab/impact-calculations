@@ -1,6 +1,7 @@
 import unittest
 import numpy as np
 from numpy import testing
+from climate.dailyreader import *
 
 class TestWeatherReader(unittest.TestCase):
     def test_bincompare(self):
