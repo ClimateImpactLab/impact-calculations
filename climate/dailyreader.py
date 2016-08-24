@@ -23,7 +23,7 @@ class DailyWeatherReader(YearlySplitWeatherReader):
         for filename in self.file_iterator():
             yield netcdfs.readncdf(filename, self.variable)
 
-class BinnedWeatherReader(WeatherReader):
+class BinnedWeatherReader(YearlySplitWeatherReader):
     """Exposes binned weather data, accumulated into months and split into yearly file."""
 
     def get_times(self):
