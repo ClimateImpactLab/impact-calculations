@@ -1,11 +1,11 @@
 from netCDF4 import Dataset
 from reader import WeatherReader
 from scipy.stats import norm
-import netcdfs
+import netcdfs, forecasts
 
 class MonthlyForecastReader(WeatherReader):
     def __init__(self, filepath, variable, lead=0, qval=.5):
-        version, units = netcdfs.readmeta(filepath, variable)
+        version, units = netcdfs.readmeta(filepath, 'mean')
         super(MonthlyForecastReader, self).__init__(version, units)
 
         self.filepath = filepath
@@ -26,17 +26,17 @@ class MonthlyForecastReader(WeatherReader):
 
     def read_iterator(self):
         months = self.get_times()
-        meansgen = readncdf_allpred(self.filepath, "mean", self.lead)
-        sdevsgen = readncdf_allpred(self.filepath, "stddev", self.lead)
+        meansgen = forecasts.readncdf_allpred(self.filepath, "mean", self.lead)
+        sdevsgen = forecasts.readncdf_allpred(self.filepath, "stddev", self.lead)
         for month in months:
-            yield month, norm.ppf(qval, meansgen.next(), sdevsgen.next())
+            yield month, norm.ppf(self.qval, meansgen.next(), sdevsgen.next())
 
 class MonthlyZScoreForecastReader(MonthlyForecastReader):
     """Translates into z-scores on-the-fly."""
     def __init__(self, filepath, climatepath, variable, lead=0, qval=.5):
         super(MonthlyZScoreForecastReader, self).__init__(filepath, variable, lead, qval)
-        version_climate, units_climate = netcdfs.readmeta(climatepath, variable)
-        assert units == units_climate
+        version_climate, units_climate = netcdfs.readmeta(climatepath, 'mean')
+        assert self.units == units_climate
 
         self.climatepath = climatepath
 
@@ -44,8 +44,8 @@ class MonthlyZScoreForecastReader(MonthlyForecastReader):
         return ['Z(' + self.variable + ')']
 
     def read_iterator(self):
-        meansgen = readncdf_allpred(self.filepath, "mean", self.lead)
-        sdevsgen = readncdf_allpred(self.filepath, "stddev", self.lead)
+        means = list(forecasts.readncdf_allpred(self.climatepath, "mean", self.lead))
+        sdevs = list(forecasts.readncdf_allpred(self.climatepath, "stddev", self.lead))
 
         for month, weather in super(MonthlyZScoreForecastReader, self).read_iterator():
-            yield month, (weather - meansgen.next()) / sdevsgen.next()
+            yield month, (weather - means[month % 12]) / sdevs[month % 12]
