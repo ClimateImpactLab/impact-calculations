@@ -36,8 +36,13 @@ version and units for the data.
  - `dailyreader.py`: defines two basic classes for daily weather data
    and binned weather data.
 
+ - `forecastreader.py`: defines two basic classes for monthly
+   forecasts, and on-the-fly forecast z-scores.
+
  - `netcdfs.py`: Helper functions for reading NetCDFs in the CIL
    format.
+
+ - `forecasts.py`: Helper function for reading forecast NetCDFs.
 
 ## Testing it
 
@@ -48,6 +53,11 @@ python -m tests.test_weatherreader
 
 This will create a daily reader and a binned reader, with data
 corresponding to the same month, and check that they correspond.
+
+Or try `tests/test_forecastreader.py`:
+```
+python -m tests.test_forecastreader
+```
 
 ## Adding a new dataset
 
@@ -93,8 +103,8 @@ class NEWTransformedReader(WeatherReader):
 
     def read_iterator(self):
         for times, weather in self.source.read_iterator():
-	    transformed = ...
-	    yield times, transformed
+            transformed = ...
+	        yield times, transformed
 ```
 
 Here, the main parts that need to be filled in are the units in the
