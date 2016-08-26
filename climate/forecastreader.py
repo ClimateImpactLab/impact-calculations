@@ -4,9 +4,14 @@ from scipy.stats import norm
 import netcdfs, forecasts
 
 class MonthlyForecastReader(WeatherReader):
+    """
+    Expose monthly forecast values, ignoring any uncertainty information.
+    """
+    
     def __init__(self, filepath, variable, lead=0):
         version, units = netcdfs.readmeta(filepath, variable)
-        super(MonthlyForecastReader, self).__init__(version, units)
+        version, time_units = netcdfs.readmeta(filepath, 'S')
+        super(MonthlyForecastReader, self).__init__(version, units, time_units)
 
         self.filepath = filepath
         self.variable = variable
@@ -30,6 +35,10 @@ class MonthlyForecastReader(WeatherReader):
             yield month, valuesgen.next()
 
 class MonthlyStochasticForecastReader(MonthlyForecastReader):
+    """
+    Expose monthly forecast results, as probabilistic values.
+    """
+    
     def __init__(self, filepath, variable, lead=0, qval=.5):
         super(MonthlyStochasticForecastReader, self).__init__(filepath, 'mean', lead)
 
@@ -44,7 +53,10 @@ class MonthlyStochasticForecastReader(MonthlyForecastReader):
             yield month, norm.ppf(self.qval, meansgen.next(), sdevsgen.next())
 
 class MonthlyZScoreForecastReader(MonthlyStochasticForecastReader):
-    """Translates into z-scores on-the-fly."""
+    """
+    Translates into z-scores on-the-fly, using climate data.
+    """
+    
     def __init__(self, filepath, climatepath, variable, lead=0, qval=.5):
         super(MonthlyZScoreForecastReader, self).__init__(filepath, variable, lead, qval)
         version_climate, units_climate = netcdfs.readmeta(climatepath, 'mean')
