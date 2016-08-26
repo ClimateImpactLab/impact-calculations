@@ -4,9 +4,10 @@ import netcdfs
 class WeatherReader(object):
     """Handles reading from weather files."""
 
-    def __init__(self, version, units):
+    def __init__(self, version, units, time_units):
         self.version = version
         self.units = units
+        self.time_units = time_units
 
     def get_times(self):
         """Returns a list of all times available."""
@@ -32,7 +33,7 @@ class YearlySplitWeatherReader(WeatherReader):
 
     def __init__(self, template, year1, variable):
         version, units = netcdfs.readmeta(template % (year1), variable)
-        super(YearlySplitWeatherReader, self).__init__(version, units)
+        super(YearlySplitWeatherReader, self).__init__(version, units, 'year')
 
         self.template = template
         self.year1 = year1
