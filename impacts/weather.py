@@ -162,6 +162,7 @@ class WeatherBundle(object):
 
 class ReaderWeatherBundle(WeatherBundle):
     def __init__(self, reader, hierarchy='hierarchy.csv'):
+        super(ReaderWeatherBundle, self).__init__(hierarchy)
         self.reader = reader
         self.version = reader.version
         self.units = reader.units

@@ -2,13 +2,13 @@ import numpy as np
 from netCDF4 import Dataset
 from scipy.stats import norm
 from impacts.weather import ReaderWeatherBundle
-from climate import forecasts
+from climate import forecasts, forecastreader
 
 class FirstForecastBundle(ReaderWeatherBundle):
     def get_months(self):
         return self.reader.get_times(), self.reader.time_units
 
-    def monthbundles(self, qval, maxyear=np.inf):
+    def monthbundles(self, maxyear=np.inf):
         for month, values in self.reader.read_iterator():
             yield month, values
 
@@ -44,9 +44,8 @@ if __name__ == '__main__':
     print np.mean(forecasts.readncdf_lastpred(forecasts.temp_path, "mean", 0))
     print np.mean(forecasts.readncdf_lastpred(forecasts.prcp_path, "mean", 0))
 
-    bundle = FirstForecastBundle(temp_path)
-    gener = bundle.monthbundles(.5)
-    print np.mean(gener.next()[1])
+    bundle = FirstForecastBundle(forecastreader.MonthlyStochasticForecastReader(forecasts.temp_path, 'temp', 0, .5))
+    print np.mean(bundle.monthbundles().next()[1])
 
-    for monthvals in forecasts.readncdf_allpred(temp_path, 'mean', 0):
+    for monthvals in forecasts.readncdf_allpred(forecasts.temp_path, 'mean', 0):
         print monthvals[1000]
