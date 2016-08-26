@@ -18,7 +18,7 @@ class TestWeatherReader(unittest.TestCase):
         times_january = weatherreader1.get_times()[:31]
         for times, weather in weatherreader1.read_iterator():
             testing.assert_array_equal(times_january, times[:31])
-            daily_january = weather[:31, 1000]
+            daily_january = weather[:31, 1001]
             break
 
         # Compare it to the first month of binned values
@@ -34,7 +34,7 @@ class TestWeatherReader(unittest.TestCase):
         times_janfeb = weatherreader2.get_times()[:2]
         for times, weather in weatherreader2.read_iterator():
             testing.assert_array_equal(times_janfeb, times[:2])
-            binned_january = weather[0, 1000]
+            binned_january = weather[0, 1001]
             print binned_january
             print daily_january
 
