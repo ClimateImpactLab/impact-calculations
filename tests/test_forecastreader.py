@@ -32,6 +32,7 @@ class TestForecastReader(unittest.TestCase):
                 # print a, bs[month1 % 12][7], cs[month1 % 12][7]
                 # print (a - bs[month1 % 12][7]) / cs[month1 % 12][7]
                 # print weather1[mismatch], weather2[mismatch]
+            print month1
 
 if __name__ == '__main__':
     unittest.main()
