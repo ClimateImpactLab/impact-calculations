@@ -4,14 +4,13 @@ from scipy.stats import norm
 import netcdfs, forecasts
 
 class MonthlyForecastReader(WeatherReader):
-    def __init__(self, filepath, variable, lead=0, qval=.5):
-        version, units = netcdfs.readmeta(filepath, 'mean')
+    def __init__(self, filepath, variable, lead=0):
+        version, units = netcdfs.readmeta(filepath, variable)
         super(MonthlyForecastReader, self).__init__(version, units)
 
         self.filepath = filepath
         self.variable = variable
         self.lead = lead
-        self.qval = qval
 
     def get_times(self):
         """Return list of months"""
@@ -26,12 +25,25 @@ class MonthlyForecastReader(WeatherReader):
 
     def read_iterator(self):
         months = self.get_times()
+        valuesgen = forecasts.readncdf_allpred(self.filepath, self.variable, self.lead)
+        for month in months:
+            yield month, valuesgen.next()
+
+class MonthlyStochasticForecastReader(MonthlyForecastReader):
+    def __init__(self, filepath, variable, lead=0, qval=.5):
+        super(MonthlyStochasticForecastReader, self).__init__(filepath, 'mean', lead)
+
+        self.variable = variable
+        self.qval = qval
+
+    def read_iterator(self):
+        months = self.get_times()
         meansgen = forecasts.readncdf_allpred(self.filepath, "mean", self.lead)
         sdevsgen = forecasts.readncdf_allpred(self.filepath, "stddev", self.lead)
         for month in months:
             yield month, norm.ppf(self.qval, meansgen.next(), sdevsgen.next())
 
-class MonthlyZScoreForecastReader(MonthlyForecastReader):
+class MonthlyZScoreForecastReader(MonthlyStochasticForecastReader):
     """Translates into z-scores on-the-fly."""
     def __init__(self, filepath, climatepath, variable, lead=0, qval=.5):
         super(MonthlyZScoreForecastReader, self).__init__(filepath, variable, lead, qval)
