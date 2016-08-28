@@ -6,6 +6,10 @@ from reader import YearlySplitWeatherReader
 class DailyWeatherReader(YearlySplitWeatherReader):
     """Exposes daily weather data, split into yearly files."""
 
+    def __init__(self, template, year1, variable):
+        super(DailyWeatherReader, self).__init__(template, year1, variable)
+        self.time_units = 'yyyyddd'
+        
     def get_times(self):
         times = []
 
@@ -25,6 +29,10 @@ class DailyWeatherReader(YearlySplitWeatherReader):
 
 class BinnedWeatherReader(YearlySplitWeatherReader):
     """Exposes binned weather data, accumulated into months and split into yearly file."""
+
+    def __init__(self, template, year1, variable):
+        super(BinnedWeatherReader, self).__init__(template, year1, variable)
+        self.time_units = 'yyyyddd'
 
     def get_times(self):
         times = []

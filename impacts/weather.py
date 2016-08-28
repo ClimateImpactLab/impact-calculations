@@ -160,6 +160,17 @@ class WeatherBundle(object):
         """Load an metadata associated with the WeatherBundle."""
         self.version, self.units = readmeta(filepath, variable)
 
+class ReaderWeatherBundle(WeatherBundle):
+    def __init__(self, reader, hierarchy='hierarchy.csv'):
+        super(ReaderWeatherBundle, self).__init__(hierarchy)
+        self.reader = reader
+        self.version = reader.version
+        self.units = reader.units
+        if hasattr(reader, 'dependencies'):
+            self.dependencies = reader.dependencies
+
+        self.load_regions()
+        
 class DailyWeatherBundle(WeatherBundle):
     def yearbundles(self, maxyear=np.inf):
         """Yields the tuple (yyyyddd, weather) for each year up to `maxyear`.
