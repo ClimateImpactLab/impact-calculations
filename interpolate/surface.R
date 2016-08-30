@@ -349,3 +349,24 @@ setMethod("surface.write",
               write.table(residvcv, fp, sep=',', row.names=F, col.names=F)
               close(fp)
           })
+
+## Add a new observation
+setGeneric("as.latex",
+           def = function(this, fit, ...) {
+               standardGeneric("as.latex")
+           })
+
+## Output results in a LaTeX form
+setMethod("as.latex",
+          signature = "SurfaceObservations",
+          definition = function(this, fit, ...) {
+              if (class(fit) == "stanfit") {
+                  require(xtable)
+                  s <- summary(fit)
+                  xtable(s$summary[1:(this@K * (this@L + 1)),], ...) # gamma, tau
+              } else {
+                  require(texreg)
+                  texreg(fit, ...)
+              }
+          })
+
