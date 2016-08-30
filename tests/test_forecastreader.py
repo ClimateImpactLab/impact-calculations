@@ -8,7 +8,7 @@ class TestForecastReader(unittest.TestCase):
     def test_zscore(self):
         weatherreader = MonthlyForecastReader("/shares/gcp/IRI/tas_aggregated_forecast_2012-2016Aug.nc", 'mean')
         for month, weather in weatherreader.read_iterator():
-            print weather[1000]
+            print weather[1001]
 
         weatherreader_z = MonthlyForecastReader(forecasts.temp_zscore_path, 'z-scores')
         z_weatherreader = MonthlyZScoreForecastReader(forecasts.temp_path, forecasts.temp_climate_path, 'temp')
