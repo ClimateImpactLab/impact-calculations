@@ -1,7 +1,9 @@
 from netCDF4 import Dataset
 
-temp_path = "/shares/gcp/IRI/tas_aggregated_quantiles_2012-2016.nc"
-prcp_path = "/shares/gcp/IRI/prcp_aggregated_quantiles_2012-2016.nc"
+#temp_path = "/shares/gcp/IRI/tas_aggregated_quantiles_2012-2016.nc"
+#prcp_path = "/shares/gcp/IRI/prcp_aggregated_quantiles_2012-2016.nc"
+temp_path = "/shares/gcp/IRI/tas_aggregated_forecast_2012-2016Aug.nc"
+prcp_path = "/shares/gcp/IRI/prcp_aggregated_forecast_2012-2016Aug.nc"
 temp_zscore_path = "/shares/gcp/IRI/tas_zscores_aggregated_forecast_2012-2016Aug.nc"
 prcp_zscore_path = "/shares/gcp/IRI/prcp_zscores_aggregated_forecast_2012-2016Aug.nc"
 temp_climate_path = "/shares/gcp/IRI/tas_aggregated_climatology_1981-2010.nc"
