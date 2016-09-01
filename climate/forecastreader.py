@@ -48,26 +48,32 @@ class MonthlyStochasticForecastReader(MonthlyForecastReader):
     Expose monthly forecast results, as probabilistic values.
     """
 
-    def __init__(self, filepath, variable, lead=0, qval=.5):
-        super(MonthlyStochasticForecastReader, self).__init__(filepath, 'mean', lead)
+    def __init__(self, filepath, variable, qval=.5):
+        super(MonthlyStochasticForecastReader, self).__init__(filepath, 'mean')
 
         self.variable = variable
         self.qval = qval
 
     def read_iterator(self):
-        months = self.get_times()
-        meansgen = forecasts.readncdf_allpred(self.filepath, "mean", self.lead)
+        months, aheads = self.get_start_ahead_times()
         allsdevs = list(forecasts.readncdf_allpred(self.filepath, "stddev", self.lead))
+
+        meansgen = forecasts.readncdf_allpred(self.filepath, 'mean', 0)
         for month in months:
-            yield month, norm.ppf(self.qval, meansgen.next(), allsdevs[month % 12])
+            forecastmonth = month + aheads[0]
+            yield forecastmonth, norm.ppf(self.qval, meansgen.next(), allsdevs[int(forecastmonth) % 12])
+
+        lastvalues = forecasts.readncdf_lastpred(self.filepath, 'mean')
+        for ii in range(1, len(aheads)):
+            forecastmonth = months[-1] + aheads[ii]
+            yield forecastmonth, norm.ppf(self.qval, lastvalues[ii, :], allsdevs[int(forecastmonth) % 12])
 
 class MonthlyZScoreForecastReader(MonthlyStochasticForecastReader):
     """
     Translates into z-scores on-the-fly, using climate data.
     """
-
-    def __init__(self, filepath, climatepath, variable, lead=0, qval=.5):
-        super(MonthlyZScoreForecastReader, self).__init__(filepath, variable, lead, qval)
+    def __init__(self, filepath, climatepath, variable, qval=.5):
+        super(MonthlyZScoreForecastReader, self).__init__(filepath, variable, qval)
         version_climate, units_climate = netcdfs.readmeta(climatepath, 'mean')
         assert self.units == units_climate
 
@@ -81,4 +87,4 @@ class MonthlyZScoreForecastReader(MonthlyStochasticForecastReader):
         sdevs = list(forecasts.readncdf_allpred(self.climatepath, "stddev", self.lead))
 
         for month, weather in super(MonthlyZScoreForecastReader, self).read_iterator():
-            yield month, (weather - means[month % 12]) / sdevs[month % 12]
+            yield month, (weather - means[int(month) % 12]) / sdevs[int(month) % 12]
