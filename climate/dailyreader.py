@@ -52,4 +52,4 @@ class BinnedWeatherReader(YearlySplitWeatherReader):
             times, mmbbrr = netcdfs.readncdf_binned(filename, self.variable)
             mmrrbb = np.swapaxes(mmbbrr, 1, 2) # Needs to be in T x REGIONS x K
             yield times, mmrrbb
-            year += 1
+

@@ -17,11 +17,12 @@ class TestForecastReader(unittest.TestCase):
         zw_iterator = z_weatherreader.read_iterator()
 
         for month1, weather1 in wz_iterator:
+            print month1
             month2, weather2 = zw_iterator.next()
 
             self.assertEqual(month1, month2)
 
-            self.assertEqual(weather1[1001], weather2[1001])
+            self.assertAlmostEqual(weather1[3], weather2[3])
             continue
             try:
                 testing.assert_allclose(weather1, weather2)

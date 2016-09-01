@@ -2,6 +2,7 @@ from netCDF4 import Dataset
 from reader import WeatherReader
 from scipy.stats import norm
 import netcdfs, forecasts
+import numpy as np
 
 class MonthlyForecastReader(WeatherReader):
     """
@@ -48,9 +49,9 @@ class MonthlyStochasticForecastReader(MonthlyForecastReader):
     def read_iterator(self):
         months = self.get_times()
         meansgen = forecasts.readncdf_allpred(self.filepath, "mean", self.lead)
-        sdevsgen = forecasts.readncdf_allpred(self.filepath, "stddev", self.lead)
+        allsdevs = list(forecasts.readncdf_allpred(self.filepath, "stddev", self.lead))
         for month in months:
-            yield month, norm.ppf(self.qval, meansgen.next(), sdevsgen.next())
+            yield month, norm.ppf(self.qval, meansgen.next(), allsdevs[month % 12])
 
 class MonthlyZScoreForecastReader(MonthlyStochasticForecastReader):
     """
