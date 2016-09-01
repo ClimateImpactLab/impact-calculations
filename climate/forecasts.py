@@ -17,7 +17,7 @@ def readncdf_lastpred(filepath, variable, lead):
     weather = rootgrp.variables[variable][-1, lead, :]
     rootgrp.close()
 
-    return weather
+    return maskmissing(weather)
 
 def readncdf_allpred(filepath, variable, lead):
     """
@@ -28,4 +28,8 @@ def readncdf_allpred(filepath, variable, lead):
     rootgrp.close()
 
     for month in range(alldata.shape[0]):
-        yield alldata[month, lead, :]
+        yield maskmissing(alldata[month, lead, :])
+
+def maskmissing(weather):
+    weather[weather > 1e10] = np.nan
+    return weather
