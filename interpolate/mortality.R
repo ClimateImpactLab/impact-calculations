@@ -120,3 +120,9 @@ for (smooth in c(0, 1, 2, 4, 8)) {
 surface.write(surface, fit, "output.csvv", "Mortality stage 2 results", "MORTALITY-STAGE2", adms,
               paste(binlos, binhis, sep=" -- "), c('constant', 'meandays', 'logpopop', 'loggdppc'))
 
+as.latex(surface, fit)
+
+if (F) {
+bayesfit <- BayesianSurface(surface, fit, paste(binlos, binhis, sep=" -- "), c('constant', 'meandays', 'logpopop', 'loggdppc'))
+texreg(bayesfit)
+}

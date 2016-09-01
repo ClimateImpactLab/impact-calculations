@@ -9,15 +9,18 @@ prcp_zscore_path = "/shares/gcp/IRI/prcp_zscores_aggregated_forecast_2012-2016Au
 temp_climate_path = "/shares/gcp/IRI/tas_aggregated_climatology_1981-2010.nc"
 prcp_climate_path = "/shares/gcp/IRI/prcp_aggregated_climatology_1981-2010.nc"
 
-def readncdf_lastpred(filepath, variable, lead):
+def readncdf_lastpred(filepath, variable):
     """
-    Return weather for each region for most recent prediction, of the given lead
+    Return weather for each region for most recent prediction, of all leads
     """
     rootgrp = Dataset(filepath, 'r', format='NETCDF4')
-    weather = rootgrp.variables[variable][-1, lead, :]
+    weather = rootgrp.variables[variable][-1, :, :]
     rootgrp.close()
 
-    return maskmissing(weather)
+    for ii in range(weather.shape[0]):
+        weather[ii, :] = maskmissing(weather[ii, :])
+
+    return weather
 
 def readncdf_allpred(filepath, variable, lead):
     """
