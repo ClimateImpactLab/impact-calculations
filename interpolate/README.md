@@ -52,6 +52,11 @@ You can write out either fitted surface by calling,
 surface.write(surface, fit, "<FILENAME>.csvv", "<Short Description>", "<Version Prefix>", c(<DEPENDENCIES>), c(<STAGE 1 COEFFS>), c(<STAGE 2 PREDICTORS>))
 ```
 
+And you can output the result to LaTeX:
+```
+as.latex(surface, fit)
+```
+
 ## Loading data from DMAS
 
 Start by installing `googlesheets` in R and getting an OAuth token:

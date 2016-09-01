@@ -3,6 +3,7 @@ library(matrixStats)
 library(rstan)
 library(systemfit)
 library(yaml)
+require(texreg)
 
 stan.model <- "
 data {
@@ -350,13 +351,12 @@ setMethod("surface.write",
               close(fp)
           })
 
-## Add a new observation
+## Output results in a LaTeX form
 setGeneric("as.latex",
            def = function(this, fit, ...) {
                standardGeneric("as.latex")
            })
 
-## Output results in a LaTeX form
 setMethod("as.latex",
           signature = "SurfaceObservations",
           definition = function(this, fit, ...) {
@@ -365,8 +365,49 @@ setMethod("as.latex",
                   s <- summary(fit)
                   xtable(s$summary[1:(this@K * (this@L + 1)),], ...) # gamma, tau
               } else {
-                  require(texreg)
                   texreg(fit, ...)
               }
           })
 
+## Class for formatting Bayesian results
+BayesianSurface <- setClass(
+    "BayesianSurface",
+    ## Define slots
+    representation(surface = "SurfaceObservations",
+                   fit = "stanfit",
+                   coefnames = "character",
+                   prednames = "character"))
+
+setMethod("initialize", "BayesianSurface",
+          function(.Object, surface, fit, coefnames, prednames) {
+              .Object@surface <- surface
+              .Object@fit <- fit
+              .Object@coefnames <- coefnames
+              .Object@prednames <- prednames
+
+              .Object
+          })
+
+if (F) {
+## Output results in a LaTeX form
+setMethod("extract",
+          signature = className("BayesianSurface"),
+          definition = function(model) {
+              coef.names <- c()
+              ## XXX: Check that this order is right!
+              for (coefname in model@coefnames)
+                  for (predname in model@prednames)
+                      coef.names <- c(coef.names, paste(coefname, predname, '.'))
+              la <- extract(model@fit, permute=T)
+              coef <- colMeans(la$gamma)
+              se <- apply(la$gamma, 2, sd)
+              pvalues <- apply(la$gamma, 2, function(vals) 2*(1 - pnorm(mean(vals), mean=0, sd=sd(vals) / sqrt(model@surface@N))))
+
+              s <- summary(fit)
+              gof.names <- c('n_eff', 'Rhat', 'Num. obs.')
+              gof <- c(mean(s$summary$n_eff), mean(s$summary$Rhat), model@surface@N)
+              gof.decimal <- c(T, F, F)
+
+              createTexreg(coef.names, coef, se, pvalues, gof.names=gof.names, gof=gof, gof.decimal=gof.decimal)
+          })
+}
