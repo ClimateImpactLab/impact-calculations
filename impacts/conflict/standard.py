@@ -24,7 +24,7 @@ def prepare_csvv(csvvpath, qvals, callback):
 
     teffect = SingleWeatherApply('rate', tcurve, 'the linear temperature effect', lambda tp: tp[0])
 
-    if '_tavg_' in csvvpath:
+    if '_tavg_' in csvvpath or 'interpersonal_violent' in csvvpath:
         return teffect, [data['attrs']['version']], data['prednames']
 
     pggr = csvvfile.extract_values(data, range(1, 4))

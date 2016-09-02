@@ -23,7 +23,7 @@ def produce(targetdir, weatherbundle, qvals, do_only=None, suffix=''):
         for filepath in glob.glob("/shares/gcp/data/adaptation/conflict/*.csvv"):
             basename = os.path.basename(filepath)[:-5]
 
-            is_tavg = '_tavg_' in basename
+            is_tavg = '_tavg_' in basename or 'interpersonal_violent' in basename
             is_cubic = '_cub_' in basename
             print basename, ('T-only' if is_tavg else 'T-and-P3'), ('Cubic' if is_cubic else 'Linear')
 
@@ -37,11 +37,11 @@ def produce(targetdir, weatherbundle, qvals, do_only=None, suffix=''):
                     predicted_betas['hasprcp'] = True
 
             thisqvals = qvals[basename]
-            try:
-                calculation, dependencies, predvars = standard.prepare_csvv(filepath, thisqvals, betas_callback)
-            except:
-                print "SKIPPING " + basename
-                continue
+            #try:
+            calculation, dependencies, predvars = standard.prepare_csvv(filepath, thisqvals, betas_callback)
+            #except:
+            #    print "SKIPPING " + basename
+            #    continue
 
             if is_cubic:
                 columns = effectset.write_ncdf(thisqvals['weather'], targetdir, basename, weatherbundle, calculation, predgen3.get_baseline, "Interpolated response for " + basename + ".", dependencies + weatherbundle.dependencies, suffix=suffix)
