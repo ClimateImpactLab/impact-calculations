@@ -20,9 +20,12 @@ def produce(targetdir, weatherbundle, qvals, do_only=None, suffix=''):
         predgen3 = curvegen.TemperaturePrecipitationPredictorator(historicalbundle, econmodel, 15, 3, 2005, polyorder=3)
 
         ## Full interpolation
-        for filepath in glob.glob("/shares/gcp/data/adaptation/conflict/*semur*.csvv"):
+        for filepath in glob.glob("/shares/gcp/data/adaptation/conflict/*.csvv"):
             basename = os.path.basename(filepath)[:-5]
-            print basename
+
+            is_tavg = '_tavg_' in basename
+            is_cubic = '_cub_' in basename
+            print basename, ('T-only' if is_tavg else 'T-and-P3'), ('Cubic' if is_cubic else 'Linear')
 
             predicted_betas = {'hasprcp': False}
             def betas_callback(variable, region, predictors, betas):
@@ -34,14 +37,18 @@ def produce(targetdir, weatherbundle, qvals, do_only=None, suffix=''):
                     predicted_betas['hasprcp'] = True
 
             thisqvals = qvals[basename]
-            calculation, dependencies, predvars = standard.prepare_csvv(filepath, thisqvals, betas_callback)
+            try:
+                calculation, dependencies, predvars = standard.prepare_csvv(filepath, thisqvals, betas_callback)
+            except:
+                print "SKIPPING " + basename
+                continue
 
-            if '_cubic_' in filepath:
+            if is_cubic:
                 columns = effectset.write_ncdf(thisqvals['weather'], targetdir, basename, weatherbundle, calculation, predgen3.get_baseline, "Interpolated response for " + basename + ".", dependencies + weatherbundle.dependencies, suffix=suffix)
             else:
                 columns = effectset.write_ncdf(thisqvals['weather'], targetdir, basename, weatherbundle, calculation, predgen1.get_baseline, "Interpolated response for " + basename + ".", dependencies + weatherbundle.dependencies, suffix=suffix)
 
-            if '_tavg_' in filepath:
+            if is_tavg:
                 finalvar = 'response'
             else:
                 finalvar = 'sum'

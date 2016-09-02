@@ -9,19 +9,18 @@ import numpy as np
 from openest.generate.stdlib import *
 from adaptation import csvvfile
 from shortterm import curvegen, weather
+from climate import forecasts, forecastreader
 
 def prepare_csvv(csvvpath, qvals, callback):
     data = csvvfile.read(csvvpath)
 
     # Load climatology
-    temp_climate_mean = list(weather.readncdf_allpred(weather.temp_climate_path, 'mean', 0))
-    temp_climate_stddev = list(weather.readncdf_allpred(weather.temp_climate_path, 'stddev', 0))
-    prcp_climate_mean = list(weather.readncdf_allpred(weather.prcp_climate_path, 'mean', 0))
-    regions = weather.FirstForecastBundle(weather.temp_climate_path).regions
+    prcp_climate_mean = list(forecasts.readncdf_allpred(forecasts.prcp_climate_path, 'mean', 0))
+    regions = weather.ForecastBundle(forecastreader.MonthlyForecastReader(forecasts.prcp_climate_path, 'mean')).regions
 
     tggr = csvvfile.extract_values(data, [0])
     tcurve = curvegen.LinearCurveGenerator('C', 'rate', qvals.get_seed(), tggr['gamma'], tggr['gammavcv'], tggr['residvcv'], callback=lambda r, x, y: callback('temp', r, x, y))
-    teffect = MonthlyZScoreApply('rate', tcurve, 'the linear temperature effect', temp_climate_mean, temp_climate_stddev, regions, lambda tp: tp[0])
+    teffect = SingleWeatherApply('rate', tcurve, 'the linear temperature effect', lambda tp: tp[0])
 
     if '_tavg_' in csvvpath:
         return teffect, [data['attrs']['version']], data['prednames']
