@@ -6,19 +6,20 @@ from impacts import pvalses
 do_only = None
 outputdir = sys.argv[1]
 
-for batch in range(10000):
-    targetdir = os.path.join(outputdir, 'sxsw', 'batch' + str(batch), )
-    if os.path.exists(targetdir):
-        continue
+for batch1 in range(100):
+    for batch2 in range(100):
+        targetdir = os.path.join(outputdir, 'batch' + str(batch1), 'batch' + str(batch2))
+        if os.path.exists(targetdir):
+            continue
 
-    print targetdir
-    os.makedirs(targetdir)
+        print targetdir
+        os.makedirs(targetdir)
 
-    pvals = pvalses.OnDemandRandomPvals()
+        pvals = pvalses.OnDemandRandomPvals()
 
-    tbundle = weather.ForecastBundle(forecastreader.MonthlyZScoreForecastReader(forecasts.temp_zscore_path, forecasts.temp_normstddev_path, 'ztemp', pvals['weather']['ztemp']))
-    pbundle = weather.ForecastBundle(forecastreader.MonthlyStochasticForecastReader(forecasts.prcp_path, 'prcp', pvals['weather']['prcp']))
-    weatherbundle = weather.CombinedBundle([tbundle, pbundle])
+        tbundle = weather.ForecastBundle(forecastreader.MonthlyZScoreForecastReader(forecasts.temp_zscore_path, forecasts.temp_normstddev_path, 'ztemp', pvals['weather']['ztemp']))
+        pbundle = weather.ForecastBundle(forecastreader.MonthlyStochasticForecastReader(forecasts.prcp_path, 'prcp', pvals['weather']['prcp']))
+        weatherbundle = weather.CombinedBundle([tbundle, pbundle])
 
-    standard.produce(targetdir, weatherbundle, pvals, do_only=do_only)
-    pvalses.make_pval_file(targetdir, pvals)
+        standard.produce(targetdir, weatherbundle, pvals, do_only=do_only)
+        pvalses.make_pval_file(targetdir, pvals)
