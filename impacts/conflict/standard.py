@@ -20,6 +20,8 @@ def prepare_csvv(csvvpath, qvals, callback):
 
     tggr = csvvfile.extract_values(data, [0])
     tcurve = curvegen.LinearCurveGenerator('C', 'rate', qvals.get_seed(), tggr['gamma'], tggr['gammavcv'], tggr['residvcv'], callback=lambda r, x, y: callback('temp', r, x, y))
+    qvals.lock() # Use consistent seeds at this point
+
     teffect = SingleWeatherApply('rate', tcurve, 'the linear temperature effect', lambda tp: tp[0])
 
     if '_tavg_' in csvvpath:
