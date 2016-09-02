@@ -1,5 +1,6 @@
 import sys, os
 import standard, weather, effectset
+from climate import forecasts, forecastreader
 from impacts import pvalses
 
 pvals = pvalses.ConstantPvals(.5)
@@ -10,8 +11,8 @@ outputdir = sys.argv[1]
 
 targetdir = os.path.join(outputdir, 'median', 'median')
 
-tbundle = weather.FirstForecastBundle(weather.temp_path)
-pbundle = weather.FirstForecastBundle(weather.prcp_path)
+tbundle = weather.ForecastBundle(forecastreader.MonthlyZScoreForecastReader(forecasts.temp_zscore_path, forecasts.temp_normstddev_path, 'ztemp', .5))
+pbundle = weather.ForecastBundle(forecastreader.MonthlyStochasticForecastReader(forecasts.prcp_path, 'prcp', .5))
 weatherbundle = weather.CombinedBundle([tbundle, pbundle])
 
 if os.path.exists(targetdir):
