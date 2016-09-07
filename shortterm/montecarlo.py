@@ -1,5 +1,5 @@
 import sys, os
-import standard, weather, pvalses
+import standard, weather
 from climate import forecasts, forecastreader
 from impacts import pvalses
 
