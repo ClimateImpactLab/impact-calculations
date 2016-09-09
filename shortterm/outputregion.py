@@ -1,4 +1,5 @@
 import csv, sys
+import weather
 from climate import forecasts, forecastreader
 
 treader = forecastreader.MonthlyZScoreForecastReader(forecasts.temp_zscore_path, forecasts.temp_normstddev_path, 'ztemp', .5)
@@ -14,13 +15,12 @@ ii = regions.index(sys.argv[1])
 
 with open('region-values.csv', 'w') as fp:
     writer = csv.writer(fp)
-    writer.writerow(['time', 'temp', 'prcp'])
+    writer.writerow(['time', 'temp', 'prcp', 'climprcp'])
 
     for time in treader.get_times():
         times1, temp = titer.next()
         times2, prcp = piter.next()
 
         assert times1 == times2
-        assert len(times1) == 1
 
-        writer.writerow([times1[0], temp[0, ii], prcp[times1[0] % 12, ii]])
+        writer.writerow([times1, temp[ii], prcp[ii], prcp_climate_mean[int(times1) % 12][ii]])

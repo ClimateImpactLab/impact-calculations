@@ -1,8 +1,8 @@
-import os, csv, Queue
+import os, Queue
 import numpy as np
 from netCDF4 import Dataset
 from impacts import nc4writer
-from helpers import header
+from generate import agglib
 
 costs_suffix = '-costs'
 levels_suffix = '-levels'
@@ -68,24 +68,6 @@ def get_years(reader, limityears=None):
 
     return readeryears
 
-def copy_yearreg_variable(writer, variable, key, dstvalues, suffix):
-    column = writer.createVariable(key, 'f8', ('year', 'region'))
-    column.units = variable.units
-    if hasattr(variable, 'long_title'):
-        column.long_title = variable.long_title
-    if hasattr(variable, 'source'):
-        column.source = variable.source + " " + suffix
-
-    column[:, :] = dstvalues
-
-def iter_yearreg_variables(reader):
-    for key in reader.variables.keys():
-        if ('year', 'region') == reader.variables[key].dimensions:
-            print key
-            variable = reader.variables[key]
-
-            yield key, variable
-
 def make_aggregates(targetdir, filename, get_population, dimensions_template=None, metainfo=None, limityears=None):
     # Find all variables that containing the region dimension
     reader = Dataset(os.path.join(targetdir, filename), 'r', format='NETCDF4')
@@ -99,39 +81,7 @@ def make_aggregates(targetdir, filename, get_population, dimensions_template=Non
     writer = Dataset(os.path.join(targetdir, filename[:-4] + suffix + '.nc4'), 'w', format='NETCDF4')
 
     regions = dimreader.variables['regions'][:].tolist()
-
-    # Collect all levels of aggregation
-    originals = {} # { prefix: [region] }
-    for region in regions:
-        original = region
-        while len(region) > 3:
-            region = region[:region.rindex('.')]
-            if region in originals:
-                originals[region].append(original)
-            else:
-                originals[region] = [original]
-
-    # Add the FUND regions
-    dependencies = []
-    with open('aggloms/world/macro-regions.csv', 'r') as fp:
-        aggreader = csv.reader(header.deparse(fp, dependencies))
-        headrow = aggreader.next()
-        for row in aggreader:
-            fundregion = 'FUND-' + row[headrow.index('FUND')]
-            if fundregion not in originals:
-                originals[fundregion] = []
-
-            iso3 = row[headrow.index('region-key')]
-            if iso3 not in originals:
-                continue
-
-            originals[fundregion].extend(originals[iso3])
-
-    # Collect all prefixes with > 1 region
-    prefixes = [''] # '' = world
-    for prefix in originals:
-        if originals[prefix] > 1:
-            prefixes.append(prefix)
+    originals, prefixes, dependencies = agglib.get_aggregated_regions(regions)
 
     if metainfo is None:
         writer.description = reader.description + " (aggregated)"
@@ -153,7 +103,7 @@ def make_aggregates(targetdir, filename, get_population, dimensions_template=Non
 
     original_indices = {regions[ii]: ii for ii in range(len(regions))}
 
-    for key, variable in iter_yearreg_variables(reader):
+    for key, variable in agglib.iter_timereg_variables(reader):
         dstvalues = np.zeros((len(years), len(prefixes)))
         srcvalues = variable[:, :]
         for ii in range(len(prefixes)):
@@ -172,7 +122,7 @@ def make_aggregates(targetdir, filename, get_population, dimensions_template=Non
 
             dstvalues[:, ii] = numers / denoms
 
-        copy_yearreg_variable(writer, variable, key, dstvalues, "(aggregated)")
+        agglib.copy_timereg_variable(writer, variable, key, dstvalues, "(aggregated)")
 
     reader.close()
     if dimensions_template is not None:
