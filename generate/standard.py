@@ -20,37 +20,22 @@ def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=N
         if push_callback is None:
             push_callback = lambda reg, yr, app, predget: None
 
-        ## Full Adaptation
-        # Interpolation-driven, all-ages
-        calculation, dependencies, curve, baseline_get_predictors = caller.call_prepare('adaptation.mortality_allages_notime', weatherbundle, economicmodel, pvals['interpolated_mortality_allages'])
-        effectset.write_ncdf(targetdir, "InterpolatedMortalityAllAges", weatherbundle, calculation, baseline_get_predictors, "Mortality for all ages, with interpolation and adaptation through interpolation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, 'all'), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors), do_interpbins=do_interpbins, suffix=suffix)
+        for filepath in glob.glob("/shares/gcp/data/adaptation/mortality/*.csvv"):
+            # Full Adaptation
+            calculation, dependencies, curve, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.health.mortality_csvv', weatherbundle, economicmodel, pvals[os.path.basename(filepath)])
+            effectset.write_ncdf(targetdir, "InterpolatedMortality", weatherbundle, calculation, baseline_get_predictors, "Mortality impacts, with interpolation and adaptation through interpolation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, 'all'), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors), do_interpbins=do_interpbins, suffix=suffix)
 
-        # Interpolation-driven, 65+
-        calculation, dependencies, curve, baseline_get_predictors = caller.call_prepare('adaptation.mortality_65plus_notime', weatherbundle, economicmodel, pvals['interpolated_mortality_65plus'])
-        effectset.write_ncdf(targetdir, "InterpolatedMortality65Plus", weatherbundle, calculation, baseline_get_predictors, "Mortality for 65+, with interpolation and adaptation through interpolation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, '65+'), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors), do_interpbins=do_interpbins, suffix=suffix)
+            if do_farmers and not weatherbundle.is_historical():
+                # Lock in the values
+                pvals[os.path.basename(filepath)].lock()
 
-        if do_farmers and not weatherbundle.is_historical():
-            # Lock in the values
-            pvals['interpolated_mortality_allages'].lock()
-            pvals['interpolated_mortality_65plus'].lock()
+                # Comatose Farmer
+                calculation, dependencies, curve, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.health.mortality_csvv_comatose', weatherbundle, economicmodel, pvals[os.path.basename(filepath)])
+                effectset.write_ncdf(targetdir, "InterpolatedMortalityComatose", weatherbundle, calculation, baseline_get_predictors, "Mortality impacts, with interpolation but no adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, 'all-coma'), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors), suffix=suffix)
 
-            ## Comatose Farmer
-            # Interpolation-driven, all-ages
-            calculation, dependencies, curve, baseline_get_predictors = caller.call_prepare('adaptation.mortality_allages_comatose_notime', weatherbundle, economicmodel, pvals['interpolated_mortality_allages'])
-            effectset.write_ncdf(targetdir, "InterpolatedMortalityComatoseAllAges", weatherbundle, calculation, baseline_get_predictors, "Mortality for all ages, with interpolation and adaptation through interpolation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, 'all-coma'), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors), suffix=suffix)
-
-            # Interpolation-driven, 65+
-            calculation, dependencies, curve, baseline_get_predictors = caller.call_prepare('adaptation.mortality_65plus_comatose_notime', weatherbundle, economicmodel, pvals['interpolated_mortality_65plus'])
-            effectset.write_ncdf(targetdir, "InterpolatedMortalityComatose65Plus", weatherbundle, calculation, baseline_get_predictors, "Mortality for 65+, with interpolation and adaptation through interpolation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, '65+-coma'), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors), suffix=suffix)
-
-            ## Dumb Farmer
-            # Interpolation-driven, all-ages
-            calculation, dependencies, curve, baseline_get_predictors = caller.call_prepare('adaptation.mortality_allages_dumb_notime', weatherbundle, economicmodel, pvals['interpolated_mortality_allages'])
-            effectset.write_ncdf(targetdir, "InterpolatedMortalityDumbAllAges", weatherbundle, calculation, baseline_get_predictors, "Mortality for all ages, with interpolation and adaptation through interpolation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, 'all-dumb'), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors), suffix=suffix)
-
-            # Interpolation-driven, 65+
-            calculation, dependencies, curve, baseline_get_predictors = caller.call_prepare('adaptation.mortality_65plus_dumb_notime', weatherbundle, economicmodel, pvals['interpolated_mortality_65plus'])
-            effectset.write_ncdf(targetdir, "InterpolatedMortalityDumb65Plus", weatherbundle, calculation, baseline_get_predictors, "Mortality for 65+, with interpolation and adaptation through interpolation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, '65+-dumb'), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors), suffix=suffix)
+                # Dumb Farmer
+                calculation, dependencies, curve, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.health.mortality_csvv_dumb', weatherbundle, economicmodel, pvals[os.path.basename(filepath)])
+                effectset.write_ncdf(targetdir, "InterpolatedMortalityDumb", weatherbundle, calculation, baseline_get_predictors, "Mortality impacts, with interpolation and only environmental adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, 'all-dumb'), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors), suffix=suffix)
 
     if do_only is None or do_only == 'country':
         # Other individual estimates
