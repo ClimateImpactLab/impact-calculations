@@ -212,27 +212,21 @@ setMethod("prepdata",
 
 ## Estimate the system using Stan
 setGeneric("estimate.bayes",
-           def = function(this, smooth=0, dropbin=9, supers=NULL, fit=NULL, chains=4) {
+           def = function(this, smooth=0, dropbin=9, stan.model.here=stan.model, stan.data.extra=list(), fit=NULL, chains=4) {
                standardGeneric("estimate.bayes")
            })
 
 setMethod("estimate.bayes",
           signature = "SurfaceObservations",
-          definition = function(this, smooth=0, dropbin=9, supers=NULL, fit=NULL, chains=4) {
+          definition = function(this, smooth=0, dropbin=9, stan.model.here=stan.model, stan.data.extra=list(), fit=NULL, chains=4) {
               stan.data <- prepdata(this, smooth=smooth, dropbin=dropbin)
 
-              if (!is.null(supers)) {
-                  stan.data[["supers"]] <- supers
-                  stan.data[["M"]] <- max(supers)
-              }
+              for (name in names(stan.data.extra))
+                  stan.data[[name]] <- stan.data.extra[[name]]
 
               if (is.null(fit)) {
-                  if (is.null(supers))
-                      fit <- stan(model_code=stan.model, data=stan.data,
-                                  iter = 1000, chains = chains)
-                  else
-                      fit <- stan(model_code=stan.model.fe, data=stan.data,
-                                  iter = 1000, chains = chains)
+                  fit <- stan(model_code=stan.model.here, data=stan.data,
+                              iter = 1000, chains = chains)
               } else
                   fit <- stan(fit=fit, data=stan.data,
                               iter = 1000, chains = chains)
