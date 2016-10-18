@@ -1,4 +1,4 @@
-setwd("~/research/gcp/impact-calculations/interpolate")
+setwd("~/research/gcp/impact-calculations/interpolate/validation")
 
 library(reshape2)
 library(ggplot2)
