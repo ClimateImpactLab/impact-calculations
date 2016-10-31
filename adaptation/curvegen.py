@@ -1,6 +1,7 @@
 import numpy as np
 from openest.models.curve import StepCurve
 from scipy.stats import multivariate_normal
+import csvvfile
 
 class StepCurveGenerator(object):
     def __init__(self, xxlimits, predcoeffs, do_singlebin):
@@ -35,4 +36,11 @@ def make_curve_generator(csvv, xxlimits, predcols, do_singlebin, seed):
     else:
         params = multivariate_normal.rvs(csvv['gamma'], csvv['gannavcv'])
 
-    return StepCurveGenerator(xxlimits, params, do_singlebin)
+    # Reorganize params into sets of L
+    gammas = csvvfile.by_predictor(csvv, params)
+    # Insert dropped bin: hard coded for now
+    before_dropped = np.where(np.array(xxlimits) == 18)[0]
+    print before_dropped
+    gammas = gammas[:before_dropped] + [np.array([np.nan] * csvv['L'])] + gammas[before_dropped:]
+
+    return StepCurveGenerator(xxlimits, gammas, do_singlebin)

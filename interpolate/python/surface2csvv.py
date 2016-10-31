@@ -66,7 +66,7 @@ with open(os.path.basename(sys.argv[1]) + ".csvv", 'w') as fp:
     writer.writerow(["NN", len(meanses[0])])
     writer.writerow(["K", len(meanses)])
     writer.writerow(["L", len(predictorses[0][0]) + 1])
-    fp.write("gammas\n")
+    fp.write("gamma\n")
     writer.writerow(params)
     fp.write("gammavcv\n")
     for ii in range(len(fit.cov_params())):

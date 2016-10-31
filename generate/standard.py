@@ -1,3 +1,4 @@
+import os, glob
 from impacts import weather, server, effectset, caller
 
 do_interpbins = True
@@ -6,12 +7,10 @@ def preload():
     from datastore import library
     library.get_data('mortality-deathrates', 'deaths/person')
 
-import adaptation.mortality_allages_notime
-
 def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=None, country_specific=True, result_callback=None, push_callback=None, suffix='', do_farmers=False, do_65plus=True):
     if do_only is None or do_only == 'acp':
         # ACP response
-        calculation, dependencies = caller.call_prepare('impacts.health.ACRA_mortality_temperature', weatherbundle, economicmodel, pvals['ACRA_mortality_temperature'])
+        calculation, dependencies = caller.call_prepare('impacts.mortality.ACRA_mortality_temperature', weatherbundle, economicmodel, pvals['ACRA_mortality_temperature'])
         effectset.write_ncdf(targetdir, "ACPMortality", weatherbundle, calculation, None, "Mortality using the ACP response function.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, suffix=suffix)
 
     if do_only is None or do_only == 'interpolation':
@@ -22,7 +21,7 @@ def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=N
 
         for filepath in glob.glob("/shares/gcp/data/adaptation/mortality/*.csvv"):
             # Full Adaptation
-            calculation, dependencies, curve, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.health.mortality_csvv', weatherbundle, economicmodel, pvals[os.path.basename(filepath)])
+            calculation, dependencies, curve, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.mortality.mortality_csvv', weatherbundle, economicmodel, pvals[os.path.basename(filepath)])
             effectset.write_ncdf(targetdir, "InterpolatedMortality", weatherbundle, calculation, baseline_get_predictors, "Mortality impacts, with interpolation and adaptation through interpolation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, 'all'), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors), do_interpbins=do_interpbins, suffix=suffix)
 
             if do_farmers and not weatherbundle.is_historical():
@@ -30,11 +29,11 @@ def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=N
                 pvals[os.path.basename(filepath)].lock()
 
                 # Comatose Farmer
-                calculation, dependencies, curve, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.health.mortality_csvv_comatose', weatherbundle, economicmodel, pvals[os.path.basename(filepath)])
+                calculation, dependencies, curve, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.mortality.mortality_csvv_comatose', weatherbundle, economicmodel, pvals[os.path.basename(filepath)])
                 effectset.write_ncdf(targetdir, "InterpolatedMortalityComatose", weatherbundle, calculation, baseline_get_predictors, "Mortality impacts, with interpolation but no adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, 'all-coma'), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors), suffix=suffix)
 
                 # Dumb Farmer
-                calculation, dependencies, curve, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.health.mortality_csvv_dumb', weatherbundle, economicmodel, pvals[os.path.basename(filepath)])
+                calculation, dependencies, curve, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.mortality.mortality_csvv_dumb', weatherbundle, economicmodel, pvals[os.path.basename(filepath)])
                 effectset.write_ncdf(targetdir, "InterpolatedMortalityDumb", weatherbundle, calculation, baseline_get_predictors, "Mortality impacts, with interpolation and only environmental adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, 'all-dumb'), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors), suffix=suffix)
 
     if do_only is None or do_only == 'country':
@@ -65,5 +64,5 @@ def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=N
                     assert False, "Unknown filter region."
 
             # Removed DG2011_USA_national_mortality_65plus: Amir considers unreliable
-            calculation, dependencies = caller.call_prepare('impacts.health.' + gcpid, weatherbundle, economicmodel, pvals[gcpid])
+            calculation, dependencies = caller.call_prepare('impacts.mortality.' + gcpid, weatherbundle, economicmodel, pvals[gcpid])
             effectset.write_ncdf(targetdir, gcpid, weatherbundle, calculation, None, "See https://bitbucket.org/ClimateImpactLab/socioeconomics/wiki/HealthModels#rst-header-" + gcpid.replace('_', '-').lower() + " for more information.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, filter_region=filter_region, subset=subset, suffix=suffix)

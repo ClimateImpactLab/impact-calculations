@@ -20,6 +20,9 @@ def read(filename):
                 data[row[0]] = []
                 lastappend = row[0]
             else:
+                if lastappend is None:
+                    print "Expected lastappend to be available."
+                    print row
                 assert lastappend is not None
                 data[lastappend].append(map(float, row))
 
@@ -43,6 +46,13 @@ def extract_values(data, kks):
         residvcv = []
 
     return dict(gamma=gamma, gammavcv=gammavcv, residvcv=residvcv)
+
+def by_predictor(csvv, params):
+    gammas = []
+    for ii in range(len(params) / csvv['L']):
+        gammas.append(params[ii * csvv['L'] + np.arange(csvv['L'])])
+
+    return gammas
 
 if __name__ == '__main__':
     data = read("/shares/gcp/data/adaptation/conflict/group_tp3_bayes_auto.csv")
