@@ -1,6 +1,6 @@
 import numpy as np
-from adapting_curve import InstantAdaptingStepCurve, BinsIncomeDensityPredictorator, ComatoseInstantAdaptingStepCurve, DumbInstantAdaptingStepCurve
-import curvegen, surface_space, mortality_helper
+from adaptation.adapting_curve import InstantAdaptingStepCurve, BinsIncomeDensityPredictorator, ComatoseInstantAdaptingStepCurve, DumbInstantAdaptingStepCurve
+from adaptation import curvegen
 from openest.generate.stdlib import *
 
 do_singlebin = True
@@ -15,7 +15,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, get_data, farm
     predgen = BinsIncomeDensityPredictorator(weatherbundle, economicmodel, bin_limits, 8, 15, 3, 2015)
 
     dependencies = []
-    beta_generator = curvegen.make_curve_generator(surface_space, predictorsdir, predcols, dependencies, do_singlebin, pvals.get_seed())
+    beta_generator = curvegen.make_curve_generator(csvv, bin_limits, predcols, do_singlebin, pvals.get_seed())
 
     curve_get_predictors = lambda region, year, temps: predgen.get_update(region, year, temps)[0]
 
