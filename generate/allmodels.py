@@ -1,16 +1,17 @@
-import sys, os, itertools
-import standard, loadmodels
+import sys, os, itertools, importlib
+import loadmodels
 from impacts import weather, effectset
-from adaptation import adapting_curve
 
 mode = sys.argv[1]
 assert mode in ['median', 'montecarlo']
 
+module = sys.argv[2]
+mod = importlib.import_module("generate." + module)
+
+outputdir = sys.argv[3]
+
 get_model = effectset.get_model_server
-
 do_only = "interpolation"
-
-outputdir = sys.argv[1]
 
 standard.preload()
 
@@ -41,3 +42,6 @@ for batch in itertools.count():
         effectset.make_pval_file(targetdir, pvals)
 
         standard.produce(targetdir, historybundle, economicmodel, get_model, pvals, country_specific=False, suffix='-histclim', do_only=do_only)
+
+    if mode == 'median':
+        break # Only do one batch
