@@ -19,7 +19,7 @@ dependencies.append(weather_version)
 weatherbundle, calculation, curve, baseline_get_predictors = health.prepare(taspath, do_median, dependencies)
 
 # Output baselines
-with open(files.datapath('adaptation/outputs/baselines.csv'), 'w') as fp:
+with open(files.sharedpath('social/adaptation/outputs/baselines.csv'), 'w') as fp:
     headre.write(fp, "Median interpolated bins for each GCP region, using baseline temperatures.",
                  headre.dated_version('MORTALITY_SPACE'), dependencies,
                  {'region': ('GCP region key', 'str'),
@@ -36,7 +36,7 @@ with open(files.datapath('adaptation/outputs/baselines.csv'), 'w') as fp:
 effectset.write_ncdf("HealthMortalityAllAges", weatherbundle, calculation, baseline_get_predictors, "Mortality for all ages, with interpolation and adaptation.", dependencies)
 
 # Output endlines
-with open(files.datapath('adaptation/outputs/endlines.csv'), 'w') as fp:
+with open(files.sharedpath('social/adaptation/outputs/endlines.csv'), 'w') as fp:
     headre.write(fp, "Median interpolated bins for each GCP region, after a century of adaptation.",
                  headre.dated_version('MORTALITY'), dependencies,
                  {'region': ('GCP region key', 'str'),

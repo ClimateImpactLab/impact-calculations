@@ -28,7 +28,7 @@ for group in ['all', '65+']:
                        'gdppc': 4364., 'avg_temp': 21.25, 'group': 'Brazil2', 'popop': 11970.}]
 
     # Add day bin data from file
-    with open(files.datapath("adaptation/day_bins.csv"), 'r') as fp:
+    with open(files.sharedpath("social/adaptation/day_bins.csv"), 'r') as fp:
         csvreader = csv.reader(fp)
         headrow = csvreader.next()
         for row in csvreader:

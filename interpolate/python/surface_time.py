@@ -58,7 +58,7 @@ def pooled(means, serrs, times, groups, predictors, seed=None, median=False):
         return multivariate_normal.rvs(fit.params[taustart:], fit.cov_params[taustart:, taustart:])
 
 def all_predictors(dependencies):
-    for binlo, binhi, fp in utils.all_predictors(files.datapath('adaptation/predictors-time'), dependencies):
+    for binlo, binhi, fp in utils.all_predictors(files.sharedpath('social/adaptation/predictors-time'), dependencies):
         reader = csv.reader(fp)
         header = reader.next()
 
@@ -93,7 +93,7 @@ if __name__ == '__main__':
         binlos.append(binlo)
         rows.append([binlo, binhi, fit.params[0], fit.bse[0]])
 
-    with open(files.datapath('adaptation/outputs/surface-time.csv'), 'w') as fp:
+    with open(files.sharedpath('social/adaptation/outputs/surface-time.csv'), 'w') as fp:
         headre.write(fp, "NOT READY (based on preliminary input files)! Coefficient coefficients for adaptation rates.", # TODO: Remove NOT READY when input data has headers
                      headre.dated_version('MORTALITY_TIME'), dependencies,
                      {'binlo': ('Lower bound on a given bin', 'deg. C'),

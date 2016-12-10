@@ -20,7 +20,7 @@ def baseline_future_collate(iter, endbaseline):
     return baseline_values, future_years
 
 def each_gdppc_fromfile(model, scenario, dependencies):
-    with open(files.datapath('baselines/gdppc.csv'), 'r') as fp:
+    with open(files.sharedpath('social/baselines/gdppc.csv'), 'r') as fp:
         reader = csv.reader(header.deparse(fp, dependencies))
         headrow = reader.next()
 
@@ -40,7 +40,7 @@ def baseline_future_fromfile(model, scenario, endbaseline, dependencies):
 def each_gdppc_nightlight(model, scenario, dependencies):
     # Load all gdppc weights
     weights = {} # {hierid: weight}
-    with open(files.datapath('baselines/nightlight_weight.csv'), 'r') as fp:
+    with open(files.sharedpath('social/baselines/nightlight_weight.csv'), 'r') as fp:
         reader = csv.reader(fp)
         headrow = reader.next()
 
@@ -89,7 +89,7 @@ def baseline_future_country_gdp(model, scenario, endbaseline):
 def load_nightlights():
     values = {} # {region: value}
 
-    with open(files.datapath('baselines/nightlight_baseline.csv'), 'r') as fp:
+    with open(files.sharedpath('social/baselines/nightlight_baseline.csv'), 'r') as fp:
         reader = csv.reader(fp)
         headrow = reader.next()
 

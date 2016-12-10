@@ -4,7 +4,7 @@ from helpers import files
 def simple_densities(dependencies):
     densities = {} # {region: density}
     areas = {} # {region: area}
-    with open(files.datapath('processed/LandScan2011/gcpregions.csv'), 'r') as fp:
+    with open(files.sharedpath('social/processed/LandScan2011/gcpregions.csv'), 'r') as fp:
         reader = csv.reader(header.deparse(fp, dependencies))
         headrow = reader.next()
 
@@ -22,7 +22,7 @@ def simple_densities(dependencies):
 def load_popop():
     popops = {} # {region: popop}
 
-    with open(files.datapath('baselines/popop_baseline.csv'), 'r') as fp:
+    with open(files.sharedpath('social/baselines/popop_baseline.csv'), 'r') as fp:
         reader = csv.reader(fp)
         headrow = reader.next()
 

@@ -12,7 +12,7 @@ groups = ['Brazil', 'India', 'China', 'USA', 'France', 'Mexico']
 
 modelorder, allmodels, allpredictors, xx, hasnas = reader.collate_models(prednames, filenames, groups)
 
-outdir = files.datapath('adaptation/predictors-time')
+outdir = files.sharedpath('social/adaptation/predictors-time')
 utils.clear_dir(outdir)
 
 for jj in range(len(xx) - 1):

@@ -5,12 +5,12 @@ import spacetime
 
 def each_future_population(model, scenario, dependencies):
     # Try to load an model-specific file
-    populationfile = files.datapath('baselines/population-future.' + model + '.' + scenario + '.csv')
+    populationfile = files.sharedpath('social/baselines/population-future.' + model + '.' + scenario + '.csv')
     if os.path.exists(populationfile):
         rowchecks = lambda row, headrow: True
     else:
         print "Cannot find model-specific populations."
-        populationfile = files.datapath('baselines/population-future.csv')
+        populationfile = files.sharedpath('social/baselines/population-future.csv')
         rowchecks = lambda row, headrow: row[headrow.index('model')] == model and row[headrow.index('scenario')] == scenario
 
     with open(populationfile, 'r') as fp:
@@ -29,7 +29,7 @@ def each_future_population(model, scenario, dependencies):
 
 def population_baseline_data(year0, year1, dependencies):
     baselinedata = {} # {region: {year: value}}
-    with open(files.datapath("weightlines/population.csv"), 'r') as fp:
+    with open(files.sharedpath("social/weightlines/population.csv"), 'r') as fp:
         reader = csv.reader(header.deparse(fp, dependencies))
         headrow = reader.next()
 
