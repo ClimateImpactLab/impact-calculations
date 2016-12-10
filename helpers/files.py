@@ -1,9 +1,7 @@
-import os, inspect
+import os
 
-class Anchor: pass
-
-def datapath(subpath):
-    return os.path.normpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../data", subpath))
+def sharedpath(subpath):
+    return os.path.join('/shares/gcp', subpath)
 
 if __name__ == '__main__':
     os.chdir("/shares/gcp")

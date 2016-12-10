@@ -7,7 +7,7 @@ def iterate_econmodels():
     modelscenarios = set() # keep track of model-scenario pairs
 
     dependencies = []
-    with open(files.datapath('baselines/gdppc.csv'), 'r') as fp:
+    with open(files.sharedpath('social/baselines/gdppc.csv'), 'r') as fp:
         reader = csv.reader(header.deparse(fp, dependencies))
         headrow = reader.next()
 

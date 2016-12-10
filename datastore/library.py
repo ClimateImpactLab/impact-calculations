@@ -13,12 +13,12 @@ def get_data(id, units):
 
     if id == 'mortality-deathrates':
         assert units == 'deaths/person'
-        
+
         #import mortality
         #return mortality.load_mortality_rates(), "CMF-1999-2010"
 
         dependencies = []
-        with open(files.datapath("baselines/mortality-physical/combined.csv"), 'r') as fp:
+        with open(files.sharedpath("social/baselines/mortality-physical/combined.csv"), 'r') as fp:
             reader = csv.reader(header.deparse(fp, dependencies))
             headrow = reader.next()
 
@@ -34,7 +34,7 @@ def get_data(id, units):
                         yearvalues[row[regcol]].append(float(row[valcol]))
                     else:
                         yearvalues[row[regcol]] = [float(row[valcol])]
-            
+
             allmeans = []
             for region in yearvalues:
                 regmean = np.mean(yearvalues[region])

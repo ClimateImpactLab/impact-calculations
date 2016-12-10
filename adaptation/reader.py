@@ -134,7 +134,7 @@ def collate_models(prednames, ignores, filenames, groups, additionals, dependenc
     allpredictors = {}
     for ii in range(len(filenames)):
         print filenames[ii]
-        for name, model, predictors in csv_to_models(files.datapath('adaptation/' + filenames[ii]), prednames, ignores, dependencies):
+        for name, model, predictors in csv_to_models(files.sharedpath('social/adaptation/' + filenames[ii]), prednames, ignores, dependencies):
             fullname = groups[ii] + "." + name
             modelorder.append(fullname)
             allmodels[fullname] = model

@@ -225,7 +225,7 @@ if __name__ == '__main__':
         rowsets[method] = (binlos, rows)
 
     filename = os.path.basename(predictorsdir).replace('predictors', 'surface') + '.csv'
-    with open(files.datapath('adaptation/' + filename), 'w') as fp:
+    with open(files.sharedpath('social/adaptation/' + filename), 'w') as fp:
         headre.write(fp, "Coefficient coefficients for interpolation and adaptation.",
                      headre.dated_version('MORTALITY_SPACE'), dependencies,
                      {'method': ('Estimation method (seemur = SUR, pooled = weighted OLS, hiereg = Bayesian hierarchical, montec = dep. var. boostrap', 'str'),

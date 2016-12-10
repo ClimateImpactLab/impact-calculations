@@ -145,7 +145,7 @@ class WeatherBundle(object):
         """Load the rows of hierarchy.csv associated with all known regions."""
         mapping = {} # color to hierid
 
-        with open(files.datapath("regions/" + self.hierarchy), 'r') as fp:
+        with open(files.sharedpath("regions/" + self.hierarchy), 'r') as fp:
             reader = csv.reader(headre.deparse(fp, self.dependencies))
             header = reader.next()
             for row in reader:
@@ -170,7 +170,7 @@ class ReaderWeatherBundle(WeatherBundle):
             self.dependencies = reader.dependencies
 
         self.load_regions()
-        
+
 class DailyWeatherBundle(WeatherBundle):
     def yearbundles(self, maxyear=np.inf):
         """Yields the tuple (yyyyddd, weather) for each year up to `maxyear`.
