@@ -6,7 +6,7 @@ mode = sys.argv[1]
 assert mode in ['median', 'montecarlo']
 
 module = sys.argv[2]
-mod = importlib.import_module("generate." + module)
+mod = importlib.import_module("impacts." + module + ".allmodels")
 
 outputdir = sys.argv[3]
 
