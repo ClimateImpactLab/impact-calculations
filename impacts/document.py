@@ -95,8 +95,10 @@ for gcpid in docsections:
         autogen = autogen.split('\n')[0] + "\n\nCould not find Unique ID in Master DMAS Information spreadsheet.\n"
     else:
         values = wks.row_values(ids.index(gcpid) + 1)
-        for ii in range(len(header)):
-            autogen = autogen.replace('[' + header[ii] + ']', values[ii])
+        print autogen
+        for ii in range(min(len(header), len(values))):
+            if values[ii] is not None:
+                autogen = autogen.replace('[' + header[ii] + ']', values[ii])
 
         if gcpid not in computations:
             autogen = autogen.replace('[Function Docstring]', "Impact does not have a new-style computation.")

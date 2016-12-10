@@ -1,6 +1,7 @@
 import importlib
 from datastore import library
 from impacts import server, effectset
+from adaptation import csvvfile
 from openest.generate.stdlib import *
 
 get_data = library.get_data
@@ -37,5 +38,15 @@ def call_prepare(module, weatherbundle, economicmodel, pvals, getmodel=get_model
         spreadrow = {header[ii]: rowvalues[ii] for ii in range(min(len(header), len(rowvalues)))}
         calculation, dependencies = mod.prepare_raw_spr(spreadrow, pvals, getmodel, getdata)
         return standardize(calculation), dependencies
+
+    raise ValueError("Could not find known prepare form.")
+
+def call_prepare_interp(filepath, module, weatherbundle, economicmodel, pvals, getmodel=get_model, getdata=get_data):
+    mod = importlib.import_module(module)
+    csvv = csvvfile.read(filepath)
+
+    if 'prepare_interp_raw' in dir(mod):
+        calculation, dependencies, curve, baseline_get_predictors = mod.prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, getdata)
+        return standardize(calculation), dependencies, curve, baseline_get_predictors
 
     raise ValueError("Could not find known prepare form.")
