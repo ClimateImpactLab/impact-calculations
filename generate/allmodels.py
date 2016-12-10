@@ -13,7 +13,7 @@ outputdir = sys.argv[3]
 get_model = effectset.get_model_server
 do_only = "interpolation"
 
-standard.preload()
+mod.preload()
 
 for batch in itertools.count():
     for clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in loadmodels.random_order():
@@ -33,7 +33,7 @@ for batch in itertools.count():
         os.makedirs(targetdir)
 
         effectset.make_pval_file(targetdir, pvals)
-        standard.produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=do_only, do_farmers=True)
+        mod.produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=do_only, do_farmers=True)
 
         # Generate historical baseline
         historybundle = weather.RepeatedHistoricalWeatherBundle.make_historical(weatherbundle, None if mode == 'median' else pvals['histclim'].get_seed())
@@ -41,7 +41,7 @@ for batch in itertools.count():
 
         effectset.make_pval_file(targetdir, pvals)
 
-        standard.produce(targetdir, historybundle, economicmodel, get_model, pvals, country_specific=False, suffix='-histclim', do_only=do_only)
+        mod.produce(targetdir, historybundle, economicmodel, get_model, pvals, country_specific=False, suffix='-histclim', do_only=do_only)
 
     if mode == 'median':
         break # Only do one batch
