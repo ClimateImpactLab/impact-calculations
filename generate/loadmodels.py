@@ -5,14 +5,14 @@ from adaptation import adapting_curve
 do_econ_model_only = ["OECD Env-Growth"]
 do_econ_scenario_only = ['SSP3']
 
-def random_order():
+def random_order(climatebasedir):
     print "Loading models..."
     allecons = []
     for econ_model, econ_scenario, economicmodel in adapting_curve.iterate_econmodels():
         allecons.append((econ_scenario, econ_model, economicmodel))
 
     allclims = []
-    for clim_scenario, clim_model, weatherbundle in weather.iterate_bundles(climatebasedir):
+    for clim_scenario, clim_model, weatherbundle in weather.iterate_binned_bundles(climatebasedir):
         allclims.append((clim_scenario, clim_model, weatherbundle))
 
     allexogenous = []
