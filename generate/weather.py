@@ -5,7 +5,7 @@ from helpers import files
 import helpers.header as headre
 from climate import netcdfs
 
-def iterate_binned_bundles(basedir):
+def iterate_binned_bundles(basedir, readercls):
     """
     Return bundles for each RCP and model.
 
@@ -22,8 +22,8 @@ def iterate_binned_bundles(basedir):
             pasttemplate = os.path.join(basedir, 'historical', model, 'tas/tas_Bindays_aggregated_historical_r1i1p1_' + model + '_%d.nc')
             futuretemplate = os.path.join(basedir, scenario, model, 'tas/tas_Bindays_aggregated_' + scenario + '_r1i1p1_' + model + '_%d.nc')
 
-            pastreader = cls(pasttemplate, 1981, 'tas')
-            futurereader = cls(pasttemplate, 2006, 'tas')
+            pastreader = readercls(pasttemplate, 1981, 'tas')
+            futurereader = readercls(futuretemplate, 2006, 'tas')
 
             weatherbundle = UnivariatePastFutureWeatherBundle(pastreader, futurereader)
             yield scenario, model, weatherbundle
