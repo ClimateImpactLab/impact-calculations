@@ -1,6 +1,6 @@
 import sys, os, csv
 import standard
-from impacts import weather, effectset
+import weather, effectset
 from adaptation import adapting_curve
 
 get_model = effectset.get_model_server

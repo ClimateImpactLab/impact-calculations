@@ -1,8 +1,7 @@
 import os, Queue
 import numpy as np
 from netCDF4 import Dataset
-from impacts import nc4writer
-from generate import agglib
+import nc4writer, agglib
 
 costs_suffix = '-costs'
 levels_suffix = '-levels'
@@ -182,7 +181,7 @@ def make_levels(targetdir, filename, get_population, dimensions_template=None, m
     reader.close()
     if dimensions_template is not None:
         dimreader.close()
-    writer.close()    
+    writer.close()
 
 def make_costs_levels(targetdir, filename, get_population):
     # Assume the following IAM and SSP

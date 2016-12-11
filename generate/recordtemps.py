@@ -1,7 +1,7 @@
 import sys, os
 import numpy as np
 from netCDF4 import Dataset
-from impacts import weather, nc4writer
+import weather, nc4writer
 from adaptation.adapting_curve import rm_init, rm_add, rm_mean
 
 basedir = '/shares/gcp/BCSD/grid2reg/cmip5'

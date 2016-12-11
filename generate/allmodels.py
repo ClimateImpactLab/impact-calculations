@@ -1,6 +1,6 @@
 import sys, os, itertools, importlib
 import loadmodels
-from impacts import weather, effectset
+import weather, effectset
 
 mode = sys.argv[1]
 assert mode in ['median', 'montecarlo']
