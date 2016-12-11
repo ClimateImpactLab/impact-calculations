@@ -1,5 +1,5 @@
 import os, glob
-from impacts import weather, server, effectset, caller
+from generate import weather, server, effectset, caller
 
 do_interpbins = True
 
