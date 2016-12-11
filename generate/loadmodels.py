@@ -1,5 +1,5 @@
 import numpy as np
-from impacts import weather
+import weather
 from adaptation import adapting_curve
 
 basedir = '/shares/gcp/BCSD/grid2reg/cmip5'

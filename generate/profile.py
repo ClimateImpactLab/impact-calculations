@@ -1,7 +1,7 @@
 import sys, os
 import standard
 from loadmodels import basedir
-from impacts import weather, effectset, caller
+import weather, effectset, caller
 from adaptation import adapting_curve
 import cProfile, pstats, StringIO
 
@@ -25,7 +25,7 @@ for clim_scenario, clim_model, weatherbundle in weather.iterate_bundles(basedir)
             gcpid = 'GHA2003_BRA_national_mortality_all'
             calculation, dependencies = caller.call_prepare('impacts.health.' + gcpid, weatherbundle, economicmodel, pvals[gcpid])
             baseline_get_predictors = None
-        
+
         effectset.small_test(weatherbundle, calculation, baseline_get_predictors, num_regions=1)
         #effectset.write_ncdf('.', "InterpolatedMortalityAllAges", weatherbundle, calculation, baseline_get_predictors, "Mortality for all ages, with interpolation and adaptation through interpolation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies)
 

@@ -1,6 +1,6 @@
 import importlib
 from datastore import library
-from impacts import server, effectset
+import server, effectset
 from adaptation import csvvfile
 from openest.generate.stdlib import *
 

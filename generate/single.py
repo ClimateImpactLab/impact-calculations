@@ -1,6 +1,6 @@
 import sys, os
 import standard
-from impacts import weather, effectset
+import weather, effectset
 from adaptation import adapting_curve
 
 # e.g.,
