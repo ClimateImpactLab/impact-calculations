@@ -58,3 +58,17 @@ class YearlySplitWeatherReader(WeatherReader):
         while os.path.exists(self.template % (year)):
             yield self.template % (year)
             year += 1
+
+    def read_iterator_to(self, maxyear):
+        for times, weather in self.read_iterator():
+            yield times, weather
+            if times[0] % 1000 == maxyear:
+                break
+
+    # Random access
+
+    def file_for_year(self, year):
+        return self.template % (year)
+
+    def read_year(self, year):
+        raise NotImplementedError
