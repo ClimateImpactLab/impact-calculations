@@ -3,6 +3,7 @@ import numpy as np
 from netCDF4 import Dataset
 from helpers import files
 import helpers.header as headre
+from climate import netcdfs
 
 def iterate_binned_bundles(basedir):
     """
@@ -77,7 +78,6 @@ class DailyWeatherBundle(WeatherBundle):
     def yearbundles(self, maxyear=np.inf):
         """Yields the tuple (yyyyddd, weather) for each year up to `maxyear`.
         Each yield should should produce all and only data for a single year.
-        Typically, the data provided by yearbundles is produced by `readncdf`.
 
         yyyyddd should be a numpy array of length 365, and integer values
         constructed like 2016001 for the first day of 2016.
@@ -230,7 +230,7 @@ class RepeatedHistoricalWeatherBundle(DailyWeatherBundle):
 
 class MultivariateHistoricalWeatherBundle(DailyWeatherBundle):
     def __init__(self, template, year_start, year_end, variables,
-                 hierarchy='hierarchy.csv', readncdf=readncdf):
+                 hierarchy='hierarchy.csv', readncdf=netcdfs.readncdf):
         super(MultivariateHistoricalWeatherBundle, self).__init__(hierarchy)
 
         self.template = template
