@@ -2,8 +2,6 @@ import numpy as np
 import weather
 from adaptation import adapting_curve
 
-basedir = '/shares/gcp/BCSD/grid2reg/cmip5'
-
 do_econ_model_only = ["OECD Env-Growth"]
 do_econ_scenario_only = ['SSP3']
 
@@ -14,7 +12,7 @@ def random_order():
         allecons.append((econ_scenario, econ_model, economicmodel))
 
     allclims = []
-    for clim_scenario, clim_model, weatherbundle in weather.iterate_bundles(basedir):
+    for clim_scenario, clim_model, weatherbundle in weather.iterate_bundles(climatebasedir):
         allclims.append((clim_scenario, clim_model, weatherbundle))
 
     allexogenous = []

@@ -98,22 +98,3 @@ def guess_variable(filename):
         return 'pr'
 
     return None
-
-def iterate_bundles(basedir):
-    """
-    Return bundles for each RCP and model.
-
-    basedir points to directory with both 'historical', 'rcp*'
-    """
-    # Collect the entire complement of models
-    models = os.listdir(os.path.join(basedir, 'historical'))
-
-    for scenario in os.listdir(basedir):
-        if scenario[0:3] != 'rcp':
-            continue
-
-        for model in models:
-            pasttemplate = os.path.join(basedir, 'historical', model, 'tas/tas_day_aggregated_historical_r1i1p1_' + model + '_%d.nc')
-            futuretemplate = os.path.join(basedir, scenario, model, 'tas/tas_day_aggregated_' + scenario + '_r1i1p1_' + model + '_%d.nc')
-            weatherbundle = UnivariatePastFutureWeatherBundle(pasttemplate, 1981, futuretemplate, 2006, 'tas')
-            yield scenario, model, weatherbundle

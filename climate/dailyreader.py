@@ -9,7 +9,7 @@ class DailyWeatherReader(YearlySplitWeatherReader):
     def __init__(self, template, year1, variable):
         super(DailyWeatherReader, self).__init__(template, year1, variable)
         self.time_units = 'yyyyddd'
-        
+
     def get_times(self):
         times = []
 
@@ -26,6 +26,9 @@ class DailyWeatherReader(YearlySplitWeatherReader):
         # Yield data in yearly chunks
         for filename in self.file_iterator():
             yield netcdfs.readncdf(filename, self.variable)
+
+    def read_year(self, year):
+        return netcdfs.readncdf(self.file_for_year(year), self.variable)
 
 class BinnedWeatherReader(YearlySplitWeatherReader):
     """Exposes binned weather data, accumulated into months and split into yearly file."""
@@ -53,3 +56,7 @@ class BinnedWeatherReader(YearlySplitWeatherReader):
             mmrrbb = np.swapaxes(mmbbrr, 1, 2) # Needs to be in T x REGIONS x K
             yield times, mmrrbb
 
+    def read_year(self, year):
+        times, mmbbrr = netcdfs.readncdf_binned(self.file_for_year(year), self.variable)
+        mmrrbb = np.swapaxes(mmbbrr, 1, 2) # Needs to be in T x REGIONS x K
+        return times, mmrrbb
