@@ -166,10 +166,10 @@ class UnivariatePastFutureWeatherBundle(DailyWeatherBundle):
         return False
 
     def yearbundles(self, maxyear=np.inf):
-        for values in self.pastreader.read_iterator_to(min(self.futureyear1, maxyear))
+        for values in self.pastreader.read_iterator_to(min(self.futureyear1, maxyear)):
             yield values
 
-        for values in self.pastreader.read_iterator_to(maxyear)
+        for values in self.pastreader.read_iterator_to(maxyear):
             yield values
 
     def get_years(self):
