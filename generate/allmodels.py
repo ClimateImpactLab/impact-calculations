@@ -16,7 +16,7 @@ do_only = "interpolation"
 mod.preload()
 
 for batch in itertools.count():
-    for clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in loadmodels.random_order():
+    for clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in loadmodels.random_order(mod.climatebasedir):
         print clim_scenario, clim_model
         print econ_scenario, econ_model
         if mode == 'median':
