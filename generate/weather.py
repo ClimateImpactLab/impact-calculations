@@ -216,7 +216,7 @@ class RepeatedHistoricalWeatherBundle(DailyWeatherBundle):
     @staticmethod
     def make_historical(weatherbundle, seed):
         futureyear_end = weatherbundle.get_years()[-1]
-        return RepeatedHistoricalWeatherBundle(weatherbundle.reader, futureyear_end, seed)
+        return RepeatedHistoricalWeatherBundle(weatherbundle.pastreader, futureyear_end, seed)
 
     def yearbundles(self, maxyear=np.inf):
         year = self.pastyear_start
