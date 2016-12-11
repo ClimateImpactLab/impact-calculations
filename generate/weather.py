@@ -22,8 +22,8 @@ def iterate_binned_bundles(basedir, readercls):
             pasttemplate = os.path.join(basedir, 'historical', model, 'tas/tas_Bindays_aggregated_historical_r1i1p1_' + model + '_%d.nc')
             futuretemplate = os.path.join(basedir, scenario, model, 'tas/tas_Bindays_aggregated_' + scenario + '_r1i1p1_' + model + '_%d.nc')
 
-            pastreader = readercls(pasttemplate, 1981, 'tas')
-            futurereader = readercls(futuretemplate, 2006, 'tas')
+            pastreader = readercls(pasttemplate, 1981, 'DayNumber')
+            futurereader = readercls(futuretemplate, 2006, 'DayNumber')
 
             weatherbundle = UnivariatePastFutureWeatherBundle(pastreader, futurereader)
             yield scenario, model, weatherbundle
