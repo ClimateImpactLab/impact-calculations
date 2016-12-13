@@ -40,7 +40,7 @@ def simultaneous_application(weatherbundle, calculation, get_apply_args, regions
                     yield (ii, yearresult[0], yearresult[1:])
 
             if push_callback is not None:
-                push_callback(regions[ii], int(yyyyddd[0] / 1000), applications[ii])
+                push_callback(regions[ii], yyyyddd[0], applications[ii])
 
     for ii in range(len(applications)):
         for yearresult in applications[ii].done():

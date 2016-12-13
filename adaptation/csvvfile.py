@@ -1,6 +1,7 @@
 import csv
 import numpy as np
 import metacsv
+from scipy.stats import multivariate_normal
 
 def read(filename):
     with open(filename, 'r') as fp:
@@ -32,6 +33,10 @@ def read(filename):
 
         return data
 
+def collapse_bang(data, seed):
+    data['gamma'] = multivariate_normal.rvs(data['gamma'], data['gannavcv'])
+    data['gammavcv'] = None # this will cause errors if used again
+    
 def extract_values(data, kks):
     indexes = []
     for kk in kks:
