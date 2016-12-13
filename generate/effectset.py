@@ -23,22 +23,18 @@ def simultaneous_application(weatherbundle, calculation, get_apply_args, regions
 
     print "Processing years..."
     for yyyyddd, values in weatherbundle.yearbundles():
-
         if values.shape[-1] < len(applications):
             print "WARNING: fewer regions in weather than expected; dropping from end."
             applications = applications[:values.shape[-1]]
 
-        print "Push", int(yyyyddd[0] / 1000)
+        print "Push", yyyyddd[0]
 
         for ii in range(len(applications)):
             jj = ii if regions == weatherbundle.regions else weatherbundle.regions.index(regions[ii])
 
             if len(values.shape) == 3:
-                if values.shape[0] == 12:
-                    for yearresult in applications[ii].push(yyyyddd, values[:, :, jj]):
-                        yield (ii, yearresult[0], yearresult[1:])
-                else:
-                    raise RuntimeError("Unknown format for weather")
+                for yearresult in applications[ii].push(yyyyddd, values[:, jj, :]):
+                    yield (ii, yearresult[0], yearresult[1:])
             else:
                 for yearresult in applications[ii].push(yyyyddd, values[:, jj]):
                     yield (ii, yearresult[0], yearresult[1:])

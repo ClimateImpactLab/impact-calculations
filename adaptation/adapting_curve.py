@@ -85,12 +85,12 @@ class BinsIncomeDensityPredictorator(object):
 
         print "Collecting baseline information..."
         temp_predictors = {} # {region: [rm-bin-1, ...]}
-        for region, binyears in weatherbundle.baseline_bin_values(binlimits, maxbaseline): # baseline through maxbaseline
+        for region, binyears in weatherbundle.baseline_values(maxbaseline): # baseline through maxbaseline
             usedbinyears = []
-            for ii in range(len(binyears)):
-                if ii == dropbin:
+            for kk in range(binyears.shape[-1]):
+                if kk == dropbin:
                     continue
-                usedbinyears.append(rm_init(binyears[ii][-numtempyears:]))
+                usedbinyears.append(rm_init(binyears[-numtempyears:, kk]))
             temp_predictors[region] = usedbinyears
 
         self.temp_predictors = temp_predictors
@@ -124,26 +124,26 @@ class BinsIncomeDensityPredictorator(object):
             if len(temps.shape) == 2:
                 if temps.shape[0] == 12 and temps.shape[1] == len(self.binlimits) - 1:
                     di = 0
-                    for ii in range(len(self.binlimits) - 1):
-                        if ii == self.dropbin:
+                    for kk in range(len(self.binlimits) - 1):
+                        if kk == self.dropbin:
                             di = -1
                             continue
 
-                        rm_add(self.temp_predictors[region][ii+di], np.sum(temps[:, ii]), self.numtempyears)
+                        rm_add(self.temp_predictors[region][kk+di], np.sum(temps[:, kk]), self.numtempyears)
                 else:
                     raise RuntimeError("Unknown format for temps")
             else:
                 di = 0
                 belowprev = 0
-                for ii in range(len(self.binlimits) - 2):
-                    belowupper = float(np.sum(temps < self.binlimits[ii+1]))
+                for kk in range(len(self.binlimits) - 2):
+                    belowupper = float(np.sum(temps < self.binlimits[kk+1]))
 
-                    if ii == self.dropbin:
+                    if kk == self.dropbin:
                         belowprev = belowupper
                         di = -1
                         continue
 
-                    rm_add(self.temp_predictors[region][ii+di], belowupper - belowprev, self.numtempyears)
+                    rm_add(self.temp_predictors[region][kk+di], belowupper - belowprev, self.numtempyears)
                     belowprev = belowupper
                 rm_add(self.temp_predictors[region][-1], len(temps) - belowprev, self.numtempyears)
 
