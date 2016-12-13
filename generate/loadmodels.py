@@ -8,13 +8,13 @@ do_econ_scenario_only = ['SSP3']
 single_clim_model = 'CCSM4'
 single_clim_scenario = 'rcp85'
 
-def single(climatebasedir, readercls):
+def single(bundle_iterator):
     allecons = []
     for econ_model, econ_scenario, economicmodel in adapting_curve.iterate_econmodels():
         allecons.append((econ_scenario, econ_model, economicmodel))
 
     allclims = []
-    for clim_scenario, clim_model, weatherbundle in weather.iterate_binned_bundles(climatebasedir, readercls):
+    for clim_scenario, clim_model, weatherbundle in bundle_iterator:
         allclims.append((clim_scenario, clim_model, weatherbundle))
 
     allexogenous = []
@@ -27,14 +27,14 @@ def single(climatebasedir, readercls):
 
             return clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
 
-def random_order(climatebasedir, readercls):
+def random_order(bundle_iterator):
     print "Loading models..."
     allecons = []
     for econ_model, econ_scenario, economicmodel in adapting_curve.iterate_econmodels():
         allecons.append((econ_scenario, econ_model, economicmodel))
 
     allclims = []
-    for clim_scenario, clim_model, weatherbundle in weather.iterate_binned_bundles(climatebasedir, readercls):
+    for clim_scenario, clim_model, weatherbundle in bundle_iterator:
         allclims.append((clim_scenario, clim_model, weatherbundle))
 
     allexogenous = []

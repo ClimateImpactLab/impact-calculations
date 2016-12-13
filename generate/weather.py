@@ -5,28 +5,13 @@ from helpers import files
 import helpers.header as headre
 from climate import netcdfs
 
-def iterate_binned_bundles(basedir, readercls):
+def iterate_bundles(iterator_readers):
     """
     Return bundles for each RCP and model.
-
-    basedir points to directory with both 'historical', 'rcp*'
     """
-    # Collect the entire complement of models
-    models = os.listdir(os.path.join(basedir, 'historical'))
-
-    for scenario in os.listdir(basedir):
-        if scenario[0:3] != 'rcp':
-            continue
-
-        for model in models:
-            pasttemplate = os.path.join(basedir, 'historical', model, 'tas/tas_Bindays_aggregated_historical_r1i1p1_' + model + '_%d.nc')
-            futuretemplate = os.path.join(basedir, scenario, model, 'tas/tas_Bindays_aggregated_' + scenario + '_r1i1p1_' + model + '_%d.nc')
-
-            pastreader = readercls(pasttemplate, 1981, 'DayNumber')
-            futurereader = readercls(futuretemplate, 2006, 'DayNumber')
-
-            weatherbundle = UnivariatePastFutureWeatherBundle(pastreader, futurereader)
-            yield scenario, model, weatherbundle
+    for scenario, model, pastreader, futurereader in iterator_readers:
+        weatherbundle = UnivariatePastFutureWeatherBundle(pastreader, futurereader)
+        yield scenario, model, weatherbundle
 
 class WeatherBundle(object):
     """A WeatherBundle object is used to access the values for a single variable

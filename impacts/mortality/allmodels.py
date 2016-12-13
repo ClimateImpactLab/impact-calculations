@@ -1,6 +1,6 @@
 import os, glob
 from generate import weather, server, effectset, caller
-from climate.dailyreader import YearlyBinnedWeatherReader
+from climate.discover import discover_tas_binned
 
 do_interpbins = True
 
@@ -8,8 +8,7 @@ def preload():
     from datastore import library
     library.get_data('mortality-deathrates', 'deaths/person')
 
-climatebasedir = '/shares/gcp/climate/BCSD/aggregation/cmip5_bins/IR_level'
-readercls = YearlyBinnedWeatherReader
+bundle_iterator = weather.iterate_bundles(discover_tas_binned('/shares/gcp/climate/BCSD/aggregation/cmip5_bins/IR_level'))
 
 def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=None, country_specific=True, result_callback=None, push_callback=None, suffix='', do_farmers=False, do_65plus=True):
     if do_only is None or do_only == 'acp':
