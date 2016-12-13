@@ -23,9 +23,9 @@ def simultaneous_application(weatherbundle, calculation, get_apply_args, regions
 
     print "Processing years..."
     for yyyyddd, values in weatherbundle.yearbundles():
-        if values.shape[-1] < len(applications):
+        if values.shape[1] < len(applications):
             print "WARNING: fewer regions in weather than expected; dropping from end."
-            applications = applications[:values.shape[-1]]
+            applications = applications[:values.shape[1]]
 
         print "Push", yyyyddd[0]
 
