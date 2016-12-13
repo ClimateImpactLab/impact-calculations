@@ -20,17 +20,20 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, get_data, farm
     curve_get_predictors = lambda region, year, temps: predgen.get_update(region, year, temps)[0]
 
     if farmer == 'full':
+        print "Smart farmer..."
         curve = InstantAdaptingStepCurve(beta_generator, curve_get_predictors, bin_limits)
     elif farmer == 'coma':
+        print "Comatose farmer..."
         curve = ComatoseInstantAdaptingStepCurve(beta_generator, curve_get_predictors, bin_limits)
-    elif farmer == 'dumb':        
+    elif farmer == 'dumb':
+        print "Dumb farmer..."
         curve = DumbInstantAdaptingStepCurve(beta_generator, curve_get_predictors, bin_limits)
     else:
         print "Unknown farmer type: " + farmer
 
     # Collect all baselines
     calculation = Transform(
-        YearlyDayBins(curve, 'deaths/100000people/year'),
+        YearlyBins(curve, 'deaths/100000people/year'),
         'deaths/100000people/year', 'deaths/person/year', lambda x: x / 1e5,
         'convert to deaths/person/year', "Divide by 100000 to convert to deaths/person/year.")
 

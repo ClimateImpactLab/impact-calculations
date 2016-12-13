@@ -39,8 +39,7 @@ def make_curve_generator(csvv, xxlimits, predcols, do_singlebin, seed):
     # Reorganize params into sets of L
     gammas = csvvfile.by_predictor(csvv, params)
     # Insert dropped bin: hard coded for now
-    before_dropped = np.where(np.array(xxlimits) == 18)[0]
-    print before_dropped
+    before_dropped = np.flatnonzero(np.array(xxlimits) == 18)[0]
     gammas = gammas[:before_dropped] + [np.array([np.nan] * csvv['L'])] + gammas[before_dropped:]
 
     return StepCurveGenerator(xxlimits, gammas, do_singlebin)
