@@ -5,18 +5,18 @@ import weather, effectset
 outputdir = sys.argv[3]
 
 def iterate_median():
-    for clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in loadmodels.random_order(mod.climatebasedir, mod.readercls):
+    for clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in loadmodels.random_order(mod.bundle_iterator):
         pvals = effectset.ConstantPvals(.5)
         yield 'median', pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
 
 def iterate_montecarlo():
     for batch in itertools.count():
-        for clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in loadmodels.random_order(mod.climatebasedir, mod.readercls):
+        for clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in loadmodels.random_order(mod.bundle_iterator):
             pvals = effectset.OnDemandRandomPvals()
             yield 'batch' + str(batch), pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
 
 def iterate_single():
-    clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel = loadmodels.single(mod.climatebasedir, mod.readercls)
+    clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel = loadmodels.single(mod.bundle_iterator)
     pvals = effectset.ConstantPvals(.5)
 
     # Check if this already exists and delete if so
