@@ -1,4 +1,5 @@
 import os, re
+import numpy as np
 from netCDF4 import Dataset
 
 def get_arbitrary_variables(path):
@@ -38,6 +39,16 @@ def readncdf(filepath, variable):
     rootgrp.close()
 
     return yyyyddd, weather
+
+def readncdf_single(filepath, variable):
+    """
+    Just return the variable
+    """
+    rootgrp = Dataset(filepath, 'r', format='NETCDF4')
+    data = np.copy(rootgrp.variables[variable])
+    rootgrp.close()
+
+    return data
 
 def readncdf_binned(filepath, variable):
     """

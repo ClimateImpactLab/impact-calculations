@@ -74,6 +74,9 @@ class ReaderWeatherBundle(WeatherBundle):
         self.load_readermeta(reader)
         self.load_regions()
 
+    def get_dimension(self):
+        return self.reader.get_dimension()
+
 class DailyWeatherBundle(WeatherBundle):
     def yearbundles(self, maxyear=np.inf):
         """Yields the tuple (yyyyddd, weather) for each year up to `maxyear`.
@@ -90,10 +93,14 @@ class DailyWeatherBundle(WeatherBundle):
         """Returns a list of all years available for the given WeatherBundle."""
         raise NotImplementedError
 
+    def get_dimension(self):
+        """Return a list of the values for each period x region."""
+        raise NotImplementedError
+
     def baseline_average(self, maxyear):
         """Yield the average weather value up to `maxyear` for each region."""
 
-        regionsums = np.zeros(len(self.regions))
+        regionsums = np.zeros(len(self.regions), len(self.get_dimension()))
         sumcount = 0
         for yyyyddd, weather in self.yearbundles(maxyear):
             print int(yyyyddd[0]) / 1000
@@ -109,36 +116,18 @@ class DailyWeatherBundle(WeatherBundle):
         """Yield the list of all weather values up to `maxyear` for each region."""
 
         # Construct an empty matrix to append to
-        regioncols = np.array([[]] * len(self.regions)).transpose()
+        regionvalues = np.ndarray((0, len(self.regions), len(self.get_dimension())))
 
         # Append each year
         for yyyyddd, weather in self.yearbundles(maxyear):
-            print int(yyyyddd[0]) / 1000
+            print yyyyddd[0]
 
             # Stack this year below the previous years
-            regioncols = np.vstack((regioncols, np.matrix(np.mean(weather, axis=0))))
+            regionvalues = np.vstack((regionvalues, np.expand_dims(np.mean(weather, axis=0), axis=0)))
 
         # Yield the entire collection of values for each region
         for ii in range(len(self.regions)):
-            yield self.regions[ii], regioncols[:,ii].tolist()
-
-    def baseline_bin_values(self, binlimits, maxyear):
-        """Yield the number of days within each set of sequential limits from `binlimits` for each year and each region."""
-
-        regioncolbins = []
-        for ii in range(len(binlimits) - 1):
-            regioncols = np.array([[]] * len(self.regions)).transpose()
-            regioncolbins.append(regioncols)
-
-        for yyyyddd, weather in self.yearbundles(maxyear):
-            print int(yyyyddd[0]) / 1000
-
-            for ii in range(len(binlimits) - 1):
-                withinbin = np.logical_and(weather >= binlimits[ii], weather < binlimits[ii + 1])
-                regioncolbins[ii] = np.vstack((regioncolbins[ii], np.matrix(np.sum(withinbin, axis=0))))
-
-        for rr in range(len(self.regions)):
-            yield self.regions[rr], [regioncolbins[ii][:,rr].ravel().tolist()[0] for ii in range(len(binlimits) - 1)]
+            yield self.regions[ii], regionvalues[:, ii]
 
 class SingleWeatherBundle(DailyWeatherBundle, ReaderWeatherBundle):
     def is_historical(self):
@@ -157,6 +146,8 @@ class UnivariatePastFutureWeatherBundle(DailyWeatherBundle):
         self.pastreader = pastreader
         self.futurereader = futurereader
 
+        assert self.pastreader.get_dimension() == self.futurereader.get_dimension()
+
         self.futureyear1 = min(self.futurereader.get_years())
 
         self.load_readermeta(futurereader)
@@ -169,11 +160,15 @@ class UnivariatePastFutureWeatherBundle(DailyWeatherBundle):
         for values in self.pastreader.read_iterator_to(min(self.futureyear1, maxyear)):
             yield values
 
-        for values in self.pastreader.read_iterator_to(maxyear):
-            yield values
+        if maxyear > self.futureyear1:
+            for values in self.futurereader.read_iterator_to(maxyear):
+                yield values
 
     def get_years(self):
         return np.unique(self.pastreader.get_years() + self.futurereader.get_years())
+
+    def get_dimension(self):
+        return self.pastreader.get_dimension()
 
 class RepeatedHistoricalWeatherBundle(DailyWeatherBundle):
     def __init__(self, reader, futureyear_end, seed, hierarchy='hierarchy.csv'):
@@ -222,11 +217,17 @@ class RepeatedHistoricalWeatherBundle(DailyWeatherBundle):
         year = self.pastyear_start
         for pastyear in self.pastyears:
             yyyyddd, weather = self.reader.read_year(pastyear)
-            yield (1000 * year) + (yyyyddd % 1000), weather
+            if yyyyddd[0] > 10000:
+                yield (1000 * year) + (yyyyddd % 1000), weather
+            else:
+                yield [year], weather
             year += 1
 
     def get_years(self):
         return range(self.pastyear_start, self.futureyear_end + 1)
+
+    def get_dimension(self):
+        return self.reader.get_dimension()
 
 class MultivariateHistoricalWeatherBundle(DailyWeatherBundle):
     def __init__(self, template, year_start, year_end, variables,
