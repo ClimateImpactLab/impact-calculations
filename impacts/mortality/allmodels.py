@@ -1,6 +1,6 @@
 import os, glob
 from generate import weather, server, effectset, caller
-from climate.dailyreader import BinnedWeatherReader
+from climate.dailyreader import YearlyBinnedWeatherReader
 
 do_interpbins = True
 
@@ -9,7 +9,7 @@ def preload():
     library.get_data('mortality-deathrates', 'deaths/person')
 
 climatebasedir = '/shares/gcp/climate/BCSD/aggregation/cmip5_bins/IR_level'
-readercls = BinnedWeatherReader
+readercls = YearlyBinnedWeatherReader
 
 def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=None, country_specific=True, result_callback=None, push_callback=None, suffix='', do_farmers=False, do_65plus=True):
     if do_only is None or do_only == 'acp':
@@ -24,7 +24,8 @@ def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=N
             push_callback = lambda reg, yr, app, predget: None
 
         #for filepath in ["/shares/gcp/social/parameters/mortality/predictors-space-all.csvv"]:
-        for filepath in glob.glob("/shares/gcp/social/parameters/mortality/mortality_single_stage_12092016/*.csvv"):
+        #for filepath in glob.glob("/shares/gcp/social/parameters/mortality/mortality_single_stage_12092016/*.csvv"):
+        for filepath in ["/shares/gcp/social/parameters/mortality/mortality_single_stage_12092016/global_interaction_no_popshare_BEST.csvv"]:
             # Full Adaptation
             calculation, dependencies, curve, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.mortality.mortality_csvv', weatherbundle, economicmodel, pvals[os.path.basename(filepath)])
             effectset.write_ncdf(targetdir, "InterpolatedMortality", weatherbundle, calculation, baseline_get_predictors, "Mortality impacts, with interpolation and adaptation through interpolation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, 'all'), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors), do_interpbins=do_interpbins, suffix=suffix)
