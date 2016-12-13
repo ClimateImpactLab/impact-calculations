@@ -82,11 +82,12 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
         mod.produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=do_only, do_farmers=False, result_callback=result_callback, push_callback=push_callback)
     else:
         mod.produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=do_only, do_farmers=True)
-        
-    # Generate historical baseline
-    historybundle = weather.RepeatedHistoricalWeatherBundle.make_historical(weatherbundle, None if mode == 'median' else pvals['histclim'].get_seed())
-    pvals.lock()
+
+    if mode != 'writebins':
+        # Generate historical baseline
+        historybundle = weather.RepeatedHistoricalWeatherBundle.make_historical(weatherbundle, None if mode == 'median' else pvals['histclim'].get_seed())
+        pvals.lock()
+
+        mod.produce(targetdir, historybundle, economicmodel, get_model, pvals, country_specific=False, suffix='-histclim', do_only=do_only)
 
     effectset.make_pval_file(targetdir, pvals)
-
-    mod.produce(targetdir, historybundle, economicmodel, get_model, pvals, country_specific=False, suffix='-histclim', do_only=do_only)

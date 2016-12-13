@@ -26,7 +26,7 @@ def discover_models(basedir):
 # Yield 
             
 def discover_tas_binned(basedir):
-    for model, pastdir, futuredir in discover_models(basedir):
+    for scenario, model, pastdir, futuredir in discover_models(basedir):
         pasttemplate = os.path.join(pastdir, 'tas/tas_Bindays_aggregated_historical_r1i1p1_' + model + '_%d.nc')
         futuretemplate = os.path.join(futuredir, 'tas/tas_Bindays_aggregated_' + scenario + '_r1i1p1_' + model + '_%d.nc')
 
@@ -36,9 +36,9 @@ def discover_tas_binned(basedir):
         yield scenario, model, pastreader, futurereader
 
 def discover_variable(basedir, variable):
-    for model, pastdir, futuredir in discover_models(basedir):
+    for scenario, model, pastdir, futuredir in discover_models(basedir):
         pasttemplate = os.path.join(pastdir, variable, variable + '_day_aggregated_historical_r1i1p1_' + model + '_%d.nc')
-        futuretemplate = os.path.join(futuredir, variable, variable'_day_aggregated_' + scenario + '_r1i1p1_' + model + '_%d.nc')
+        futuretemplate = os.path.join(futuredir, variable, variable + '_day_aggregated_' + scenario + '_r1i1p1_' + model + '_%d.nc')
 
         pastreader = DailyWeatherReader(pasttemplate, 1981, variable)
         futurereader = DailyWeatherReader(futuretemplate, 2006, variable)
