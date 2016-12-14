@@ -3,7 +3,7 @@ from openest.models.curve import StepCurve
 from scipy.stats import multivariate_normal
 import csvvfile
 
-class StepCurveGenerator(object):
+class BinnedStepCurveGenerator(object):
     def __init__(self, xxlimits, predcoeffs, do_singlebin):
         self.xxlimits = xxlimits
         self.predcoeffs = predcoeffs
@@ -30,7 +30,7 @@ class StepCurveGenerator(object):
 
         return StepCurve(self.xxlimits, yy)
 
-def make_curve_generator(csvv, xxlimits, predcols, do_singlebin, seed):
+def make_binned_curve_generator(csvv, xxlimits, predcols, do_singlebin, seed):
     if seed is None:
         params = csvv['gamma']
     else:
@@ -42,4 +42,4 @@ def make_curve_generator(csvv, xxlimits, predcols, do_singlebin, seed):
     before_dropped = np.flatnonzero(np.array(xxlimits) == 18)[0]
     gammas = gammas[:before_dropped] + [np.array([np.nan] * csvv['L'])] + gammas[before_dropped:]
 
-    return StepCurveGenerator(xxlimits, gammas, do_singlebin)
+    return BinnedStepCurveGenerator(xxlimits, gammas, do_singlebin)

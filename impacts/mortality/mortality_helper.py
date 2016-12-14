@@ -19,12 +19,12 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, get_data, farm
     # Enforce the "backwards" ordering: easiest solution is flipping csvv
     csvv['prednames'][3], csvv['prednames'][2] = csvv['prednames'][2], csvv['prednames'][3]
     for kk in range(11):
-        csvv['gamma'][kk + 4 * 3], csvv['gamma'][kk + 4 * 2] = csvv['gamma'][kk + 4 * 2], csvv['gamma'][kk + 4 * 3]
-        csvv['gammavcv'][kk + 4 * 3, :], csvv['gammavcv'][kk + 4 * 2, :] = csvv['gammavcv'][kk + 4 * 2, :], csvv['gammavcv'][kk + 4 * 3, :]
-        csvv['gammavcv'][:, kk + 4 * 3], csvv['gammavcv'][:, kk + 4 * 2] = csvv['gammavcv'][:, kk + 4 * 2], csvv['gammavcv'][:, kk + 4 * 3]
+        csvv['gamma'][kk * 4 + 3], csvv['gamma'][kk * 4 + 2] = csvv['gamma'][kk * 4 + 2], csvv['gamma'][kk * 4 + 3]
+        csvv['gammavcv'][kk * 4 + 3, :], csvv['gammavcv'][kk * 4 + 2, :] = csvv['gammavcv'][kk * 4 + 2, :], csvv['gammavcv'][kk * 4 + 3, :]
+        csvv['gammavcv'][:, kk * 4 + 3], csvv['gammavcv'][:, kk * 4 + 2] = csvv['gammavcv'][:, kk * 4 + 2], csvv['gammavcv'][:, kk * 4 + 3]
 
     dependencies = []
-    beta_generator = curvegen.make_curve_generator(csvv, bin_limits, predcols, do_singlebin, pvals.get_seed())
+    beta_generator = curvegen.make_binned_curve_generator(csvv, bin_limits, predcols, do_singlebin, pvals.get_seed())
 
     curve_get_predictors = lambda region, year, temps: predgen.get_update(region, year, temps)[0]
 

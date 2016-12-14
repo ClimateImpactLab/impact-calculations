@@ -23,8 +23,7 @@ def rm_add(rm, value, maxvalues):
 def rm_mean(rm):
     return rm[0] / rm[1]
 
-## Currently just does Avg. Temp
-class TemperatureIncomePredictorator(object):
+class TemperatureIncomeDensityPredictorator(object):
     def __init__(self, weatherbundle, economicmodel, numtempyears, numeconyears, maxbaseline):
         self.numtempyears = numtempyears
         self.numeconyears = numeconyears
@@ -36,45 +35,47 @@ class TemperatureIncomePredictorator(object):
 
         self.temp_predictors = temp_predictors
 
-        gdppc_predictors = {}
-        allmeans = []
-        for region, gdppcs, density in economicmodel.baseline_values(maxbaseline): # baseline through maxbaseline
-            allmeans.append(np.mean(gdppcs[-numeconyears:]))
-            gdppc_predictors[region] = gdppcs[-numeconyears:]
-
-        gdppc_predictors['mean'] = np.mean(allmeans)
-
-        self.gdppc_predictors = gdppc_predictors
-
+        self.econ_predictors = economicmodel.baseline_prepared(maxbaseline, numeconyears, rm_init)
         self.economicmodel = economicmodel
 
+    def get_econ_predictors(self, region):
+        gdppcsdensity = self.econ_predictors.get(region, None)
+
+        if gdppcsdensity is None:
+            gdppcs = self.econ_predictors['mean'][0]
+        else:
+            gdppcs = rm_mean(gdppcsdensity[0])
+
+        if gdppcsdensity is None:
+            density = self.econ_predictors['mean'][1]
+        else:
+            density = rm_mean(gdppcsdensity[1])
+
+        return [gdppcs, density]
+
     def get_baseline(self, region):
-        gdppcs = self.gdppc_predictors.get(region, None)
-        if gdppcs is None:
-            gdppcs = self.gdppc_predictors['mean']
-        return ((np.mean(self.temp_predictors[region]), np.mean(gdppcs)),)
+        #assert region in self.temp_predictors, "Missing " + region
+        return ([rm_mean(self.temp_predictors[region])] + map(np.log, self.get_econ_predictors(region)),)
 
     def get_update(self, region, year, temps):
-        assert len(self.temp_predictors[region]) <= self.numtempyears
+        """Allow temps = None for dumb farmer who cannot adapt to temperature."""
+        if temps is not None:
+            rm_add(self.temp_predictors[region], temps, self.numtempyears)
 
-        if len(self.temp_predictors[region]) == self.numtempyears:
-            self.temp_predictors[region] = self.temp_predictors[region][1:] + [np.mean(temps)]
+        if region in self.econ_predictors:
+            gdppc = self.economicmodel.get_gdppc_year(region, year)
+            if gdppc is not None:
+                rm_add(self.econ_predictors[region][0], gdppc, self.numeconyears)
+
+            popop = self.economicmodel.get_popop_year(region, year)
+            if popop is not None:
+                rm_add(self.econ_predictors[region][1], popop, self.numeconyears)
+
+            logecons = [np.log(rm_mean(self.econ_predictors[region][0])),
+                        np.log(rm_mean(self.econ_predictors[region][1]))]
+            return ([rm_mean(self.temp_predictors[region])] + logecons,)
         else:
-            self.temp_predictors[region] = self.temp_predictors[region] + [np.mean(temps)]
-
-        if region not in self.gdppc_predictors: # Keep baseline mean-of-means
-            return ((np.mean(self.temp_predictors[region]), self.gdppc_predictors['mean']),)
-
-        assert len(self.gdppc_predictors[region]) <= self.numeconyears
-
-        gdppc = self.economicmodel.get_gdppc_year(region, year)
-        if gdppc is not None:
-            if len(self.gdppc_predictors[region]) == self.numeconyears:
-                self.gdppc_predictors[region] = self.gdppc_predictors[region][1:] + [gdppc]
-            else:
-                self.gdppc_predictors[region] = self.gdppc_predictors[region] + [gdppc]
-
-        return ((np.mean(self.temp_predictors[region]), np.mean(self.gdppc_predictors[region])),)
+            return ([rm_mean(self.temp_predictors[region])] + map(np.log, self.get_econ_predictors(region)),)
 
 class BinsIncomeDensityPredictorator(object):
     def __init__(self, weatherbundle, economicmodel, binlimits, dropbin, numtempyears, numeconyears, maxbaseline):
@@ -96,7 +97,6 @@ class BinsIncomeDensityPredictorator(object):
         self.temp_predictors = temp_predictors
 
         self.econ_predictors = economicmodel.baseline_prepared(maxbaseline, numeconyears, rm_init)
-
         self.economicmodel = economicmodel
 
     def get_econ_predictors(self, region):
@@ -209,6 +209,29 @@ class DumbInstantAdaptingStepCurve(InstantAdaptingStepCurve):
     def update(self, year, temps):
         # Set temps to None so no adaptation to them
         super(DumbInstantAdaptingStepCurve, self).update(year, None)
+
+class InstantAdaptingPolynomialCurve(AdaptableCurve):
+    def __init__(self, beta_generator, get_predictors):
+        self.beta_generator = beta_generator
+        self.get_predictors = get_predictors
+        self.region = None
+        self.curr_curve = None
+        self.xx = None
+
+    def create(self, region, predictors):
+        copy = self.__class__(self.beta_generator, self.get_predictors)
+        copy.region = region
+        copy.curr_curve = self.beta_generator.get_curve(predictors, None)
+        region_stepcurves[region] = copy
+        copy.min_beta = np.minimum(0, np.nanmin(np.array(copy.curr_curve.yy)[4:-2]))
+        return copy
+
+    def update(self, year, temps):
+        predictors = self.get_predictors(self.region, year, temps)
+        self.curr_curve = self.beta_generator.get_curve(predictors, self.min_beta)
+
+    def __call__(self, x):
+        return self.curr_curve(x)
 
 class AdaptingStepCurve(AdaptableCurve):
     def __init__(self, beta_generator, gamma_generator, get_predictors):

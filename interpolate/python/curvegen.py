@@ -1,7 +1,7 @@
 import numpy as np
 from adaptation import curvegen
 
-def make_curve_generator(surface, predictorsdir, predcols, dependencies, do_singlebin, seed):
+def make_binned_curve_generator(surface, predictorsdir, predcols, dependencies, do_singlebin, seed):
     # Read in the predictors
     binlos = []
     binhis = []
@@ -35,4 +35,4 @@ def make_curve_generator(surface, predictorsdir, predcols, dependencies, do_sing
         except:
             allpredcoeffs.append(np.array([np.nan] * 2)) # intercept and predictor
 
-    return StepCurveGenerator(xxlimits, allpredcoeffs, do_singlebin)
+    return BinnedStepCurveGenerator(xxlimits, allpredcoeffs, do_singlebin)

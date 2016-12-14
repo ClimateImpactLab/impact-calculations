@@ -15,7 +15,7 @@ def prepare_interp_raw(predictorsdir, weatherbundle, economicmodel, pvals, get_d
     predgen = BinsIncomeDensityPredictorator(weatherbundle, economicmodel, bin_limits, 8, 15, 3, 2015)
 
     dependencies = []
-    beta_generator = curvegen.make_curve_generator(surface_space, predictorsdir, predcols, dependencies, do_singlebin, pvals.get_seed())
+    beta_generator = curvegen.make_binned_curve_generator(surface_space, predictorsdir, predcols, dependencies, do_singlebin, pvals.get_seed())
 
     curve_get_predictors = lambda region, year, temps: predgen.get_update(region, year, temps)[0]
 
@@ -23,7 +23,7 @@ def prepare_interp_raw(predictorsdir, weatherbundle, economicmodel, pvals, get_d
         curve = InstantAdaptingStepCurve(beta_generator, curve_get_predictors, bin_limits)
     elif farmer == 'coma':
         curve = ComatoseInstantAdaptingStepCurve(beta_generator, curve_get_predictors, bin_limits)
-    elif farmer == 'dumb':        
+    elif farmer == 'dumb':
         curve = DumbInstantAdaptingStepCurve(beta_generator, curve_get_predictors, bin_limits)
     else:
         print "Unknown farmer type: " + farmer
