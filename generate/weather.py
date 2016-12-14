@@ -101,7 +101,10 @@ class DailyWeatherBundle(WeatherBundle):
         """Yield the list of all weather values up to `maxyear` for each region."""
 
         # Construct an empty matrix to append to
-        regionvalues = np.ndarray((0, len(self.regions), len(self.get_dimension())))
+        if len(self.get_dimension()) == 1:
+            regionvalues = np.ndarray((0, len(self.regions)))
+        else:
+            regionvalues = np.ndarray((0, len(self.regions), len(self.get_dimension())))
 
         # Append each year
         for yyyyddd, weather in self.yearbundles(maxyear):
