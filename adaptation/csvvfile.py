@@ -36,7 +36,7 @@ def read(filename):
         return data
 
 def collapse_bang(data, seed):
-    data['gamma'] = multivariate_normal.rvs(data['gamma'], data['gannavcv'])
+    data['gamma'] = multivariate_normal.rvs(data['gamma'], data['gammavcv'])
     data['gammavcv'] = None # this will cause errors if used again
     
 def extract_values(data, kks, pattern=None):

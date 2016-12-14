@@ -1,3 +1,5 @@
+import numpy as np
+from openest.models.curve import AdaptableCurve, PolynomialCurve
 from openest.generate.curvegen import CurveGenerator
 
 class ConstantCurveGenerator(CurveGenerator):
