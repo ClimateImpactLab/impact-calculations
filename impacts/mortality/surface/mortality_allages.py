@@ -9,8 +9,8 @@ def prepare_weathered_raw(weatherbundle, do_median):
     predgen = TemperatureIncomePredictorator(weatherbundle, 10, 2015)
 
     dependencies = []
-    beta_generator = curvegen.make_curve_generator(surface_space, dependencies, do_median=do_median)
-    gamma_generator = curvegen.make_curve_generator(surface_time, dependencies, do_median=do_median)
+    beta_generator = curvegen.make_binned_curve_generator(surface_space, dependencies, do_median=do_median)
+    gamma_generator = curvegen.make_binned_curve_generator(surface_time, dependencies, do_median=do_median)
 
     curve_get_predictors = lambda region, year, temps: predgen.get_update(region, year, temps)
     error("Need a different curve for each region!")
