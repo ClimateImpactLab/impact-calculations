@@ -1,6 +1,6 @@
 import os, glob
 from generate import weather, server, effectset, caller
-from climate.dailyreader import DailyWeatherReader
+from climate.discover import discover_variable
 
 def preload():
     pass
