@@ -11,6 +11,8 @@ def read(filename):
         reader = csv.reader(fp)
         lastappend = None
         for row in reader:
+            if len(row) == 0:
+                continue
             if row[0] in ['NN', 'L', 'K']:
                 data[row[0]] = int(row[1])
                 if row[0] == 'K':
