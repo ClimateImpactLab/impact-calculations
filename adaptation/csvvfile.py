@@ -16,9 +16,9 @@ def read(filename):
             if row[0] in ['NN', 'L', 'K']:
                 data[row[0]] = int(row[1])
                 if row[0] == 'K':
-                    data['coefnames'] = row[2:]
+                    data['coefnames'] = map(lambda s: s.strip(), row[2:])
                 elif row[0] == 'L':
-                    data['prednames'] = row[2:]
+                    data['prednames'] = map(lambda s: s.strip(), row[2:])
             elif row[0] in ['gamma', 'gammavcv', 'residvcv']:
                 data[row[0]] = []
                 lastappend = row[0]

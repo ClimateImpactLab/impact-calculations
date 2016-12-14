@@ -14,6 +14,16 @@ bin_limits = [-np.inf, -17, -12, -7, -2, 3, 8, 13, 18, 23, 28, 33, np.inf]
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, get_data, farmer='full'):
     predgen = BinsIncomeDensityPredictorator(weatherbundle, economicmodel, bin_limits, 8, 15, 3, 2015)
 
+    assert csvv['L'] == 4 and csvv['K'] == 11
+    print csvv['prednames']
+    assert csvv['prednames'] == ['const', 'meandays', 'logpopop', 'loggdppc']
+    # Enforce the "backwards" ordering: easiest solution is flipping csvv
+    csvv['prednames'][3], csvv['prednames'][2] = csvv['prednames'][2], csvv['prednames'][3]
+    for kk in range(11):
+        csvv['gamma'][kk * 4 + 3], csvv['gamma'][kk * 4 + 2] = csvv['gamma'][kk * 4 + 2], csvv['gamma'][kk * 4 + 3]
+        csvv['gammavcv'][kk * 4 + 3, :], csvv['gammavcv'][kk * 4 + 2, :] = csvv['gammavcv'][kk * 4 + 2, :], csvv['gammavcv'][kk * 4 + 3, :]
+        csvv['gammavcv'][:, kk * 4 + 3], csvv['gammavcv'][:, kk * 4 + 2] = csvv['gammavcv'][:, kk * 4 + 2], csvv['gammavcv'][:, kk * 4 + 3]
+
     dependencies = []
     beta_generator = curvegen.make_curve_generator(csvv, bin_limits, predcols, do_singlebin, pvals.get_seed())
 
