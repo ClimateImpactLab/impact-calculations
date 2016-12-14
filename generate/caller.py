@@ -41,16 +41,26 @@ def call_prepare(module, weatherbundle, economicmodel, pvals, getmodel=get_model
 
     raise ValueError("Could not find known prepare form.")
 
-def call_prepare_interp(filepath, module, weatherbundle, economicmodel, pvals, getmodel=get_model, getdata=get_data):
+def call_prepare_interp(filepath, module, weatherbundle, economicmodel, pvals):
     mod = importlib.import_module(module)
     csvv = csvvfile.read(filepath)
 
     if 'prepare_interp_raw' in dir(mod):
-        calculation, dependencies, curve, baseline_get_predictors = mod.prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, getdata)
-        return standardize(calculation), dependencies, curve, baseline_get_predictors
+        calculation, dependencies, baseline_get_predictors = mod.prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals)
+        return standardize(calculation), dependencies, baseline_get_predictors
 
-    if 'prepare_csvv' in dir(mod):
-        calculation, dependencies, predvars = mod.prepare_csvv(csvv, pvals, betas_callback)
-        return standardize(calculation), dependencies, curve, baseline_get_predictors
-        
+    if 'prepare_interp_raw2' in dir(mod):
+        calculation, dependencies = mod.prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals)
+        return standardize(calculation), dependencies, None
+
+    raise ValueError("Could not find known prepare form.")
+
+def call_prepare_interp2(filepath, module, weatherbundle, economicmodel, pvals):
+    mod = importlib.import_module(module)
+    csvv = csvvfile.read(filepath)
+
+    if 'prepare_interp_raw2' in dir(mod):
+        calculation, dependencies = mod.prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals)
+        return standardize(calculation), dependencies
+
     raise ValueError("Could not find known prepare form.")

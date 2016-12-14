@@ -23,7 +23,14 @@ def rm_add(rm, value, maxvalues):
 def rm_mean(rm):
     return rm[0] / rm[1]
 
-class TemperatureIncomeDensityPredictorator(object):
+class Predictorator(object):
+    def get_baseline(self, region):
+        raise NotImplementedError
+
+    def get_update(self, region, year, weather):
+        raise NotImplementedError
+
+class TemperatureIncomeDensityPredictorator(Predictorator):
     def __init__(self, weatherbundle, economicmodel, numtempyears, numeconyears, maxbaseline):
         self.numtempyears = numtempyears
         self.numeconyears = numeconyears
@@ -77,7 +84,7 @@ class TemperatureIncomeDensityPredictorator(object):
         else:
             return ([rm_mean(self.temp_predictors[region])] + map(np.log, self.get_econ_predictors(region)),)
 
-class BinsIncomeDensityPredictorator(object):
+class BinsIncomeDensityPredictorator(Predictorator):
     def __init__(self, weatherbundle, economicmodel, binlimits, dropbin, numtempyears, numeconyears, maxbaseline):
         self.binlimits = binlimits
         self.dropbin = dropbin
@@ -209,29 +216,6 @@ class DumbInstantAdaptingStepCurve(InstantAdaptingStepCurve):
     def update(self, year, temps):
         # Set temps to None so no adaptation to them
         super(DumbInstantAdaptingStepCurve, self).update(year, None)
-
-class InstantAdaptingPolynomialCurve(AdaptableCurve):
-    def __init__(self, beta_generator, get_predictors):
-        self.beta_generator = beta_generator
-        self.get_predictors = get_predictors
-        self.region = None
-        self.curr_curve = None
-        self.xx = None
-
-    def create(self, region, predictors):
-        copy = self.__class__(self.beta_generator, self.get_predictors)
-        copy.region = region
-        copy.curr_curve = self.beta_generator.get_curve(predictors, None)
-        region_stepcurves[region] = copy
-        copy.min_beta = np.minimum(0, np.nanmin(np.array(copy.curr_curve.yy)[4:-2]))
-        return copy
-
-    def update(self, year, temps):
-        predictors = self.get_predictors(self.region, year, temps)
-        self.curr_curve = self.beta_generator.get_curve(predictors, self.min_beta)
-
-    def __call__(self, x):
-        return self.curr_curve(x)
 
 class AdaptingStepCurve(AdaptableCurve):
     def __init__(self, beta_generator, gamma_generator, get_predictors):

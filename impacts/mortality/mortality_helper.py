@@ -11,7 +11,7 @@ else:
     predcols = ['meandays_nInfC_n17C', 'meandays_n17C_n12C', 'meandays_n12C_n7C', 'meandays_n7C_n2C', 'meandays_n2C_3C', 'meandays_3C_8C', 'meandays_8C_13C', 'meandays_13C_18C', 'meandays_23C_28C', 'meandays_28C_33C', 'meandays_33C_InfC', 'log gdppc', 'log popop']
 bin_limits = [-np.inf, -17, -12, -7, -2, 3, 8, 13, 18, 23, 28, 33, np.inf]
 
-def prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, get_data, farmer='full'):
+def prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, farmer='full'):
     predgen = BinsIncomeDensityPredictorator(weatherbundle, economicmodel, bin_limits, 8, 15, 3, 2015)
 
     assert csvv['L'] == 4 and csvv['K'] == 11
@@ -48,4 +48,4 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, get_data, farm
 
     baseline_get_predictors = lambda region: predgen.get_baseline(region)
 
-    return calculation, dependencies, curve, baseline_get_predictors
+    return calculation, dependencies, baseline_get_predictors
