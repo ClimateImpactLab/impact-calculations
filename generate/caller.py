@@ -49,4 +49,8 @@ def call_prepare_interp(filepath, module, weatherbundle, economicmodel, pvals, g
         calculation, dependencies, curve, baseline_get_predictors = mod.prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, getdata)
         return standardize(calculation), dependencies, curve, baseline_get_predictors
 
+    if 'prepare_csvv' in dir(mod):
+        calculation, dependencies, predvars = mod.prepare_csvv(csvv, pvals, betas_callback)
+        return standardize(calculation), dependencies, curve, baseline_get_predictors
+        
     raise ValueError("Could not find known prepare form.")
