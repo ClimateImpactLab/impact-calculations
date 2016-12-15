@@ -37,4 +37,4 @@ def prepare_interp_raw2(csvv, weatherbundle, economicmodel, qvals, callback):
 
     calculation = Sum([tempeffect, negtempeffect, zeroeffect])
 
-    return calculation, []
+    return calculation, [], predgen.get_baseline

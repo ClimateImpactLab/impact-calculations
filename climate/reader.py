@@ -63,7 +63,7 @@ class YearlySplitWeatherReader(WeatherReader):
         for times, weather in self.read_iterator():
             yield times, weather
             if times[0] > 10000:
-                if times[0] % 1000 == maxyear:
+                if int(times[0]) / 1000 == maxyear:
                     break
             else:
                 if times[0] == maxyear:

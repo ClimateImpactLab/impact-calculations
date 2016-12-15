@@ -40,19 +40,43 @@ def iterate_writebins():
     for allvals in iterate_single():
         yield allvals
 
-def result_callback(region, year, result, calculation, model):
+def iterate_writevals():
+    with open(module + "-allcoeffs.csv", 'w') as fp:
+        writer = csv.writer(fp)
+        writer.writerow(['region', 'year', 'model', 'result', 'tasmax', 'tasmax2', 'tasmax3', 'tasmax4', 'belowzero'])
+
+    with open(module + "-allpreds.csv", 'w') as fp:
+        writer = csv.writer(fp)
+        writer.writerow(['region', 'year', 'meantas', 'log gdppc', 'log popop'])
+
+    for allvals in iterate_single():
+        yield allvals
+
+def binresult_callback(region, year, result, calculation, model):
     with open(module + "-allbins.csv", 'a') as fp:
         writer = csv.writer(fp)
         curve = adapting_curve.region_stepcurves[region].curr_curve
         writer.writerow([region, year, model, result[0]] + list(curve.yy))
 
-def push_callback(region, year, application, get_predictors):
+def binpush_callback(region, year, application, get_predictors):
     with open(module + "-allpreds.csv", 'a') as fp:
         writer = csv.writer(fp)
         predictors = get_predictors(region)
         writer.writerow([region, year] + list(predictors[0]))
 
-mode_iterators = {'median': iterate_median, 'montecarlo': iterate_montecarlo, 'single': iterate_single, 'writebins': iterate_writebins}
+def valresult_callback(region, year, result, calculation, model):
+    with open(module + "-allcoeffs.csv", 'a') as fp:
+        writer = csv.writer(fp)
+        ccs = region_polycurves[region].curr_curve.ccs
+        writer.writerow([region, year, model, result[0]] + list(ccs))
+
+def valpush_callback(region, year, application, get_predictors):
+    with open(module + "-allpreds.csv", 'a') as fp:
+        writer = csv.writer(fp)
+        predictors = get_predictors(region)
+        writer.writerow([region, year] + list(predictors[0]))
+
+mode_iterators = {'median': iterate_median, 'montecarlo': iterate_montecarlo, 'single': iterate_single, 'writebins': iterate_writebins, 'writevals': iterate_writevals}
 
 mode = sys.argv[1]
 assert mode in mode_iterators.keys()
@@ -78,11 +102,13 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
 
     effectset.make_pval_file(targetdir, pvals)
     if mode == 'writebins':
-        mod.produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=do_only, do_farmers=False, result_callback=result_callback, push_callback=push_callback)
+        mod.produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=do_only, do_farmers=False, result_callback=binresult_callback, push_callback=binpush_callback)
+    elif mode == 'writevals':
+        mod.produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=do_only, do_farmers=False, result_callback=valresult_callback, push_callback=valpush_callback)
     else:
         mod.produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=do_only, do_farmers=True)
 
-    if mode != 'writebins':
+    if mode != 'writebins' and mode != 'writevals':
         # Generate historical baseline
         historybundle = weather.RepeatedHistoricalWeatherBundle.make_historical(weatherbundle, None if mode == 'median' else pvals['histclim'].get_seed())
         pvals.lock()

@@ -13,8 +13,12 @@ def get_model_by_gcpid(gcpid):
     return get_model(rowvalues[header.index('DMAS ID')])
 
 def standardize(calculation):
-    assert calculation.unitses[0] == 'deaths/person/year', "Unexpected units " + calculation.unitses[0]
-    return SpanInstabase(calculation, 2001, 2010, func=lambda x, y: x - y)
+    if calculation.unitses[0] == 'deaths/person/year':
+        return SpanInstabase(calculation, 2001, 2010, func=lambda x, y: x - y)
+    elif calculation.unitses[0] == 'minutes':
+        return SpanInstabase(calculation, 2001, 2010)
+    else:
+        assert False, "Unexpected units " + calculation.unitses[0]
 
 def call_prepare(module, weatherbundle, economicmodel, pvals, getmodel=get_model, getdata=get_data):
     if module[0:15] == 'impacts.health.':
@@ -49,10 +53,6 @@ def call_prepare_interp(filepath, module, weatherbundle, economicmodel, pvals):
         calculation, dependencies, baseline_get_predictors = mod.prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals)
         return standardize(calculation), dependencies, baseline_get_predictors
 
-    if 'prepare_interp_raw2' in dir(mod):
-        calculation, dependencies = mod.prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals)
-        return standardize(calculation), dependencies, None
-
     raise ValueError("Could not find known prepare form.")
 
 def call_prepare_interp2(filepath, module, weatherbundle, economicmodel, pvals, callback):
@@ -60,7 +60,7 @@ def call_prepare_interp2(filepath, module, weatherbundle, economicmodel, pvals, 
     csvv = csvvfile.read(filepath)
 
     if 'prepare_interp_raw2' in dir(mod):
-        calculation, dependencies = mod.prepare_interp_raw2(csvv, weatherbundle, economicmodel, pvals, callback)
-        return standardize(calculation), dependencies
+        calculation, dependencies, baseline_get_predictors = mod.prepare_interp_raw2(csvv, weatherbundle, economicmodel, pvals, callback)
+        return standardize(calculation), dependencies, baseline_get_predictors
 
     raise ValueError("Could not find known prepare form.")
