@@ -24,6 +24,9 @@ def rm_mean(rm):
     return rm[0] / rm[1]
 
 class Predictorator(object):
+    def __init__(self, startupdateyear):
+        self.startupdateyear = startupdateyear
+
     def get_baseline(self, region):
         raise NotImplementedError
 
@@ -32,6 +35,8 @@ class Predictorator(object):
 
 class TemperatureIncomeDensityPredictorator(Predictorator):
     def __init__(self, weatherbundle, economicmodel, numtempyears, numeconyears, maxbaseline):
+        super(TemperatureIncomeDensityPredictorator, self).__init__(maxbaseline)
+
         self.numtempyears = numtempyears
         self.numeconyears = numeconyears
 
@@ -66,16 +71,18 @@ class TemperatureIncomeDensityPredictorator(Predictorator):
 
     def get_update(self, region, year, temps):
         """Allow temps = None for dumb farmer who cannot adapt to temperature."""
-        if temps is not None:
+        assert year < 10000
+
+        if temps is not None and year > self.startupdateyear:
             rm_add(self.temp_predictors[region], np.mean(temps), self.numtempyears)
 
         if region in self.econ_predictors:
             gdppc = self.economicmodel.get_gdppc_year(region, year)
-            if gdppc is not None:
+            if gdppc is not None and year > self.startupdateyear:
                 rm_add(self.econ_predictors[region][0], gdppc, self.numeconyears)
 
             popop = self.economicmodel.get_popop_year(region, year)
-            if popop is not None:
+            if popop is not None and year > self.startupdateyear:
                 rm_add(self.econ_predictors[region][1], popop, self.numeconyears)
 
             logecons = [np.log(rm_mean(self.econ_predictors[region][0])),
@@ -86,6 +93,8 @@ class TemperatureIncomeDensityPredictorator(Predictorator):
 
 class BinsIncomeDensityPredictorator(Predictorator):
     def __init__(self, weatherbundle, economicmodel, binlimits, dropbin, numtempyears, numeconyears, maxbaseline):
+        super(BinsIncomeDensityPredictorator, self).__init__(maxbaseline)
+
         self.binlimits = binlimits
         self.dropbin = dropbin
         self.numtempyears = numtempyears
@@ -126,8 +135,10 @@ class BinsIncomeDensityPredictorator(Predictorator):
         return (map(rm_mean, self.temp_predictors[region]) + map(np.log, self.get_econ_predictors(region)),)
 
     def get_update(self, region, year, temps):
+        assert year < 10000
+
         """Allow temps = None for dumb farmer who cannot adapt to temperature."""
-        if temps is not None:
+        if temps is not None and year > self.startupdateyear:
             if len(temps.shape) == 2:
                 if temps.shape[0] == 12 and temps.shape[1] == len(self.binlimits) - 1:
                     di = 0
@@ -156,11 +167,11 @@ class BinsIncomeDensityPredictorator(Predictorator):
 
         if region in self.econ_predictors:
             gdppc = self.economicmodel.get_gdppc_year(region, year)
-            if gdppc is not None:
+            if gdppc is not None and year > self.startupdateyear:
                 rm_add(self.econ_predictors[region][0], gdppc, self.numeconyears)
 
             popop = self.economicmodel.get_popop_year(region, year)
-            if popop is not None:
+            if popop is not None and year > self.startupdateyear:
                 rm_add(self.econ_predictors[region][1], popop, self.numeconyears)
 
             logecons = [np.log(rm_mean(self.econ_predictors[region][0])),

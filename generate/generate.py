@@ -1,7 +1,7 @@
 import sys, os, itertools, importlib, shutil, csv
 import loadmodels
 import weather, effectset
-from adaptation import adapting_curve
+from adaptation import adapting_curve, curvegenv2
 
 module = sys.argv[2]
 outputdir = sys.argv[3]
@@ -67,7 +67,7 @@ def binpush_callback(region, year, application, get_predictors):
 def valresult_callback(region, year, result, calculation, model):
     with open(module + "-allcoeffs.csv", 'a') as fp:
         writer = csv.writer(fp)
-        ccs = region_polycurves[region].curr_curve.ccs
+        ccs = curvegenv2.region_polycurves[region].curr_curve.ccs
         writer.writerow([region, year, model, result[0]] + list(ccs))
 
 def valpush_callback(region, year, application, get_predictors):
