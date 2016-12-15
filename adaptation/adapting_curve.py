@@ -10,7 +10,7 @@ def rm_init(values):
     return [sum(values), len(values)]
 
 def rm_add(rm, value, maxvalues):
-    assert rm[1] <= maxvalues
+    assert rm[1] <= maxvalues, "{0} > {1}".format(rm[1], maxvalues)
 
     if rm[1] >= maxvalues:
         rm[0] = (maxvalues - 1) * rm[0] / rm[1] + value
@@ -38,7 +38,7 @@ class TemperatureIncomeDensityPredictorator(Predictorator):
         print "Collecting baseline information..."
         temp_predictors = {}
         for region, temps in weatherbundle.baseline_values(maxbaseline): # baseline through maxbaseline
-            temp_predictors[region] = temps[-numtempyears:]
+            temp_predictors[region] = rm_init(temps[-numtempyears:])
 
         self.temp_predictors = temp_predictors
 
@@ -67,7 +67,7 @@ class TemperatureIncomeDensityPredictorator(Predictorator):
     def get_update(self, region, year, temps):
         """Allow temps = None for dumb farmer who cannot adapt to temperature."""
         if temps is not None:
-            rm_add(self.temp_predictors[region], temps, self.numtempyears)
+            rm_add(self.temp_predictors[region], np.mean(temps), self.numtempyears)
 
         if region in self.econ_predictors:
             gdppc = self.economicmodel.get_gdppc_year(region, year)
