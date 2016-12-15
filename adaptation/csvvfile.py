@@ -38,11 +38,11 @@ def read(filename):
 def collapse_bang(data, seed):
     data['gamma'] = multivariate_normal.rvs(data['gamma'], data['gammavcv'])
     data['gammavcv'] = None # this will cause errors if used again
-    
+
 def extract_values(data, kks, pattern=None, lorder=False):
     if pattern is None:
         print "WARNING: No pattern given to csvvfile.extract_values."
-        
+
     indexes = []
     for kk in kks:
         if not lorder:
@@ -55,7 +55,7 @@ def extract_values(data, kks, pattern=None, lorder=False):
             if pattern is not None:
                 for ll in range(data['L']):
                     assert re.match(pattern.replace("{K}", str(kk)), data['prednames'][kk + data['K'] * ll]) is not None, pattern.replace("{K}", str(kk)) + " does not match " + data['prednames'][kk + data['K'] * ll]
-            
+
     indexes = np.array(indexes)
 
     gamma = data['gamma'][indexes]
@@ -67,10 +67,17 @@ def extract_values(data, kks, pattern=None, lorder=False):
 
     return dict(gamma=gamma, gammavcv=gammavcv, residvcv=residvcv)
 
-def by_predictor(csvv, params):
+def by_predictor_lk(csvv, params):
     gammas = []
     for ii in range(len(params) / csvv['L']):
         gammas.append(params[ii * csvv['L'] + np.arange(csvv['L'])])
+
+    return gammas
+
+def by_predictor_ll(csvv, setsize):
+    gammas = []
+    for ii in range(len(params) / setsize):
+        gammas.append(params[ii * setsize + np.arange(csvv['L'])])
 
     return gammas
 
