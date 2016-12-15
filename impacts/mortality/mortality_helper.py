@@ -1,3 +1,4 @@
+import re
 import numpy as np
 from adaptation.adapting_curve import InstantAdaptingStepCurve, BinsIncomeDensityPredictorator, ComatoseInstantAdaptingStepCurve, DumbInstantAdaptingStepCurve
 from adaptation import curvegen
@@ -11,14 +12,14 @@ else:
     predcols = ['meandays_nInfC_n17C', 'meandays_n17C_n12C', 'meandays_n12C_n7C', 'meandays_n7C_n2C', 'meandays_n2C_3C', 'meandays_3C_8C', 'meandays_8C_13C', 'meandays_13C_18C', 'meandays_23C_28C', 'meandays_28C_33C', 'meandays_33C_InfC', 'log gdppc', 'log popop']
 bin_limits = [-np.inf, -17, -12, -7, -2, 3, 8, 13, 18, 23, 28, 33, np.inf]
 
-prednames = ['bin_nInfC_n17C', 'bin_n17C_n12C', 'bin_n12C_n7C', 'bin_n7C_n2C', 'bin_n2C_3C', 'bin_3C_8C', 'bin_8C_13C', 'bin_13C_18C', 'bin_23C_28C', 'bin_28C_33C', 'bin_33C_InfC,meandays_bin_nInfC_n17C', 'meandays_bin_n17C_n12C', 'meandays_bin_n12C_n7C', 'meandays_bin_n7C_n2C', 'meandays_bin_n2C_3C', 'meandays_bin_3C_8C', 'meandays_bin_8C_13C', 'meandays_bin_13C_18C', 'meandays_bin_23C_28C', 'meandays_bin_28C_33C', 'meandays_bin_33C_InfC,logpopop_bin_nInfC_n17C', 'logpopop_bin_n17C_n12C', 'logpopop_bin_n12C_n7C', 'logpopop_bin_n7C_n2C', 'logpopop_bin_n2C_3C', 'logpopop_bin_3C_8C', 'logpopop_bin_8C_13C', 'logpopop_bin_13C_18C', 'logpopop_bin_23C_28C', 'logpopop_bin_28C_33C', 'logpopop_bin_33C_InfC,loggdppc_bin_nInfC_n17C', 'loggdppc_bin_n17C_n12C', 'loggdppc_bin_n12C_n7C', 'loggdppc_bin_n7C_n2C', 'loggdppc_bin_n2C_3C', 'loggdppc_bin_3C_8C', 'loggdppc_bin_8C_13C', 'loggdppc_bin_13C_18C', 'loggdppc_bin_23C_28C', 'loggdppc_bin_28C_33C', 'loggdppc_bin_33C_InfC']
+prednames = ['bin_nInfC_n17C', 'bin_n17C_n12C', 'bin_n12C_n7C', 'bin_n7C_n2C', 'bin_n2C_3C', 'bin_3C_8C', 'bin_8C_13C', 'bin_13C_18C', 'bin_23C_28C', 'bin_28C_33C', 'bin_33C_InfC', 'meandays_bin_nInfC_n17C', 'meandays_bin_n17C_n12C', 'meandays_bin_n12C_n7C', 'meandays_bin_n7C_n2C', 'meandays_bin_n2C_3C', 'meandays_bin_3C_8C', 'meandays_bin_8C_13C', 'meandays_bin_13C_18C', 'meandays_bin_23C_28C', 'meandays_bin_28C_33C', 'meandays_bin_33C_InfC', 'logpopop_bin_nInfC_n17C', 'logpopop_bin_n17C_n12C', 'logpopop_bin_n12C_n7C', 'logpopop_bin_n7C_n2C', 'logpopop_bin_n2C_3C', 'logpopop_bin_3C_8C', 'logpopop_bin_8C_13C', 'logpopop_bin_13C_18C', 'logpopop_bin_23C_28C', 'logpopop_bin_28C_33C', 'logpopop_bin_33C_InfC', 'loggdppc_bin_nInfC_n17C', 'loggdppc_bin_n17C_n12C', 'loggdppc_bin_n12C_n7C', 'loggdppc_bin_n7C_n2C', 'loggdppc_bin_n2C_3C', 'loggdppc_bin_3C_8C', 'loggdppc_bin_8C_13C', 'loggdppc_bin_13C_18C', 'loggdppc_bin_23C_28C', 'loggdppc_bin_28C_33C', 'loggdppc_bin_33C_InfC']
 
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, farmer='full'):
     predgen = BinsIncomeDensityPredictorator(weatherbundle, economicmodel, bin_limits, 8, 15, 3, 2015)
 
     assert csvv['L'] == 44
     for ll in range(44):
-        assert re.match(prednames[ll], csvv['prednames'][ll]) is not None
+        assert re.match(prednames[ll], csvv['prednames'][ll]) is not None, "{0} ~!= {1}".format(prednames[ll], csvv['prednames'][ll])
 
     # Enforce the "backwards" ordering of gdppc and popop: easiest solution is flipping csvv
     oldindices = np.array([3, 2])

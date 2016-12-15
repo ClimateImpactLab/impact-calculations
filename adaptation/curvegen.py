@@ -37,7 +37,7 @@ def make_binned_curve_generator(csvv, xxlimits, predcols, do_singlebin, seed):
         params = multivariate_normal.rvs(csvv['gamma'], csvv['gammavcv'])
 
     # Reorganize params into sets of L
-    gammas = csvvfile.by_predictor_ll(csvv, params, 11)
+    gammas = csvvfile.by_predictor_kl(csvv, params, 4)
     # Insert dropped bin: hard coded for now
     before_dropped = np.flatnonzero(np.array(xxlimits) == 18)[0]
     gammas = gammas[:before_dropped] + [np.array([np.nan] * csvv['L'])] + gammas[before_dropped:]
