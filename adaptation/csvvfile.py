@@ -67,18 +67,30 @@ def extract_values(data, kks, pattern=None, lorder=False):
 
     return dict(gamma=gamma, gammavcv=gammavcv, residvcv=residvcv)
 
-def by_predictor_lk(csvv, params):
+def by_predictor_lk(csvv, params, setsize):
     gammas = []
-    for ii in range(len(params) / csvv['L']):
-        gammas.append(params[ii * csvv['L'] + np.arange(csvv['L'])])
+    names = []
+    for ii in range(len(params) / setsize):
+        gammas.append(params[ii * setsize + np.arange(setsize)])
+        namesrow = []
+        for jj in np.arange(setsize):
+            namesrow.append(csvv['prednames'][ii * setsize + jj])
+        names.append(namesrow)
 
+    print names
     return gammas
 
-def by_predictor_ll(csvv, setsize):
+def by_predictor_kl(csvv, params, setsize):
     gammas = []
+    names = []
     for ii in range(len(params) / setsize):
-        gammas.append(params[ii * setsize + np.arange(csvv['L'])])
+        gammas.append(params[ii + (len(params) / setsize) * np.arange(setsize)])
+        namesrow = []
+        for jj in np.arange(setsize):
+            namesrow.append(csvv['prednames'][ii + (len(params) / setsize) * jj])
+        names.append(namesrow)
 
+    print names
     return gammas
 
 if __name__ == '__main__':
