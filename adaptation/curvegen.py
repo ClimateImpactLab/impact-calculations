@@ -22,6 +22,8 @@ class BinnedStepCurveGenerator(object):
                 if self.do_singlebin:
                     predictors_self = np.array([predictors[ii + preddeltaii], predictors[-2], predictors[-1]])
                     yy.append(self.predcoeffs[ii][0] + np.sum(self.predcoeffs[ii][1:] * predictors_self))
+                    #print yy[-1], self.predcoeffs[ii][0], self.predcoeffs[ii][1:], predictors_self
+                    #exit()
                 else:
                     yy.append(self.predcoeffs[ii][0] + np.sum(self.predcoeffs[ii][1:] * np.array(predictors)))
 
