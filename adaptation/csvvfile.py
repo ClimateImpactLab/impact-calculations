@@ -1,4 +1,4 @@
-import csv
+import csv, re
 import numpy as np
 import metacsv
 from scipy.stats import multivariate_normal
@@ -39,16 +39,23 @@ def collapse_bang(data, seed):
     data['gamma'] = multivariate_normal.rvs(data['gamma'], data['gammavcv'])
     data['gammavcv'] = None # this will cause errors if used again
     
-def extract_values(data, kks, pattern=None):
+def extract_values(data, kks, pattern=None, lorder=False):
     if pattern is None:
         print "WARNING: No pattern given to csvvfile.extract_values."
         
     indexes = []
     for kk in kks:
-        indexes.extend(kk * data['L'] + np.arange(data['L']))
-        if pattern is not None:
-            for ll in range(data['L']):
-                assert re.match(pattern.replace("{K}", str(kk)), prednames[kk * data['L'] + ll]) is not None
+        if not lorder:
+            indexes.extend(kk * data['L'] + np.arange(data['L']))
+            if pattern is not None:
+                for ll in range(data['L']):
+                    assert re.match(pattern.replace("{K}", str(kk)), data['prednames'][kk * data['L'] + ll]) is not None, pattern.replace("{K}", str(kk)) + " does not match " + data['prednames'][kk * data['L'] + ll]
+        else:
+            indexes.extend(kk + data['K'] * np.arange(data['L']))
+            if pattern is not None:
+                for ll in range(data['L']):
+                    assert re.match(pattern.replace("{K}", str(kk)), data['prednames'][kk + data['K'] * ll]) is not None, pattern.replace("{K}", str(kk)) + " does not match " + data['prednames'][kk + data['K'] * ll]
+            
     indexes = np.array(indexes)
 
     gamma = data['gamma'][indexes]

@@ -21,14 +21,15 @@ def prepare_interp_raw2(csvv, weatherbundle, economicmodel, qvals, callback):
     for kk in range(4):
         ##csvv['prednames'][kk + newindices * 4] = csvv['prednames'][kk + oldindices * 4] # python makes tough
         csvv['gamma'][kk + newindices * 4] = csvv['gamma'][kk + oldindices * 4]
-        csvv['gammavcv'][kk + newindices * 4, :] = csvv['gammavcv'][kk + oldindices * 4, :]
-        csvv['gammavcv'][:, kk + newindices * 4] = csvv['gammavcv'][:, kk + oldindices * 4]
+        # VCV is already collapsed
+        #csvv['gammavcv'][kk + newindices * 4, :] = csvv['gammavcv'][kk + oldindices * 4, :]
+        #csvv['gammavcv'][:, kk + newindices * 4] = csvv['gammavcv'][:, kk + oldindices * 4]
 
-    polyvals = csvvfile.extract_values(csvv, range(4), r"temp{K}?L0.*")
-    tempcurvegen = LOrderPolynomialCurveGenerator('C', 'minutes', 4, polyvals['gamma'], predgen, callback=lambda r, x, y: callback('temp', r, x, y))
+    polyvals = csvv['gamma'][:-1]
+    tempcurvegen = LOrderPolynomialCurveGenerator('C', 'minutes', 4, polyvals, predgen, callback=lambda r, x, y: callback('temp', r, x, y))
     tempeffect = YearlyAverageDay('minutes', tempcurvegen, 'the quartic temperature effect')
 
-    negtempoffsetgen = LOrderPolynomialCurveGenerator('C', 'minutes', 4, -polyvals['gamma'], predgen)
+    negtempoffsetgen = LOrderPolynomialCurveGenerator('C', 'minutes', 4, -polyvals, predgen)
     negtempeffect = YearlyAverageDay('minutes', negtempoffsetgen, 'offset to normalize to 27 degrees', weather_change=lambda temps: np.ones(len(temps)) * 27)
 
     zerocurvegen = ConstantCurveGenerator('C', 'minutes', FlatCurve(csvv['gamma'][-1]))
