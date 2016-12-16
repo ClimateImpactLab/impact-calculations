@@ -6,6 +6,8 @@ from adaptation import adapting_curve, curvegenv2
 module = sys.argv[2]
 outputdir = sys.argv[3]
 
+targetdir = None # The current targetdir
+
 def iterate_median():
     for clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in loadmodels.random_order(mod.bundle_iterator):
         pvals = effectset.ConstantPvals(.5)
@@ -29,11 +31,11 @@ def iterate_single():
     yield 'single-current', pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
 
 def iterate_writebins():
-    with open(module + "-allbins.csv", 'w') as fp:
+    with open(os.path.join(targetdir, module + "-allbins.csv"), 'w') as fp:
         writer = csv.writer(fp)
         writer.writerow(['region', 'year', 'model', 'result', 'bin_nInfC_n17C', 'bin_n17C_n12C', 'bin_n12C_n7C', 'bin_n7C_n2C', 'bin_n2C_3C', 'bin_3C_8C', 'bin_8C_13C', 'bin_13C_18C', 'bin_18C_23C', 'bin_23C_28C', 'bin_28C_33C', 'bin_33C_InfC'])
 
-    with open(module + "-allpreds.csv", 'w') as fp:
+    with open(os.path.join(targetdir, module + "-allpreds.csv"), 'w') as fp:
         writer = csv.writer(fp)
         writer.writerow(['region', 'year', 'model', 'meandays_nInfC_n17C', 'meandays_n17C_n12C', 'meandays_n12C_n7C', 'meandays_n7C_n2C', 'meandays_n2C_3C', 'meandays_3C_8C', 'meandays_8C_13C', 'meandays_13C_18C', 'meandays_23C_28C', 'meandays_28C_33C', 'meandays_33C_InfC', 'log gdppc', 'log popop'])
 
@@ -41,11 +43,11 @@ def iterate_writebins():
         yield allvals
 
 def iterate_writevals():
-    with open(module + "-allcoeffs.csv", 'w') as fp:
+    with open(os.path.join(targetdir, module + "-allcoeffs.csv"), 'w') as fp:
         writer = csv.writer(fp)
         writer.writerow(['region', 'year', 'model', 'result', 'tasmax', 'tasmax2', 'tasmax3', 'tasmax4', 'belowzero'])
 
-    with open(module + "-allpreds.csv", 'w') as fp:
+    with open(os.path.join(targetdir, module + "-allpreds.csv"), 'w') as fp:
         writer = csv.writer(fp)
         writer.writerow(['region', 'year', 'model', 'meantas', 'log gdppc', 'log popop'])
 
