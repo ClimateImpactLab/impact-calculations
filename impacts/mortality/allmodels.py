@@ -21,7 +21,7 @@ def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=N
         if result_callback is None:
             result_callback = lambda reg, yr, res, calc, mod: None
         if push_callback is None:
-            push_callback = lambda reg, yr, app, predget: None
+            push_callback = lambda reg, yr, app, predget, mod: None
 
         #for filepath in ["/shares/gcp/social/parameters/mortality/predictors-space-all.csvv"]:
         for filepath in glob.glob("/shares/gcp/social/parameters/mortality/mortality_single_stage_12142016/*.csvv"):
