@@ -11,6 +11,7 @@ def preload():
 bundle_iterator = weather.iterate_bundles(discover_tas_binned('/shares/gcp/climate/BCSD/aggregation/cmip5_bins/IR_level'))
 
 def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=None, country_specific=True, result_callback=None, push_callback=None, suffix='', do_farmers=False, do_65plus=True):
+    print do_only
     if do_only is None or do_only == 'acp':
         # ACP response
         calculation, dependencies = caller.call_prepare('impacts.mortality.ACRA_mortality_temperature', weatherbundle, economicmodel, pvals['ACRA_mortality_temperature'])
