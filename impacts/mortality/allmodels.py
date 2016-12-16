@@ -25,6 +25,8 @@ def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=N
         #for filepath in ["/shares/gcp/social/parameters/mortality/predictors-space-all.csvv"]:
         for filepath in glob.glob("/shares/gcp/social/parameters/mortality/mortality_single_stage_12142016/*.csvv"):            
             basename = os.path.basename(filepath)[:-5]
+            if 'ERAI' in basename:
+                continue
             print basename
 
             # Full Adaptation
