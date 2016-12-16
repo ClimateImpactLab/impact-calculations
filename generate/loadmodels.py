@@ -1,6 +1,6 @@
 import numpy as np
 import weather
-from adaptation import adapting_curve
+from adaptation import covariates
 
 do_econ_model_only = ["OECD Env-Growth"]
 do_econ_scenario_only = ['SSP3']
@@ -10,7 +10,7 @@ single_clim_scenario = 'rcp85'
 
 def single(bundle_iterator):
     allecons = []
-    for econ_model, econ_scenario, economicmodel in adapting_curve.iterate_econmodels():
+    for econ_model, econ_scenario, economicmodel in covariates.iterate_econmodels():
         allecons.append((econ_scenario, econ_model, economicmodel))
 
     allclims = []
@@ -30,7 +30,7 @@ def single(bundle_iterator):
 def random_order(bundle_iterator):
     print "Loading models..."
     allecons = []
-    for econ_model, econ_scenario, economicmodel in adapting_curve.iterate_econmodels():
+    for econ_model, econ_scenario, economicmodel in covariates.iterate_econmodels():
         allecons.append((econ_scenario, econ_model, economicmodel))
 
     allclims = []
