@@ -35,7 +35,7 @@ def iterate_writebins():
 
     with open(module + "-allpreds.csv", 'w') as fp:
         writer = csv.writer(fp)
-        writer.writerow(['region', 'year', 'meandays_nInfC_n17C', 'meandays_n17C_n12C', 'meandays_n12C_n7C', 'meandays_n7C_n2C', 'meandays_n2C_3C', 'meandays_3C_8C', 'meandays_8C_13C', 'meandays_13C_18C', 'meandays_23C_28C', 'meandays_28C_33C', 'meandays_33C_InfC', 'log gdppc', 'log popop'])
+        writer.writerow(['region', 'year', 'model', 'meandays_nInfC_n17C', 'meandays_n17C_n12C', 'meandays_n12C_n7C', 'meandays_n7C_n2C', 'meandays_n2C_3C', 'meandays_3C_8C', 'meandays_8C_13C', 'meandays_13C_18C', 'meandays_23C_28C', 'meandays_28C_33C', 'meandays_33C_InfC', 'log gdppc', 'log popop'])
 
     for allvals in iterate_single():
         yield allvals
@@ -47,7 +47,7 @@ def iterate_writevals():
 
     with open(module + "-allpreds.csv", 'w') as fp:
         writer = csv.writer(fp)
-        writer.writerow(['region', 'year', 'meantas', 'log gdppc', 'log popop'])
+        writer.writerow(['region', 'year', 'model', 'meantas', 'log gdppc', 'log popop'])
 
     for allvals in iterate_single():
         yield allvals
@@ -58,7 +58,7 @@ def binresult_callback(region, year, result, calculation, model):
         curve = adapting_curve.region_stepcurves[region].curr_curve
         writer.writerow([region, year, model, result[0]] + list(curve.yy))
 
-def binpush_callback(region, year, application, get_predictors):
+def binpush_callback(region, year, application, get_predictors, model):
     with open(module + "-allpreds.csv", 'a') as fp:
         writer = csv.writer(fp)
         predictors = get_predictors(region)[0]
@@ -68,8 +68,8 @@ def binpush_callback(region, year, application, get_predictors):
         covars = bin_names + ['loggdppc', 'logpopop']
         if 'age0-4' in predictors:
             covars += ['age0-4', 'age65+']
-        
-        writer.writerow([region, year] + [predictors[covar] for covar in covars])
+
+        writer.writerow([region, year, model] + [predictors[covar] for covar in covars])
 
 def valresult_callback(region, year, result, calculation, model):
     with open(module + "-allcoeffs.csv", 'a') as fp:
@@ -77,12 +77,12 @@ def valresult_callback(region, year, result, calculation, model):
         ccs = curvegenv2.region_polycurves[region].curr_curve.ccs
         writer.writerow([region, year, model, result[0]] + list(ccs))
 
-def valpush_callback(region, year, application, get_predictors):
+def valpush_callback(region, year, application, get_predictors, model):
     with open(module + "-allpreds.csv", 'a') as fp:
         writer = csv.writer(fp)
         predictors = get_predictors(region)
         covars = ['meantas', 'loggdppc', 'logpopop']
-        writer.writerow([region, year] + [predictors[covar] for covar in covars])
+        writer.writerow([region, year, model] + [predictors[covar] for covar in covars])
 
 mode_iterators = {'median': iterate_median, 'montecarlo': iterate_montecarlo, 'single': iterate_single, 'writebins': iterate_writebins, 'writevals': iterate_writevals}
 
