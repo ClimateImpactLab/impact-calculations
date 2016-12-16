@@ -11,7 +11,7 @@ from adaptation.curvegenv2 import ConstantCurveGenerator, LOrderPolynomialCurveG
 covarnames = ['tasmax', 'loggdppc', 'logpopop']
 
 def prepare_interp_raw2(csvv, weatherbundle, economicmodel, qvals, callback):
-    predgen = covariates.CombinedCovariator([covariates.MeanWeatherCovariator(weatherbundle, 15, 2015),
+    predgen = covariates.CombinedCovariator([covariates.MeanWeatherCovariator(weatherbundle.get_subset(0), 15, 2015),
                                              covariates.EconomicCovariator(economicmodel, 3, 2015)])
 
     csvvfile.collapse_bang(csvv, qvals.get_seed())
@@ -29,7 +29,7 @@ def prepare_interp_raw2(csvv, weatherbundle, economicmodel, qvals, callback):
 
     polyvals = csvv['gamma'][:-1]
     tempcurvegen = LOrderPolynomialCurveGenerator('C', 'minutes', 4, polyvals, predgen, covarnames, callback=lambda r, x, y: callback('temp', r, x, y))
-    tempeffect = YearlyAverageDay('minutes', tempcurvegen, 'the quartic temperature effect')
+    tempeffect = YearlyDividedPolynomialAverageDay('minutes', tempcurvegen, 'the quartic temperature effect')
 
     negtempoffsetgen = LOrderPolynomialCurveGenerator('C', 'minutes', 4, -polyvals, predgen, covarnames)
     negtempeffect = YearlyAverageDay('minutes', negtempoffsetgen, 'offset to normalize to 27 degrees', weather_change=lambda temps: np.ones(len(temps)) * 27)
