@@ -48,7 +48,7 @@ class MonthlyBinnedWeatherReader(YearlySplitWeatherReader):
         return times
 
     def get_dimension(self):
-        return [self.variable + '-' + str(bb) for bb in range(1, len(self.bin_limits))] # if bin_limits = 2, single value
+        return [self.variable + '-' + str(self.bin_limits[bb-1]) + '-' + str(self.bin_limits[bb]) for bb in range(1, len(self.bin_limits))] # if bin_limits = 2, single value
 
     def read_iterator(self):
         # Yield data in yearly chunks
