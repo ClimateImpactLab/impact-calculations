@@ -37,7 +37,7 @@ def iterate_writebins():
 
     with open(os.path.join(targetdir, module + "-allpreds.csv"), 'w') as fp:
         writer = csv.writer(fp)
-        writer.writerow(['region', 'year', 'model', 'meandays_nInfC_n17C', 'meandays_n17C_n12C', 'meandays_n12C_n7C', 'meandays_n7C_n2C', 'meandays_n2C_3C', 'meandays_3C_8C', 'meandays_8C_13C', 'meandays_13C_18C', 'meandays_23C_28C', 'meandays_28C_33C', 'meandays_33C_InfC', 'log gdppc', 'log popop'])
+        writer.writerow(['region', 'year', 'model', 'meandays_nInfC_n17C', 'meandays_n17C_n12C', 'meandays_n12C_n7C', 'meandays_n7C_n2C', 'meandays_n2C_3C', 'meandays_3C_8C', 'meandays_8C_13C', 'meandays_13C_18C', 'meandays_18C_23C', 'meandays_23C_28C', 'meandays_28C_33C', 'meandays_33C_InfC', 'log gdppc', 'log popop', 'age0-4', 'age65+'])
 
     for allvals in iterate_single():
         yield allvals
@@ -83,7 +83,7 @@ def valpush_callback(region, year, application, get_predictors, model):
     with open(module + "-allpreds.csv", 'a') as fp:
         writer = csv.writer(fp)
         predictors = get_predictors(region)
-        covars = ['meantas', 'loggdppc', 'logpopop']
+        covars = ['tasmax', 'loggdppc', 'logpopop']
         writer.writerow([region, year, model] + [predictors[covar] for covar in covars])
 
 mode_iterators = {'median': iterate_median, 'montecarlo': iterate_montecarlo, 'single': iterate_single, 'writebins': iterate_writebins, 'writevals': iterate_writevals}

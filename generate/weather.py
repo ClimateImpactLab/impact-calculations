@@ -13,6 +13,21 @@ def iterate_bundles(iterator_readers):
         weatherbundle = UnivariatePastFutureWeatherBundle(pastreader, futurereader)
         yield scenario, model, weatherbundle
 
+def iterate_combined_bundles(*iterators_readers):
+    scenmodels = {} # {(scenario, model): [(pastreader, futurereader), ...]}
+    for iterator_readers in iterators_readers:
+        for scenario, model, pastreader, futurereader in iterator_readers:
+            if (scenario, model) not in scenmodels:
+                scenmodels[(scenario, model)] = []
+            scenmodels[(scenario, model)].append((pastreader, futurereader))
+
+    for scenario, model in scenmodels:
+        if len(scenmodels[(scenario, model)]) < len(iterators_readers):
+            continue
+
+        weatherbundle = MultivariatePastFutureWeatherBundle(scenmodels[(scenario, model)])
+        yield scenario, model, weatherbundle
+
 class WeatherBundle(object):
     """A WeatherBundle object is used to access the values for a single variable
     across years, as provided by a given GCM.
@@ -157,6 +172,45 @@ class UnivariatePastFutureWeatherBundle(DailyWeatherBundle):
 
     def get_dimension(self):
         return self.pastreader.get_dimension()
+
+class MultivariatePastFutureWeatherBundle(DailyWeatherBundle):
+    def __init__(self, pastfuturereaders, hierarchy='hierarchy.csv'):
+        super(MultivariatePastFutureWeatherBundle, self).__init__(hierarchy)
+        self.pastfuturereaders = pastfuturereaders
+
+        onefuturereader = self.pastfuturereaders[0][1]
+        self.futureyear1 = min(onefuturereader.get_years())
+
+        self.load_readermeta(onefuturereader)
+        self.load_regions()
+
+    def is_historical(self):
+        return False
+
+    def yearbundles(self, maxyear=np.inf):
+        for year in self.get_years():
+            if year > maxyear:
+                break
+
+            allweather = []
+            for pastreader, futurereader in self.pastfuturereaders:
+                if year < self.futureyear1:
+                    yyyyddd, weather = pastreader.read_year(year)
+                else:
+                    yyyyddd, weather = futurereader.read_year(year)
+
+                allweather.append(weather)
+
+            yield yyyyddd, allweather
+
+    def get_years(self):
+        return np.unique(self.pastfuturereaders[0][0].get_years() + self.pastfuturereaders[0][1].get_years())
+
+    def get_dimension(self):
+        return [pastreader.get_dimension() for pastreader, futurereader in self.pastfuturereaders]
+
+    def get_subset(self, index):
+        return UnivariatePastFutureWeatherBundle(*self.pastfuturereaders[index])
 
 class RepeatedHistoricalWeatherBundle(DailyWeatherBundle):
     def __init__(self, reader, futureyear_end, seed, hierarchy='hierarchy.csv'):
