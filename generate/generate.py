@@ -22,11 +22,11 @@ def iterate_single():
     pvals = effectset.ConstantPvals(.5)
 
     # Check if this already exists and delete if so
-    targetdir = os.path.join(outputdir, 'single', clim_scenario, clim_model, econ_model, econ_scenario)
+    targetdir = os.path.join(outputdir, 'single-current', clim_scenario, clim_model, econ_model, econ_scenario)
     if os.path.exists(targetdir):
         shutil.rmtree(targetdir)
 
-    yield 'single', pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
+    yield 'single-current', pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
 
 def iterate_writebins():
     with open(module + "-allbins.csv", 'w') as fp:
