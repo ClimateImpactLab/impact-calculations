@@ -3,29 +3,24 @@ from openest.models.curve import StepCurve
 from scipy.stats import multivariate_normal
 import csvvfile
 
+
+
 class BinnedStepCurveGenerator(object):
-    def __init__(self, xxlimits, predcoeffs, do_singlebin):
+    def __init__(self, xxlimits, predcoeffs, predcols, do_singlebin):
         self.xxlimits = xxlimits
         self.predcoeffs = predcoeffs
         self.do_singlebin = do_singlebin
+        self.predcols = predcols
 
     def get_curve(self, predictors, min_beta):
-        if self.do_singlebin:
-            assert len(predictors) == (len(self.xxlimits) - 2) + 2, "Wrong number of predictors: " + str(len(predictors)) + " vs. " + str((len(self.xxlimits) - 2) + 2) # Bins... except dropped, GDPPC, PoPoP
         yy = []
-        preddeltaii = 0 # Set to -1 after dropped bin; used for do_singlebin
         for ii in range(len(self.predcoeffs)):
             if np.isnan(self.predcoeffs[ii][0]):
                 yy.append(np.nan) # may not have all coeffs for dropped bin
-                preddeltaii = -1 # one fewer meandays than bins
             else:
-                if self.do_singlebin:
-                    predictors_self = np.array([predictors[ii + preddeltaii], predictors[-2], predictors[-1]])
-                    yy.append(self.predcoeffs[ii][0] + np.sum(self.predcoeffs[ii][1:] * predictors_self))
-                    #print yy[-1], self.predcoeffs[ii][0], self.predcoeffs[ii][1:], predictors_self
-                    #exit()
-                else:
-                    yy.append(self.predcoeffs[ii][0] + np.sum(self.predcoeffs[ii][1:] * np.array(predictors)))
+                bincol = 'DayNumber-' + str(self.xxlimits[ii]) + '-' + str(self.xxlimits[ii+1])
+                predictors_self = np.array([predictors[predcol] if predcol[-1] != '-' else predictors[bincol] for predcol in self.predcols])
+                yy.append(self.predcoeffs[ii][0] + np.sum(self.predcoeffs[ii][1:] * predictors_self))
 
         if min_beta is not None:
             yy = np.maximum(min_beta, yy)
@@ -39,9 +34,9 @@ def make_binned_curve_generator(csvv, xxlimits, predcols, do_singlebin, seed):
         params = multivariate_normal.rvs(csvv['gamma'], csvv['gammavcv'])
 
     # Reorganize params into sets of L
-    gammas = csvvfile.by_predictor_kl(csvv, params, 4)
+    gammas = csvvfile.by_predictor_kl(csvv, params, (len(predcols) + 1))
     # Insert dropped bin: hard coded for now
     before_dropped = np.flatnonzero(np.array(xxlimits) == 18)[0]
-    gammas = gammas[:before_dropped] + [np.array([np.nan] * csvv['L'])] + gammas[before_dropped:]
+    gammas = gammas[:before_dropped] + [np.array([np.nan] * (len(predcols) + 1))] + gammas[before_dropped:]
 
-    return BinnedStepCurveGenerator(xxlimits, gammas, do_singlebin)
+    return BinnedStepCurveGenerator(xxlimits, gammas, predcols, do_singlebin)

@@ -5,12 +5,14 @@ Compute minutes lost due to temperature effects
 import numpy as np
 from openest.generate.stdlib import *
 from openest.models.curve import FlatCurve
-from adaptation import csvvfile
+from adaptation import csvvfile, covariates
 from adaptation.curvegenv2 import ConstantCurveGenerator, LOrderPolynomialCurveGenerator
-from adaptation.adapting_curve import TemperatureIncomeDensityPredictorator
+
+covarnames = ['tasmax', 'loggdppc', 'logpopop']
 
 def prepare_interp_raw2(csvv, weatherbundle, economicmodel, qvals, callback):
-    predgen = TemperatureIncomeDensityPredictorator(weatherbundle, economicmodel, 15, 3, 2015)
+    predgen = covariates.CombinedCovariator([covariates.MeanWeatherCovariator(weatherbundle, 15, 2015),
+                                             covariates.EconomicCovariator(economicmodel, 3, 2015)])
 
     csvvfile.collapse_bang(csvv, qvals.get_seed())
 
@@ -26,10 +28,10 @@ def prepare_interp_raw2(csvv, weatherbundle, economicmodel, qvals, callback):
         #csvv['gammavcv'][:, kk + newindices * 4] = csvv['gammavcv'][:, kk + oldindices * 4]
 
     polyvals = csvv['gamma'][:-1]
-    tempcurvegen = LOrderPolynomialCurveGenerator('C', 'minutes', 4, polyvals, predgen, callback=lambda r, x, y: callback('temp', r, x, y))
+    tempcurvegen = LOrderPolynomialCurveGenerator('C', 'minutes', 4, polyvals, predgen, covarnames, callback=lambda r, x, y: callback('temp', r, x, y))
     tempeffect = YearlyAverageDay('minutes', tempcurvegen, 'the quartic temperature effect')
 
-    negtempoffsetgen = LOrderPolynomialCurveGenerator('C', 'minutes', 4, -polyvals, predgen)
+    negtempoffsetgen = LOrderPolynomialCurveGenerator('C', 'minutes', 4, -polyvals, predgen, covarnames)
     negtempeffect = YearlyAverageDay('minutes', negtempoffsetgen, 'offset to normalize to 27 degrees', weather_change=lambda temps: np.ones(len(temps)) * 27)
 
     zerocurvegen = ConstantCurveGenerator('C', 'minutes', FlatCurve(csvv['gamma'][-1]))

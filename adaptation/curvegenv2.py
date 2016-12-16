@@ -14,24 +14,26 @@ class ConstantCurveGenerator(CurveGenerator):
 region_polycurves = {}
 
 class LOrderPolynomialCurveGenerator(CurveGenerator):
-    def __init__(self, indepunits, depenunits, order, gamma, predictorator, callback=None):
+    def __init__(self, indepunits, depenunits, order, gamma, predictorator, covariates, callback=None):
         super(LOrderPolynomialCurveGenerator, self).__init__(indepunits, depenunits)
 
         self.order = order
         self.gamma = gamma
         self.predictorator = predictorator
+        self.covariates = covariates
         self.callback = callback
 
-    def get_curve(self, region, *predictors):
+        assert len(self.covariates) * self.order == len(self.gamma) - self.order, "%d x %d <> %d - %d" % (len(self.covariates), self.order, len(self.gamma), self.order)
+
+    def get_curve(self, region, predictors={}):
         if len(predictors) == 0:
-            predictors = self.predictorator.get_baseline(region)[0]
-
-        assert len(predictors) * self.order == len(self.gamma) - self.order, "%d x %d <> %d - %d" % (len(predictors), self.order, len(self.gamma), self.order)
-
+            predictors = self.predictorator.get_baseline(region)
+        covarvals = np.array([predictors[covar] for covar in self.covariates])
+            
         ccs = []
         for oo in range(self.order):
-            mygamma = self.gamma[oo + self.order * np.arange(len(predictors) + 1)]
-            ccs.append(mygamma[0]  + np.sum(mygamma[1:] * np.array(predictors)))
+            mygamma = self.gamma[oo + self.order * np.arange(len(self.covariates) + 1)]
+            ccs.append(mygamma[0]  + np.sum(mygamma[1:] * covarvals))
 
         if self.callback is not None:
             self.callback(region, predictors, ccs)
@@ -50,7 +52,7 @@ class InstantAdaptingPolynomialCurve(AdaptableCurve):
 
     def update(self, year, temps):
         predictors = self.predictorator.get_update(self.region, year, temps)
-        self.curr_curve = self.curvegen.get_curve(self.region).curr_curve
+        self.curr_curve = self.curvegen.get_curve(self.region, predictors).curr_curve
 
     def __call__(self, x):
         return self.curr_curve(x)
