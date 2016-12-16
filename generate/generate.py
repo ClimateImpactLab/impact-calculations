@@ -62,7 +62,8 @@ def binpush_callback(region, year, application, get_predictors):
     with open(module + "-allpreds.csv", 'a') as fp:
         writer = csv.writer(fp)
         predictors = get_predictors(region)
-        writer.writerow([region, year] + list(predictors[0]))
+        covars = ['DayNumber-1', 'DayNumber-2', 'DayNumber-3', 'DayNumber-4', 'DayNumber-5', 'DayNumber-6', 'DayNumber-7', 'DayNumber-8', 'DayNumber-9', 'DayNumber-10', 'DayNumber-11', 'DayNumber-12', 'loggdppc', 'logpopop']
+        writer.writerow([region, year] + [predictors[covar] for covar in covars])
 
 def valresult_callback(region, year, result, calculation, model):
     with open(module + "-allcoeffs.csv", 'a') as fp:
@@ -74,7 +75,8 @@ def valpush_callback(region, year, application, get_predictors):
     with open(module + "-allpreds.csv", 'a') as fp:
         writer = csv.writer(fp)
         predictors = get_predictors(region)
-        writer.writerow([region, year] + list(predictors[0]))
+        covars = ['meantas', 'loggdppc', 'logpopop']
+        writer.writerow([region, year] + [predictors[covar] for covar in covars])
 
 mode_iterators = {'median': iterate_median, 'montecarlo': iterate_montecarlo, 'single': iterate_single, 'writebins': iterate_writebins, 'writevals': iterate_writevals}
 
