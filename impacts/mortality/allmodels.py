@@ -23,10 +23,13 @@ def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=N
             push_callback = lambda reg, yr, app, predget: None
 
         #for filepath in ["/shares/gcp/social/parameters/mortality/predictors-space-all.csvv"]:
-        #for filepath in glob.glob("/shares/gcp/social/parameters/mortality/mortality_single_stage_12092016/*.csvv"):
-        for filepath in ["/shares/gcp/social/parameters/mortality/mortality_single_stage_12142016/global_interaction_no_popshare_BEST.csvv"]:
+        for filepath in glob.glob("/shares/gcp/social/parameters/mortality/mortality_single_stage_12142016/*.csvv"):            
             # Full Adaptation
-            calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.mortality.mortality_csvv', weatherbundle, economicmodel, pvals[os.path.basename(filepath)])
+            if '_no_popshare_' in filepath:
+                calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.mortality.mortality_csvv', weatherbundle, economicmodel, pvals[os.path.basename(filepath)])
+            else:
+                calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.mortality.mortality_csvv_popshare', weatherbundle, economicmodel, pvals[os.path.basename(filepath)])
+                
             effectset.write_ncdf(targetdir, "InterpolatedMortality", weatherbundle, calculation, baseline_get_predictors, "Mortality impacts, with interpolation and adaptation through interpolation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, 'all'), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors), do_interpbins=do_interpbins, suffix=suffix)
 
             if do_farmers and not weatherbundle.is_historical():

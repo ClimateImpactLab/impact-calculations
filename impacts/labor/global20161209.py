@@ -5,12 +5,13 @@ Compute minutes lost due to temperature effects
 import numpy as np
 from openest.generate.stdlib import *
 from openest.models.curve import FlatCurve
-from adaptation import csvvfile
+from adaptation import csvvfile, covariates
 from adaptation.curvegenv2 import ConstantCurveGenerator, LOrderPolynomialCurveGenerator
 from adaptation.adapting_curve import TemperatureIncomeDensityPredictorator
 
 def prepare_interp_raw2(csvv, weatherbundle, economicmodel, qvals, callback):
-    predgen = TemperatureIncomeDensityPredictorator(weatherbundle, economicmodel, 15, 3, 2015)
+    predgen = covariates.CombinedCovariator([covariates.MeanWeatherCovariator(weatherbundle, 15, 2015),
+                                             covariates.EconomicCovariator(economicmodel, 3, 2015)])
 
     csvvfile.collapse_bang(csvv, qvals.get_seed())
 
