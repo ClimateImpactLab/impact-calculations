@@ -1,6 +1,6 @@
 import sys, os, itertools, importlib, shutil, csv
 import loadmodels
-import weather, effectset
+import weather, effectset, pvalses
 from adaptation import adapting_curve, curvegenv2
 
 module = sys.argv[2]
@@ -94,7 +94,7 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
 
     targetdir = os.path.join(outputdir, batchdir, clim_scenario, clim_model, econ_model, econ_scenario)
 
-    if os.path.exists(targetdir):
+    if os.path.exists(targetdir) and pvalses.has_pval_file(targetdir):
         continue
 
     print targetdir
@@ -106,6 +106,7 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
     elif mode == 'writevals':
         mod.produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=do_only, do_farmers=False, result_callback=valresult_callback, push_callback=valpush_callback)
     else:
+        print "Before produce"
         mod.produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=do_only, do_farmers=True)
 
     if mode != 'writebins' and mode != 'writevals':
