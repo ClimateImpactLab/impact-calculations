@@ -61,8 +61,14 @@ def binresult_callback(region, year, result, calculation, model):
 def binpush_callback(region, year, application, get_predictors):
     with open(module + "-allpreds.csv", 'a') as fp:
         writer = csv.writer(fp)
-        predictors = get_predictors(region)
-        covars = ['DayNumber-1', 'DayNumber-2', 'DayNumber-3', 'DayNumber-4', 'DayNumber-5', 'DayNumber-6', 'DayNumber-7', 'DayNumber-8', 'DayNumber-9', 'DayNumber-10', 'DayNumber-11', 'DayNumber-12', 'loggdppc', 'logpopop']
+        predictors = get_predictors(region)[0]
+
+        bin_limits = [-100, -17, -12, -7, -2, 3, 8, 13, 18, 23, 28, 33, 100]
+        bin_names = ['DayNumber-' + str(bin_limits[bb-1]) + '-' + str(bin_limits[bb]) for bb in range(1, len(bin_limits))]
+        covars = bin_names + ['loggdppc', 'logpopop']
+        if 'age0-4' in predictors:
+            covars += ['age0-4', 'age65+']
+        
         writer.writerow([region, year] + [predictors[covar] for covar in covars])
 
 def valresult_callback(region, year, result, calculation, model):
@@ -108,7 +114,7 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
     elif mode == 'writevals':
         mod.produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=do_only, do_farmers=False, result_callback=valresult_callback, push_callback=valpush_callback)
     else:
-        mod.produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=do_only, do_farmers=True)
+        mod.produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=do_only, do_farmers=False) # Don't do until all else is working
 
     if mode != 'writebins' and mode != 'writevals':
         # Generate historical baseline
