@@ -44,29 +44,29 @@ class SSPEconomicModel(object):
 
         # Iterate through pop_baseline, since it has all regions
         for region in pop_baseline.keys():
-            yield dict(region=region, gdppc=gdppc_baseline.get(region, None),
+            yield dict(region=region, gdppcs=gdppc_baseline.get(region, None),
                        popop=self.densities.get(region, None))
 
     def baseline_prepared(self, maxbaseline, numeconyears, func):
         econ_predictors = {} # {region: {gdppcs: [gdppcs], popop: popop}
         allmeans_gdppcs = []
-        allmeans_density = []
+        allmeans_popop = []
         for econbaseline in self.baseline_values(maxbaseline): # baseline through maxbaseline
             region = econbaseline['region']
             gdppcs = econbaseline['gdppcs']
             popop = econbaseline['popop']
-            if gdppcs is None or density is None:
-                if density is not None:
-                    density = func([density])
+            if gdppcs is None or popop is None:
+                if popop is not None:
+                    popop = func([popop])
                 if gdppcs is not None:
                     gdppcs = func(gdppcs[-numeconyears:])
-                econ_predictors[region] = dict(gdppcs=gdppcs, popop=density)
+                econ_predictors[region] = dict(gdppcs=gdppcs, popop=popop)
             else:
                 allmeans_gdppcs.append(np.mean(gdppcs[-numeconyears:]))
-                allmeans_density.append(density)
-                econ_predictors[region] = dict(gdppcs=func(gdppcs[-numeconyears:]), popop=func([density]))
+                allmeans_popop.append(popop)
+                econ_predictors[region] = dict(gdppcs=func(gdppcs[-numeconyears:]), popop=func([popop]))
 
-        econ_predictors['mean'] = dict(gdppcs=np.mean(allmeans_gdppcs), popop=np.mean(allmeans_density)) # don't use mean density-- all should have
+        econ_predictors['mean'] = dict(gdppcs=np.mean(allmeans_gdppcs), popop=np.mean(allmeans_popop)) # don't use mean popop-- all should have
         for region in econ_predictors:
             if econ_predictors[region]['gdppcs'] is None:
                 econ_predictors[region]['gdppcs'] = func([econ_predictors['mean']['gdppcs']])

@@ -47,12 +47,12 @@ class EconomicCovariator(Covariator):
         if econpreds is None:
             gdppcs = self.econ_predictors['mean']['gdppcs']
         else:
-            gdppcs = rm_mean(gdppcsdensity['gdppcs'])
+            gdppcs = rm_mean(econpreds['gdppcs'])
 
         if econpreds is None:
             density = self.econ_predictors['mean']['popop']
         else:
-            density = rm_mean(gdppcsdensity['popop'])
+            density = rm_mean(econpreds['popop'])
 
         return dict(gdppc=gdppcs, popop=density)
 
@@ -90,6 +90,7 @@ class MeanWeatherCovariator(Covariator):
             temp_predictors[region] = rm_init(temps[-numtempyears:])
 
         self.temp_predictors = temp_predictors
+        self.weatherbundle = weatherbundle
 
     def get_baseline(self, region):
         #assert region in self.temp_predictors, "Missing " + region
@@ -117,12 +118,11 @@ class MeanBinsCovariator(Covariator):
         for region, binyears in weatherbundle.baseline_values(maxbaseline): # baseline through maxbaseline
             usedbinyears = []
             for kk in range(binyears.shape[-1]):
-                if kk == dropbin:
-                    continue
                 usedbinyears.append(rm_init(binyears[-numtempyears:, kk]))
             temp_predictors[region] = usedbinyears
 
         self.temp_predictors = temp_predictors
+        self.weatherbundle = weatherbundle
 
     def get_baseline(self, region):
         #assert region in self.temp_predictors, "Missing " + region
@@ -136,27 +136,16 @@ class MeanBinsCovariator(Covariator):
         if temps is not None and year > self.startupdateyear:
             if len(temps.shape) == 2:
                 if temps.shape[0] == 12 and temps.shape[1] == len(self.binlimits) - 1:
-                    di = 0
                     for kk in range(len(self.binlimits) - 1):
-                        if kk == self.dropbin:
-                            di = -1
-                            continue
-
-                        rm_add(self.temp_predictors[region][kk+di], np.sum(temps[:, kk]), self.numtempyears)
+                        rm_add(self.temp_predictors[region][kk], np.sum(temps[:, kk]), self.numtempyears)
                 else:
                     raise RuntimeError("Unknown format for temps")
             else:
-                di = 0
                 belowprev = 0
                 for kk in range(len(self.binlimits) - 2):
                     belowupper = float(np.sum(temps < self.binlimits[kk+1]))
 
-                    if kk == self.dropbin:
-                        belowprev = belowupper
-                        di = -1
-                        continue
-
-                    rm_add(self.temp_predictors[region][kk+di], belowupper - belowprev, self.numtempyears)
+                    rm_add(self.temp_predictors[region][kk], belowupper - belowprev, self.numtempyears)
                     belowprev = belowupper
                 rm_add(self.temp_predictors[region][-1], len(temps) - belowprev, self.numtempyears)
 
@@ -172,10 +161,12 @@ class AgeShareCovariator(Covariator):
         self.economicmodel = economicmodel
 
         self.agerm = {}
-        get_baseline('mean') # Fill in the mean agerm
+        self.get_baseline('mean') # Fill in the mean agerm
 
     def get_baseline(self, region):
         # Fill in the rm for this region
+        if region != 'mean':
+            region = region[:3] # Just country code
         if region not in self.ageshares:
             return {column: rm_mean(self.agerm['mean'][column]) for column in agecohorts.columns}
         
@@ -194,10 +185,14 @@ class AgeShareCovariator(Covariator):
         return {column: rm_mean(rmdata[column]) for column in agecohorts.columns}
 
     def get_update(self, region, year, temps):
+        region = region[:3] # Just country code
+        if region not in self.ageshares:
+            region = 'mean' # XXX: This updates for every country!
+
         if region in self.agerm:
             if year in self.ageshares[region]:
                 for cc in range(len(agecohorts.columns)):
-                    rm_add[self.agerm[region][agecohorts.columns[cc]], self.ageshares[region][year][cc], self.numeconyears)
+                    rm_add(self.agerm[region][agecohorts.columns[cc]], self.ageshares[region][year][cc], self.numeconyears)
 
         return {column: rm_mean(self.agerm[region][column]) for column in agecohorts.columns}
 

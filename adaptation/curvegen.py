@@ -13,15 +13,13 @@ class BinnedStepCurveGenerator(object):
         self.predcols = predcols
 
     def get_curve(self, predictors, min_beta):
-        if self.do_singlebin:
-            assert len(predictors) == (len(self.xxlimits) - 1) + 2, "Wrong number of predictors: " + str(len(predcols)) + " vs. " + str((len(self.xxlimits) - 1) + 2) # Bins... including dropped, GDPPC, PoPoP
         yy = []
         for ii in range(len(self.predcoeffs)):
             if np.isnan(self.predcoeffs[ii][0]):
                 yy.append(np.nan) # may not have all coeffs for dropped bin
             else:
                 bincol = 'DayNumber-' + str(self.xxlimits[ii]) + '-' + str(self.xxlimits[ii+1])
-                predictors_self = np.array([predictor[predcol] if predcol[-1] != '-' else predictor[bincol] for predcol in predcols])
+                predictors_self = np.array([predictors[predcol] if predcol[-1] != '-' else predictors[bincol] for predcol in self.predcols])
                 yy.append(self.predcoeffs[ii][0] + np.sum(self.predcoeffs[ii][1:] * predictors_self))
 
         if min_beta is not None:
