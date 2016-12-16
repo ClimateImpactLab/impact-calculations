@@ -83,8 +83,7 @@ def valpush_callback(region, year, application, get_predictors, model):
     with open(module + "-allpreds.csv", 'a') as fp:
         writer = csv.writer(fp)
         predictors = get_predictors(region)
-        covars = ['meantas', 'loggdppc', 'logpopop']
-        writer.writerow([region, year, model] + [predictors[covar] for covar in covars])
+        writer.writerow([region, year, model] + [predictors[covar] for covar in predictors])
 
 mode_iterators = {'median': iterate_median, 'montecarlo': iterate_montecarlo, 'single': iterate_single, 'writebins': iterate_writebins, 'writevals': iterate_writevals}
 
