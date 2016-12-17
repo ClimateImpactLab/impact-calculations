@@ -189,17 +189,27 @@ class MultivariatePastFutureWeatherBundle(DailyWeatherBundle):
 
     def yearbundles(self, maxyear=np.inf):
         for year in self.get_years():
-            if year > maxyear:
+            if year == maxyear:
                 break
 
-            allweather = []
+            allweather = None
             for pastreader, futurereader in self.pastfuturereaders:
-                if year < self.futureyear1:
-                    yyyyddd, weather = pastreader.read_year(year)
-                else:
-                    yyyyddd, weather = futurereader.read_year(year)
+                try:
+                    if year < self.futureyear1:
+                        yyyyddd, weather = pastreader.read_year(year)
+                    else:
+                        yyyyddd, weather = futurereader.read_year(year)
+                except:
+                    print "Failed to get year", year
+                    return # No more!
 
-                allweather.append(weather)
+                if len(weather.shape) == 2:
+                    weather = np.expand_dims(weather, axis=2)
+
+                if allweather is None:
+                    allweather = weather
+                else:
+                    allweather = np.concatenate((allweather, weather), axis=2)
 
             yield yyyyddd, allweather
 

@@ -3,6 +3,7 @@ import loadmodels
 import weather, effectset, pvalses
 from adaptation import adapting_curve, curvegenv2
 from helpers import config
+import cProfile, pstats, StringIO
 
 config = config.getConfigDictFromSysArgv()
 
@@ -30,38 +31,26 @@ def iterate_single():
 
     yield 'single-current', pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
 
-def iterate_writebins():
-    with open(os.path.join(targetdir, config['module'] + "-allbins.csv"), 'w') as fp:
-        writer = csv.writer(fp)
-        writer.writerow(['region', 'year', 'model', 'result', 'bin_nInfC_n17C', 'bin_n17C_n12C', 'bin_n12C_n7C', 'bin_n7C_n2C', 'bin_n2C_3C', 'bin_3C_8C', 'bin_8C_13C', 'bin_13C_18C', 'bin_18C_23C', 'bin_23C_28C', 'bin_28C_33C', 'bin_33C_InfC'])
-
-    with open(os.path.join(targetdir, config['module'] + "-allpreds.csv"), 'w') as fp:
-        writer = csv.writer(fp)
-        writer.writerow(['region', 'year', 'model', 'meandays_nInfC_n17C', 'meandays_n17C_n12C', 'meandays_n12C_n7C', 'meandays_n7C_n2C', 'meandays_n2C_3C', 'meandays_3C_8C', 'meandays_8C_13C', 'meandays_13C_18C', 'meandays_18C_23C', 'meandays_23C_28C', 'meandays_28C_33C', 'meandays_33C_InfC', 'log gdppc', 'log popop', 'age0-4', 'age65+'])
-
-    for allvals in iterate_single():
-        yield allvals
-
-def iterate_writevals():
-    with open(os.path.join(targetdir, config['module'] + "-allcoeffs.csv"), 'w') as fp:
-        writer = csv.writer(fp)
-        writer.writerow(['region', 'year', 'model', 'result', 'tasmax', 'tasmax2', 'tasmax3', 'tasmax4', 'belowzero'])
-
-    with open(os.path.join(targetdir, config['module'] + "-allpreds.csv"), 'w') as fp:
-        writer = csv.writer(fp)
-        writer.writerow(['region', 'year', 'model', 'meantas', 'log gdppc', 'log popop'])
-
-    for allvals in iterate_single():
-        yield allvals
-
 def binresult_callback(region, year, result, calculation, model):
-    with open(os.path.join(targetdir, config['module'] + "-allbins.csv"), 'a') as fp:
+    filepath = os.path.join(targetdir, config['module'] + "-allbins.csv")
+    if not os.path.exists(filepath):
+        with open(filepath, 'w') as fp:
+            writer = csv.writer(fp)
+            writer.writerow(['region', 'year', 'model', 'result', 'bin_nInfC_n17C', 'bin_n17C_n12C', 'bin_n12C_n7C', 'bin_n7C_n2C', 'bin_n2C_3C', 'bin_3C_8C', 'bin_8C_13C', 'bin_13C_18C', 'bin_18C_23C', 'bin_23C_28C', 'bin_28C_33C', 'bin_33C_InfC'])
+
+    with open(filepath, 'a') as fp:
         writer = csv.writer(fp)
         curve = adapting_curve.region_stepcurves[region].curr_curve
         writer.writerow([region, year, model, result[0]] + list(curve.yy))
 
 def binpush_callback(region, year, application, get_predictors, model):
-    with open(os.path.join(targetdir, config['module'] + "-allpreds.csv"), 'a') as fp:
+    filepath = os.path.join(targetdir, config['module'] + "-allpreds.csv")
+    if not os.path.exists(filepath):
+        with open(filepath, 'w') as fp:
+            writer = csv.writer(fp)
+            writer.writerow(['region', 'year', 'model', 'meandays_nInfC_n17C', 'meandays_n17C_n12C', 'meandays_n12C_n7C', 'meandays_n7C_n2C', 'meandays_n2C_3C', 'meandays_3C_8C', 'meandays_8C_13C', 'meandays_13C_18C', 'meandays_18C_23C', 'meandays_23C_28C', 'meandays_28C_33C', 'meandays_33C_InfC', 'log gdppc', 'log popop', 'age0-4', 'age65+'])
+
+    with open(filepath, 'a') as fp:
         writer = csv.writer(fp)
         predictors = get_predictors(region)[0]
 
@@ -74,19 +63,31 @@ def binpush_callback(region, year, application, get_predictors, model):
         writer.writerow([region, year, model] + [predictors[covar] for covar in covars])
 
 def valresult_callback(region, year, result, calculation, model):
-    with open(os.path.join(targetdir, config['module'] + "-allcoeffs.csv"), 'a') as fp:
+    filepath = os.path.join(targetdir, config['module'] + "-allcoeffs.csv")
+    if not os.path.exists(filepath):
+        with open(filepath, 'w') as fp:
+            writer = csv.writer(fp)
+            writer.writerow(['region', 'year', 'model', 'result', 'tasmax', 'tasmax2', 'tasmax3', 'tasmax4'])
+
+    with open(filepath, 'a') as fp:
         writer = csv.writer(fp)
         ccs = curvegenv2.region_polycurves[region].curr_curve.ccs
         writer.writerow([region, year, model, result[0]] + list(ccs))
 
 def valpush_callback(region, year, application, get_predictors, model):
-    with open(os.path.join(targetdir, config['module'] + "-allpreds.csv"), 'a') as fp:
+    filepath = os.path.join(targetdir, config['module'] + "-allpreds.csv")
+    if not os.path.exists(filepath):
+        with open(filepath, 'w') as fp:
+            writer = csv.writer(fp)
+            writer.writerow(['region', 'year', 'model', 'meantas', 'log gdppc', 'log popop'])
+
+    with open(filepath, 'a') as fp:
         writer = csv.writer(fp)
         predictors = get_predictors(region)
         covars = ['tasmax', 'loggdppc', 'logpopop']
         writer.writerow([region, year, model] + [predictors[covar] for covar in covars])
 
-mode_iterators = {'median': iterate_median, 'montecarlo': iterate_montecarlo, 'single': iterate_single, 'writebins': iterate_writebins, 'writevals': iterate_writevals}
+mode_iterators = {'median': iterate_median, 'montecarlo': iterate_montecarlo, 'single': iterate_single, 'writebins': iterate_single, 'writevals': iterate_single, 'profile': iterate_single}
 
 assert config['mode'] in mode_iterators.keys()
 
@@ -101,6 +102,10 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
     print clim_scenario, clim_model
     print econ_scenario, econ_model
 
+    if config['mode'] == 'profile':
+        pr = cProfile.Profile()
+        pr.enable()
+
     targetdir = os.path.join(config['outputdir'], batchdir, clim_scenario, clim_model, econ_model, econ_scenario)
 
     if os.path.exists(targetdir) and pvalses.has_pval_file(targetdir):
@@ -114,6 +119,18 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
         mod.produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=do_only, do_farmers=False, result_callback=binresult_callback, push_callback=binpush_callback)
     elif config['mode'] == 'writevals':
         mod.produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=do_only, do_farmers=False, result_callback=valresult_callback, push_callback=valpush_callback)
+    elif config['mode'] == 'profile':
+        mod.produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=do_only, profile=True)
+        pr.disable()
+
+        s = StringIO.StringIO()
+        sortby = 'cumulative'
+        ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+        ps.print_stats()
+        #ps.print_callers(.5, 'sum')
+        print s.getvalue()
+        exit()
+
     else:
         mod.produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=do_only, do_farmers=True)
 

@@ -44,3 +44,14 @@ def discover_variable(basedir, variable):
         futurereader = DailyWeatherReader(futuretemplate, 2006, variable)
 
         yield scenario, model, pastreader, futurereader
+
+def discover_derived_variable(basedir, variable, suffix):
+    for scenario, model, pastdir, futuredir in discover_models(basedir):
+        pasttemplate = os.path.join(pastdir, variable + '_' + suffix, variable + '_day_aggregated_historical_r1i1p1_' + model + '_%d.nc')
+        futuretemplate = os.path.join(futuredir, variable + '_' + suffix, variable + '_day_aggregated_' + scenario + '_r1i1p1_' + model + '_%d.nc')
+
+        if os.path.exists(pasttemplate % (1981)) and os.path.exists(futuretemplate % (2006)):
+            pastreader = DailyWeatherReader(pasttemplate, 1981, variable)
+            futurereader = DailyWeatherReader(futuretemplate, 2006, variable)
+
+            yield scenario, model, pastreader, futurereader
