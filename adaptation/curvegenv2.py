@@ -29,7 +29,7 @@ class LOrderPolynomialCurveGenerator(CurveGenerator):
         if len(predictors) == 0:
             predictors = self.predictorator.get_baseline(region)
         covarvals = np.array([predictors[covar] for covar in self.covariates])
-            
+
         ccs = []
         for oo in range(self.order):
             mygamma = self.gamma[oo + self.order * np.arange(len(self.covariates) + 1)]

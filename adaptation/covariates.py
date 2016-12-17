@@ -35,7 +35,7 @@ class Covariator(object):
 class EconomicCovariator(Covariator):
     def __init__(self, economicmodel, numeconyears, maxbaseline):
         super(EconomicCovariator, self).__init__(maxbaseline)
-        
+
         self.numeconyears = numeconyears
 
         self.econ_predictors = economicmodel.baseline_prepared(maxbaseline, numeconyears, rm_init)
@@ -101,7 +101,10 @@ class MeanWeatherCovariator(Covariator):
         assert year < 10000
 
         if temps is not None and year > self.startupdateyear:
-            rm_add(self.temp_predictors[region], np.mean(temps), self.numtempyears)
+            if len(temps) > 0 and isinstance(temps, np.ndarray):
+                rm_add(self.temp_predictors[region], np.mean(temps[0]), self.numtempyears) # always the first
+            else:
+                rm_add(self.temp_predictors[region], np.mean(temps), self.numtempyears)
 
         return {self.weatherbundle.get_dimension()[0]: rm_mean(self.temp_predictors[region])}
 
@@ -154,7 +157,7 @@ class MeanBinsCovariator(Covariator):
 class AgeShareCovariator(Covariator):
     def __init__(self, economicmodel, numeconyears, maxbaseline):
         super(AgeShareCovariator, self).__init__(maxbaseline)
-        
+
         self.numeconyears = numeconyears
 
         self.ageshares = agecohorts.load_ageshares(economicmodel.model, economicmodel.scenario)
@@ -169,9 +172,9 @@ class AgeShareCovariator(Covariator):
             region = region[:3] # Just country code
         if region not in self.ageshares:
             return {column: rm_mean(self.agerm['mean'][column]) for column in agecohorts.columns}
-        
+
         rmdata = {column: [] for column in agecohorts.columns} # {agecolumn: [values]}
-        
+
         for year in range(min(self.ageshares[region].keys()), self.startupdateyear+1):
             if year in self.ageshares[region]:
                 for cc in range(len(agecohorts.columns)):
@@ -181,7 +184,7 @@ class AgeShareCovariator(Covariator):
             rmdata[column] = rm_init(rmdata[column][-self.numeconyears:])
 
         self.agerm[region] = rmdata
-        
+
         return {column: rm_mean(rmdata[column]) for column in agecohorts.columns}
 
     def get_update(self, region, year, temps):
@@ -200,7 +203,7 @@ class CombinedCovariator(Covariator):
     def __init__(self, covariators):
         for covariator in covariators[1:]:
             assert covariator.startupdateyear == covariators[0].startupdateyear
-        
+
         super(CombinedCovariator, self).__init__(covariators[0].startupdateyear)
         self.covariators = covariators
 

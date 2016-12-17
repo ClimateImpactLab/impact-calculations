@@ -23,8 +23,8 @@ def discover_models(basedir):
             yield scenario, model, pastdir, futuredir
 
 ### Reader discovery functions
-# Yield 
-            
+# Yield
+
 def discover_tas_binned(basedir):
     for scenario, model, pastdir, futuredir in discover_models(basedir):
         pasttemplate = os.path.join(pastdir, 'tas/tas_Bindays_aggregated_historical_r1i1p1_' + model + '_%d.nc')
