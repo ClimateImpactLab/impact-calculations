@@ -1,0 +1,3 @@
+module: labor
+mode: median
+outputdir: /shares/gcp/outputs/labor/impacts-andrena
