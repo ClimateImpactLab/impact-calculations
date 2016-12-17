@@ -22,6 +22,8 @@ def readmeta(filepath, variable):
     """
     Return version, units.
     """
+    assert os.path.exists(filepath), filepath + " does not exist."
+
     rootgrp = Dataset(filepath, 'r', format='NETCDF4')
     version = rootgrp.version
     units = rootgrp.variables[variable].units

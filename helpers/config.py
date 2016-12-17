@@ -21,3 +21,4 @@ def getConfigDictFromSysArgv():
 serverSpecificYML = "../server.yml"
 
 serverConfig = getConfigDictFromFile(serverSpecificYML)
+
