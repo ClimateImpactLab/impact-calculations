@@ -14,7 +14,7 @@ class ConstantCurveGenerator(CurveGenerator):
 region_polycurves = {}
 
 class LOrderPolynomialCurveGenerator(CurveGenerator):
-    def __init__(self, indepunits, depenunits, order, gamma, predictorator, covariates, callback=None):
+    def __init__(self, indepunits, depenunits, order, gamma, predictorator, covariates, callback=None, farmer='full'):
         super(LOrderPolynomialCurveGenerator, self).__init__(indepunits, depenunits)
 
         self.order = order
@@ -22,6 +22,7 @@ class LOrderPolynomialCurveGenerator(CurveGenerator):
         self.predictorator = predictorator
         self.covariates = covariates
         self.callback = callback
+        self.farmer = farmer
 
         assert len(self.covariates) * self.order == len(self.gamma) - self.order, "%d x %d <> %d - %d" % (len(self.covariates), self.order, len(self.gamma), self.order)
 
@@ -38,7 +39,13 @@ class LOrderPolynomialCurveGenerator(CurveGenerator):
         if self.callback is not None:
             self.callback(region, predictors, ccs)
 
-        curve = InstantAdaptingPolynomialCurve(region, ccs, self.predictorator, self)
+        if self.farmer == 'full':
+            curve = InstantAdaptingPolynomialCurve(region, ccs, self.predictorator, self)
+        elif self.farmer == 'coma':
+            curve = ComatoseInstantAdaptingPolynomialCurve(region, ccs, self.predictorator, self)
+        elif self.farmer == 'dumb':
+            curve = DumbInstantAdaptingPolynomialCurve(region, ccs, self.predictorator, self)
+            
         region_polycurves[region] = curve
 
         return curve
@@ -56,3 +63,13 @@ class InstantAdaptingPolynomialCurve(AdaptableCurve):
 
     def __call__(self, x):
         return self.curr_curve(x)
+
+class ComatoseInstantAdaptingPolynomialCurve(InstantAdaptingPolynomialCurve):
+    def update(self, year, temps):
+        # Ignore for the comatose farmer
+        pass
+
+class DumbInstantAdaptingPolynomialCurve(InstantAdaptingPolynomialCurve):
+    def update(self, year, temps):
+        # Set temps to None so no adaptation to them
+        super(DumbInstantAdaptingPolynomialCurve, self).update(year, None)

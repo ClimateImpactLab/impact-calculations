@@ -24,6 +24,7 @@ def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=N
             basename = os.path.basename(filepath)[:-5]
 
             # Full Adaptation
+            print "Smart Farmer"
             calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp2(filepath, 'impacts.labor.global20161209', weatherbundle, economicmodel, pvals[basename], callback=lambda v, r, x, y: None)
 
             if profile:
@@ -32,3 +33,16 @@ def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=N
             else:
                 effectset.write_ncdf(targetdir, basename, weatherbundle, calculation, None, "Extensive margin labor impacts, with interpolation and adaptation through interpolation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, basename), push_callback=lambda reg, yr, app: push_callback(reg, yr / 1000, app, baseline_get_predictors, basename), do_interpbins=False, suffix=suffix)
 
+            if do_farmers and not weatherbundle.is_historical():
+                # Lock in the values
+                pvals[basename].lock()
+
+                # Comatose Farmer
+                print "Comatose Farmer"
+                calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp2(filepath, 'impacts.labor.global20161209_comatose', weatherbundle, economicmodel, pvals[basename], callback=lambda v, r, x, y: None)
+                effectset.write_ncdf(targetdir, basename + "Comatose", weatherbundle, calculation, None, "Extensive margin labor impacts, with no adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, basename + '-coma'), push_callback=lambda reg, yr, app: push_callback(reg, yr / 1000, app, baseline_get_predictors, basename), do_interpbins=False, suffix=suffix)
+
+                # Dumb Farmer
+                print "Dumb Farmer"
+                calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp2(filepath, 'impacts.labor.global20161209_dumb', weatherbundle, economicmodel, pvals[basename], callback=lambda v, r, x, y: None)
+                effectset.write_ncdf(targetdir, basename + "Dumb", weatherbundle, calculation, None, "Extensive margin labor impacts, with interpolation and only environmental adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, basename + '-dumb'), push_callback=lambda reg, yr, app: push_callback(reg, yr / 1000, app, baseline_get_predictors, basename), do_interpbins=False, suffix=suffix)
