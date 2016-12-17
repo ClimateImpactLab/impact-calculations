@@ -1,6 +1,6 @@
 import sys, os, itertools, importlib, shutil, csv
 import loadmodels
-import weather, effectset
+import weather, effectset, pvalses
 from adaptation import adapting_curve, curvegenv2
 
 module = sys.argv[2]
@@ -83,8 +83,7 @@ def valpush_callback(region, year, application, get_predictors, model):
     with open(module + "-allpreds.csv", 'a') as fp:
         writer = csv.writer(fp)
         predictors = get_predictors(region)
-        covars = ['meantas', 'loggdppc', 'logpopop']
-        writer.writerow([region, year, model] + [predictors[covar] for covar in covars])
+        writer.writerow([region, year, model] + [predictors[covar] for covar in predictors])
 
 mode_iterators = {'median': iterate_median, 'montecarlo': iterate_montecarlo, 'single': iterate_single, 'writebins': iterate_writebins, 'writevals': iterate_writevals}
 
@@ -104,7 +103,7 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
 
     targetdir = os.path.join(outputdir, batchdir, clim_scenario, clim_model, econ_model, econ_scenario)
 
-    if os.path.exists(targetdir):
+    if os.path.exists(targetdir) and pvalses.has_pval_file(targetdir):
         continue
 
     print targetdir

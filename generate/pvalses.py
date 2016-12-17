@@ -80,3 +80,6 @@ class OnDemandRandomDictionary:
 def make_pval_file(targetdir, pvals):
     with open(os.path.join(targetdir, "pvals.yml"), 'w') as fp:
         fp.write(yaml.dump(dict(pvals)))
+
+def has_pval_file(targetdir):
+    return os.path.exists(os.path.join(targetdir, "pvals.yml"))
