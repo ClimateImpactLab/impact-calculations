@@ -15,7 +15,7 @@ def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=N
         if result_callback is None:
             result_callback = lambda reg, yr, res, calc, mod: None
         if push_callback is None:
-            push_callback = lambda reg, yr, app, predget: None
+            push_callback = lambda reg, yr, app, predget, mod: None
 
         for filepath in glob.glob("/shares/gcp/social/parameters/labor/*.csvv"):
             # Full Adaptation
