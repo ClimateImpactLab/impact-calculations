@@ -42,11 +42,19 @@ def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=N
                 pvals[basename].lock()
 
                 # Comatose Farmer
-                calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.mortality.mortality_csvv_comatose', weatherbundle, economicmodel, pvals[basename])
+                if '_no_popshare_' in filepath:
+                    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.mortality.mortality_csvv_comatose', weatherbundle, economicmodel, pvals[basename])
+                else:
+                    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.mortality.mortality_csvv_comatose_popshare', weatherbundle, economicmodel, pvals[basename])
+
                 effectset.write_ncdf(targetdir, basename + "Comatose", weatherbundle, calculation, baseline_get_predictors, "Mortality impacts, with interpolation but no adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, basename + '-coma'), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, basename + '-coma'), suffix=suffix)
 
                 # Dumb Farmer
-                calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.mortality.mortality_csvv_dumb', weatherbundle, economicmodel, pvals[basename])
+                if '_no_popshare_' in filepath:
+                    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.mortality.mortality_csvv_dumb_popshare', weatherbundle, economicmodel, pvals[basename])
+                else:
+                    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.mortality.mortality_csvv_dumb', weatherbundle, economicmodel, pvals[basename])
+
                 effectset.write_ncdf(targetdir, basename + "Dumb", weatherbundle, calculation, baseline_get_predictors, "Mortality impacts, with interpolation and only environmental adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, basename + '-dumb'), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, basename + '-dumb'), suffix=suffix)
 
     if do_only is None or do_only == 'country':
