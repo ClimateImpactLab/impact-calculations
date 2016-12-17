@@ -1,16 +1,16 @@
 import os, glob
 from generate import weather, server, effectset, caller
-from climate.discover import discover_variable
+from climate.discover import discover_variable, discover_derived_variable
 
 def preload():
     pass
 
 bundle_iterator = weather.iterate_combined_bundles(discover_variable('/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level', 'tasmax'),
-                                                   discover_variable('/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level', 'tasmax_power2'),
-                                                   discover_variable('/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level', 'tasmax_power3'),
-                                                   discover_variable('/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level', 'tasmax_power4'))
+                                                   discover_derived_variable('/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level', 'tasmax', 'power2'),
+                                                   discover_derived_variable('/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level', 'tasmax', 'power3'),
+                                                   discover_derived_variable('/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level', 'tasmax', 'power4'))
 
-def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=None, country_specific=True, result_callback=None, push_callback=None, suffix='', do_farmers=False, do_65plus=True):
+def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=None, country_specific=True, result_callback=None, push_callback=None, suffix='', do_farmers=False, profile=False):
     if do_only is None or do_only == 'acp':
         pass
 
@@ -25,4 +25,9 @@ def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=N
 
             # Full Adaptation
             calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp2(filepath, 'impacts.labor.global20161209', weatherbundle, economicmodel, pvals[basename], callback=lambda v, r, x, y: None)
-            effectset.write_ncdf(targetdir, basename, weatherbundle, calculation, None, "Extensive margin labor impacts, with interpolation and adaptation through interpolation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, basename), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, basename), do_interpbins=False, suffix=suffix)
+
+            if profile:
+                effectset.small_test(weatherbundle, calculation, None, num_regions=10)
+                return
+            else:
+                effectset.write_ncdf(targetdir, basename, weatherbundle, calculation, None, "Extensive margin labor impacts, with interpolation and adaptation through interpolation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, basename), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, basename), do_interpbins=False, suffix=suffix)
