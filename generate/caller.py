@@ -13,10 +13,8 @@ def get_model_by_gcpid(gcpid):
     return get_model(rowvalues[header.index('DMAS ID')])
 
 def standardize(calculation):
-    if calculation.unitses[0] == 'deaths/person/year':
+    if calculation.unitses[0] in ['deaths/person/year', 'minutes']:
         return SpanInstabase(calculation, 2001, 2010, func=lambda x, y: x - y)
-    elif calculation.unitses[0] == 'minutes':
-        return SpanInstabase(calculation, 2001, 2010)
     else:
         assert False, "Unexpected units " + calculation.unitses[0]
 
