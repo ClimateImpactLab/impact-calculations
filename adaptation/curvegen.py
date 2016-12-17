@@ -3,8 +3,6 @@ from openest.models.curve import StepCurve
 from scipy.stats import multivariate_normal
 import csvvfile
 
-
-
 class BinnedStepCurveGenerator(object):
     def __init__(self, xxlimits, predcoeffs, predcols, do_singlebin):
         self.xxlimits = xxlimits
