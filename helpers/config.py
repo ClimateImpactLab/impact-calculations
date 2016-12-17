@@ -18,6 +18,6 @@ def getConfigDictFromSysArgv():
 
 ## Server config
 
-serverSpecificYML = "../server_config.yml"
+serverSpecificYML = "../server.yml"
 
 serverConfig = getConfigDictFromFile(serverSpecificYML)
