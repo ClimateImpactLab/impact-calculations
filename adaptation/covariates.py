@@ -101,8 +101,8 @@ class MeanWeatherCovariator(Covariator):
         assert year < 10000
 
         if temps is not None and year > self.startupdateyear:
-            if len(temps) > 0 and isinstance(temps, np.ndarray):
-                rm_add(self.temp_predictors[region], np.mean(temps[0]), self.numtempyears) # always the first
+            if isinstance(temps, np.ndarray) and len(temps.shape) == 2:
+                rm_add(self.temp_predictors[region], np.mean(temps[:, 0]), self.numtempyears) # always the first
             else:
                 rm_add(self.temp_predictors[region], np.mean(temps), self.numtempyears)
 
