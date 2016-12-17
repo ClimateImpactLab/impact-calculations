@@ -18,6 +18,8 @@ def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=N
             push_callback = lambda reg, yr, app, predget, mod: None
 
         for filepath in glob.glob("/shares/gcp/social/parameters/labor/*.csvv"):
+            basename = os.path.basename(filepath)[:-5]
+
             # Full Adaptation
             calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp2(filepath, 'impacts.labor.global20161209', weatherbundle, economicmodel, pvals[os.path.basename(filepath)], callback=lambda v, r, x, y: None)
-            effectset.write_ncdf(targetdir, "InterpolatedLaborExtensive", weatherbundle, calculation, None, "Extensive margin labor impacts, with interpolation and adaptation through interpolation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, 'all'), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, 'all'), do_interpbins=False, suffix=suffix)
+            effectset.write_ncdf(targetdir, "InterpolatedLaborExtensive", weatherbundle, calculation, None, "Extensive margin labor impacts, with interpolation and adaptation through interpolation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, basename), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, basename), do_interpbins=False, suffix=suffix)
