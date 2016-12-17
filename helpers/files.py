@@ -1,8 +1,7 @@
 import os
 
 def sharedpath(subpath):
-    return os.path.join('/shares/gcp', subpath)
+    return os.path.join(server_config['shared_dir'], subpath)
 
 if __name__ == '__main__':
-    os.chdir("/shares/gcp")
     print datapath('testing')
