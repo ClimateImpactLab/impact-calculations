@@ -5,7 +5,10 @@ from climate.discover import discover_variable
 def preload():
     pass
 
-bundle_iterator = weather.iterate_bundles(discover_variable('/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level', 'tasmax'))
+bundle_iterator = weather.iterate_combined_bundles(discover_variable('/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level', 'tasmax'),
+                                                   discover_variable('/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level', 'tasmax_power2'),
+                                                   discover_variable('/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level', 'tasmax_power3'),
+                                                   discover_variable('/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level', 'tasmax_power4'))
 
 def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=None, country_specific=True, result_callback=None, push_callback=None, suffix='', do_farmers=False, do_65plus=True):
     if do_only is None or do_only == 'acp':
