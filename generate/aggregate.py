@@ -170,13 +170,13 @@ def make_levels(targetdir, filename, get_population, dimensions_template=None, m
 
     stweight = get_cached_population(get_population, years)
 
-    for key, variable in iter_yearreg_variables(reader):
+    for key, variable in agglib.iter_yearreg_variables(reader):
         dstvalues = np.zeros((len(years), len(regions)))
         srcvalues = variable[:, :]
         for ii in range(len(regions)):
             dstvalues[:, ii] = srcvalues[:, ii] * stweight.get_time(regions[ii])
 
-        copy_yearreg_variable(writer, variable, key, dstvalues, "(levels)")
+        agglib.copy_timereg_variable(writer, variable, key, dstvalues, "(levels)")
 
     reader.close()
     if dimensions_template is not None:
