@@ -9,7 +9,7 @@ suffix = "-aggregated"
 
 costs_command = "Rscript generate/cost_curves.R \"%s\" %s" # resultfile tempsfile
 
-checkfile = 'check-2016-05-02.txt'
+checkfile = 'check-2016-12-18.txt'
 
 batchfilter = lambda batch: 'batch' in batch
 targetdirfilter = lambda targetdir: 'SSP3' in targetdir and 'Env-Growth' in targetdir and checkfile not in os.listdir(targetdir)
