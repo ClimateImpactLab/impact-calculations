@@ -227,6 +227,7 @@ class MultivariateHistoricalWeatherBundle2(DailyWeatherBundle):
     def __init__(self, pastreaders, futureyear_end, seed, hierarchy='hierarchy.csv'):
         super(MultivariateHistoricalWeatherBundle2, self).__init__(hierarchy)
         self.pastreaders = pastreaders
+        self.seed = seed # Save for get_subset
 
         onereader = self.pastreaders[0]
         years = onereader.get_years()
@@ -280,16 +281,20 @@ class MultivariateHistoricalWeatherBundle2(DailyWeatherBundle):
                 yield (1000 * year) + (yyyyddd % 1000), allweather
             else:
                 yield [year], allweather
+            year += 1
 
     def get_years(self):
         return range(self.pastyear_start, self.futureyear_end + 1)
 
-    ## XXX: THESE BOTH SEEM WRONG
     def get_dimension(self):
-        return [pastreader.get_dimension() for pastreader in self.pastreaders]
+        alldims = []
+        for pastreader in self.pastreaders:
+            alldims.extend(pastreader.get_dimension())
+
+        return alldims
 
     def get_subset(self, index):
-        return MultivariateHistoricalWeatherBundle2(*self.pastreaders[index])
+        return RepeatedHistoricalWeatherBundle(self.pastreaders[index], self.futureyear_end, self.seed)
 
 class RepeatedHistoricalWeatherBundle(DailyWeatherBundle):
     def __init__(self, reader, futureyear_end, seed, hierarchy='hierarchy.csv'):

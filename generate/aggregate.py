@@ -11,7 +11,7 @@ costs_command = "Rscript generate/cost_curves.R \"%s\" %s" # resultfile tempsfil
 
 checkfile = 'check-2016-12-18.txt'
 
-batchfilter = lambda batch: 'batch' in batch
+batchfilter = lambda batch: 'batch' in batch or batch == 'median'
 targetdirfilter = lambda targetdir: 'SSP3' in targetdir and 'Env-Growth' in targetdir and checkfile not in os.listdir(targetdir)
 
 # The full population, if we just read it.  Only 1 at a time (it's big!)
@@ -170,7 +170,7 @@ def make_levels(targetdir, filename, get_population, dimensions_template=None, m
 
     stweight = get_cached_population(get_population, years)
 
-    for key, variable in agglib.iter_yearreg_variables(reader):
+    for key, variable in agglib.iter_timereg_variables(reader):
         dstvalues = np.zeros((len(years), len(regions)))
         srcvalues = variable[:, :]
         for ii in range(len(regions)):
@@ -217,7 +217,7 @@ if __name__ == '__main__':
                 print filename
 
                 try:
-                    if filename in ['interpolated_mortality_all_ages.nc4', 'interpolated_mortality65_plus.nc4']:
+                    if filename in ['interpolated_mortality_all_ages.nc4', 'interpolated_mortality65_plus.nc4'] or filename[0:len('global_interaction')] == 'global_interaction':
                         # Generate costs
                         tempsfile = '/shares/gcp/outputs/temps/%s/%s/temps.nc4' % (clim_scenario, clim_model)
                         os.system(costs_command % (os.path.join(targetdir, filename), tempsfile))
