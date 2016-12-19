@@ -48,6 +48,9 @@ def simultaneous_application(weatherbundle, calculation, get_apply_args, regions
 
     calculation.cleanup()
 
+def get_ncdf_path(targetdir, camelcase, suffix=''):
+    return os.path.join(targetdir, undercase(camelcase) + suffix + '.nc4')
+
 def write_ncdf(targetdir, camelcase, weatherbundle, calculation, get_apply_args, description, calculation_dependencies, filter_region=None, result_callback=None, push_callback=None, subset=None, do_interpbins=False, suffix=''):
     if filter_region is None:
         my_regions = weatherbundle.regions
@@ -57,7 +60,7 @@ def write_ncdf(targetdir, camelcase, weatherbundle, calculation, get_apply_args,
             if filter_region(weatherbundle.regions[ii]):
                 my_regions.append(weatherbundle.regions[ii])
 
-    rootgrp = Dataset(os.path.join(targetdir, undercase(camelcase) + suffix + '.nc4'), 'w', format='NETCDF4')
+    rootgrp = Dataset(get_ncdf_path(targetdir, camelcase, suffix), 'w', format='NETCDF4')
     rootgrp.description = description
     rootgrp.version = headre.dated_version(camelcase)
     rootgrp.dependencies = ', '.join([weatherbundle.version] + weatherbundle.dependencies + calculation_dependencies)
