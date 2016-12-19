@@ -77,9 +77,30 @@ class OnDemandRandomDictionary:
 
         return seed
 
+def get_pval_file(targetdir):
+    return os.path.join(targetdir, "pvals.yml")
+
 def make_pval_file(targetdir, pvals):
-    with open(os.path.join(targetdir, "pvals.yml"), 'w') as fp:
+    with open(get_pval_file(targetdir), 'w') as fp:
         fp.write(yaml.dump(dict(pvals)))
 
 def has_pval_file(targetdir):
-    return os.path.exists(os.path.join(targetdir, "pvals.yml"))
+    return os.path.exists(get_pval_file(targetdir))
+
+def read_pval_file(targetdir, lock=False):
+    with open(get_pval_file(targetdir), 'r') as fp:
+        pvals = yaml.load(fp)
+
+        if len(pvals) == 1 and 'all' in pvals:
+            return ConstantPvals(pvals['all'])
+
+        odrp = OnDemandRandomPvals()
+        for name in pvals:
+            odrp.dicts[name] = OnDemandRandomDictionary()
+            odrp.dicts[name].values = pvals[name]
+            odrp.dicts[name].locked = lock
+
+        odrp.dicts = pvals
+        odrp.locked = lock
+
+        return odrp
