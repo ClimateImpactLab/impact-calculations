@@ -14,7 +14,7 @@ class ConstantCurveGenerator(CurveGenerator):
 region_polycurves = {}
 
 class LOrderPolynomialCurveGenerator(CurveGenerator):
-    def __init__(self, indepunits, depenunits, order, gamma, predictorator, covariates, callback=None, farmer='full'):
+    def __init__(self, indepunits, depenunits, order, gamma, predictorator, covariates, callback=None, farmer='full', save_polycurve=True):
         super(LOrderPolynomialCurveGenerator, self).__init__(indepunits, depenunits)
 
         self.order = order
@@ -23,6 +23,7 @@ class LOrderPolynomialCurveGenerator(CurveGenerator):
         self.covariates = covariates
         self.callback = callback
         self.farmer = farmer
+        self.save_polycurve = save_polycurve
 
         assert len(self.covariates) * self.order == len(self.gamma) - self.order, "%d x %d <> %d - %d" % (len(self.covariates), self.order, len(self.gamma), self.order)
 
@@ -45,8 +46,9 @@ class LOrderPolynomialCurveGenerator(CurveGenerator):
             curve = ComatoseInstantAdaptingPolynomialCurve(region, ccs, self.predictorator, self)
         elif self.farmer == 'dumb':
             curve = DumbInstantAdaptingPolynomialCurve(region, ccs, self.predictorator, self)
-            
-        region_polycurves[region] = curve
+
+        if self.save_polycurve:
+            region_polycurves[region] = curve
 
         return curve
 
