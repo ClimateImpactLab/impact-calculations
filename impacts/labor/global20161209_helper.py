@@ -31,7 +31,7 @@ def prepare_interp_raw2(csvv, weatherbundle, economicmodel, qvals, callback, far
     tempcurvegen = LOrderPolynomialCurveGenerator('C', 'minutes', 4, polyvals, predgen, covarnames, callback=lambda r, x, y: callback('temp', r, x, y), farmer=farmer)
     tempeffect = YearlyDividedPolynomialAverageDay('minutes', tempcurvegen, 'the quartic temperature effect')
 
-    negtempoffsetgen = LOrderPolynomialCurveGenerator('C', 'minutes', 4, -polyvals, predgen, covarnames, farmer=farmer)
+    negtempoffsetgen = LOrderPolynomialCurveGenerator('C', 'minutes', 4, -polyvals, predgen, covarnames, farmer=farmer, save_polycurve=False)
     negtempeffect = YearlyAverageDay('minutes', negtempoffsetgen, 'offset to normalize to 27 degrees', weather_change=lambda temps: np.ones(len(temps)) * 27)
 
     zerocurvegen = ConstantCurveGenerator('C', 'minutes', FlatCurve(csvv['gamma'][-1]))
