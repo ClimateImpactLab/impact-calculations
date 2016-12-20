@@ -134,7 +134,7 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
     if config['mode'] == 'writebins':
         mod.produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=do_only, do_farmers=False, result_callback=binresult_callback, push_callback=binpush_callback, redocheck=config.get('redocheck', False))
     elif config['mode'] == 'writevals':
-        mod.produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=do_only, do_farmers=False, result_callback=valresult_callback, push_callback=valpush_callback, redocheck=config.get('redocheck', False))
+        mod.produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=do_only, do_farmers=False, result_callback=valresult_callback, push_callback=valpush_callback, redocheck=config.get('redocheck', False), diagnosefile=os.path.join(targetdir, config['module'] + "-allcalcs.csv"))
     elif config['mode'] == 'profile':
         mod.produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=do_only, profile=True, redocheck=config.get('redocheck', False))
         pr.disable()
