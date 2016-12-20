@@ -2,7 +2,7 @@ import re, yaml, os, time
 import numpy as np
 from netCDF4 import Dataset
 import helpers.header as headre
-from openest.generate import retrieve
+from openest.generate import retrieve, diagnostic
 from adaptation import adapting_curve
 import server, nc4writer
 from pvalses import *
@@ -51,7 +51,7 @@ def simultaneous_application(weatherbundle, calculation, get_apply_args, regions
 def get_ncdf_path(targetdir, camelcase, suffix=''):
     return os.path.join(targetdir, undercase(camelcase) + suffix + '.nc4')
 
-def write_ncdf(targetdir, camelcase, weatherbundle, calculation, get_apply_args, description, calculation_dependencies, filter_region=None, result_callback=None, push_callback=None, subset=None, do_interpbins=False, suffix=''):
+def write_ncdf(targetdir, camelcase, weatherbundle, calculation, get_apply_args, description, calculation_dependencies, filter_region=None, result_callback=None, push_callback=None, subset=None, do_interpbins=False, suffix='', diagnosefile=False):
     if filter_region is None:
         my_regions = weatherbundle.regions
     else:
@@ -100,6 +100,9 @@ def write_ncdf(targetdir, camelcase, weatherbundle, calculation, get_apply_args,
 
         betasdata = np.zeros((nc4writer.tbinslen, len(yeardata), len(my_regions)))
 
+    if diagnosefile:
+        diagnostic.begin(diagnosefile)
+
     for ii, year, results in simultaneous_application(weatherbundle, calculation, get_apply_args, regions=my_regions, push_callback=push_callback):
         if result_callback is not None:
             result_callback(my_regions[ii], year, results, calculation)
@@ -108,6 +111,11 @@ def write_ncdf(targetdir, camelcase, weatherbundle, calculation, get_apply_args,
         if do_interpbins:
             curve = adapting_curve.region_stepcurves[my_regions[ii]].curr_curve
             betasdata[:, year - yeardata[0], ii] = list(curve.yy[:nc4writer.dropbin]) + list(curve.yy[nc4writer.dropbin+1:])
+        if diagnosefile:
+            diagnostic.finish(my_regions[ii], year)
+
+    if diagnosefile:
+        diagnostic.close()
 
     for col in range(len(results)):
         columns[col][:, :] = columndata[col]
