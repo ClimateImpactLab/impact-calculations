@@ -67,6 +67,9 @@ class OnDemandRandomDictionary:
 
     def get_seed(self, plus=0):
         if self.locked:
+            if 'seed' not in self.values:
+                print "WARNING: Missing seed in locked MC.  Assuming median."
+                return None
             return self.values['seed'][0] + plus
 
         seed = int(time.time()) + plus

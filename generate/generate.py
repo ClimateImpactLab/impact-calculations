@@ -111,7 +111,7 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
     targetdir = os.path.join(config['outputdir'], batchdir, clim_scenario, clim_model, econ_model, econ_scenario)
 
     if config.get('redocheck', False):
-        if os.path.exists(targetdir) and os.path.exists(os.path.join(targetdir), config['redocheck']):
+        if os.path.exists(targetdir) and os.path.exists(os.path.join(targetdir, config['redocheck'])):
             continue
 
         if pvalses.has_pval_file(targetdir) and time.time() - os.path.getmtime(pvalses.get_pval_file(targetdir)) < REDOCHECK_DELAY:
@@ -121,7 +121,8 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
             continue
 
     print targetdir
-    os.makedirs(targetdir)
+    if not os.path.exists(targetdir):
+        os.makedirs(targetdir)
 
     if config.get('redocheck', False) and effectset.has_pval_file(targetdir):
         pvals = effectset.read_pval_file(targetdir)

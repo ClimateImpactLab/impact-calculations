@@ -11,7 +11,8 @@ bundle_iterator = weather.iterate_combined_bundles(discover_variable('/shares/gc
                                                    discover_derived_variable('/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level', 'tasmax', 'power4'))
 
 def check_doit(redocheck, targetdir, basename, suffix):
-    if not redocheck
+    if not redocheck:
+        print "REDO: Missing", basename, suffix
         return True
 
     filepath = effectset.get_ncdf_path(targetdir, basename, suffix)
@@ -19,7 +20,11 @@ def check_doit(redocheck, targetdir, basename, suffix):
         return True
 
     # Check if has 100 valid years
-    return not check_result_100years(filepath):
+    if not checks.check_result_100years(filepath):
+        print "REDO: Incomplete", basename, suffix
+        return True
+
+    return False
 
 def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=None, country_specific=True, result_callback=None, push_callback=None, suffix='', do_farmers=False, profile=False, redocheck=False):
     if do_only is None or do_only == 'acp':
