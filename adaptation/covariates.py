@@ -137,7 +137,10 @@ class MeanBinsCovariator(Covariator):
 
         """Allow temps = None for dumb farmer who cannot adapt to temperature."""
         if temps is not None and year > self.startupdateyear:
-            if len(temps.shape) == 2:
+            if len(temps.shape) == 1 and len(temps) == len(self.binlimits) - 1:
+                for kk in range(len(self.binlimits) - 1):
+                    rm_add(self.temp_predictors[region][kk], np.sum(temps[kk]), self.numtempyears)
+            elif len(temps.shape) == 2:
                 if temps.shape[0] == 12 and temps.shape[1] == len(self.binlimits) - 1:
                     for kk in range(len(self.binlimits) - 1):
                         rm_add(self.temp_predictors[region][kk], np.sum(temps[:, kk]), self.numtempyears)
