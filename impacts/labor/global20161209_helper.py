@@ -13,6 +13,8 @@ covarnames = ['tasmax', 'loggdppc', 'logpopop']
 def prepare_interp_raw2(csvv, weatherbundle, economicmodel, qvals, callback, farmer='full'):
     predgen = covariates.CombinedCovariator([covariates.MeanWeatherCovariator(weatherbundle.get_subset(0), 15, 2015),
                                              covariates.EconomicCovariator(economicmodel, 3, 2015)])
+    predgen2 = covariates.CombinedCovariator([covariates.MeanWeatherCovariator(weatherbundle.get_subset(0), 15, 2015),
+                                              covariates.EconomicCovariator(economicmodel, 3, 2015)])
 
     csvvfile.collapse_bang(csvv, qvals.get_seed())
 
@@ -31,11 +33,11 @@ def prepare_interp_raw2(csvv, weatherbundle, economicmodel, qvals, callback, far
     tempcurvegen = LOrderPolynomialCurveGenerator('C', 'minutes', 4, polyvals, predgen, covarnames, callback=lambda r, x, y: callback('temp', r, x, y), farmer=farmer)
     tempeffect = YearlyDividedPolynomialAverageDay('minutes', tempcurvegen, 'the quartic temperature effect')
 
-    negtempoffsetgen = LOrderPolynomialCurveGenerator('C', 'minutes', 4, -polyvals, predgen, covarnames, farmer=farmer, save_polycurve=False)
+    negtempoffsetgen = LOrderPolynomialCurveGenerator('C', 'minutes', 4, -polyvals, predgen2, covarnames, farmer=farmer, save_polycurve=False)
     negtempeffect = YearlyAverageDay('minutes', negtempoffsetgen, 'offset to normalize to 27 degrees', weather_change=lambda temps: np.ones(len(temps)) * 27)
 
     zerocurvegen = ConstantCurveGenerator('C', 'minutes', FlatCurve(csvv['gamma'][-1]))
-    zeroeffect = YearlyAverageDay('minutes', zerocurvegen, "effect from days less than 0 C", weather_change=lambda temps: temps < 0)
+    zeroeffect = YearlyAverageDay('minutes', zerocurvegen, "effect from days less than 0 C", weather_change=lambda temps: temps[:, 0] < 0)
 
     calculation = Sum([tempeffect, negtempeffect, zeroeffect])
 
