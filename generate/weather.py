@@ -161,10 +161,12 @@ class UnivariatePastFutureWeatherBundle(DailyWeatherBundle):
 
     def yearbundles(self, maxyear=np.inf):
         for values in self.pastreader.read_iterator_to(min(self.futureyear1, maxyear)):
+            assert values[1].shape[1] == len(self.regions)
             yield values
 
         if maxyear > self.futureyear1:
             for values in self.futurereader.read_iterator_to(maxyear):
+                assert values[1].shape[1] == len(self.regions)
                 yield values
 
     def get_years(self):
