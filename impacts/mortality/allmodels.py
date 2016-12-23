@@ -9,7 +9,8 @@ def preload():
     from datastore import library
     library.get_data('mortality-deathrates', 'deaths/person')
 
-bundle_iterator = weather.iterate_bundles(discover_tas_binned(files.sharedpath('climate/BCSD/aggregation/cmip5_bins/IR_level')))
+def get_bundle_iterator():
+    return weather.iterate_bundles(discover_tas_binned(files.sharedpath('climate/BCSD/aggregation/cmip5_bins/IR_level')))
 
 def check_doit(redocheck, targetdir, basename, suffix):
     if not redocheck:
