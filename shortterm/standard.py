@@ -1,6 +1,6 @@
 import glob, os, csv
 from impacts.conflict import standard
-from impacts.weather import MultivariateHistoricalWeatherBundle
+from generate.weather import MultivariateHistoricalWeatherBundle
 from adaptation.econmodel import iterate_econmodels
 import curvegen, effectset
 

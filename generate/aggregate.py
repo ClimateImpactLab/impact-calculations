@@ -1,4 +1,4 @@
-import os, Queue
+import os, Queue, traceback
 import numpy as np
 from netCDF4 import Dataset
 import nc4writer, agglib
@@ -6,13 +6,14 @@ import nc4writer, agglib
 costs_suffix = '-costs'
 levels_suffix = '-levels'
 suffix = "-aggregated"
+missing_only = True
 
 costs_command = "Rscript generate/cost_curves.R \"%s\" %s" # resultfile tempsfile
 
 checkfile = 'check-2016-12-18.txt'
 
 batchfilter = lambda batch: 'batch' in batch or batch == 'median'
-targetdirfilter = lambda targetdir: 'SSP3' in targetdir and 'Env-Growth' in targetdir and checkfile not in os.listdir(targetdir)
+targetdirfilter = lambda targetdir: 'SSP3' in targetdir and 'Env-Growth' in targetdir # and checkfile not in os.listdir(targetdir)
 
 # The full population, if we just read it.  Only 1 at a time (it's big!)
 # Tuple of (get_population, minyear, maxyear, population)
@@ -217,26 +218,32 @@ if __name__ == '__main__':
                 print filename
 
                 try:
-                    if filename in ['interpolated_mortality_all_ages.nc4', 'interpolated_mortality65_plus.nc4'] or filename[0:len('global_interaction')] == 'global_interaction':
+                    if filename in ['interpolated_mortality_all_ages.nc4', 'interpolated_mortality65_plus.nc4', 'global_interaction_best.nc4', 'global_interaction_gmfd.nc4', 'global_interaction_no_popshare_best.nc4', 'global_interaction_no_popshare_gmfd.nc4']:
                         # Generate costs
                         tempsfile = '/shares/gcp/outputs/temps/%s/%s/temps.nc4' % (clim_scenario, clim_model)
-                        os.system(costs_command % (os.path.join(targetdir, filename), tempsfile))
+
+                        if not missing_only or not os.path.exists(os.path.join(targetdir, filename[:-4] + costs_suffix + '.nc4')):
+                            os.system(costs_command % (os.path.join(targetdir, filename), tempsfile))
 
                         # Levels of costs
-                        make_costs_levels(targetdir, filename[:-4] + costs_suffix + '.nc4', get_population)
+                        if not missing_only or not os.path.exists(os.path.join(targetdir, filename[:-4] + costs_suffix + levels_suffix + '.nc4')):
+                            make_costs_levels(targetdir, filename[:-4] + costs_suffix + '.nc4', get_population)
 
                         # Aggregate costs
-                        make_costs_aggregate(targetdir, filename[:-4] + costs_suffix + '.nc4', get_population)
+                        if not missing_only or not os.path.exists(os.path.join(targetdir, filename[:-4] + costs_suffix + suffix + '.nc4')):
+                            make_costs_aggregate(targetdir, filename[:-4] + costs_suffix + '.nc4', get_population)
 
                     # Generate total deaths
-                    make_levels(targetdir, filename, get_population)
+                    if not missing_only or not os.path.exists(os.path.join(targetdir, filename[:-4] + levels_suffix + '.nc4')):
+                        make_levels(targetdir, filename, get_population)
 
                     # Aggregate impacts
-                    make_aggregates(targetdir, filename, get_population)
+                    if not missing_only or not os.path.exists(os.path.join(targetdir, filename[:-4] + suffix + '.nc4')):
+                        make_aggregates(targetdir, filename, get_population)
 
                 except Exception as ex:
                     print "Failed."
-                    print ex
+                    traceback.print_exc()
 
         with open(os.path.join(targetdir, checkfile), 'w') as fp:
             fp.write("END")

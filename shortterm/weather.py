@@ -1,7 +1,7 @@
 import numpy as np
 from netCDF4 import Dataset
 from scipy.stats import norm
-from impacts.weather import WeatherBundle, ReaderWeatherBundle
+from generate.weather import WeatherBundle, ReaderWeatherBundle
 from climate import forecasts, forecastreader
 
 class ForecastBundle(ReaderWeatherBundle):

@@ -1,6 +1,6 @@
 source ~/aggregator/env/bin/activate
 cd ..
-python -m shortterm.median /shares/gcp/outputs/conflict/impacts-formosan
+python -m shortterm.median /shares/gcp/outputs/conflict/impacts-legionary
 
 
 
