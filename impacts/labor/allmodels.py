@@ -6,10 +6,11 @@ from climate.discover import discover_variable, discover_derived_variable
 def preload():
     pass
 
-bundle_iterator = weather.iterate_combined_bundles(discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tasmax'),
-                                                   discover_derived_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tasmax', 'power2'),
-                                                   discover_derived_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tasmax', 'power3'),
-                                                   discover_derived_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tasmax', 'power4'))
+def get_bundle_iterator():
+    return weather.iterate_combined_bundles(discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tasmax'),
+                                            discover_derived_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tasmax', 'power2'),
+                                            discover_derived_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tasmax', 'power3'),
+                                            discover_derived_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tasmax', 'power4'))
 
 def check_doit(redocheck, targetdir, basename, suffix):
     if not redocheck:
@@ -18,6 +19,7 @@ def check_doit(redocheck, targetdir, basename, suffix):
 
     filepath = effectset.get_ncdf_path(targetdir, basename, suffix)
     if not os.path.exists(filepath):
+        print "REDO: Cannot find", filepath
         return True
 
     # Check if has 100 valid years

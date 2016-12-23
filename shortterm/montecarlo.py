@@ -1,7 +1,7 @@
 import sys, os
 import standard, weather
 from climate import forecasts, forecastreader
-from impacts import pvalses
+from generate import pvalses
 
 do_only = None
 outputdir = sys.argv[1]
