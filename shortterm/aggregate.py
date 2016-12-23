@@ -1,8 +1,7 @@
 import os, Queue
 import numpy as np
 from netCDF4 import Dataset
-from impacts import nc4writer
-from generate import agglib
+from generate import nc4writer, agglib
 
 suffix = "-aggregated"
 checkfile = 'check-2016-05-02.txt'

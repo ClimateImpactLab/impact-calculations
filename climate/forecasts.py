@@ -1,14 +1,14 @@
 import numpy as np
 from netCDF4 import Dataset
 
-temp_path = "/shares/gcp/IRI/tas_aggregated_forecast_2012-2016Aug.nc"
-prcp_path = "/shares/gcp/IRI/prcp_aggregated_forecast_2012-2016Aug.nc"
-temp_zscore_path = "/shares/gcp/IRI/tas_zscores_aggregated_forecast_2012-2016Aug.nc"
-prcp_zscore_path = "/shares/gcp/IRI/prcp_zscores_aggregated_forecast_2012-2016Aug.nc"
-temp_normstddev_path = "/shares/gcp/IRI/tas_normSTDDEV_aggregated_forecast.nc"
-prcp_normstddev_path = "/shares/gcp/IRI/prcp_normSTDDEV_aggregated_forecast.nc"
-temp_climate_path = "/shares/gcp/IRI/tas_aggregated_climatology_1981-2010.nc"
-prcp_climate_path = "/shares/gcp/IRI/prcp_aggregated_climatology_1981-2010.nc"
+temp_path = "/shares/gcp/climate/IRI/tas_aggregated_forecast_2012-2016Dec.nc"
+prcp_path = "/shares/gcp/climate/IRI/prcp_aggregated_forecast_2012-2016Dec.nc"
+temp_zscore_path = "/shares/gcp/climate/IRI/tas_zscores_aggregated_forecast_2012-2016Dec.nc"
+prcp_zscore_path = "/shares/gcp/climate/IRI/prcp_zscores_aggregated_forecast_2012-2016Dec.nc"
+temp_normstddev_path = "/shares/gcp/climate/IRI/tas_normSTDDEV_aggregated_forecast.nc"
+prcp_normstddev_path = "/shares/gcp/climate/IRI/prcp_normSTDDEV_aggregated_forecast.nc"
+temp_climate_path = "/shares/gcp/climate/IRI/tas_aggregated_climatology_1981-2010.nc"
+prcp_climate_path = "/shares/gcp/climate/IRI/prcp_aggregated_climatology_1981-2010.nc"
 
 def readncdf_lastpred(filepath, variable):
     """

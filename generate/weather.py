@@ -161,10 +161,12 @@ class UnivariatePastFutureWeatherBundle(DailyWeatherBundle):
 
     def yearbundles(self, maxyear=np.inf):
         for values in self.pastreader.read_iterator_to(min(self.futureyear1, maxyear)):
+            assert values[1].shape[1] == len(self.regions)
             yield values
 
         if maxyear > self.futureyear1:
             for values in self.futurereader.read_iterator_to(maxyear):
+                assert values[1].shape[1] == len(self.regions)
                 yield values
 
     def get_years(self):
@@ -222,6 +224,80 @@ class MultivariatePastFutureWeatherBundle(DailyWeatherBundle):
     def get_subset(self, index):
         return UnivariatePastFutureWeatherBundle(*self.pastfuturereaders[index])
 
+class MultivariateHistoricalWeatherBundle2(DailyWeatherBundle):
+    """Quick fix, since MultivariateHistoricalWeatherBundle doesn't work with list."""
+    def __init__(self, pastreaders, futureyear_end, seed, hierarchy='hierarchy.csv'):
+        super(MultivariateHistoricalWeatherBundle2, self).__init__(hierarchy)
+        self.pastreaders = pastreaders
+        self.seed = seed # Save for get_subset
+
+        onereader = self.pastreaders[0]
+        years = onereader.get_years()
+        self.pastyear_start = min(years)
+        self.pastyear_end = max(years)
+        self.futureyear_end = futureyear_end
+
+        # Generate the full list of past years
+        self.pastyears = []
+        if seed is None:
+            # Cycle in year order
+            year = self.pastyear_start
+            pastyear = self.pastyear_start
+            dt = 1
+            while year <= self.futureyear_end:
+                self.pastyears.append(pastyear)
+                year += 1
+                pastyear += dt
+                if pastyear == self.pastyear_end:
+                    dt = -1
+                if pastyear == self.pastyear_start:
+                    dt = 1
+        else:
+            # Randomly choose years with replacement
+            np.random.seed(seed)
+            choices = range(self.pastyear_start, self.pastyear_end + 1)
+            self.pastyears = np.random.choice(choices, self.futureyear_end - self.pastyear_start + 1)
+
+        self.load_readermeta(onereader)
+        self.load_regions()
+
+    def is_historical(self):
+        return True
+
+    def yearbundles(self, maxyear=np.inf):
+        year = self.pastyear_start
+        for pastyear in self.pastyears:
+            allweather = None
+            for pastreader in self.pastreaders:
+                yyyyddd, weather = pastreader.read_year(pastyear)
+
+                if len(weather.shape) == 2:
+                    weather = np.expand_dims(weather, axis=2)
+
+                if allweather is None:
+                    allweather = weather
+                else:
+                    allweather = np.concatenate((allweather, weather), axis=2)
+
+            if yyyyddd[0] > 10000:
+                yield (1000 * year) + (yyyyddd % 1000), allweather
+            else:
+                yield [year], allweather
+            year += 1
+
+    def get_years(self):
+        return range(self.pastyear_start, self.futureyear_end + 1)
+
+    def get_dimension(self):
+        alldims = []
+        for pastreader in self.pastreaders:
+            alldims.extend(pastreader.get_dimension())
+
+        return alldims
+
+    def get_subset(self, index):
+        return RepeatedHistoricalWeatherBundle(self.pastreaders[index], self.futureyear_end, self.seed)
+
 class RepeatedHistoricalWeatherBundle(DailyWeatherBundle):
     def __init__(self, reader, futureyear_end, seed, hierarchy='hierarchy.csv'):
         super(RepeatedHistoricalWeatherBundle, self).__init__(hierarchy)
@@ -263,7 +339,11 @@ class RepeatedHistoricalWeatherBundle(DailyWeatherBundle):
     @staticmethod
     def make_historical(weatherbundle, seed):
         futureyear_end = weatherbundle.get_years()[-1]
-        return RepeatedHistoricalWeatherBundle(weatherbundle.pastreader, futureyear_end, seed)
+        if isinstance(weatherbundle, MultivariatePastFutureWeatherBundle):
+            pastreaders = [pastreader for pastreader, futurereader in weatherbundle.pastfuturereaders]
+            return MultivariateHistoricalWeatherBundle2(pastreaders, futureyear_end, seed)
+        else:
+            return RepeatedHistoricalWeatherBundle(weatherbundle.pastreader, futureyear_end, seed)
 
     def yearbundles(self, maxyear=np.inf):
         year = self.pastyear_start

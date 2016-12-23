@@ -1,7 +1,7 @@
 import sys, os
 import standard, weather, effectset
 from climate import forecasts, forecastreader
-from impacts import pvalses
+from generate import pvalses
 
 pvals = pvalses.ConstantPvals(.5)
 
