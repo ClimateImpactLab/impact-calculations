@@ -1,14 +1,15 @@
 import os, glob
+from helpers import files
 from generate import weather, server, effectset, caller, checks
 from climate.discover import discover_variable, discover_derived_variable
 
 def preload():
     pass
 
-bundle_iterator = weather.iterate_combined_bundles(discover_variable('/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level', 'tasmax'),
-                                                   discover_derived_variable('/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level', 'tasmax', 'power2'),
-                                                   discover_derived_variable('/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level', 'tasmax', 'power3'),
-                                                   discover_derived_variable('/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level', 'tasmax', 'power4'))
+bundle_iterator = weather.iterate_combined_bundles(discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tasmax'),
+                                                   discover_derived_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tasmax', 'power2'),
+                                                   discover_derived_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tasmax', 'power3'),
+                                                   discover_derived_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tasmax', 'power4'))
 
 def check_doit(redocheck, targetdir, basename, suffix):
     if not redocheck:
@@ -36,7 +37,7 @@ def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=N
         if push_callback is None:
             push_callback = lambda reg, yr, app, predget, mod: None
 
-        for filepath in glob.glob("/shares/gcp/social/parameters/labor/*.csvv"):
+        for filepath in glob.glob(files.sharedpath("social/parameters/labor/*.csvv")):
             basename = os.path.basename(filepath)[:-5]
 
             # Full Adaptation
