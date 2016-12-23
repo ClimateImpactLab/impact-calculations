@@ -1,8 +1,9 @@
 # Setup
 
 """
-rsync -avz /shares/gcp/BCSD jrising@dtn.brc.berkeley.edu:/global/scratch/jrising/
-rsync -avz /shares/gcp/data jrising@dtn.brc.berkeley.edu:/global/scratch/jrising/
+rsync -avz /shares/gcp/climate/BCSD/aggregation/cmip5/IR_level/ jrising@dtn.brc.berkeley.edu:/global/scratch/jrising/climate/BCSD/aggregation/cmip5/IR_level/
+
+rsync -avz /shares/gcp/social/ jrising@dtn.brc.berkeley.edu:/global/scratch/jrising/social/
 
 ssh jrising@hpc.brc.berkeley.edu
 mkdir gcp

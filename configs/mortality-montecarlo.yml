@@ -1,0 +1,3 @@
+module: mortality
+mode: montecarlo
+outputdir: /shares/gcp/outputs/mortality/impacts-pharaoh

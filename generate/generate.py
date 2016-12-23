@@ -1,4 +1,4 @@
-import sys, os, itertools, importlib, shutil, csv
+import sys, os, itertools, importlib, shutil, csv, time
 import loadmodels
 import weather, effectset, pvalses
 from adaptation import adapting_curve, curvegenv2
@@ -7,29 +7,31 @@ import cProfile, pstats, StringIO
 
 config = config.getConfigDictFromSysArgv()
 
+REDOCHECK_DELAY = 12*60*60
+
 targetdir = None # The current targetdir
 
 def iterate_median():
-    for clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in loadmodels.random_order(mod.bundle_iterator):
+    for clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in loadmodels.random_order(mod.get_bundle_iterator()):
         pvals = effectset.ConstantPvals(.5)
         yield 'median', pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
 
 def iterate_montecarlo():
     for batch in itertools.count():
-        for clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in loadmodels.random_order(mod.bundle_iterator):
+        for clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in loadmodels.random_order(mod.get_bundle_iterator()):
             pvals = effectset.OnDemandRandomPvals()
             yield 'batch' + str(batch), pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
 
 def iterate_single():
-    clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel = loadmodels.single(mod.bundle_iterator)
+    clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel = loadmodels.single(mod.get_bundle_iterator())
     pvals = effectset.ConstantPvals(.5)
 
     # Check if this already exists and delete if so
-    targetdir = os.path.join(config['outputdir'], 'single-current', clim_scenario, clim_model, econ_model, econ_scenario)
+    targetdir = os.path.join(config['outputdir'], 'single-new', clim_scenario, clim_model, econ_model, econ_scenario)
     if os.path.exists(targetdir):
         shutil.rmtree(targetdir)
 
-    yield 'single-current', pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
+    yield 'single-new', pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
 
 def binresult_callback(region, year, result, calculation, model):
     filepath = os.path.join(targetdir, config['module'] + "-allbins.csv")
@@ -108,19 +110,33 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
 
     targetdir = os.path.join(config['outputdir'], batchdir, clim_scenario, clim_model, econ_model, econ_scenario)
 
-    if os.path.exists(targetdir) and pvalses.has_pval_file(targetdir):
-        continue
+    if config.get('redocheck', False):
+        if os.path.exists(targetdir) and os.path.exists(os.path.join(targetdir, config['redocheck'])):
+            continue
+
+        if pvalses.has_pval_file(targetdir) and time.time() - os.path.getmtime(pvalses.get_pval_file(targetdir)) < REDOCHECK_DELAY:
+            continue
+    else:
+        if os.path.exists(targetdir) and pvalses.has_pval_file(targetdir):
+            continue
 
     print targetdir
-    os.makedirs(targetdir)
+    if not os.path.exists(targetdir):
+        os.makedirs(targetdir)
 
-    effectset.make_pval_file(targetdir, pvals)
+    if config.get('redocheck', False) and effectset.has_pval_file(targetdir):
+        pvals = effectset.read_pval_file(targetdir)
+        with open(os.path.join(targetdir, config['redocheck']), 'w') as fp:
+            fp.write("Check.")
+    else:
+        effectset.make_pval_file(targetdir, pvals)
+
     if config['mode'] == 'writebins':
-        mod.produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=do_only, do_farmers=False, result_callback=binresult_callback, push_callback=binpush_callback)
+        mod.produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=do_only, do_farmers=False, result_callback=binresult_callback, push_callback=binpush_callback, redocheck=config.get('redocheck', False), diagnosefile=os.path.join(targetdir, config['module'] + "-allcalcs.csv"))
     elif config['mode'] == 'writevals':
-        mod.produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=do_only, do_farmers=False, result_callback=valresult_callback, push_callback=valpush_callback)
+        mod.produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=do_only, do_farmers=False, result_callback=valresult_callback, push_callback=valpush_callback, redocheck=config.get('redocheck', False), diagnosefile=os.path.join(targetdir, config['module'] + "-allcalcs.csv"))
     elif config['mode'] == 'profile':
-        mod.produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=do_only, profile=True)
+        mod.produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=do_only, profile=True, redocheck=config.get('redocheck', False))
         pr.disable()
 
         s = StringIO.StringIO()
@@ -132,7 +148,7 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
         exit()
 
     else:
-        mod.produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=do_only, do_farmers=True)
+        mod.produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=do_only, do_farmers=True, redocheck=config.get('redocheck', False))
 
     if config['mode'] != 'writebins' and config['mode'] != 'writevals':
         # Generate historical baseline

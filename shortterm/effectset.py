@@ -2,7 +2,7 @@ import os
 import numpy as np
 from netCDF4 import Dataset
 import helpers.header as headre
-from impacts import nc4writer
+from generate import nc4writer
 
 def simultaneous_application(qval, weatherbundle, calculation, get_apply_args, regions=None, region_callback=None):
     if regions is None:
