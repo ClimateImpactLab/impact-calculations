@@ -30,15 +30,10 @@ rm(nc.betas)
   year <- ncvar_get(nc.temps, 'year')
   rm(nc.temps)
 
-  # read in estimate for dBeta/dTbar
-  gammas = read.csv('/shares/gcp/data/adaptation/surface-space-all.csv', header=FALSE, col.names=c('method', 'binlo', 'binhi', 'intercept_coef', 'bindays_coef', 'gdppc_coef', 'popop_coef', 'intercept_serr', 'bindays_serr', 'gdppc_serr', 'popop_serr'), skip = 18)
-
-
   # counterfactual betas require dbeta/tbar: We need:
   ###### #1: beta(y_0, p_0, tbar_1) = beta(y_0, p_0, tbar_0) + dbeta/dtbar(tbar_1-tbar_0)
   ###### #2: beta(y_1, p_1, tbar_0) = beta(y_1, p_1, tbar_1) - dbeta/dtbar(tbar_1-tbar_0)
-  dbeta <- gammas[gammas$method=='seemur' ,]
-  rm(gammas)
+  dbeta = c(-.0543956572063989, -.0175858209459401, .037350265384391, .0302714957462288, .0033472344936152, .0004503090785059, -.0083214355195548, -.0018556370166573, .0022432103697581, -.0042819657236181, .0683695388864395)
 
   costs <- array(NaN, dim=c(2, dim(regions), dim(year)-1)) # First dimenstion: LOWER BOUND IN 1, UPPER BOUND IN 2
 
@@ -47,8 +42,8 @@ rm(nc.betas)
     costs_ub <- matrix(NaN, nrow=length(year)-1,ncol=11)
     for (i in 1:11) {
       clip <- (betas[r, -1 ,i] == betas[r, -119, i])
-      costs_lb[,i] <- temps.ann[i,r,-119] * (-dbeta$bindays_coef[i]*(temps.avg[i,r,-1] - temps.avg[i,r,-119])) * !clip
-      costs_ub[,i] <- temps.ann[i,r,-1] * (-dbeta$bindays_coef[i]*(temps.avg[i,r,-1] - temps.avg[i,r,-119])) * !clip
+      costs_lb[,i] <- temps.ann[i,r,-119] * (-dbeta[i]*(temps.avg[i,r,-1] - temps.avg[i,r,-119])) * !clip
+      costs_ub[,i] <- temps.ann[i,r,-1] * (-dbeta[i]*(temps.avg[i,r,-1] - temps.avg[i,r,-119])) * !clip
     }
     costs[1,r,] <- cumsum(rowSums(costs_lb, na.rm = TRUE))
     costs[2,r,] <- cumsum(rowSums(costs_ub, na.rm = TRUE))
