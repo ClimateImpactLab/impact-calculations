@@ -1,6 +1,6 @@
 import os, glob
 from helpers import files
-from generate import weather, server, effectset, caller
+from generate import weather, server, effectset, caller, checks
 from climate.discover import discover_tas_binned
 
 do_interpbins = True
@@ -10,6 +10,23 @@ def preload():
     library.get_data('mortality-deathrates', 'deaths/person')
 
 bundle_iterator = weather.iterate_bundles(discover_tas_binned(files.sharedpath('climate/BCSD/aggregation/cmip5_bins/IR_level')))
+
+def check_doit(redocheck, targetdir, basename, suffix):
+    if not redocheck:
+        print "REDO: Missing", basename, suffix
+        return True
+
+    filepath = effectset.get_ncdf_path(targetdir, basename, suffix)
+    if not os.path.exists(filepath):
+        print "REDO: Cannot find", filepath
+        return True
+
+    # Check if has 100 valid years
+    if not checks.check_result_100years(filepath):
+        print "REDO: Incomplete", basename, suffix
+        return True
+
+    return False
 
 def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=None, country_specific=True, result_callback=None, push_callback=None, suffix='', do_farmers=False, do_65plus=True, profile=False, redocheck=None, diagnosefile=False):
     print do_only
