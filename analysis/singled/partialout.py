@@ -12,6 +12,11 @@ covars = [None, 'meandays', 'log popop', 'log gdppc', 'age0-4', 'age65+']
 
 savepreds = {} # {model => {region => {year => [preds]}}}
 
+for pp in range(1, len(covars)):
+    with open(allbins[:-4] + '-' + covars[pp].replace(' ', '') + '.csv', 'a') as outfp:
+        writer = csv.writer(outfp)
+        writer.writerow(['region', 'year', 'model', 'bin_nInfC_n17C', 'bin_n17C_n12C', 'bin_n12C_n7C', 'bin_n7C_n2C', 'bin_n2C_3C', 'bin_3C_8C', 'bin_8C_13C', 'bin_13C_18C', 'bin_23C_28C', 'bin_28C_33C', 'bin_33C_InfC'])
+
 with open(allpreds, 'r') as predfp:
     predreader = csv.reader(predfp)
     predheader = predreader.next()
@@ -61,7 +66,7 @@ with open(allbins, 'r') as binfp:
         myyearpreds = savepreds[model][region][year-1] # preds from previous year
 
         for pp in range(1, len(csvv['gamma']) / 11): # skip first
-            with open(allbins[-4:] + '-' + str(pp) + '.csv', 'a') as outfp:
+            with open(allbins[:-4] + '-' + covars[pp].replace(' ', '') + '.csv', 'a') as outfp:
                 writer = csv.writer(outfp)
 
                 gammas = csvv['gamma'][pp * 11 + np.arange(11)]

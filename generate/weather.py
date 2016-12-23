@@ -100,7 +100,11 @@ class DailyWeatherBundle(WeatherBundle):
     def baseline_average(self, maxyear):
         """Yield the average weather value up to `maxyear` for each region."""
 
-        regionsums = np.zeros(len(self.regions), len(self.get_dimension()))
+        if len(self.get_dimension()) == 1:
+            regionsums = np.zeros(len(self.regions))
+        else:
+            regionsums = np.zeros((len(self.regions), len(self.get_dimension())))
+
         sumcount = 0
         for yyyyddd, weather in self.yearbundles(maxyear):
             print int(yyyyddd[0]) / 1000
@@ -132,7 +136,7 @@ class DailyWeatherBundle(WeatherBundle):
         for ii in range(len(self.regions)):
             yield self.regions[ii], regionvalues[:, ii]
 
-class SingleWeatherBundle(DailyWeatherBundle, ReaderWeatherBundle):
+class SingleWeatherBundle(ReaderWeatherBundle, DailyWeatherBundle):
     def is_historical(self):
         return False
 

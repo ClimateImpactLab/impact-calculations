@@ -1,11 +1,12 @@
 import glob, os, csv
 from impacts.conflict import standard
-from generate.weather import MultivariateHistoricalWeatherBundle
+from generate.weather import SingleWeatherBundle
+from climate.dailyreader import DailyWeatherReader
 from adaptation.econmodel import iterate_econmodels
 import curvegen, effectset
 
 def produce(targetdir, weatherbundle, qvals, do_only=None, suffix=''):
-    historicalbundle = MultivariateHistoricalWeatherBundle("/shares/gcp/BCSD/grid2reg/cmip5/historical/CCSM4/{0}/{0}_day_aggregated_historical_r1i1p1_CCSM4_{1}.nc", 1991, 2005, ['tas', 'pr'])
+    historicalbundle = SingleWeatherBundle(DailyWeatherReader("/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level/historical/CCSM4/tas/tas_day_aggregated_historical_r1i1p1_CCSM4_%d.nc", 1991, 'tas'))
     model, scenario, econmodel = (mse for mse in iterate_econmodels() if mse[0] == 'OECD Env-Growth').next()
 
     # if do_only is None or do_only == 'acp':
@@ -16,16 +17,11 @@ def produce(targetdir, weatherbundle, qvals, do_only=None, suffix=''):
     #     effectset.write_ncdf(targetdir, "PropertyCrime", weatherbundle, calculation, None, "Property crime using the ACP response function.", dependencies + weatherbundle.dependencies, suffix=suffix)
 
     if do_only is None or do_only == 'interpolation':
-        predgen1 = curvegen.TemperaturePrecipitationPredictorator(historicalbundle, econmodel, 15, 3, 2005)
-        predgen3 = curvegen.TemperaturePrecipitationPredictorator(historicalbundle, econmodel, 15, 3, 2005, polyorder=3)
+        predgen1 = curvegen.WeatherPredictorator(historicalbundle, econmodel, 15, 3, 2005)
 
         ## Full interpolation
-        for filepath in glob.glob("/shares/gcp/data/adaptation/conflict/*.csvv"):
+        for filepath in glob.glob("/shares/gcp/social/parameters/conflict/conflict_single_stage_12202016/*.csvv"):
             basename = os.path.basename(filepath)[:-5]
-
-            is_tavg = '_tavg_' in basename or 'interpersonal_violent' in basename
-            is_cubic = '_cub_' in basename
-            print basename, ('T-only' if is_tavg else 'T-and-P3'), ('Cubic' if is_cubic else 'Linear')
 
             predicted_betas = {'hasprcp': False}
             def betas_callback(variable, region, predictors, betas):
@@ -43,10 +39,7 @@ def produce(targetdir, weatherbundle, qvals, do_only=None, suffix=''):
             #    print "SKIPPING " + basename
             #    continue
 
-            if is_cubic:
-                columns = effectset.write_ncdf(thisqvals['weather'], targetdir, basename, weatherbundle, calculation, predgen3.get_baseline, "Interpolated response for " + basename + ".", dependencies + weatherbundle.dependencies, suffix=suffix)
-            else:
-                columns = effectset.write_ncdf(thisqvals['weather'], targetdir, basename, weatherbundle, calculation, predgen1.get_baseline, "Interpolated response for " + basename + ".", dependencies + weatherbundle.dependencies, suffix=suffix)
+            columns = effectset.write_ncdf(thisqvals['weather'], targetdir, basename, weatherbundle, calculation, predgen1.get_baseline, "Interpolated response for " + basename + ".", dependencies + weatherbundle.dependencies, suffix=suffix)
 
             if is_tavg:
                 finalvar = 'response'

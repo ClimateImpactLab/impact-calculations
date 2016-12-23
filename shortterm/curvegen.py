@@ -46,7 +46,7 @@ class PolynomialCurveGenerator(CSVVCurveGenerator):
 
         return PolynomialCurve([-np.inf, np.inf], ccs)
 
-class TemperaturePrecipitationPredictorator(object):
+class WeatherPredictorator(object):
     def __init__(self, weatherbundle, economicmodel, numtempyears, numeconyears, maxbaseline, polyorder=1):
         self.numtempyears = numtempyears
         self.numeconyears = numeconyears
