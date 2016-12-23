@@ -1,4 +1,4 @@
-import os, re, csv
+import os, re, csv, traceback
 import numpy as np
 from netCDF4 import Dataset
 from helpers import files
@@ -207,6 +207,7 @@ class MultivariatePastFutureWeatherBundle(DailyWeatherBundle):
                         yyyyddd, weather = futurereader.read_year(year)
                 except:
                     print "Failed to get year", year
+                    traceback.print_exc()
                     return # No more!
 
                 if len(weather.shape) == 2:

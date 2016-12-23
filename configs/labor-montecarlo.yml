@@ -1,4 +1,4 @@
 module: labor
 mode: montecarlo
-outputdir: /shares/gcp/outputs/labor/impacts-andrena
+outputdir: outputs/labor/impacts-andrena
 redocheck: check-20161219.txt

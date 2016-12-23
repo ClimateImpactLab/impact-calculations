@@ -2,12 +2,13 @@ import sys, os, itertools, importlib, shutil, csv, time
 import loadmodels
 import weather, effectset, pvalses
 from adaptation import adapting_curve, curvegenv2
-from helpers import config
+from helpers import config, files
 import cProfile, pstats, StringIO
 
 config = config.getConfigDictFromSysArgv()
 
 REDOCHECK_DELAY = 12*60*60
+do_single = True
 
 targetdir = None # The current targetdir
 
@@ -27,7 +28,7 @@ def iterate_single():
     pvals = effectset.ConstantPvals(.5)
 
     # Check if this already exists and delete if so
-    targetdir = os.path.join(config['outputdir'], 'single-new', clim_scenario, clim_model, econ_model, econ_scenario)
+    targetdir = files.configpath(os.path.join(config['outputdir'], 'single-new', clim_scenario, clim_model, econ_model, econ_scenario))
     if os.path.exists(targetdir):
         shutil.rmtree(targetdir)
 
@@ -108,7 +109,7 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
         pr = cProfile.Profile()
         pr.enable()
 
-    targetdir = os.path.join(config['outputdir'], batchdir, clim_scenario, clim_model, econ_model, econ_scenario)
+    targetdir = files.configpath(os.path.join(config['outputdir'], batchdir, clim_scenario, clim_model, econ_model, econ_scenario))
 
     if config.get('redocheck', False):
         if os.path.exists(targetdir) and os.path.exists(os.path.join(targetdir, config['redocheck'])):
@@ -158,3 +159,6 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
         mod.produce(targetdir, historybundle, economicmodel, get_model, pvals, country_specific=False, suffix='-histclim', do_only=do_only)
 
     effectset.make_pval_file(targetdir, pvals)
+
+    if do_single:
+        break

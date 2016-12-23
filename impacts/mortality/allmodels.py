@@ -1,4 +1,5 @@
 import os, glob
+from helpers import files
 from generate import weather, server, effectset, caller, checks
 from climate.discover import discover_tas_binned
 
@@ -8,7 +9,7 @@ def preload():
     from datastore import library
     library.get_data('mortality-deathrates', 'deaths/person')
 
-bundle_iterator = weather.iterate_bundles(discover_tas_binned('/shares/gcp/climate/BCSD/aggregation/cmip5_bins/IR_level'))
+bundle_iterator = weather.iterate_bundles(discover_tas_binned(files.sharedpath('climate/BCSD/aggregation/cmip5_bins/IR_level')))
 
 def check_doit(redocheck, targetdir, basename, suffix):
     if not redocheck:
@@ -41,7 +42,7 @@ def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=N
             push_callback = lambda reg, yr, app, predget, mod: None
 
         #for filepath in ["/shares/gcp/social/parameters/mortality/predictors-space-all.csvv"]:
-        for filepath in glob.glob("/shares/gcp/social/parameters/mortality/mortality_single_stage_12142016/*.csvv"):
+        for filepath in glob.glob(files.sharedpath("social/parameters/mortality/mortality_single_stage_12142016/*.csvv")):
             basename = os.path.basename(filepath)[:-5]
             if 'ERAI' in basename:
                 continue
