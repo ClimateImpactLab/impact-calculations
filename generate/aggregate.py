@@ -1,7 +1,7 @@
 import os, Queue, traceback
 import numpy as np
 from netCDF4 import Dataset
-import nc4writer, agglib
+import nc4writer, agglib, checks
 
 costs_suffix = '-costs'
 levels_suffix = '-levels'
@@ -78,6 +78,8 @@ def make_aggregates(targetdir, filename, get_population, dimensions_template=Non
 
     readeryears = get_years(dimreader, limityears)
 
+    if os.path.exists(os.path.join(targetdir, filename[:-4] + suffix + '.nc4')):
+        os.remove(os.path.join(targetdir, filename[:-4] + suffix + '.nc4')) # Needs to be deleted
     writer = Dataset(os.path.join(targetdir, filename[:-4] + suffix + '.nc4'), 'w', format='NETCDF4')
 
     regions = dimreader.variables['regions'][:].tolist()
@@ -152,6 +154,8 @@ def make_levels(targetdir, filename, get_population, dimensions_template=None, m
 
     regions = dimreader.variables['regions'][:].tolist()
 
+    if os.path.exists(os.path.join(targetdir, filename[:-4] + levels_suffix + '.nc4')):
+        os.remove(os.path.join(targetdir, filename[:-4] + levels_suffix + '.nc4')) # Needs to be deleted
     writer = Dataset(os.path.join(targetdir, filename[:-4] + levels_suffix + '.nc4'), 'w', format='NETCDF4')
 
     if metainfo is None:
@@ -205,6 +209,8 @@ if __name__ == '__main__':
     halfweight = population.SpaceTimeBipartiteData(1981, 2100, None)
 
     for batch, clim_scenario, clim_model, econ_scenario, econ_model, targetdir in iterresults(outputdir):
+        #if targetdir != "/shares/gcp/outputs/labor/impacts-andrena/median/rcp85/CSIRO-Mk3-6-0/OECD Env-Growth/SSP3_v9_130325":
+        #    continue
         print targetdir
         print econ_model, econ_scenario
 
@@ -216,6 +222,10 @@ if __name__ == '__main__':
         for filename in os.listdir(targetdir):
             if filename[-4:] == '.nc4' and suffix not in filename and costs_suffix not in filename and levels_suffix not in filename:
                 print filename
+
+                if not checks.check_result_100years(os.path.join(targetdir, filename)):
+                    print "Incomplete."
+                    continue
 
                 try:
                     if filename in ['interpolated_mortality_all_ages.nc4', 'interpolated_mortality65_plus.nc4', 'global_interaction_best.nc4', 'global_interaction_gmfd.nc4', 'global_interaction_no_popshare_best.nc4', 'global_interaction_no_popshare_gmfd.nc4']:
@@ -234,11 +244,11 @@ if __name__ == '__main__':
                             make_costs_aggregate(targetdir, filename[:-4] + costs_suffix + '.nc4', get_population)
 
                     # Generate total deaths
-                    if not missing_only or not os.path.exists(os.path.join(targetdir, filename[:-4] + levels_suffix + '.nc4')):
+                    if not missing_only or not checks.check_result_100years(os.path.join(targetdir, filename[:-4] + levels_suffix + '.nc4')) or not os.path.exists(os.path.join(targetdir, filename[:-4] + levels_suffix + '.nc4')):
                         make_levels(targetdir, filename, get_population)
 
                     # Aggregate impacts
-                    if not missing_only or not os.path.exists(os.path.join(targetdir, filename[:-4] + suffix + '.nc4')):
+                    if not missing_only or not checks.check_result_100years(os.path.join(targetdir, filename[:-4] + suffix + '.nc4'), 5665) or not os.path.exists(os.path.join(targetdir, filename[:-4] + suffix + '.nc4')):
                         make_aggregates(targetdir, filename, get_population)
 
                 except Exception as ex:
