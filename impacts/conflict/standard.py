@@ -16,6 +16,9 @@ def prepare_csvv(csvvpath, qvals, callback):
     csvvfile.collapse_bang(data, qvals.get_seed())
 
     # Load climatology
+    prcp_climate_mean = list(forecasts.readncdf_allpred(forecasts.prcp_climate_path, 'mean', 0))
+    regions = weather.ForecastBundle(forecastreader.MonthlyForecastReader(forecasts.prcp_climate_path, 'mean')).regions
+
     tggr = data['gamma'][0:4]
     pggr = data['gamma'][-2:]
 
@@ -26,4 +29,7 @@ def prepare_csvv(csvvpath, qvals, callback):
     p2curve = PolynomialCurve([-np.inf, np.inf], pggr)
     p2effect = SingleWeatherApply('rate', p2curve, 'the quadratic precipitation effect', lambda tp: (365.25 / 30) * (tp[1]**2))
 
-    return Sum([teffect, p2effect]), [data['attrs']['version']], data['prednames']
+    negp2curve = PolynomialCurve([-np.inf, np.inf], -pggr)
+    p2climate = MonthlyClimateApply('rate', negp2curve, 'negative climatic precipitation effect', prcp_climate_mean, regions, lambda p: (365.25 / 30) * (p**2))
+
+    return Sum([teffect, p2effect, p2climate]), [data['attrs']['version']], data['prednames']
