@@ -207,6 +207,10 @@ if __name__ == '__main__':
     outputdir = sys.argv[1]
 
     halfweight = population.SpaceTimeBipartiteData(1981, 2100, None)
+    get_population = lambda year0, year1: halfweight.load_population(year0, year1, "OECD Env-Growth", "SSP3_v9_130325")
+    stweight = get_cached_population(get_population, range(1981, 2100))
+    print stweight.get_time("CHN.7.66.390")
+    exit()
 
     for batch, clim_scenario, clim_model, econ_scenario, econ_model, targetdir in iterresults(outputdir):
         #if targetdir != "/shares/gcp/outputs/labor/impacts-andrena/median/rcp85/CSIRO-Mk3-6-0/OECD Env-Growth/SSP3_v9_130325":
