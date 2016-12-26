@@ -62,14 +62,8 @@ class WeatherPredictorator(object):
         self.economicmodel = economicmodel
 
     def get_baseline(self, region):
-        if self.polyorder == 1:
-            return tuple(self.weather_predictors[region] + map(np.log, self.econ_predictors.get(region, self.econ_predictors['mean'])))
-        else:
-            preds = np.array(self.weather_predictors[region] + map(np.log, self.econ_predictors.get(region, self.econ_predictors['mean'])))
-            allpreds = []
-            for order in range(self.polyorder):
-                allpreds.extend(preds ** (order + 1))
-            return tuple(allpreds)
+        econpreds = self.econ_predictors.get(region, self.econ_predictors['mean'])
+        return self.weather_predictors[region], np.log(econpreds['gdppcs']), np.log(econpreds['popop'])
 
 if __name__ == '__main__':
     curvegen = LinearCurveGenerator('X', 'Y', 1234, [1, 1], [[.01, 0], [0, .01]], [0])
