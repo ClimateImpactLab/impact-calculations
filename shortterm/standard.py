@@ -23,42 +23,31 @@ def produce(targetdir, weatherbundle, qvals, do_only=None, suffix=''):
         for filepath in glob.glob("/shares/gcp/social/parameters/conflict/conflict_single_stage_12202016/*.csvv"):
             basename = os.path.basename(filepath)[:-5]
 
-            predicted_betas = {'hasprcp': False}
+            predicted_betas = {}
             def betas_callback(variable, region, predictors, betas):
                 if region in predicted_betas:
                     predicted_betas[region][variable] = betas
                 else:
                     predicted_betas[region] = {variable: betas, 'pred': predictors}
-                if variable == 'prcp':
-                    predicted_betas['hasprcp'] = True
 
             thisqvals = qvals[basename]
-            #try:
+
             calculation, dependencies, predvars = standard.prepare_csvv(filepath, thisqvals, betas_callback)
-            #except:
-            #    print "SKIPPING " + basename
-            #    continue
 
             columns = effectset.write_ncdf(thisqvals['weather'], targetdir, basename, weatherbundle, calculation, predgen1.get_baseline, "Interpolated response for " + basename + ".", dependencies + weatherbundle.dependencies, suffix=suffix)
 
-            if is_tavg:
-                finalvar = 'response'
-            else:
-                finalvar = 'sum'
             with open(os.path.join(targetdir, basename + '-final.csv'), 'w') as fp:
                 writer = csv.writer(fp)
-                header = ['region'] + range(columns[finalvar].shape[0])
+                header = ['region'] + range(columns['sum'].shape[0])
                 writer.writerow(header)
                 for ii in range(len(weatherbundle.regions)):
-                    row = [weatherbundle.regions[ii]] + list(columns[finalvar][:, ii])
+                    row = [weatherbundle.regions[ii]] + list(columns['sum'][:, ii])
                     writer.writerow(row)
 
             with open(os.path.join(targetdir, basename + '-betas.csv'), 'w') as fp:
                 writer = csv.writer(fp)
 
                 header = ['region'] + predvars[1:] + ['beta-temp']
-                if predicted_betas['hasprcp']:
-                    header += ['beta-prcp1', 'beta-prcp2', 'beta-prcp3']
                 writer.writerow(header)
 
                 for region in weatherbundle.regions:
@@ -66,6 +55,4 @@ def produce(targetdir, weatherbundle, qvals, do_only=None, suffix=''):
                         row = [region] + ['NA'] * (len(header) - 1)
                     else:
                         row = [region] + list(predicted_betas[region]['pred']) + [predicted_betas[region]['temp']]
-                        if predicted_betas['hasprcp']:
-                            row += predicted_betas[region]['prcp']
                     writer.writerow(row)
