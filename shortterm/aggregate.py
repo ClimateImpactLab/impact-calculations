@@ -4,7 +4,7 @@ from netCDF4 import Dataset
 from generate import nc4writer, agglib
 
 suffix = "-aggregated"
-checkfile = 'check-2016-05-02.txt'
+checkfile = 'check-20161227.txt'
 
 def iterdir(basedir):
     # Do median first
