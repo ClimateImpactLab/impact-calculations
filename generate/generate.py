@@ -18,6 +18,14 @@ def iterate_median():
         yield 'median', pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
 
 def iterate_montecarlo():
+    if config.get('redocheck', False):
+        # First go through existing batches, even if not ours
+        for batchdir in os.listdir(files.configpath(config['outputdir'])):
+            if batchdir[:5] == 'batch':
+                for clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in loadmodels.random_order(mod.get_bundle_iterator()):
+                    pvals = effectset.OnDemandRandomPvals()
+                    yield batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
+
     for batch in itertools.count():
         for clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in loadmodels.random_order(mod.get_bundle_iterator()):
             pvals = effectset.OnDemandRandomPvals()
