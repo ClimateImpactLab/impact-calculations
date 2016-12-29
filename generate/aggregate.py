@@ -10,10 +10,10 @@ missing_only = True
 
 costs_command = "Rscript generate/cost_curves.R \"%s\" %s" # resultfile tempsfile
 
-checkfile = 'check-2016-12-18.txt'
+checkfile = 'check-20161227.txt'
 
 batchfilter = lambda batch: batch == 'median' or 'batch' in batch
-targetdirfilter = lambda targetdir: 'SSP3' in targetdir and 'Env-Growth' in targetdir and 'rcp85' in targetdir # and checkfile not in os.listdir(targetdir)
+targetdirfilter = lambda targetdir: 'SSP3' in targetdir and 'Env-Growth' in targetdir and checkfile not in os.listdir(targetdir)
 
 # The full population, if we just read it.  Only 1 at a time (it's big!)
 # Tuple of (get_population, minyear, maxyear, population)
@@ -214,10 +214,10 @@ if __name__ == '__main__':
         print targetdir
         print econ_model, econ_scenario
 
-        get_population = lambda year0, year1: halfweight.load_population(year0, year1, econ_model, econ_scenario)
-
         with open(os.path.join(targetdir, checkfile), 'w') as fp:
             fp.write("START")
+
+        get_population = lambda year0, year1: halfweight.load_population(year0, year1, econ_model, econ_scenario)
 
         for filename in os.listdir(targetdir):
             if filename[-4:] == '.nc4' and suffix not in filename and costs_suffix not in filename and levels_suffix not in filename:

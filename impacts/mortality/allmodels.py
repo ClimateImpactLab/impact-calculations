@@ -45,7 +45,7 @@ def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=N
         #for filepath in ["/shares/gcp/social/parameters/mortality/predictors-space-all.csvv"]:
         for filepath in glob.glob(files.sharedpath("social/parameters/mortality/mortality_single_stage_12142016/*.csvv")):
             basename = os.path.basename(filepath)[:-5]
-            if 'ERAI' in basename:
+            if 'ERAI' in basename or 'BEST' in basename or 'no_popshare' not in basename: # XXX: Limiting result range
                 continue
             print basename
 

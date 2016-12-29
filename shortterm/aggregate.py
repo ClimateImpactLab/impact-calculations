@@ -80,6 +80,9 @@ if __name__ == '__main__':
     for targetdir in iterresults(outputdir):
         print targetdir
 
+        if os.path.exists(os.path.join(targetdir, checkfile)):
+            continue
+
         with open(os.path.join(targetdir, checkfile), 'w') as fp:
             fp.write("START")
 
