@@ -3,6 +3,8 @@ from openest.models.curve import StepCurve
 from scipy.stats import multivariate_normal
 import csvvfile
 
+force_goodmoney = True # XXX
+
 class BinnedStepCurveGenerator(object):
     def __init__(self, xxlimits, predcoeffs, predcols, do_singlebin):
         self.xxlimits = xxlimits
@@ -33,6 +35,13 @@ def make_binned_curve_generator(csvv, xxlimits, predcols, do_singlebin, seed):
 
     # Reorganize params into sets of L
     gammas = csvvfile.by_predictor_kl(csvv, params, (len(predcols) + 1))
+    if force_goodmoney:
+        print "WARNING: Forcing GDPpc gammas to be < 0"
+        assert len(gammas) == 11
+        for kk in range(len(gammas)):
+            if gammas[kk][predcols.index('loggdppc')+1] > 0:
+                gammas[kk][predcols.index('loggdppc')+1] = 0
+
     # Insert dropped bin: hard coded for now
     before_dropped = np.flatnonzero(np.array(xxlimits) == 18)[0]
     gammas = gammas[:before_dropped] + [np.array([np.nan] * (len(predcols) + 1))] + gammas[before_dropped:]
