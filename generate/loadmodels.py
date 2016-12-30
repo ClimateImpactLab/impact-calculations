@@ -40,6 +40,10 @@ def random_order(bundle_iterator):
     allexogenous = []
     for econ_scenario, econ_model, economicmodel in allecons:
         for clim_scenario, clim_model, weatherbundle in allclims:
+            # XXX: only do rcp 8.5
+            if clim_scenario != 'rcp85':
+                continue
+            
             # Drop PIK GDP-32 (it's USA-only)
             if econ_model == 'PIK GDP-32':
                 continue
