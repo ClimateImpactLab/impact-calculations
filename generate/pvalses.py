@@ -101,9 +101,8 @@ def read_pval_file(targetdir, lock=False):
         for name in pvals:
             odrp.dicts[name] = OnDemandRandomDictionary()
             odrp.dicts[name].values = pvals[name]
-            odrp.dicts[name].locked = lock
 
-        odrp.dicts = pvals
-        odrp.locked = lock
+        if lock:
+            odrp.lock()
 
         return odrp

@@ -4,7 +4,7 @@ from netCDF4 import Dataset
 from generate import nc4writer, agglib
 
 suffix = "-aggregated"
-checkfile = 'check-2016-05-02.txt'
+checkfile = 'check-20161227.txt'
 
 def iterdir(basedir):
     # Do median first
@@ -79,6 +79,9 @@ if __name__ == '__main__':
 
     for targetdir in iterresults(outputdir):
         print targetdir
+
+        if os.path.exists(os.path.join(targetdir, checkfile)):
+            continue
 
         with open(os.path.join(targetdir, checkfile), 'w') as fp:
             fp.write("START")
