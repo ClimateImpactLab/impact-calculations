@@ -10,10 +10,10 @@ missing_only = True
 
 costs_command = "Rscript generate/cost_curves.R \"%s\" %s" # resultfile tempsfile
 
-checkfile = 'check-2016-12-18.txt'
+checkfile = 'check-20161227.txt'
 
-batchfilter = lambda batch: 'batch' in batch or batch == 'median'
-targetdirfilter = lambda targetdir: 'SSP3' in targetdir and 'Env-Growth' in targetdir # and checkfile not in os.listdir(targetdir)
+batchfilter = lambda batch: batch == 'median' or 'batch' in batch
+targetdirfilter = lambda targetdir: 'SSP3' in targetdir and 'Env-Growth' in targetdir and checkfile not in os.listdir(targetdir)
 
 # The full population, if we just read it.  Only 1 at a time (it's big!)
 # Tuple of (get_population, minyear, maxyear, population)
@@ -207,10 +207,6 @@ if __name__ == '__main__':
     outputdir = sys.argv[1]
 
     halfweight = population.SpaceTimeBipartiteData(1981, 2100, None)
-    get_population = lambda year0, year1: halfweight.load_population(year0, year1, "OECD Env-Growth", "SSP3_v9_130325")
-    stweight = get_cached_population(get_population, range(1981, 2100))
-    print stweight.get_time("CHN.7.66.390")
-    exit()
 
     for batch, clim_scenario, clim_model, econ_scenario, econ_model, targetdir in iterresults(outputdir):
         #if targetdir != "/shares/gcp/outputs/labor/impacts-andrena/median/rcp85/CSIRO-Mk3-6-0/OECD Env-Growth/SSP3_v9_130325":
@@ -218,10 +214,10 @@ if __name__ == '__main__':
         print targetdir
         print econ_model, econ_scenario
 
-        get_population = lambda year0, year1: halfweight.load_population(year0, year1, econ_model, econ_scenario)
-
         with open(os.path.join(targetdir, checkfile), 'w') as fp:
             fp.write("START")
+
+        get_population = lambda year0, year1: halfweight.load_population(year0, year1, econ_model, econ_scenario)
 
         for filename in os.listdir(targetdir):
             if filename[-4:] == '.nc4' and suffix not in filename and costs_suffix not in filename and levels_suffix not in filename:
@@ -235,6 +231,9 @@ if __name__ == '__main__':
                     if filename in ['interpolated_mortality_all_ages.nc4', 'interpolated_mortality65_plus.nc4', 'global_interaction_best.nc4', 'global_interaction_gmfd.nc4', 'global_interaction_no_popshare_best.nc4', 'global_interaction_no_popshare_gmfd.nc4']:
                         # Generate costs
                         tempsfile = '/shares/gcp/outputs/temps/%s/%s/temps.nc4' % (clim_scenario, clim_model)
+
+                        print "HERE"
+                        print costs_command % (os.path.join(targetdir, filename), tempsfile)
 
                         if not missing_only or not os.path.exists(os.path.join(targetdir, filename[:-4] + costs_suffix + '.nc4')):
                             os.system(costs_command % (os.path.join(targetdir, filename), tempsfile))

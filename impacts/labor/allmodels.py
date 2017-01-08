@@ -12,7 +12,7 @@ def get_bundle_iterator():
                                             discover_derived_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tasmax', 'power3'),
                                             discover_derived_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tasmax', 'power4'))
 
-def check_doit(redocheck, targetdir, basename, suffix):
+def check_doit(redocheck, targetdir, basename, suffix, deletebad=False):
     if not redocheck:
         print "REDO: Missing", basename, suffix
         return True
@@ -25,6 +25,8 @@ def check_doit(redocheck, targetdir, basename, suffix):
     # Check if has 100 valid years
     if not checks.check_result_100years(filepath):
         print "REDO: Incomplete", basename, suffix
+        if deletebad:
+            os.remove(filepath)
         return True
 
     return False
