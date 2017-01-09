@@ -32,4 +32,4 @@ def prepare_csvv(csvvpath, qvals, callback):
     negp2curve = PolynomialCurve([-np.inf, np.inf], -pggr)
     p2climate = MonthlyClimateApply('rate', negp2curve, 'negative climatic precipitation effect', prcp_climate_mean, regions, lambda p: (365.25 / 30) * (p**2))
 
-    return Sum([teffect, p2effect, p2climate]), [data['attrs']['version']], data['prednames'][0:3]
+    return Sum([teffect, p2effect, p2climate]), [data['attrs']['version']], data['prednames'][0:4]

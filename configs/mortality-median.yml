@@ -1,3 +1,4 @@
 module: mortality
 mode: median
-outputdir: /shares/gcp/outputs/mortality/impacts-pharaoh
+outputdir: outputs/mortality/impacts-pharaoh2
+redocheck: check-20161229.txt
