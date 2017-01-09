@@ -1,0 +1,3 @@
+module: covariates
+mode: median
+outputdir: /shares/gcp/outputs/covariates/results-michener

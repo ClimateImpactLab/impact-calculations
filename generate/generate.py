@@ -7,7 +7,7 @@ import cProfile, pstats, StringIO
 
 config = config.getConfigDictFromSysArgv()
 
-REDOCHECK_DELAY = 12*60*60
+REDOCHECK_DELAY = 0 #12*60*60
 do_single = False
 
 targetdir = None # The current targetdir
