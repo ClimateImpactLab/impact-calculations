@@ -215,14 +215,21 @@ if __name__ == '__main__':
         with open(os.path.join(targetdir, checkfile), 'w') as fp:
             fp.write("START")
 
+        incomplete = False
         get_population = lambda year0, year1: halfweight.load_population(year0, year1, econ_model, econ_scenario)
 
         for filename in os.listdir(targetdir):
             if filename[-4:] == '.nc4' and suffix not in filename and costs_suffix not in filename and levels_suffix not in filename:
                 print filename
 
-                if not checks.check_result_100years(os.path.join(targetdir, filename)):
+                if filename == 'covariates.nc4':
+                    variable = 'tas'
+                else:
+                    variable = 'rebased'
+
+                if not checks.check_result_100years(os.path.join(targetdir, filename), variable=variable):
                     print "Incomplete."
+                    incomplete = True
                     continue
 
                 try:
@@ -242,17 +249,21 @@ if __name__ == '__main__':
                             make_costs_aggregate(targetdir, filename[:-4] + costs_suffix + '.nc4', get_population)
 
                     # Generate total deaths
-                    if not missing_only or not checks.check_result_100years(os.path.join(targetdir, filename[:-4] + levels_suffix + '.nc4')) or not os.path.exists(os.path.join(targetdir, filename[:-4] + levels_suffix + '.nc4')):
+                    if not missing_only or not checks.check_result_100years(os.path.join(targetdir, filename[:-4] + levels_suffix + '.nc4'), variable=variable) or not os.path.exists(os.path.join(targetdir, filename[:-4] + levels_suffix + '.nc4')):
                         make_levels(targetdir, filename, get_population)
 
                     # Aggregate impacts
-                    if not missing_only or not checks.check_result_100years(os.path.join(targetdir, filename[:-4] + suffix + '.nc4'), 5665) or not os.path.exists(os.path.join(targetdir, filename[:-4] + suffix + '.nc4')):
+                    if not missing_only or not checks.check_result_100years(os.path.join(targetdir, filename[:-4] + suffix + '.nc4'), variable=variable, regioncount=5665) or not os.path.exists(os.path.join(targetdir, filename[:-4] + suffix + '.nc4')):
                         make_aggregates(targetdir, filename, get_population)
 
                 except Exception as ex:
                     print "Failed."
                     traceback.print_exc()
+                    incomplete = True
 
-        with open(os.path.join(targetdir, checkfile), 'w') as fp:
-            fp.write("END")
+        if incomplete:
+            os.remove(os.path.join(targetdir, checkfile))
+        else:
+            with open(os.path.join(targetdir, checkfile), 'w') as fp:
+                fp.write("END")
 
