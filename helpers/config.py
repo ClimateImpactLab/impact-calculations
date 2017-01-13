@@ -1,4 +1,4 @@
-import sys
+import sys, os
 import yaml
 
 def getConfigDictFromFile(filePath):
@@ -13,6 +13,10 @@ def getConfigDictFromSysArgv():
         for key in serverConfig:
             if key not in confDict:
                 confDict[key] = serverConfig[key]
+
+        for key in confDict.keys():
+            if key[-3:] == "dir":
+                confDict[key] = os.path.join(serverConfig["shareddir"], confDict[key])
 
         return confDict
 
