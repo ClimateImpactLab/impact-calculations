@@ -100,7 +100,7 @@ def guess_variable(filename):
     Guess what the weather variable is from the filename.
     """
     if filename[0:7] == 'tas_day':
-        return 'DayNumber'
+        return 'bintas'
     if filename[0:11] == 'number_days':
         return 'tas'
     if filename[0:6] in ['tasmin', 'tasmax']:

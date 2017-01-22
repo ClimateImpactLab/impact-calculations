@@ -66,7 +66,7 @@ def binpush_callback(region, year, application, get_predictors, model):
         predictors = get_predictors(region)[0]
 
         bin_limits = [-100, -17, -12, -7, -2, 3, 8, 13, 18, 23, 28, 33, 100]
-        bin_names = ['DayNumber-' + str(bin_limits[bb-1]) + '-' + str(bin_limits[bb]) for bb in range(1, len(bin_limits))]
+        bin_names = ['bintas_' + str(bin_limits[bb-1]) + '_' + str(bin_limits[bb]) for bb in range(1, len(bin_limits))]
         covars = bin_names + ['loggdppc', 'logpopop']
         if 'age0-4' in predictors:
             covars += ['age0-4', 'age65+']
