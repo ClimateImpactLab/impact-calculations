@@ -1,14 +1,16 @@
 import numpy as np
 from openest.generate.curvegen import CurveGenerator
+from openest.models.curve import AdaptableCurve
 
 class CSVVCurveGenerator(CurveGenerator):
     def __init__(self, prednames, indepunits, depenunit, csvv):
-        super(CSVVCurveGenerator, self).__init__(indepunits, depenunits)
+        super(CSVVCurveGenerator, self).__init__(indepunits, depenunit)
         self.prednames = prednames
 
         for ii, predname in enumerate(prednames):
-            assert csvv['variables'][predname].unit == indepunits[ii]
-        assert csvv['variables']['outcome'].unit == depenunit
+            if predname in csvv['variables']:
+                assert csvv['variables'][predname]['unit'] == indepunits[ii]
+        assert csvv['variables']['outcome']['unit'] == depenunit
 
         # Preprocessing
         self.constant = {} # {predname: constant}
@@ -44,9 +46,9 @@ class CSVVCurveGenerator(CurveGenerator):
 
 ## New-style covariate-based curvegen
 class FarmerCurveGenerator(CurveGenerator):
-    def __init__(self, indepunits, depenunit, covariator, farmer='full'):
-        super(FarmerCurveGenerator, self).__init__(indepunits, depenunit)
-
+    def __init__(self, curr_curvegen, covariator, farmer='full'):
+        super(FarmerCurveGenerator, self).__init__(curr_curvegen.indepunits, curr_curvegen.depenunit)
+        self.curr_curvegen = curr_curvegen
         self.covariator = covariator
         self.farmer = farmer
 
@@ -54,7 +56,7 @@ class FarmerCurveGenerator(CurveGenerator):
         if len(covariates) == 0:
             covariates = self.covariator.get_baseline(region)
 
-        curr_curvegen = self.curr_curvegen(region, covariates)
+        curr_curve = self.curr_curvegen.get_curve(region, covariates)
 
         if self.farmer == 'full':
             return InstantAdaptingCurve(region, curr_curve, self.covariator, self.curr_curvegen)
@@ -65,10 +67,10 @@ class FarmerCurveGenerator(CurveGenerator):
         else:
             raise ValueError("Unknown farmer type " + str(farmer))
 
-from openest.models.curve import AdaptableCurve
-
 class InstantAdaptingCurve(AdaptableCurve):
     def __init__(self, region, curr_curve, covariator, curvegen):
+        super(InstantAdaptingCurve, self).__init__(curr_curve.xx)
+
         self.region = region
         self.curr_curve = curr_curve
         self.covariator = covariator

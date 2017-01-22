@@ -32,6 +32,9 @@ class Covariator(object):
     def get_update(self, region, year, weather):
         raise NotImplementedError
 
+    def get_baseline_args(self, region):
+        return (self.get_baseline(region),)
+
 class EconomicCovariator(Covariator):
     def __init__(self, economicmodel, numeconyears, maxbaseline):
         super(EconomicCovariator, self).__init__(maxbaseline)
