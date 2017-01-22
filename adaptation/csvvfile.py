@@ -6,11 +6,11 @@ import csvvfile_legacy
 
 def read(filename):
     with open(filename, 'r') as fp:
-        attrs, variables, coords = metacsv.read_header(fp)
+        attrs, coords, variables = metacsv.read_header(fp, parse_vars=True)
         data = {'attrs': attrs, 'variables': variables, 'coords': coords}
 
         if 'csvv-version' in attrs:
-            if attr['csvv-version'] == 'girdin-2017-01-10':
+            if attrs['csvv-version'] == 'girdin-2017-01-10':
                 return read_girdin(data, fp)
             else:
                 raise ValueError("Unknown version " + attrs['csvv-version'])
@@ -51,3 +51,25 @@ def collapse_bang(data, seed):
     else:
         data['gamma'] = multivariate_normal.rvs(data['gamma'], data['gammavcv'])
         data['gammavcv'] = None # this will cause errors if used again
+
+def binnames(xxlimits, prefix):
+    names = []
+    for ii in range(len(xxlimits)-1):
+        names.append(prefix + '_' + binname_part(xxlimits[ii]) + '_' + binname_part(xxlimits[ii+1]))
+
+    return names
+
+def binname_part(xxlimit):
+    if xxlimit < 0:
+        part = 'n'
+        xxlimit = abs(xxlimit)
+    else:
+        part = ''
+
+    if xxlimit == np.inf:
+        part += 'InfC'
+    else:
+        part += str(xxlimit) + 'C'
+
+    return part
+    
