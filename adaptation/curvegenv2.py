@@ -2,15 +2,6 @@ import numpy as np
 from openest.models.curve import AdaptableCurve, PolynomialCurve
 from openest.generate.curvegen import CurveGenerator
 
-class ConstantCurveGenerator(CurveGenerator):
-    def __init__(self, indepunits, depenunits, curve):
-        super(ConstantCurveGenerator, self).__init__(indepunits, depenunits)
-
-        self.curve = curve
-
-    def get_curve(self, region, *predictors):
-        return self.curve
-
 region_polycurves = {}
 
 class LOrderPolynomialCurveGenerator(CurveGenerator):

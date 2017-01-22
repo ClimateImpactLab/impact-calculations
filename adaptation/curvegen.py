@@ -1,49 +1,92 @@
 import numpy as np
-from openest.models.curve import StepCurve
-from scipy.stats import multivariate_normal
-import csvvfile
+from openest.generate.curvegen import CurveGenerator
 
-force_goodmoney = True # XXX
+class CSVVCurveGenerator(CurveGenerator):
+    def __init__(self, prednames, indepunits, depenunit, csvv):
+        super(CSVVCurveGenerator, self).__init__(indepunits, depenunits)
+        self.prednames = prednames
 
-class BinnedStepCurveGenerator(object):
-    def __init__(self, xxlimits, predcoeffs, predcols, do_singlebin):
-        self.xxlimits = xxlimits
-        self.predcoeffs = predcoeffs
-        self.do_singlebin = do_singlebin
-        self.predcols = predcols
+        for ii, predname in enumerate(prednames):
+            assert csvv['variables'][predname].unit == indepunits[ii]
+        assert csvv['variables']['outcome'].unit == depenunit
 
-    def get_curve(self, predictors, min_beta):
-        yy = []
-        for ii in range(len(self.predcoeffs)):
-            if np.isnan(self.predcoeffs[ii][0]):
-                yy.append(np.nan) # may not have all coeffs for dropped bin
+        # Preprocessing
+        self.constant = {} # {predname: constant}
+        self.predcovars = {} # {predname: [covarname]}
+        self.predgammas = {} # {predname: np.array}
+        for predname in set(prednames):
+            self.constant[predname] = 0
+            self.predcovars[predname] = []
+            self.predgammas[predname] = []
+
+            indices = [ii for ii, xx in enumerate(csvv['prednames']) if xx == predname]
+            for index in indices:
+                if csvv['covarnames'][index] == '1':
+                    self.constant[predname] += csvv['gamma'][index]
+                else:
+                    self.predcovars[predname].append(csvv['covarnames'][index])
+                    self.predgammas[predname].append(csvv['gamma'][index])
+
+            self.predgammas[predname] = np.array(self.predgammas[predname])
+
+    def get_coefficients(self, covariates):
+        coefficients = {} # {predname: sum}
+        for predname in set(self.prednames):
+            if len(self.predgammas[predname]) == 0:
+                coefficients[predname] = np.nan
             else:
-                bincol = 'DayNumber-' + str(self.xxlimits[ii]) + '-' + str(self.xxlimits[ii+1])
-                predictors_self = np.array([predictors[predcol] if predcol[-1] != '-' else predictors[bincol] for predcol in self.predcols])
-                yy.append(self.predcoeffs[ii][0] + np.sum(self.predcoeffs[ii][1:] * predictors_self))
+                coefficients[predname] = self.constant[predname] + np.sum(self.predgammas[predname] * np.array([self.covariates[covar] for covar in self.predcovars[predname]]))
 
-        if min_beta is not None:
-            yy = np.maximum(min_beta, yy)
+        return coefficients
 
-        return StepCurve(self.xxlimits, yy)
+    def get_curve(self, region, covariates={}):
+        raise NotImplementedError()
 
-def make_binned_curve_generator(csvv, xxlimits, predcols, do_singlebin, seed):
-    if seed is None:
-        params = csvv['gamma']
-    else:
-        params = multivariate_normal.rvs(csvv['gamma'], csvv['gammavcv'])
+## New-style covariate-based curvegen
+class FarmerCurveGenerator(CurveGenerator):
+    def __init__(self, indepunits, depenunit, covariator, farmer='full'):
+        super(FarmerCurveGenerator, self).__init__(indepunits, depenunit)
 
-    # Reorganize params into sets of L
-    gammas = csvvfile.by_predictor_kl(csvv, params, (len(predcols) + 1))
-    if force_goodmoney:
-        print "WARNING: Forcing GDPpc gammas to be < 0"
-        assert len(gammas) == 11
-        for kk in range(len(gammas)):
-            if gammas[kk][predcols.index('loggdppc')+1] > 0:
-                gammas[kk][predcols.index('loggdppc')+1] = 0
+        self.covariator = covariator
+        self.farmer = farmer
 
-    # Insert dropped bin: hard coded for now
-    before_dropped = np.flatnonzero(np.array(xxlimits) == 18)[0]
-    gammas = gammas[:before_dropped] + [np.array([np.nan] * (len(predcols) + 1))] + gammas[before_dropped:]
+    def get_curve(self, region, covariates={}):
+        if len(covariates) == 0:
+            covariates = self.covariator.get_baseline(region)
 
-    return BinnedStepCurveGenerator(xxlimits, gammas, predcols, do_singlebin)
+        curr_curvegen = self.curr_curvegen(region, covariates)
+
+        if self.farmer == 'full':
+            return InstantAdaptingCurve(region, curr_curve, self.covariator, self.curr_curvegen)
+        elif self.farmer == 'coma':
+            return ComatoseInstantAdaptingCurve(region, curr_curve, self.covariator, self.curr_curvegen)
+        elif self.farmer == 'dumb':
+            return DumbInstantAdaptingCurve(region, curr_curve, self.covariator, self.curr_curvegen)
+        else:
+            raise ValueError("Unknown farmer type " + str(farmer))
+
+from openest.models.curve import AdaptableCurve
+
+class InstantAdaptingCurve(AdaptableCurve):
+    def __init__(self, region, curr_curve, covariator, curvegen):
+        self.region = region
+        self.curr_curve = curr_curve
+        self.covariator = covariator
+        self.curvegen = curvegen
+
+    def update(self, year, weather):
+        covariates = self.covariator.get_update(self.region, year, weather)
+        self.curr_curve = self.curvegen.get_curve(self.region, predictors).curr_curve
+
+    def __call__(self, x):
+        return self.curr_curve(x)
+
+class ComatoseInstantAdaptingCurve(InstantAdaptingCurve):
+    def update(self, year, weather):
+        # Ignore for the comatose farmer
+        pass
+
+class DumbInstantAdaptingCurve(InstantAdaptingCurve):
+    def update(self, year, weather):
+        # Set weather to None so no adaptation to it
+        super(DumbInstantAdaptingCurve, self).update(year, None)
