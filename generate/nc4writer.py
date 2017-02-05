@@ -33,7 +33,7 @@ def make_regions_variable(rootgrp, regstrs, subset):
 
     return regions
 
-binlimits = [-np.inf, -17, -12, -7, -2, 3, 8, 13, 18, 23, 28, 33, np.inf]
+binlimits = [-np.inf, -13, -8, -3, 2, 7, 12, 17, 22, 27, 32, np.inf]
 tbinslen = len(binlimits) - 2
 dropbin = 8
 

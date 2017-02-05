@@ -3,6 +3,8 @@ import numpy as np
 from helpers import header, files
 import population
 
+gdppc_filepath = 'social/baselines/gdppc-merged.csv'
+
 def baseline_future_collate(iter, endbaseline):
     baseline_values = {} # {region: [values]}
     future_years = {} # {region: {year: value}}
@@ -20,7 +22,7 @@ def baseline_future_collate(iter, endbaseline):
     return baseline_values, future_years
 
 def each_gdppc_fromfile(model, scenario, dependencies):
-    with open(files.sharedpath('social/baselines/gdppc.csv'), 'r') as fp:
+    with open(files.sharedpath(gdppc_filepath), 'r') as fp:
         reader = csv.reader(header.deparse(fp, dependencies))
         headrow = reader.next()
 

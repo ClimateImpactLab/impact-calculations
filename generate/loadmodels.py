@@ -2,8 +2,8 @@ import numpy as np
 import weather
 from adaptation import covariates
 
-do_econ_model_only = ["OECD Env-Growth"]
-do_econ_scenario_only = ['SSP3']
+do_econ_model_only = None
+do_econ_scenario_only = ['SSP1', 'SSP3']
 
 single_clim_model = 'CCSM4'
 single_clim_scenario = 'rcp85'
@@ -20,7 +20,7 @@ def single(bundle_iterator):
     allexogenous = []
     for econ_scenario, econ_model, economicmodel in allecons:
         for clim_scenario, clim_model, weatherbundle in allclims:
-            if econ_scenario[0:4] != do_econ_scenario_only[0] or econ_model != do_econ_model_only[0]:
+            if (do_econ_scenario_only is not None and econ_scenario[0:4] != do_econ_scenario_only[0]) or (do_econ_model_only is not None and econ_model != do_econ_model_only[0]):
                 continue
             if clim_scenario != single_clim_scenario or clim_model != single_clim_model:
                 continue

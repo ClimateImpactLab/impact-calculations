@@ -3,7 +3,7 @@ import numpy as np
 from netCDF4 import Dataset
 import helpers.header as headre
 from openest.generate import retrieve, diagnostic
-from adaptation import adapting_curve
+from adaptation import curvegen
 import server, nc4writer
 from pvalses import *
 
@@ -110,7 +110,7 @@ def write_ncdf(targetdir, camelcase, weatherbundle, calculation, get_apply_args,
         for col in range(len(results)):
             columndata[col][year - yeardata[0], ii] = results[col]
         if do_interpbins:
-            curve = adapting_curve.region_stepcurves[my_regions[ii]].curr_curve
+            curve = curvegen.region_stepcurves[my_regions[ii]]
             betasdata[:, year - yeardata[0], ii] = list(curve.yy[:nc4writer.dropbin]) + list(curve.yy[nc4writer.dropbin+1:])
         if diagnosefile:
             diagnostic.finish(my_regions[ii], year)
