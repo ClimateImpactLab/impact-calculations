@@ -20,6 +20,10 @@ def discover_models(basedir):
             pastdir = os.path.join(basedir, 'historical', model)
             futuredir = os.path.join(basedir, scenario, model)
 
+            if not os.path.exists(futuredir):
+                print "Missing %s %s" % (scenario, model)
+                continue
+
             yield scenario, model, pastdir, futuredir
 
 ### Reader discovery functions

@@ -10,7 +10,7 @@ def preload():
     library.get_data('mortality-deathrates', 'deaths/person')
 
 def get_bundle_iterator():
-    return weather.iterate_bundles(discover_tas_binned(files.sharedpath('climate/BCSD/aggregation/cmip5_bins/IR_level')))
+    return weather.iterate_bundles(discover_tas_binned(files.sharedpath('climate/BCSD/aggregation/cmip5_bins_new/IR_level')))
 
 def check_doit(redocheck, targetdir, basename, suffix):
     if not redocheck:

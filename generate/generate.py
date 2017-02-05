@@ -1,7 +1,7 @@
 import sys, os, itertools, importlib, shutil, csv, time
 import loadmodels
 import weather, effectset, pvalses
-from adaptation import adapting_curve, curvegenv2
+from adaptation import curvegen, curvegenv2
 from helpers import config, files
 import cProfile, pstats, StringIO
 
@@ -51,7 +51,7 @@ def binresult_callback(region, year, result, calculation, model):
 
     with open(filepath, 'a') as fp:
         writer = csv.writer(fp)
-        curve = adapting_curve.region_stepcurves[region].curr_curve
+        curve = curvegen.region_stepcurves[region]
         writer.writerow([region, year, model, result[0]] + list(curve.yy))
 
 def binpush_callback(region, year, application, get_predictors, model):
@@ -65,8 +65,8 @@ def binpush_callback(region, year, application, get_predictors, model):
         writer = csv.writer(fp)
         predictors = get_predictors(region)[0]
 
-        bin_limits = [-100, -17, -12, -7, -2, 3, 8, 13, 18, 23, 28, 33, 100]
-        bin_names = ['bintas_' + str(bin_limits[bb-1]) + '_' + str(bin_limits[bb]) for bb in range(1, len(bin_limits))]
+        bin_limits = [-100, -13, -8, -3, 2, 7, 12, 17, 22, 27, 32, 100]
+        bin_names = ['DayNumber-' + str(bin_limits[bb-1]) + '-' + str(bin_limits[bb]) for bb in range(1, len(bin_limits))]
         covars = bin_names + ['loggdppc', 'logpopop']
         if 'age0-4' in predictors:
             covars += ['age0-4', 'age65+']

@@ -2,6 +2,8 @@ import numpy as np
 from openest.generate.curvegen import CurveGenerator
 from openest.models.curve import AdaptableCurve
 
+region_stepcurves = {}
+
 class CSVVCurveGenerator(CurveGenerator):
     def __init__(self, prednames, indepunits, depenunit, csvv):
         super(CSVVCurveGenerator, self).__init__(indepunits, depenunit)
@@ -57,6 +59,7 @@ class FarmerCurveGenerator(CurveGenerator):
             covariates = self.covariator.get_baseline(region)
 
         curr_curve = self.curr_curvegen.get_curve(region, covariates)
+        region_stepcurves[region] = curr_curve
 
         if self.farmer == 'full':
             return InstantAdaptingCurve(region, curr_curve, self.covariator, self.curr_curvegen)
@@ -78,7 +81,7 @@ class InstantAdaptingCurve(AdaptableCurve):
 
     def update(self, year, weather):
         covariates = self.covariator.get_update(self.region, year, weather)
-        self.curr_curve = self.curvegen.get_curve(self.region, predictors).curr_curve
+        self.curr_curve = self.curvegen.get_curve(self.region, covariates)
 
     def __call__(self, x):
         return self.curr_curve(x)

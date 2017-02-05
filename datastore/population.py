@@ -3,15 +3,21 @@ import numpy as np
 from helpers import files, header
 import spacetime
 
+use_merged = True
+
 def each_future_population(model, scenario, dependencies):
     # Try to load an model-specific file
-    populationfile = files.sharedpath('social/baselines/population/future/population-future.' + model + '.' + scenario + '.csv')
-    if os.path.exists(populationfile):
+    if use_merged:
+        populationfile = files.sharedpath('social/baselines/population/merged/population-merged.' + scenario + '.csv')
         rowchecks = lambda row, headrow: True
     else:
-        print "Cannot find model-specific populations."
-        populationfile = files.sharedpath('social/baselines/population/future/population-future.csv')
-        rowchecks = lambda row, headrow: row[headrow.index('model')] == model and row[headrow.index('scenario')] == scenario
+        populationfile = files.sharedpath('social/baselines/population/future/population-future.' + model + '.' + scenario + '.csv')
+        if os.path.exists(populationfile):
+            rowchecks = lambda row, headrow: True
+        else:
+            print "Cannot find model-specific populations."
+            populationfile = files.sharedpath('social/baselines/population/future/population-future.csv')
+            rowchecks = lambda row, headrow: row[headrow.index('model')] == model and row[headrow.index('scenario')] == scenario
 
     with open(populationfile, 'r') as fp:
         reader = csv.reader(header.deparse(fp, dependencies))
