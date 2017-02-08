@@ -47,11 +47,11 @@ def binresult_callback(region, year, result, calculation, model):
     if not os.path.exists(filepath):
         with open(filepath, 'w') as fp:
             writer = csv.writer(fp)
-            writer.writerow(['region', 'year', 'model', 'result', 'bin_nInfC_n17C', 'bin_n17C_n12C', 'bin_n12C_n7C', 'bin_n7C_n2C', 'bin_n2C_3C', 'bin_3C_8C', 'bin_8C_13C', 'bin_13C_18C', 'bin_18C_23C', 'bin_23C_28C', 'bin_28C_33C', 'bin_33C_InfC'])
+            writer.writerow(['region', 'year', 'model', 'result', 'bin_nInfC_n13C', 'bin_n13C_n8C', 'bin_87C_n3C', 'bin_n3C_2C', 'bin_2C_7C', 'bin_7C_12C', 'bin_12C_17C', 'bin_17C_22C', 'bin_22C_27C', 'bin_27C_32C', 'bin_32C_InfC'])
 
     with open(filepath, 'a') as fp:
         writer = csv.writer(fp)
-        curve = curvegen.region_stepcurves[region]
+        curve = curvegen.region_stepcurves[region].curr_curve
         writer.writerow([region, year, model, result[0]] + list(curve.yy))
 
 def binpush_callback(region, year, application, get_predictors, model):
@@ -59,7 +59,7 @@ def binpush_callback(region, year, application, get_predictors, model):
     if not os.path.exists(filepath):
         with open(filepath, 'w') as fp:
             writer = csv.writer(fp)
-            writer.writerow(['region', 'year', 'model', 'meandays_nInfC_n17C', 'meandays_n17C_n12C', 'meandays_n12C_n7C', 'meandays_n7C_n2C', 'meandays_n2C_3C', 'meandays_3C_8C', 'meandays_8C_13C', 'meandays_13C_18C', 'meandays_18C_23C', 'meandays_23C_28C', 'meandays_28C_33C', 'meandays_33C_InfC', 'log gdppc', 'log popop', 'age0-4', 'age65+'])
+            writer.writerow(['region', 'year', 'model', 'meandays_nInfC_n13C', 'meandays_n13C_n8C', 'meandays_87C_n3C', 'meandays_n3C_2C', 'meandays_2C_7C', 'meandays_7C_12C', 'meandays_12C_17C', 'meandays_17C_22C', 'meandays_22C_27C', 'meandays_27C_32C', 'meandays_32C_InfC', 'loggdppc', 'logpopop'])
 
     with open(filepath, 'a') as fp:
         writer = csv.writer(fp)

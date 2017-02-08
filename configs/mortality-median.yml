@@ -1,4 +1,4 @@
 module: mortality
 mode: median
-outputdir: outputs/mortality/impacts-pharaoh2
-redocheck: check-20161229.txt
+outputdir: outputs/mortality/impacts-conehead
+
