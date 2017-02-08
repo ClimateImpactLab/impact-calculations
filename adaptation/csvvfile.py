@@ -34,7 +34,7 @@ def read_girdin(data, fp):
                 print "No variable queued."
                 print row
             assert variable_reading is not None
-            data[variable_reading].append(row)
+            data[variable_reading].append(map(lambda x: x.strip(), row))
 
     data['observations'] = float(data['observations'][0][0])
     data['prednames'] = data['prednames'][0]

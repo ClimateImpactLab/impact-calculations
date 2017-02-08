@@ -39,7 +39,7 @@ class CSVVCurveGenerator(CurveGenerator):
             if len(self.predgammas[predname]) == 0:
                 coefficients[predname] = np.nan
             else:
-                coefficients[predname] = self.constant[predname] + np.sum(self.predgammas[predname] * np.array([self.covariates[covar] for covar in self.predcovars[predname]]))
+                coefficients[predname] = self.constant[predname] + np.sum(self.predgammas[predname] * np.array([covariates[covar] for covar in self.predcovars[predname]]))
 
         return coefficients
 
@@ -59,16 +59,19 @@ class FarmerCurveGenerator(CurveGenerator):
             covariates = self.covariator.get_baseline(region)
 
         curr_curve = self.curr_curvegen.get_curve(region, covariates)
-        region_stepcurves[region] = curr_curve
 
         if self.farmer == 'full':
-            return InstantAdaptingCurve(region, curr_curve, self.covariator, self.curr_curvegen)
+            full_curve = InstantAdaptingCurve(region, curr_curve, self.covariator, self.curr_curvegen)
         elif self.farmer == 'coma':
-            return ComatoseInstantAdaptingCurve(region, curr_curve, self.covariator, self.curr_curvegen)
+            full_curve = ComatoseInstantAdaptingCurve(region, curr_curve, self.covariator, self.curr_curvegen)
         elif self.farmer == 'dumb':
-            return DumbInstantAdaptingCurve(region, curr_curve, self.covariator, self.curr_curvegen)
+            full_curve = DumbInstantAdaptingCurve(region, curr_curve, self.covariator, self.curr_curvegen)
         else:
             raise ValueError("Unknown farmer type " + str(farmer))
+
+        region_stepcurves[region] = full_curve
+
+        return full_curve
 
 class InstantAdaptingCurve(AdaptableCurve):
     def __init__(self, region, curr_curve, covariator, curvegen):
