@@ -33,7 +33,7 @@ def get_aggregated_regions(regions):
 
     # Add the FUND regions
     dependencies = []
-    with open('../socioeconomics/aggloms/world/macro-regions.csv', 'r') as fp:
+    with open('/shares/gcp/regions/macro-regions.csv', 'r') as fp:
         aggreader = csv.reader(header.deparse(fp, dependencies))
         headrow = aggreader.next()
         for row in aggreader:

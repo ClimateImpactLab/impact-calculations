@@ -13,7 +13,7 @@ costs_command = "Rscript generate/cost_curves.R \"%s\" %s" # resultfile tempsfil
 checkfile = 'check-20161230.txt'
 
 batchfilter = lambda batch: batch == 'median' or 'batch' in batch
-targetdirfilter = lambda targetdir: 'SSP3' in targetdir and 'Env-Growth' in targetdir and checkfile not in os.listdir(targetdir)
+targetdirfilter = lambda targetdir: True #'SSP3' in targetdir and 'Env-Growth' in targetdir and checkfile not in os.listdir(targetdir)
 
 # The full population, if we just read it.  Only 1 at a time (it's big!)
 # Tuple of (get_population, minyear, maxyear, population)
