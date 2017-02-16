@@ -111,6 +111,41 @@ class MeanWeatherCovariator(Covariator):
 
         return {self.weatherbundle.get_dimension()[0]: rm_mean(self.temp_predictors[region])}
 
+class SeasonalWeatherCovariator(MeanWeatherCovariator):
+    def __init__(self, weatherbundle, numtempyears, maxbaseline, day_start, day_end):
+        super(SeasonalWeatherCovariator, self).__init__(weatherbundle, numtempyears, maxbaseline)
+        self.maxbaseline = maxbaseline
+        self.day_start = day_start
+        self.day_end = day_end
+        self.all_values = None
+
+        self.mustr = "%smu%d-%d" % (self.weatherbundle.get_dimension()[0], self.day_start, self.day_end)
+        self.sigmastr = "%ssigma%d-%d" % (self.weatherbundle.get_dimension()[0], self.day_start, self.day_end)
+                                     
+    def get_baseline(self, region):
+        if self.all_values is None:
+            # Read in all regions
+            self.all_values = {}
+            for times, weather in self.weatherbundle.yearbundles(maxyear=self.maxbaseline):
+                for ii in range(len(self.weatherbundle.regions)):
+                    if self.weatherbundle.regions[ii] not in self.all_values:
+                        self.all_values[self.weatherbundle.regions[ii]] = []
+                    self.all_values[self.weatherbundle.regions[ii]].extend(weather[self.day_start:self.day_end])
+        
+        mu = np.mean(self.all_values[region])
+        sigma = np.std(self.all_values[region])
+
+        return {self.mustr: mu, self.sigmastr: sigma}
+
+    def get_update(self, region, year, weather):
+        if weather is not None and year > self.startupdateyear:
+            self.all_values[region] = self.all_values[region][(self.day_end - self.day_start):] + weather[self.day_start:self.day_end]
+
+        mu = np.mean(self.all_values[region])
+        sigma = np.std(self.all_values[region])
+
+        return {self.mustr: mu, self.sigmastr: sigma}
+
 class MeanBinsCovariator(Covariator):
     def __init__(self, weatherbundle, binlimits, dropbin, numtempyears, maxbaseline):
         super(MeanBinsCovariator, self).__init__(maxbaseline)
