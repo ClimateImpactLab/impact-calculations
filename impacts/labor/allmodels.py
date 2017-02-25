@@ -10,7 +10,9 @@ def get_bundle_iterator():
     return weather.iterate_combined_bundles(discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tasmax'),
                                             discover_derived_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tasmax', 'power2'),
                                             discover_derived_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tasmax', 'power3'),
-                                            discover_derived_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tasmax', 'power4'))
+                                            discover_derived_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tasmax', 'power4'),
+                                            discover_yearly_variable(files.sharedpath('climate/BCSD/aggregation/cmip5_new/IRI_level'), 'Degreedays_tasmax', 'coldd_agg'),
+                                            discover_yearly_variable(files.sharedpath('climate/BCSD/aggregation/cmip5_new/IRI_level'), 'Degreedays_tasmax', 'hotdd_agg'))
 
 def check_doit(redocheck, targetdir, basename, suffix, deletebad=False):
     if not redocheck:
