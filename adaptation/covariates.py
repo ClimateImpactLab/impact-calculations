@@ -1,6 +1,7 @@
 import numpy as np
 from econmodel import *
 from datastore import agecohorts
+from climate.yearlyreader import RandomYearlyAccessor
 
 ## Management of rolling means
 ## Rolling mean is [SUM, COUNT]
@@ -121,7 +122,7 @@ class SeasonalWeatherCovariator(MeanWeatherCovariator):
 
         self.mustr = "%smu%d-%d" % (self.weatherbundle.get_dimension()[0], self.day_start, self.day_end)
         self.sigmastr = "%ssigma%d-%d" % (self.weatherbundle.get_dimension()[0], self.day_start, self.day_end)
-                                     
+
     def get_baseline(self, region):
         if self.all_values is None:
             # Read in all regions
@@ -131,7 +132,7 @@ class SeasonalWeatherCovariator(MeanWeatherCovariator):
                     if self.weatherbundle.regions[ii] not in self.all_values:
                         self.all_values[self.weatherbundle.regions[ii]] = []
                     self.all_values[self.weatherbundle.regions[ii]].extend(weather[self.day_start:self.day_end])
-        
+
         mu = np.mean(self.all_values[region])
         sigma = np.std(self.all_values[region])
 
@@ -145,6 +146,41 @@ class SeasonalWeatherCovariator(MeanWeatherCovariator):
         sigma = np.std(self.all_values[region])
 
         return {self.mustr: mu, self.sigmastr: sigma}
+
+class YearlyWeatherCovariator(Covariator):
+    """
+    YearlyWeatherCovariator takes a YearlyWeatherReader and collects
+    data from it as needed, rather than depending on the
+    weatherbundle.
+    """
+    def __init__(self, yearlyreader, regions, baseline_end, duration):
+        super(YearlyWeatherCovariator, self).__init__(baseline_end)
+
+        predictors = {rm_init([]) for region in regions}
+
+        for years, values in yearlyreader.read_iterator():
+            for ii in range(len(regions)):
+                predictors[regions[ii]] = rm_add(predictors[regions[ii]], values[ii], duration)
+
+        self.predictors = predictors
+
+        self.yearlyreader = yearlyreader
+        self.regions = regions
+        self.duration = duration
+
+        random_year_access = RandomYearlyAccessor(yearlyreader)
+        self.random_region_access = RandomRegionAccess(random_year_access.get_year, regions)
+
+    def get_baseline(self, region):
+        return {self.yearlyreader.get_dimension()[0]: rm_mean(self.predictors[region])}
+
+    def get_update(self, region, year, temps):
+        assert year < 10000
+
+        values = self.random_region_access.get_region_year(region, year)
+        rm_add(predictors[region], values, self.duration)
+
+        return {self.yearlyreader.get_dimension()[0]: rm_mean(self.predictors[region])}
 
 class MeanBinsCovariator(Covariator):
     def __init__(self, weatherbundle, binlimits, dropbin, numtempyears, maxbaseline):
