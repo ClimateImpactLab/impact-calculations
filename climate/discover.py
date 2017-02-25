@@ -4,6 +4,7 @@ future reader).
 """
 import os
 from dailyreader import DailyWeatherReader, YearlyBinnedWeatherReader
+from yearlyreader import YearlyWeatherReader
 
 def discover_models(basedir):
     """
@@ -27,7 +28,7 @@ def discover_models(basedir):
             yield scenario, model, pastdir, futuredir
 
 ### Reader discovery functions
-# Yield
+# Yields (scenario, model, pastreader, futurereader)
 
 def discover_tas_binned(basedir):
     for scenario, model, pastdir, futuredir in discover_models(basedir):
@@ -59,3 +60,20 @@ def discover_derived_variable(basedir, variable, suffix):
             futurereader = DailyWeatherReader(futuretemplate, 2006, variable)
 
             yield scenario, model, pastreader, futurereader
+
+def discover_yearly_variable(basedir, vardir, variable):
+    """
+    Returns scenario, model, YearlyReader for the given variable
+    baseline points to directory with 'rcp*'
+    """
+
+    for scenario in os.listdir(basedir):
+        if scenario[0:3] != 'rcp':
+            continue
+
+        for filename in os.listdir(os.path.join(basedir, scenario, vardir)):
+            root, ext = os.path.splitext(filename)
+            model = root.split('_')[-1]
+            filepath = os.path.join(basedir, scenario, vardir, filename)
+
+            yield scenario, model, YearlyWeatherReader(filepath, variable)
