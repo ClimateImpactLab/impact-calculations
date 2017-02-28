@@ -77,3 +77,12 @@ def discover_yearly_variable(basedir, vardir, variable):
             filepath = os.path.join(basedir, scenario, vardir, filename)
 
             yield scenario, model, YearlyWeatherReader(filepath, variable)
+
+def discover_yearly_corresponding(basedir, scenario, vardir, model, variable):
+    for filename in os.listdir(os.path.join(basedir, scenario, vardir)):
+        root, ext = os.path.splitext(filename)
+        thismodel = root.split('_')[-1]
+
+        if thismodel == model:
+            filepath = os.path.join(basedir, scenario, vardir, filename)
+            return YearlyWeatherReader(filepath, variable)

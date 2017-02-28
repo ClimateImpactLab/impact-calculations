@@ -1,11 +1,11 @@
-import csv
+import csv, copy
 import numpy as np
 import metacsv
 from scipy.stats import multivariate_normal
 import csvvfile_legacy
 
 def read(filename):
-    with open(filename, 'r') as fp:
+    with open(filename, 'rU') as fp:
         attrs, coords, variables = metacsv.read_header(fp, parse_vars=True)
         data = {'attrs': attrs, 'variables': variables, 'coords': coords}
 
@@ -73,3 +73,15 @@ def binname_part(xxlimit):
 
     return part
     
+def subset(csvv, prednames):
+    toinclude = map(lambda predname: predname in prednames, csvv['prednames'])
+    toinclude = np.where(toinclude)[0]
+
+    subcsvv = copy.copy(csvv)
+    subcsvv['prednames'] = [csvv['prednames'][ii] for ii in toinclude]
+    subcsvv['covarnames'] = [csvv['covarnames'][ii] for ii in toinclude]
+    subcsvv['gamma'] = csvv['gamma'][toinclude]
+    if 'gammavcv' in csvv and csvv['gammavcv'] is not None:
+        subcsvv['gammavcv'] = csvv['gammavcv'][toinclude, toinclude]
+
+    return subcsvv

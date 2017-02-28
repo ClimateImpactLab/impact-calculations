@@ -47,7 +47,7 @@ def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=N
             # Full Adaptation
             if check_doit(redocheck, targetdir, basename, suffix):
                 print "Smart Farmer"
-                calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.labor.global20161209', weatherbundle, economicmodel, pvals[basename])
+                calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.labor.global20170216', weatherbundle, economicmodel, pvals[basename])
 
                 if profile:
                     effectset.small_test(weatherbundle, calculation, None, num_regions=10)

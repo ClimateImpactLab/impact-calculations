@@ -1,7 +1,7 @@
 import sys, os, itertools, importlib, shutil, csv, time
 import loadmodels
 import weather, effectset, pvalses
-from adaptation import curvegen, curvegenv2
+from adaptation import curvegen
 from helpers import config, files
 import cProfile, pstats, StringIO
 
@@ -51,7 +51,7 @@ def binresult_callback(region, year, result, calculation, model):
 
     with open(filepath, 'a') as fp:
         writer = csv.writer(fp)
-        curve = curvegen.region_stepcurves[region].curr_curve
+        curve = curvegen.region_curves[region].curr_curve
         writer.writerow([region, year, model, result[0]] + list(curve.yy))
 
 def binpush_callback(region, year, application, get_predictors, model):
@@ -82,7 +82,7 @@ def valresult_callback(region, year, result, calculation, model):
 
     with open(filepath, 'a') as fp:
         writer = csv.writer(fp)
-        ccs = curvegenv2.region_polycurves[region].curr_curve.ccs
+        ccs = curvegen.region_curves[region].curr_curve.ccs
         writer.writerow([region, year, model, result[0]] + list(ccs))
 
 def valpush_callback(region, year, application, get_predictors, model):
@@ -95,7 +95,7 @@ def valpush_callback(region, year, application, get_predictors, model):
     with open(filepath, 'a') as fp:
         writer = csv.writer(fp)
         predictors = get_predictors(region)
-        covars = ['tasmax', 'loggdppc', 'logpopop']
+        covars = ['coldd_agg', 'hotdd_agg', 'loggdppc', 'logpopop']
         writer.writerow([region, year, model] + [predictors[covar] for covar in covars])
 
 mode_iterators = {'median': iterate_median, 'montecarlo': iterate_montecarlo, 'single': iterate_single, 'writebins': iterate_single, 'writevals': iterate_single, 'profile': iterate_single}

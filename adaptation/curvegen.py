@@ -2,7 +2,7 @@ import numpy as np
 from openest.generate.curvegen import CurveGenerator
 from openest.models.curve import AdaptableCurve
 
-region_stepcurves = {}
+region_curves = {}
 
 class CSVVCurveGenerator(CurveGenerator):
     def __init__(self, prednames, indepunits, depenunit, csvv):
@@ -10,9 +10,12 @@ class CSVVCurveGenerator(CurveGenerator):
         self.prednames = prednames
 
         for ii, predname in enumerate(prednames):
+            assert predname in csvv['variables'], "Predictor %s not found in CSVV." % predname
             if predname in csvv['variables']:
+                assert 'unit' in csvv['variables'][predname], "Predictor %s does not have units." % predname
                 assert csvv['variables'][predname]['unit'] == indepunits[ii]
-        assert csvv['variables']['outcome']['unit'] == depenunit
+
+        assert csvv['variables']['outcome']['unit'] == depenunit, "Dependent units %s does not match %s." % (csvv['variables']['outcome']['unit'], depenunit)
 
         # Preprocessing
         self.constant = {} # {predname: constant}
@@ -39,7 +42,12 @@ class CSVVCurveGenerator(CurveGenerator):
             if len(self.predgammas[predname]) == 0:
                 coefficients[predname] = np.nan
             else:
-                coefficients[predname] = self.constant[predname] + np.sum(self.predgammas[predname] * np.array([covariates[covar] for covar in self.predcovars[predname]]))
+                try:
+                    coefficients[predname] = self.constant[predname] + np.sum(self.predgammas[predname] * np.array([covariates[covar] for covar in self.predcovars[predname]]))
+                except Exception as e:
+                    print "Available covariates:"
+                    print covariates
+                    raise e
 
         return coefficients
 
@@ -48,11 +56,12 @@ class CSVVCurveGenerator(CurveGenerator):
 
 ## New-style covariate-based curvegen
 class FarmerCurveGenerator(CurveGenerator):
-    def __init__(self, curr_curvegen, covariator, farmer='full'):
+    def __init__(self, curr_curvegen, covariator, farmer='full', save_curve=True):
         super(FarmerCurveGenerator, self).__init__(curr_curvegen.indepunits, curr_curvegen.depenunit)
         self.curr_curvegen = curr_curvegen
         self.covariator = covariator
         self.farmer = farmer
+        self.save_curve = save_curve
 
     def get_curve(self, region, covariates={}):
         if len(covariates) == 0:
@@ -69,7 +78,8 @@ class FarmerCurveGenerator(CurveGenerator):
         else:
             raise ValueError("Unknown farmer type " + str(farmer))
 
-        region_stepcurves[region] = full_curve
+        if self.save_curve:
+            region_curves[region] = full_curve
 
         return full_curve
 

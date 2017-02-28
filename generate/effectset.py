@@ -110,7 +110,7 @@ def write_ncdf(targetdir, camelcase, weatherbundle, calculation, get_apply_args,
         for col in range(len(results)):
             columndata[col][year - yeardata[0], ii] = results[col]
         if do_interpbins:
-            curve = curvegen.region_stepcurves[my_regions[ii]].curr_curve
+            curve = curvegen.region_curves[my_regions[ii]].curr_curve
             betasdata[:, year - yeardata[0], ii] = list(curve.yy[:nc4writer.dropbin]) + list(curve.yy[nc4writer.dropbin+1:])
         if diagnosefile:
             diagnostic.finish(my_regions[ii], year)
