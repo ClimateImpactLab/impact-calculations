@@ -27,9 +27,15 @@ def each_future_population(model, scenario, dependencies):
             if not rowchecks(row, headrow):
                 continue
 
-            region = row[headrow.index('region')]
-            year = int(row[headrow.index('year')])
-            value = float(row[headrow.index('value')])
+            try:
+                region = row[headrow.index('region')]
+                year = int(row[headrow.index('year')])
+                value = float(row[headrow.index('value')])
+            except Exception as e:
+                print "Could not get all values for row from %s:" % populationfile
+                print headrow
+                print row
+                raise e
 
             yield region, year, value
 

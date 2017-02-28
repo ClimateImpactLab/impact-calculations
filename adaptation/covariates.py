@@ -1,7 +1,8 @@
 import numpy as np
+import timeit
 from econmodel import *
 from datastore import agecohorts
-from climate.yearlyreader import RandomYearlyAccessor
+from climate.yearlyreader import RandomYearlyAccess, RandomRegionAccess
 
 ## Management of rolling means
 ## Rolling mean is [SUM, COUNT]
@@ -113,11 +114,12 @@ class MeanWeatherCovariator(Covariator):
         return {self.weatherbundle.get_dimension()[0]: rm_mean(self.temp_predictors[region])}
 
 class SeasonalWeatherCovariator(MeanWeatherCovariator):
-    def __init__(self, weatherbundle, numtempyears, maxbaseline, day_start, day_end):
+    def __init__(self, weatherbundle, numtempyears, maxbaseline, day_start, day_end, weather_index):
         super(SeasonalWeatherCovariator, self).__init__(weatherbundle, numtempyears, maxbaseline)
         self.maxbaseline = maxbaseline
         self.day_start = day_start
         self.day_end = day_end
+        self.weather_index = weather_index
         self.all_values = None
 
         self.mustr = "%smu%d-%d" % (self.weatherbundle.get_dimension()[0], self.day_start, self.day_end)
@@ -125,13 +127,16 @@ class SeasonalWeatherCovariator(MeanWeatherCovariator):
 
     def get_baseline(self, region):
         if self.all_values is None:
+            print "Collecting " + self.mustr
             # Read in all regions
             self.all_values = {}
             for times, weather in self.weatherbundle.yearbundles(maxyear=self.maxbaseline):
+                print times[0]
                 for ii in range(len(self.weatherbundle.regions)):
                     if self.weatherbundle.regions[ii] not in self.all_values:
-                        self.all_values[self.weatherbundle.regions[ii]] = []
-                    self.all_values[self.weatherbundle.regions[ii]].extend(weather[self.day_start:self.day_end])
+                        self.all_values[self.weatherbundle.regions[ii]] = weather[self.day_start:self.day_end, ii]
+                    else:
+                        self.all_values[self.weatherbundle.regions[ii]] = np.concatenate((self.all_values[self.weatherbundle.regions[ii]], weather[self.day_start:self.day_end, ii]))
 
         mu = np.mean(self.all_values[region])
         sigma = np.std(self.all_values[region])
@@ -140,7 +145,7 @@ class SeasonalWeatherCovariator(MeanWeatherCovariator):
 
     def get_update(self, region, year, weather):
         if weather is not None and year > self.startupdateyear:
-            self.all_values[region] = self.all_values[region][(self.day_end - self.day_start):] + weather[self.day_start:self.day_end]
+            self.all_values[region] = np.concatenate((self.all_values[region][(self.day_end - self.day_start):], weather[self.day_start:self.day_end, self.weather_index]))
 
         mu = np.mean(self.all_values[region])
         sigma = np.std(self.all_values[region])
@@ -153,32 +158,36 @@ class YearlyWeatherCovariator(Covariator):
     data from it as needed, rather than depending on the
     weatherbundle.
     """
-    def __init__(self, yearlyreader, regions, baseline_end, duration):
+    def __init__(self, yearlyreader, regions, baseline_end, duration, is_historical):
         super(YearlyWeatherCovariator, self).__init__(baseline_end)
 
-        predictors = {rm_init([]) for region in regions}
+        predictors = {region: rm_init([]) for region in regions}
 
         for years, values in yearlyreader.read_iterator():
             for ii in range(len(regions)):
-                predictors[regions[ii]] = rm_add(predictors[regions[ii]], values[ii], duration)
+                rm_add(predictors[regions[ii]], values[ii], duration)
 
         self.predictors = predictors
 
         self.yearlyreader = yearlyreader
         self.regions = regions
         self.duration = duration
+        self.is_historical = is_historical
 
-        random_year_access = RandomYearlyAccessor(yearlyreader)
+        random_year_access = RandomYearlyAccess(yearlyreader)
         self.random_region_access = RandomRegionAccess(random_year_access.get_year, regions)
 
     def get_baseline(self, region):
         return {self.yearlyreader.get_dimension()[0]: rm_mean(self.predictors[region])}
 
     def get_update(self, region, year, temps):
+        if self.is_historical:
+            return get_baseline(region)
+
         assert year < 10000
 
         values = self.random_region_access.get_region_year(region, year)
-        rm_add(predictors[region], values, self.duration)
+        rm_add(self.predictors[region], values, self.duration)
 
         return {self.yearlyreader.get_dimension()[0]: rm_mean(self.predictors[region])}
 

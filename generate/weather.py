@@ -10,7 +10,7 @@ def iterate_bundles(iterator_readers):
     Return bundles for each RCP and model.
     """
     for scenario, model, pastreader, futurereader in iterator_readers:
-        weatherbundle = UnivariatePastFutureWeatherBundle(pastreader, futurereader)
+        weatherbundle = UnivariatePastFutureWeatherBundle(pastreader, futurereader, scenario, model)
         yield scenario, model, weatherbundle
 
 def iterate_combined_bundles(*iterators_readers):
@@ -25,7 +25,7 @@ def iterate_combined_bundles(*iterators_readers):
         if len(scenmodels[(scenario, model)]) < len(iterators_readers):
             continue
 
-        weatherbundle = MultivariatePastFutureWeatherBundle(scenmodels[(scenario, model)])
+        weatherbundle = MultivariatePastFutureWeatherBundle(scenmodels[(scenario, model)], scenario, model)
         yield scenario, model, weatherbundle
 
 class WeatherBundle(object):
@@ -37,8 +37,10 @@ class WeatherBundle(object):
     below.
     """
 
-    def __init__(self, hierarchy='hierarchy.csv'):
+    def __init__(self, scenario, model, hierarchy='hierarchy.csv'):
         self.dependencies = []
+        self.scenario = scenario
+        self.model = model
         self.hierarchy = hierarchy
 
     def is_historical(self):
@@ -67,8 +69,8 @@ class WeatherBundle(object):
             self.dependencies = reader.dependencies
 
 class ReaderWeatherBundle(WeatherBundle):
-    def __init__(self, reader, hierarchy='hierarchy.csv'):
-        super(ReaderWeatherBundle, self).__init__(hierarchy)
+    def __init__(self, reader, scenario, model, hierarchy='hierarchy.csv'):
+        super(ReaderWeatherBundle, self).__init__(scenario, model, hierarchy)
         self.reader = reader
 
         self.load_readermeta(reader)
@@ -148,8 +150,8 @@ class SingleWeatherBundle(ReaderWeatherBundle, DailyWeatherBundle):
         return self.reader.get_years()
 
 class UnivariatePastFutureWeatherBundle(DailyWeatherBundle):
-    def __init__(self, pastreader, futurereader, hierarchy='hierarchy.csv'):
-        super(UnivariatePastFutureWeatherBundle, self).__init__(hierarchy)
+    def __init__(self, pastreader, futurereader, scenario, model, hierarchy='hierarchy.csv'):
+        super(UnivariatePastFutureWeatherBundle, self).__init__(scenario, model, hierarchy)
         self.pastreader = pastreader
         self.futurereader = futurereader
 
@@ -180,8 +182,8 @@ class UnivariatePastFutureWeatherBundle(DailyWeatherBundle):
         return self.pastreader.get_dimension()
 
 class MultivariatePastFutureWeatherBundle(DailyWeatherBundle):
-    def __init__(self, pastfuturereaders, hierarchy='hierarchy.csv'):
-        super(MultivariatePastFutureWeatherBundle, self).__init__(hierarchy)
+    def __init__(self, pastfuturereaders, scenario, model, hierarchy='hierarchy.csv'):
+        super(MultivariatePastFutureWeatherBundle, self).__init__(scenario, model, hierarchy)
         self.pastfuturereaders = pastfuturereaders
 
         onefuturereader = self.pastfuturereaders[0][1]
@@ -227,12 +229,12 @@ class MultivariatePastFutureWeatherBundle(DailyWeatherBundle):
         return [pastreader.get_dimension() for pastreader, futurereader in self.pastfuturereaders]
 
     def get_subset(self, index):
-        return UnivariatePastFutureWeatherBundle(*self.pastfuturereaders[index])
+        return UnivariatePastFutureWeatherBundle(*self.pastfuturereaders[index], scenario=self.scenario, model=self.model)
 
 class MultivariateHistoricalWeatherBundle2(DailyWeatherBundle):
     """Quick fix, since MultivariateHistoricalWeatherBundle doesn't work with list."""
-    def __init__(self, pastreaders, futureyear_end, seed, hierarchy='hierarchy.csv'):
-        super(MultivariateHistoricalWeatherBundle2, self).__init__(hierarchy)
+    def __init__(self, pastreaders, futureyear_end, seed, scenario, model, hierarchy='hierarchy.csv'):
+        super(MultivariateHistoricalWeatherBundle2, self).__init__(scenario, model, hierarchy)
         self.pastreaders = pastreaders
         self.seed = seed # Save for get_subset
 
@@ -301,11 +303,11 @@ class MultivariateHistoricalWeatherBundle2(DailyWeatherBundle):
         return alldims
 
     def get_subset(self, index):
-        return RepeatedHistoricalWeatherBundle(self.pastreaders[index], self.futureyear_end, self.seed)
+        return RepeatedHistoricalWeatherBundle(self.pastreaders[index], self.futureyear_end, self.seed, scenario, model)
 
 class RepeatedHistoricalWeatherBundle(DailyWeatherBundle):
-    def __init__(self, reader, futureyear_end, seed, hierarchy='hierarchy.csv'):
-        super(RepeatedHistoricalWeatherBundle, self).__init__(hierarchy)
+    def __init__(self, reader, futureyear_end, seed, scenario, model, hierarchy='hierarchy.csv'):
+        super(RepeatedHistoricalWeatherBundle, self).__init__(scenario, model, hierarchy)
 
         self.reader = reader
 
@@ -346,9 +348,9 @@ class RepeatedHistoricalWeatherBundle(DailyWeatherBundle):
         futureyear_end = weatherbundle.get_years()[-1]
         if isinstance(weatherbundle, MultivariatePastFutureWeatherBundle):
             pastreaders = [pastreader for pastreader, futurereader in weatherbundle.pastfuturereaders]
-            return MultivariateHistoricalWeatherBundle2(pastreaders, futureyear_end, seed)
+            return MultivariateHistoricalWeatherBundle2(pastreaders, futureyear_end, seed, scenario, model)
         else:
-            return RepeatedHistoricalWeatherBundle(weatherbundle.pastreader, futureyear_end, seed)
+            return RepeatedHistoricalWeatherBundle(weatherbundle.pastreader, futureyear_end, seed, scenario, model)
 
     def yearbundles(self, maxyear=np.inf):
         year = self.pastyear_start
@@ -367,9 +369,9 @@ class RepeatedHistoricalWeatherBundle(DailyWeatherBundle):
         return self.reader.get_dimension()
 
 class MultivariateHistoricalWeatherBundle(DailyWeatherBundle):
-    def __init__(self, template, year_start, year_end, variables,
+    def __init__(self, template, year_start, year_end, variables, scenario, model,
                  hierarchy='hierarchy.csv', readncdf=netcdfs.readncdf):
-        super(MultivariateHistoricalWeatherBundle, self).__init__(hierarchy)
+        super(MultivariateHistoricalWeatherBundle, self).__init__(scenario, model, hierarchy)
 
         self.template = template
         self.year_start = year_start
@@ -423,7 +425,7 @@ class MultivariateHistoricalWeatherBundle(DailyWeatherBundle):
 
 if __name__ == '__main__':
     template = "/shares/gcp/BCSD/grid2reg/cmip5/historical/CCSM4/{0}/{0}_day_aggregated_historical_r1i1p1_CCSM4_{1}.nc"
-    weatherbundle = MultivariateHistoricalWeatherBundle(template, 1981, 2005, ['pr', 'tas'])
+    weatherbundle = MultivariateHistoricalWeatherBundle(template, 1981, 2005, ['pr', 'tas'], 'historical', 'CCSM4')
     yyyyddd, weathers = weatherbundle.yearbundles().next()
     print len(yyyyddd), len(weathers), len(weathers[0]) # 365, 2, 365
 

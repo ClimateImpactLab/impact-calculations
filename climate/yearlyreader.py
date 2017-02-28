@@ -23,10 +23,10 @@ class YearlyWeatherReader(WeatherReader):
         values = netcdfs.readncdf_single(self.filepath, self.variable)
         years = self.get_times()
 
-        for ii in len(years):
+        for ii in range(len(years)):
             yield [years[ii]], values[ii, :]
 
-class RandomYearlyAccessor(object):
+class RandomYearlyAccess(object):
     def __init__(self, yearlyreader):
         self.yearlyreader = yearlyreader
 
@@ -43,7 +43,7 @@ class RandomYearlyAccessor(object):
             self.current_year = years[0]
             self.current_data = values
 
-        assert year == self.current_year:
+        assert year == self.current_year
         return self.current_data
 
 class RandomRegionAccess(object):
