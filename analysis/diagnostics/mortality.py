@@ -1,70 +1,21 @@
-import sys, os, csv, subprocess
+import sys, os, csv
 from netCDF4 import Dataset
 import numpy as np
-
-def show_julia(command):
-    if isinstance(command, str):
-        print command
-        print "# " + subprocess.check_output(["julia", "-e", "println(" + command + ")"])
-    else:
-        print "\n".join(command)
-        print "# " + subprocess.check_output(["julia", "-e", "; ".join(command[:-1]) + "; println(" + command[-1] + ")"])
+import lib
 
 dir = sys.argv[1]
 
 print "\nThe Covariates File (allpreds):"
-
-preds = {}
-with open(os.path.join(dir, "mortality-allpreds.csv"), 'r') as fp:
-    header = fp.readline().rstrip()
-    preds['header'] = header.split(',')[3:]
-    print header
-    print "..."
-    for line in fp:
-        if line[:len('IND.33.542.2153,XXXX')] in ['IND.33.542.2153,2005', 'IND.33.542.2153,2049']:
-            print line.rstrip()
-            print "..."
-            preds[line[len('IND.33.542.2153,'):len('IND.33.542.2153,XXXX')]] = map(float, line.split(',')[3:])
+preds = lib.get_excerpt(os.path.join(dir, "mortality-allpreds.csv"), 3, 'IND.33.542.2153', [2005, 2049])
 
 print "\nThe Coefficients File (allbins):"
-
-bins = {}
-with open(os.path.join(dir, "mortality-allbins.csv"), 'r') as fp:
-    print fp.readline().rstrip()
-    print "..."
-    for line in fp:
-        if line[:len('IND.33.542.2153,XXXX')] in ['IND.33.542.2153,2005', 'IND.33.542.2153,2050']:
-            print line.rstrip()
-            print "..."
-            bins[line[len('IND.33.542.2153,'):len('IND.33.542.2153,XXXX')]] = map(float, line.split(',')[3:])
+bins = lib.get_excerpt(os.path.join(dir, "mortality-allbins.csv"), 3, 'IND.33.542.2153', [2005, 2050])
 
 print "\nThe Predictors File (allcalcs):"
-
-calcs = {}
-with open(os.path.join(dir, "mortality-allcalcs.csv"), 'r') as fp:
-    print fp.readline().rstrip()
-    print "..."
-    for line in fp:
-        if line[:len('IND.33.542.2153,XXXX')] in ['IND.33.542.2153,2005']:
-            print line.rstrip()
-            print "..."
-            calcs[line[len('IND.33.542.2153,'):len('IND.33.542.2153,XXXX')]] = map(float, line.split(',')[2:])
+calcs = lib.get_excerpt(os.path.join(dir, "mortality-allcalcs.csv"), 2, 'IND.33.542.2153', [2005])
 
 print "\nCSVV:"
-
-csvv = {}
-with open("/shares/gcp/social/parameters/mortality/mortality_single_stage_01192017/global_interaction_no_popshare_GMFD_b.csvv", 'r') as fp:
-    printline = None
-    for line in fp:
-        if printline is not None:
-            print line.rstrip()
-            if printline == 'gamma':
-                csvv['gamma'] = map(float, line.rstrip().split(','))
-            else:
-                csvv[printline] = map(lambda x: x.strip(), line.rstrip().split(','))
-            printline = None
-        if line.rstrip() in ["prednames", "covarnames", "gamma"]:
-            printline = line.rstrip()
+csvv = lib.get_csvv("/shares/gcp/social/parameters/mortality/mortality_single_stage_01192017/global_interaction_no_popshare_GMFD_b.csvv")
 
 print "\nTemperature Bin Values:"
 
@@ -94,7 +45,7 @@ for year in range(2001, 2011) + [2050]:
     temps[year] = list(np.sum(weather, axis=0))
 
 print "\nSum of mean days in 2049 (365):"
-show_julia(' + '.join(map(str, preds['2049'][0:11])))
+lib.show_julia(' + '.join(map(str, preds['2049'][0:11])))
 
 for year in ['2005', '2050']:
     print "\nCalc. of top bin coefficient in %s (%f reported)" % (year, bins[year][-1])
@@ -109,7 +60,7 @@ for year in ['2005', '2050']:
                 terms.append(str(csvv['gamma'][ii]) + " * " + str(preds[predyear][preds['header'].index('meandays_32C_InfC')]))
             else:
                 terms.append(str(csvv['gamma'][ii]) + " * " + str(preds[predyear][preds['header'].index(csvv['covarnames'][ii])]))
-    show_julia(' + '.join(terms))
+    lib.show_julia(' + '.join(terms))
 
 print "\nCalc. of baseline (%f reported)" % (calcs['2005'][-1])
 lines = ["bl(bins) = sum([%s]' * bins) / 100000" % ', '.join(map(lambda x: '0' if np.isnan(x) else str(x), bins['2005'][1:]))]
@@ -117,9 +68,9 @@ terms = []
 for year in range(2001, 2011):
     terms.append("bl([%s])" % ', '.join(map(str, temps[year])))
 lines.append("(" + ' + '.join(terms) + ") / 10")
-show_julia(lines)
+lib.show_julia(lines)
 
 print "\nCalc. of result (%f reported)" % (bins['2050'][0])
 lines = ["ef(bins) = sum([%s]' * bins) / 100000" % ', '.join(map(lambda x: '0' if np.isnan(x) else str(x), bins['2050'][1:]))]
 lines.append("ef([%s]) - %f" % (', '.join(map(str, temps[2050])), calcs['2005'][-1]))
-show_julia(lines)
+lib.show_julia(lines)
