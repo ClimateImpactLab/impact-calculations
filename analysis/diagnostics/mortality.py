@@ -47,20 +47,9 @@ for year in range(2001, 2011) + [2050]:
 print "\nSum of mean days in 2049 (365):"
 lib.show_julia(' + '.join(map(str, preds['2049'][0:11])))
 
-for year in ['2005', '2050']:
-    print "\nCalc. of top bin coefficient in %s (%f reported)" % (year, bins[year][-1])
-
-    predyear = '2049' if year == '2050' else year
-    terms = []
-    for ii in range(len(csvv['gamma'])):
-        if csvv['prednames'][ii] == 'bintas_32C_InfC':
-            if csvv['covarnames'][ii] == '1':
-                terms.append(str(csvv['gamma'][ii]))
-            elif csvv['covarnames'][ii] == 'DayNumber-32-100':
-                terms.append(str(csvv['gamma'][ii]) + " * " + str(preds[predyear][preds['header'].index('meandays_32C_InfC')]))
-            else:
-                terms.append(str(csvv['gamma'][ii]) + " * " + str(preds[predyear][preds['header'].index(csvv['covarnames'][ii])]))
-    lib.show_julia(' + '.join(terms))
+for year in [2005, 2050]:
+    print "\nCalc. of top bin coefficient in %d (%f reported)" % (year, bins[year][-1])
+    lib.show_coefficient(year, 'bintas_32C_InfC', {'DayNumber-32-100': 'meandays_32C_InfC'})
 
 print "\nCalc. of baseline (%f reported)" % (calcs['2005'][-1])
 lines = ["bl(bins) = sum([%s]' * bins) / 100000" % ', '.join(map(lambda x: '0' if np.isnan(x) else str(x), bins['2005'][1:]))]
