@@ -23,6 +23,9 @@ def get_excerpt(filepath, first_col, regionid, years):
 
     return data
 
+def excind(data, year, column):
+    return data[str(year)][data['header'].index(column)]
+
 def get_csvv(filepath):
     csvv = {}
     with open(filepath, 'r') as fp:
@@ -39,3 +42,18 @@ def get_csvv(filepath):
                 printline = line.rstrip()
 
     return csvv
+
+def show_coefficient(year, coefname, covartrans):
+    predyear = year - 1 if year > 2015 else year
+
+    terms = []
+    for ii in range(len(csvv['gamma'])):
+        if csvv['prednames'][ii] == coefname:
+            if csvv['covarnames'][ii] == '1':
+                terms.append(str(csvv['gamma'][ii]))
+            elif csvv['covarnames'][ii] in covartrans:
+                terms.append(str(csvv['gamma'][ii]) + " * " + str(excind(preds, predyear, covartrans[csvv['covarnames'][ii]])))
+            else:
+                terms.append(str(csvv['gamma'][ii]) + " * " + str(excind(preds, predyear, csvv['covarnames'][ii])))
+
+    show_julia(' + '.join(terms))
