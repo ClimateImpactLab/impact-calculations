@@ -12,7 +12,7 @@ print "\nThe Coefficients File (allbins):"
 bins = lib.get_excerpt(os.path.join(dir, "mortality-allbins.csv"), 3, 'IND.33.542.2153', [2005, 2050])
 
 print "\nThe Predictors File (allcalcs):"
-calcs = lib.get_excerpt(os.path.join(dir, "mortality-allcalcs.csv"), 2, 'IND.33.542.2153', [2005])
+calcs = lib.get_excerpt(os.path.join(dir, "mortality-allcalcs.csv"), 2, 'IND.33.542.2153', [2005], hasmodel=False)
 
 print "\nCSVV:"
 csvv = lib.get_csvv("/shares/gcp/social/parameters/mortality/mortality_single_stage_01192017/global_interaction_no_popshare_GMFD_b.csvv")
@@ -49,7 +49,7 @@ lib.show_julia(' + '.join(map(str, preds['2049'][0:11])))
 
 for year in [2005, 2050]:
     print "\nCalc. of top bin coefficient in %d (%f reported)" % (year, bins[year][-1])
-    lib.show_coefficient(year, 'bintas_32C_InfC', {'DayNumber-32-100': 'meandays_32C_InfC'})
+    lib.show_coefficient(csvv, year, 'bintas_32C_InfC', {'DayNumber-32-100': 'meandays_32C_InfC'})
 
 print "\nCalc. of baseline (%f reported)" % (calcs['2005'][-1])
 lines = ["bl(bins) = sum([%s]' * bins) / 100000" % ', '.join(map(lambda x: '0' if np.isnan(x) else str(x), bins['2005'][1:]))]

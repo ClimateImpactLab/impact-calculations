@@ -36,7 +36,7 @@ class CSVVCurveGenerator(CurveGenerator):
 
             self.predgammas[predname] = np.array(self.predgammas[predname])
 
-    def get_coefficients(self, covariates):
+    def get_coefficients(self, covariates, debug=False):
         coefficients = {} # {predname: sum}
         for predname in set(self.prednames):
             if len(self.predgammas[predname]) == 0:
