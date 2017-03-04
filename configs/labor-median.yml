@@ -1,4 +1,4 @@
 module: labor
 mode: median
-outputdir: /shares/gcp/outputs/labor/impacts-andrena
-redocheck: "check-20161226.txt"
+outputdir: /shares/gcp/outputs/labor/impacts-texanus
+
