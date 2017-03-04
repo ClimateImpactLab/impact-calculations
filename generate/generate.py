@@ -1,9 +1,10 @@
 import sys, os, itertools, importlib, shutil, csv, time
+from collections import OrderedDict
 import loadmodels
 import weather, effectset, pvalses
 from adaptation import curvegen
 from helpers import config, files
-import cProfile, pstats, StringIO
+import cProfile, pstats, StringIO, metacsv
 
 config = config.getConfigDictFromSysArgv()
 
@@ -36,11 +37,11 @@ def iterate_single():
     pvals = effectset.ConstantPvals(.5)
 
     # Check if this already exists and delete if so
-    targetdir = files.configpath(os.path.join(config['outputdir'], 'single-new', clim_scenario, clim_model, econ_model, econ_scenario))
+    targetdir = files.configpath(os.path.join(config['outputdir'], 'single', clim_scenario, clim_model, econ_model, econ_scenario))
     if os.path.exists(targetdir):
         shutil.rmtree(targetdir)
 
-    yield 'single-new', pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
+    yield 'single', pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
 
 def binresult_callback(region, year, result, calculation, model):
     filepath = os.path.join(targetdir, config['module'] + "-allbins.csv")
@@ -76,7 +77,8 @@ def binpush_callback(region, year, application, get_predictors, model):
 def valresult_callback(region, year, result, calculation, model):
     filepath = os.path.join(targetdir, config['module'] + "-allcoeffs.csv")
     if not os.path.exists(filepath):
-        with open(filepath, 'w') as fp:
+        metacsv.to_header(filepath, attrs=OrderedDict([('oneline', "Beta coefficients and result values by region and year"), ('version', config['module'] + config['outputdir'][config['outputdir'].rindex('-'):]), ('author', "James R."), ('contact', "jrising@berkeley.edu"), ('dependencies', [model + '.nc4'])]), variables=OrderedDict([('region', "Hierarchy region index"), ('year', "Year of the result"), ('model', "Specification (determined by the CSVV)"), ('result', "Change in minutes worked by individual [minutes]"), ('tasmax', "Coefficient for tasmax [minutes / C]"), ('tasmax2', "Coefficient for tasmax [minutes / C^2]"), ('tasmax3', "Coefficient for tasmax [minutes / C^3]"), ('tasmax4', "Coefficient for tasmax [minutes / C^4]")]))
+        with open(filepath, 'a') as fp:
             writer = csv.writer(fp)
             writer.writerow(['region', 'year', 'model', 'result', 'tasmax', 'tasmax2', 'tasmax3', 'tasmax4'])
 
@@ -86,16 +88,18 @@ def valresult_callback(region, year, result, calculation, model):
         writer.writerow([region, year, model, result[0]] + list(ccs))
 
 def valpush_callback(region, year, application, get_predictors, model):
+    covars = ['coldd_agg', 'hotdd_agg', 'loggdppc', 'logpopop']
+
     filepath = os.path.join(targetdir, config['module'] + "-allpreds.csv")
     if not os.path.exists(filepath):
-        with open(filepath, 'w') as fp:
+        metacsv.to_header(filepath, attrs=OrderedDict([('oneline', "Yearly covariates by region and year"), ('version', config['module'] + config['outputdir'][config['outputdir'].rindex('-'):]), ('author', "James R."), ('contact', "jrising@berkeley.edu"), ('dependencies', [model + '.nc4'])]), variables=OrderedDict([('region', "Hierarchy region index"), ('year', "Year of the result"), ('model', "Specification (determined by the CSVV)"), ('coldd_agg', "Degree days below 10 C [C day]"), ('hotdd_agg', "Degree days above 30 C [C day]"), ('loggdppc', "Log GDP per capita [none]"), ('logpopop', "Log population-weighted population density [none]")]))
+        with open(filepath, 'a') as fp:
             writer = csv.writer(fp)
-            writer.writerow(['region', 'year', 'model', 'meantas', 'log gdppc', 'log popop'])
+            writer.writerow(['region', 'year', 'model'] + covars)
 
     with open(filepath, 'a') as fp:
         writer = csv.writer(fp)
         predictors = get_predictors(region)
-        covars = ['coldd_agg', 'hotdd_agg', 'loggdppc', 'logpopop']
         writer.writerow([region, year, model] + [predictors[covar] for covar in covars])
 
 mode_iterators = {'median': iterate_median, 'montecarlo': iterate_montecarlo, 'single': iterate_single, 'writebins': iterate_single, 'writevals': iterate_single, 'profile': iterate_single}

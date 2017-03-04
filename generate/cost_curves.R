@@ -58,8 +58,9 @@ dbeta <- allgammas[[basename(filename.betas)]]
   yearminus <- year[-1]
   dimregions <- ncdim_def("region", units="" ,1:length(regions))
   dimtime <- ncdim_def("year",  units="", yearminus)
+  dimnchar <- ncdim_def("nchar", "", 1:30, create_dimvar=FALSE) # max is 35, but unique at 21
 
-  varregion <- ncvar_def(name = "regions",  units="", dim=list(dimregions))
+  varregion <- ncvar_def(name = "regions",  units="", dim=list(dimnchar, dimregions), prec="char")
   varyear <- ncvar_def(name = "years",   units="", dim=list(dimtime))
 
   varcosts_lb <- ncvar_def(name = "costs_lb", units="deaths/100000", dim=list(dimregions, dimtime))

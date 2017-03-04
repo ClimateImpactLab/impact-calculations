@@ -1,4 +1,7 @@
-import subprocess
+import subprocess, csv
+
+def show_header(text):
+    print "\n\033[1m" + text + "\033[0m"
 
 def show_julia(command):
     if isinstance(command, str):
@@ -8,18 +11,29 @@ def show_julia(command):
         print "\n".join(command)
         print "# " + subprocess.check_output(["julia", "-e", "; ".join(command[:-1]) + "; println(" + command[-1] + ")"])
 
-def get_excerpt(filepath, first_col, regionid, years):
+def get_excerpt(filepath, first_col, regionid, years, hasmodel=True):
     data = {}
+    model = None
     with open(filepath, 'r') as fp:
-        header = fp.readline().rstrip()
-        data['header'] = header.split(',')[first_col:]
-        print header
-        print "..."
         for line in fp:
-            if line[:len(regionid + ',XXXX')] in [regionid + ',' + str(year) for year in years]:
-                print line.rstrip()
-                print "..."
-                data[line[len(regionid) + 1:len(regionid) + 5]] = map(float, line.split(',')[first_col:])
+            if line.rstrip() == '...':
+                break
+        reader = csv.reader(fp)
+        header = reader.next()
+        data['header'] = header[first_col:]
+        print ','.join(header)
+        print "..."
+        for row in reader:
+            if row[0] == regionid and row[1] in map(str, years):
+                if hasmodel:
+                    if model is None:
+                        model = row[2]
+                    elif model != row[2]:
+                        break
+                print ','.join(row)
+                if int(row[1]) + 1 not in years:
+                    print "..."
+                data[row[1]] = map(float, row[first_col:])
 
     return data
 
@@ -28,7 +42,7 @@ def excind(data, year, column):
 
 def get_csvv(filepath):
     csvv = {}
-    with open(filepath, 'r') as fp:
+    with open(filepath, 'rU') as fp:
         printline = None
         for line in fp:
             if printline is not None:
@@ -43,7 +57,7 @@ def get_csvv(filepath):
 
     return csvv
 
-def show_coefficient(year, coefname, covartrans):
+def show_coefficient(csvv, preds, year, coefname, covartrans):
     predyear = year - 1 if year > 2015 else year
 
     terms = []
@@ -57,3 +71,4 @@ def show_coefficient(year, coefname, covartrans):
                 terms.append(str(csvv['gamma'][ii]) + " * " + str(excind(preds, predyear, csvv['covarnames'][ii])))
 
     show_julia(' + '.join(terms))
+
