@@ -76,7 +76,7 @@ class FarmerCurveGenerator(CurveGenerator):
         elif self.farmer == 'dumb':
             full_curve = DumbInstantAdaptingCurve(region, curr_curve, self.covariator, self.curr_curvegen)
         else:
-            raise ValueError("Unknown farmer type " + str(farmer))
+            raise ValueError("Unknown farmer type " + str(self.farmer))
 
         if self.save_curve:
             region_curves[region] = full_curve
