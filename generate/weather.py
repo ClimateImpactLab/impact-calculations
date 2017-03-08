@@ -348,9 +348,9 @@ class RepeatedHistoricalWeatherBundle(DailyWeatherBundle):
         futureyear_end = weatherbundle.get_years()[-1]
         if isinstance(weatherbundle, MultivariatePastFutureWeatherBundle):
             pastreaders = [pastreader for pastreader, futurereader in weatherbundle.pastfuturereaders]
-            return MultivariateHistoricalWeatherBundle2(pastreaders, futureyear_end, seed, self.scenario, self.model)
+            return MultivariateHistoricalWeatherBundle2(pastreaders, futureyear_end, seed, weatherbundle.scenario, weatherbundle.model)
         else:
-            return RepeatedHistoricalWeatherBundle(weatherbundle.pastreader, futureyear_end, seed, self.scenario, self.model)
+            return RepeatedHistoricalWeatherBundle(weatherbundle.pastreader, futureyear_end, seed, weatherbundle.scenario, weatherbundle.model)
 
     def yearbundles(self, maxyear=np.inf):
         year = self.pastyear_start
