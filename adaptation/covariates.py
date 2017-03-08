@@ -182,7 +182,7 @@ class YearlyWeatherCovariator(Covariator):
 
     def get_update(self, region, year, temps):
         if self.is_historical:
-            return get_baseline(region)
+            return self.get_baseline(region)
 
         assert year < 10000
 
