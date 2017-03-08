@@ -42,17 +42,14 @@ def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=N
         if push_callback is None:
             push_callback = lambda reg, yr, app, predget, mod: None
 
-        for filepath in glob.glob(files.sharedpath("social/parameters/mortality/mortality_single_stage_01192017/*.csvv")):
+        for filepath in glob.glob(files.sharedpath("social/parameters/mortality/cubic_splines/*.csvv")):
             basename = os.path.basename(filepath)[:-5]
             print basename
 
             # Full Adaptation
             if check_doit(redocheck, targetdir, basename, suffix):
                 print "Smart Farmer"
-                if '_no_popshare_' in filepath:
-                    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.mortality.mortality_csvv', weatherbundle, economicmodel, pvals[basename])
-                else:
-                    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.mortality.mortality_csvv_popshare', weatherbundle, economicmodel, pvals[basename])
+                calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.mortality.pooled_cubic_spline', weatherbundle, economicmodel, pvals[basename])
 
                 if profile:
                     effectset.small_test(weatherbundle, calculation, baseline_get_predictors, num_regions=10)
@@ -67,19 +64,13 @@ def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=N
 
                 # Comatose Farmer
                 if check_doit(redocheck, targetdir, basename + "Comatose", suffix):
-                    if '_no_popshare_' in filepath:
-                        calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.mortality.mortality_csvv', weatherbundle, economicmodel, pvals[basename], farmer='coma')
-                    else:
-                        calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.mortality.mortality_csvv_popshare', weatherbundle, economicmodel, pvals[basename], farmer='coma')
+                    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.mortality.pooled_cubic_spline', weatherbundle, economicmodel, pvals[basename], farmer='coma')
 
                     effectset.write_ncdf(targetdir, basename + "Comatose", weatherbundle, calculation, baseline_get_predictors, "Mortality impacts, with interpolation but no adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, basename + '-coma'), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, basename + '-coma'), suffix=suffix)
 
                 # Dumb Farmer
                 if check_doit(redocheck, targetdir, basename + "Dumb", suffix):
-                    if '_no_popshare_' in filepath:
-                        calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.mortality.mortality_csvv', weatherbundle, economicmodel, pvals[basename], farmer='dumb')
-                    else:
-                        calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.mortality.mortality_csvv_popshare', weatherbundle, economicmodel, pvals[basename], farmer='dum')
+                    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.mortality.pooled_cubic_spline', weatherbundle, economicmodel, pvals[basename], farmer='dumb')
 
                     effectset.write_ncdf(targetdir, basename + "Dumb", weatherbundle, calculation, baseline_get_predictors, "Mortality impacts, with interpolation and only environmental adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, basename + '-dumb'), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, basename + '-dumb'), suffix=suffix)
 
