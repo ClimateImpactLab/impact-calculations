@@ -310,3 +310,26 @@ class CombinedCovariator(Covariator):
                 result[key] = subres[key]
 
         return result
+
+class TranslateCovariator(Covariator):
+    def __init__(self, covariator, renames, transforms):
+        super(TranslateCovariator, self).__init__(covariator.startupdateyear)
+        self.covariator = covariator
+        self.renames = renames
+        self.transforms = transforms
+
+    def translate(self, covariates):
+        result = {}
+        for newname in self.renames:
+            oldname = self.renames[newname]
+            result[newname] = self.transforms[oldname](baseline[oldname])
+
+        return result
+                
+    def get_baseline(self, region):
+        baseline = self.covariator.get_baseline(region)
+        return self.translate(baseline)
+
+    def get_update(self, region, year, temps):
+        update = covariator.get_update(region, year, temps)
+        return self.translate(update)
