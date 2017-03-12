@@ -181,7 +181,7 @@ class YearlyWeatherCovariator(Covariator):
         return {self.yearlyreader.get_dimension()[0]: rm_mean(self.predictors[region])}
 
     def get_update(self, region, year, temps):
-        if self.is_historical:
+        if self.is_historical or temps is None:
             return self.get_baseline(region)
 
         assert year < 10000
@@ -322,7 +322,7 @@ class TranslateCovariator(Covariator):
         result = {}
         for newname in self.renames:
             oldname = self.renames[newname]
-            result[newname] = self.transforms[oldname](baseline[oldname])
+            result[newname] = self.transforms[newname](covariates[oldname])
 
         return result
                 
@@ -331,5 +331,5 @@ class TranslateCovariator(Covariator):
         return self.translate(baseline)
 
     def get_update(self, region, year, temps):
-        update = covariator.get_update(region, year, temps)
+        update = self.covariator.get_update(region, year, temps)
         return self.translate(update)

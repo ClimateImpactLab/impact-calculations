@@ -1,7 +1,7 @@
 import os, glob
 from helpers import files
 from generate import weather, server, effectset, caller, checks
-from climate.discover import discover_tas_binned
+from climate.discover import discover_yearly_variable, discover_yearly_array
 
 do_interpbins = True
 
@@ -10,7 +10,11 @@ def preload():
     library.get_data('mortality-deathrates', 'deaths/person')
 
 def get_bundle_iterator():
-    return weather.iterate_bundles(discover_tas_binned(files.sharedpath('climate/BCSD/aggregation/cmip5_bins_new/IR_level')))
+    return weather.iterate_combined_bundles(discover_yearly_variable(files.sharedpath('climate/BCSD/aggregation/cmip5_new/IR_level'),
+                                                                     'cubic_spline_tas', 'tas_sum'),
+                                            discover_yearly_array(files.sharedpath('climate/BCSD/aggregation/cmip5_new/IR_level'),
+                                                                  'cubic_spline_tas', 'spline_variables',
+                                                                  ['spline_variables-%d' % ii for ii in range(1, 7)]))
 
 def check_doit(redocheck, targetdir, basename, suffix):
     if not redocheck:

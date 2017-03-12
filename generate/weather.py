@@ -226,7 +226,11 @@ class MultivariatePastFutureWeatherBundle(DailyWeatherBundle):
         return np.unique(self.pastfuturereaders[0][0].get_years() + self.pastfuturereaders[0][1].get_years())
 
     def get_dimension(self):
-        return [pastreader.get_dimension() for pastreader, futurereader in self.pastfuturereaders]
+        alldims = []
+        for  pastreader, futurereader in self.pastfuturereaders:
+            alldims.extend(pastreader.get_dimension())
+
+        return alldims
 
     def get_subset(self, index):
         return UnivariatePastFutureWeatherBundle(*self.pastfuturereaders[index], scenario=self.scenario, model=self.model)
