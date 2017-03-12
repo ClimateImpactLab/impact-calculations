@@ -12,8 +12,8 @@ class CSVVCurveGenerator(CurveGenerator):
         for ii, predname in enumerate(prednames):
             assert predname in csvv['variables'], "Predictor %s not found in CSVV." % predname
             if predname in csvv['variables']:
-                assert 'unit' in csvv['variables'][predname], "Predictor %s does not have units." % predname
-                assert csvv['variables'][predname]['unit'] == indepunits[ii]
+                if 'unit' in csvv['variables'][predname]:
+                    assert csvv['variables'][predname]['unit'] == indepunits[ii]
 
         assert csvv['variables']['outcome']['unit'] == depenunit, "Dependent units %s does not match %s." % (csvv['variables']['outcome']['unit'], depenunit)
 

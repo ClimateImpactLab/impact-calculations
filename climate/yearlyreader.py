@@ -16,6 +16,9 @@ class YearlyWeatherReader(WeatherReader):
     def get_times(self):
         return netcdfs.readncdf_single(self.filepath, 'year')
 
+    def get_years(self):
+        return list(self.get_times())
+
     def get_dimension(self):
         return [self.variable]
 
@@ -25,6 +28,54 @@ class YearlyWeatherReader(WeatherReader):
 
         for ii in range(len(years)):
             yield [years[ii]], values[ii, :]
+
+    def read_year(self, year):
+        for years, values in self.read_iterator():
+            if years[0] == year: # always a single value anyway
+                return years, np.expand_dims(values, axis=0)
+
+class YearlyCollectionWeatherReader(YearlyWeatherReader):
+    """Returns several variables from a yearly file."""
+
+    def __init__(self, filepath, variables):
+        super(YearlyCollectionWeatherReader, self).__init__(filepath, variables[0])
+        self.variables = variables
+
+    def get_dimension(self):
+        return self.variables
+
+    def read_iterator(self):
+        years = self.get_times()
+
+        allvalues = None
+        for variable in self.variables:
+            values = netcdfs.readncdf_single(self.filepath, self.variable)
+            if allvalues is None:
+                allvalues = np.expand_dims(values)
+            else:
+                allvalues = np.concatenate((allvalues, values), axis=2)
+
+        for ii in range(len(years)):
+            yield [years[ii]], values[ii, :, :]
+
+class YearlyArrayWeatherReader(YearlyWeatherReader):
+    """Return several variables from a single array from a yearly file."""
+    
+    def __init__(self, filepath, variable, labels):
+        super(YearlyArrayWeatherReader, self).__init__(filepath, variable)
+        self.labels = labels
+
+    def get_dimension(self):
+        return self.labels
+
+    def read_iterator(self):
+        years = self.get_times()
+
+        yyvvrr = netcdfs.readncdf_single(self.filepath, self.variable)
+        yyrrvv = np.swapaxes(yyvvrr, 1, 2)
+
+        for ii in range(len(years)):
+            yield [years[ii]], yyrrvv[ii, :, :]
 
 class RandomYearlyAccess(object):
     def __init__(self, yearlyreader):

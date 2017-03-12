@@ -4,7 +4,7 @@ future reader).
 """
 import os
 from dailyreader import DailyWeatherReader, YearlyBinnedWeatherReader
-from yearlyreader import YearlyWeatherReader
+from yearlyreader import YearlyWeatherReader, YearlyCollectionWeatherReader, YearlyArrayWeatherReader
 
 def discover_models(basedir):
     """
@@ -61,9 +61,9 @@ def discover_derived_variable(basedir, variable, suffix):
 
             yield scenario, model, pastreader, futurereader
 
-def discover_yearly_variable(basedir, vardir, variable):
+def discover_yearly(basedir, vardir):
     """
-    Returns scenario, model, YearlyReader for the given variable
+    Returns scenario, model, filepath for the given variable
     baseline points to directory with 'rcp*'
     """
 
@@ -75,8 +75,36 @@ def discover_yearly_variable(basedir, vardir, variable):
             root, ext = os.path.splitext(filename)
             model = root.split('_')[-1]
             filepath = os.path.join(basedir, scenario, vardir, filename)
+            pastpath = filepath.replace(scenario, 'historical')
+    
+            yield scenario, model, pastpath, filepath
 
-            yield scenario, model, YearlyWeatherReader(filepath, variable)
+def discover_yearly_variable(basedir, vardir, variable):
+    """
+    Returns scenario, model, YearlyReader for the given variable
+    baseline points to directory with 'rcp*'
+    """
+
+    for scenario, model, pastpath, filepath in discover_yearly(basedir, vardir):
+        yield scenario, model, YearlyWeatherReader(pastpath, variable), YearlyWeatherReader(filepath, variable)
+
+def discover_yearly_array(basedir, vardir, variable, labels):
+    """
+    Returns scenario, model, YearlyReader for the given variables
+    baseline points to directory with 'rcp*'
+    """
+
+    for scenario, model, pastpath, filepath in discover_yearly(basedir, vardir):
+        yield scenario, model, YearlyArrayWeatherReader(pastpath, variable, labels), YearlyArrayWeatherReader(filepath, variable, labels)
+
+def discover_yearly_collection(basedir, vardir, variables):
+    """
+    Returns scenario, model, YearlyReader for the given variables
+    baseline points to directory with 'rcp*'
+    """
+
+    for scenario, model, pastpath, filepath in discover_yearly(basedir, vardir):
+        yield scenario, model, YearlyCollectionWeatherReader(pastpath, variables), YearlyCollectionWeatherReader(filepath, variables)
 
 def discover_yearly_corresponding(basedir, scenario, vardir, model, variable):
     for filename in os.listdir(os.path.join(basedir, scenario, vardir)):
