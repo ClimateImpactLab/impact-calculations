@@ -1,8 +1,8 @@
-import re
 import numpy as np
 from adaptation import csvvfile, curvegen, curvegen_arbitrary, covariates
 from openest.models.curve import CubicSplineCurve
 from openest.generate.stdlib import *
+from openest.generate import diagnostic
 
 knots = [-12, -7, 0, 10, 18, 23, 28, 33]
 
@@ -22,6 +22,16 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
     maineffect = YearlyCoefficients('100,000 * death/population', farm_curvegen, "the mortality response curve",
                                     lambda curve: curve.curr_curve.coeffs)
 
+    # Determine minimum value of curve between 10C and 25C
+    baselinemins = {}
+    for region in weatherbundle.regions:
+        curve = curr_curvegen.get_curve(region, covariator.get_baseline(region))
+        temps = np.arange(10, 26)
+        mintemp = temps[np.argmin(curve(temps))]
+        baselinemins[region] = mintemp
+        if diagnostic.is_recording():
+            diagnostic.record(region, 2015, 'mintemp', mintemp)
+
     # Subtract off result at 20C; currently need to reproduce adapting curve
     negcsvv = copy.copy(csvv)
     negcsvv['gamma'] = -csvv['gamma']
@@ -30,10 +40,10 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
                                                                      ['C'] + ['C^3'] * (len(knots) - 2),
                                                                      '100,000 * death/population', 'spline_variables-', len(knots) - 1, negcsvv)
     negfarm_curvegen = curvegen.FarmerCurveGenerator(negcurr_curvegen, covariator2, farmer, save_curve=False)
-    baseeffect = YearlyCoefficients('100,000 * death/population', negfarm_curvegen, 'offset to normalize to 20 C', lambda curve: curve.curr_curve.coeffs, weather_change=lambda temps: 365 * np.array(CubicSplineCurve(knots, np.zeros(len(knots)-1)).get_terms(20)))
+    baseeffect = YearlyCoefficients('100,000 * death/population', negfarm_curvegen, 'offset to normalize to 20 C', lambda curve: curve.curr_curve.coeffs, weather_change=lambda region, temps: 365 * np.array(CubicSplineCurve(knots, np.zeros(len(knots)-1)).get_terms(baselinemins[region])))
 
     # Collect all baselines
-    calculation = Transform(Sum([maineffect, baseeffect]),
+    calculation = Transform(Positive(Sum([maineffect, baseeffect])),
                             '100,000 * death/population', 'deaths/person/year', lambda x: x / 1e5,
                             'convert to deaths/person/year', "Divide by 100000 to convert to deaths/person/year.")
 
