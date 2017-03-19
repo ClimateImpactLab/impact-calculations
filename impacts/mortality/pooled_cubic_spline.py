@@ -23,6 +23,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
                                     lambda curve: curve.curr_curve.coeffs)
 
     # Determine minimum value of curve between 10C and 25C
+    print "Determining minimum temperatures."
     baselinemins = {}
     for region in weatherbundle.regions:
         curve = curr_curvegen.get_curve(region, covariator.get_baseline(region))
@@ -31,6 +32,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
         baselinemins[region] = mintemp
         if diagnostic.is_recording():
             diagnostic.record(region, 2015, 'mintemp', mintemp)
+    print "Finishing calculation setup."
 
     # Subtract off result at 20C; currently need to reproduce adapting curve
     negcsvv = copy.copy(csvv)
