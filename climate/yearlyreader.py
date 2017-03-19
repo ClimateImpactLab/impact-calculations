@@ -27,12 +27,18 @@ class YearlyWeatherReader(WeatherReader):
         years = self.get_times()
 
         for ii in range(len(years)):
-            yield [years[ii]], values[ii, :]
+            yield [years[ii]], np.expand_dims(values[ii, :], axis=0)
+
+    def read_iterator_to(self, maxyear):
+        for years, values in self.read_iterator():
+            if years[0] > maxyear:
+                return
+            yield years, values
 
     def read_year(self, year):
         for years, values in self.read_iterator():
             if years[0] == year: # always a single value anyway
-                return years, np.expand_dims(values, axis=0)
+                return years, values
 
 class YearlyCollectionWeatherReader(YearlyWeatherReader):
     """Returns several variables from a yearly file."""
@@ -56,7 +62,7 @@ class YearlyCollectionWeatherReader(YearlyWeatherReader):
                 allvalues = np.concatenate((allvalues, values), axis=2)
 
         for ii in range(len(years)):
-            yield [years[ii]], values[ii, :, :]
+            yield [years[ii]], np.expand_dims(values[ii, :, :], axis=0)
 
 class YearlyArrayWeatherReader(YearlyWeatherReader):
     """Return several variables from a single array from a yearly file."""
@@ -75,7 +81,7 @@ class YearlyArrayWeatherReader(YearlyWeatherReader):
         yyrrvv = np.swapaxes(yyvvrr, 1, 2)
 
         for ii in range(len(years)):
-            yield [years[ii]], yyrrvv[ii, :, :]
+            yield [years[ii]], np.expand_dims(yyrrvv[ii, :, :], axis=0)
 
 class RandomYearlyAccess(object):
     def __init__(self, yearlyreader):

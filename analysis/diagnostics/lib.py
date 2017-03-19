@@ -11,7 +11,7 @@ def show_julia(command):
         print "\n".join(command)
         print "# " + subprocess.check_output(["julia", "-e", "; ".join(command[:-1]) + "; println(" + command[-1] + ")"])
 
-def get_excerpt(filepath, first_col, regionid, years, hasmodel=True):
+def get_excerpt(filepath, first_col, regionid, years, hasmodel=True, onlymodel=None):
     data = {}
     model = None
     with open(filepath, 'r') as fp:
@@ -24,8 +24,12 @@ def get_excerpt(filepath, first_col, regionid, years, hasmodel=True):
         print ','.join(header)
         print "..."
         for row in reader:
+            if '.' in row[1]:
+                row[1] = str(int(float(row[1])))
             if row[0] == regionid and row[1] in map(str, years):
                 if hasmodel:
+                    if onlymodel is not None and row[2] != onlymodel:
+                        continue
                     if model is None:
                         model = row[2]
                     elif model != row[2]:

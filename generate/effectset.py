@@ -94,12 +94,12 @@ def write_ncdf(targetdir, camelcase, weatherbundle, calculation, get_apply_args,
     years[:] = yeardata
 
     if do_interpbins:
-        nc4writer.make_bins_variables(rootgrp)
-        betas = rootgrp.createVariable('betas', 'f8', ('tbin', 'year', 'region'))
+        nc4writer.make_betas_variables(rootgrp, 7)
+        betas = rootgrp.createVariable('betas', 'f8', ('betadim', 'year', 'region'))
         betas.long_title = "Response curve coefficient values"
         betas.units = calculation.unitses[-1]
 
-        betasdata = np.zeros((nc4writer.tbinslen, len(yeardata), len(my_regions)))
+        betasdata = None
 
     if diagnosefile:
         diagnostic.begin(diagnosefile)
@@ -111,7 +111,9 @@ def write_ncdf(targetdir, camelcase, weatherbundle, calculation, get_apply_args,
             columndata[col][year - yeardata[0], ii] = results[col]
         if do_interpbins:
             curve = curvegen.region_curves[my_regions[ii]].curr_curve
-            betasdata[:, year - yeardata[0], ii] = list(curve.yy[:nc4writer.dropbin]) + list(curve.yy[nc4writer.dropbin+1:])
+            if betasdata is None:
+                betasdata = np.zeros((len(curve.coeffs), len(yeardata), len(my_regions)))
+            betasdata[:, year - yeardata[0], ii] = curve.coeffs
         if diagnosefile:
             diagnostic.finish(my_regions[ii], year)
 

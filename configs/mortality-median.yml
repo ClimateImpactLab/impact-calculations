@@ -1,4 +1,4 @@
 module: mortality
 mode: median
-outputdir: outputs/mortality/impacts-conehead
+outputdir: outputs/mortality/impacts-dampwood
 
