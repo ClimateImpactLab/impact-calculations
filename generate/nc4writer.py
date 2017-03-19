@@ -45,3 +45,6 @@ def make_bins_variables(rootgrp):
 
     binhis = rootgrp.createVariable('binhis','i4',('tbin',))
     binhis[:] = binlimits[1:dropbin] + binlimits[dropbin+1:-1] + [100]
+
+def make_betas_variables(rootgrp, num):
+    betadim = rootgrp.createDimension('betadim', num)

@@ -167,7 +167,10 @@ class UnivariatePastFutureWeatherBundle(DailyWeatherBundle):
 
     def yearbundles(self, maxyear=np.inf):
         for values in self.pastreader.read_iterator_to(min(self.futureyear1, maxyear)):
-            assert values[1].shape[1] == len(self.regions)
+            if len(values[1].shape) == 1:
+                assert values[1].shape[0] == len(self.regions)
+            else:
+                assert values[1].shape[1] == len(self.regions)
             yield values
 
         if maxyear > self.futureyear1:
@@ -297,7 +300,7 @@ class MultivariateHistoricalWeatherBundle2(DailyWeatherBundle):
             year += 1
 
     def get_years(self):
-        return range(self.pastyear_start, self.futureyear_end + 1)
+        return range(int(self.pastyear_start), int(self.futureyear_end) + 1)
 
     def get_dimension(self):
         alldims = []
@@ -307,7 +310,7 @@ class MultivariateHistoricalWeatherBundle2(DailyWeatherBundle):
         return alldims
 
     def get_subset(self, index):
-        return RepeatedHistoricalWeatherBundle(self.pastreaders[index], self.futureyear_end, self.seed, scenario, model)
+        return RepeatedHistoricalWeatherBundle(self.pastreaders[index], self.futureyear_end, self.seed, self.scenario, self.model)
 
 class RepeatedHistoricalWeatherBundle(DailyWeatherBundle):
     def __init__(self, reader, futureyear_end, seed, scenario, model, hierarchy='hierarchy.csv'):
@@ -338,8 +341,8 @@ class RepeatedHistoricalWeatherBundle(DailyWeatherBundle):
         else:
             # Randomly choose years with replacement
             np.random.seed(seed)
-            choices = range(self.pastyear_start, self.pastyear_end + 1)
-            self.pastyears = np.random.choice(choices, self.futureyear_end - self.pastyear_start + 1)
+            choices = range(int(self.pastyear_start), int(self.pastyear_end) + 1)
+            self.pastyears = np.random.choice(choices, int(self.futureyear_end - self.pastyear_start + 1))
 
         self.load_readermeta(reader)
         self.load_regions()
@@ -367,7 +370,7 @@ class RepeatedHistoricalWeatherBundle(DailyWeatherBundle):
             year += 1
 
     def get_years(self):
-        return range(self.pastyear_start, self.futureyear_end + 1)
+        return range(int(self.pastyear_start), int(self.futureyear_end) + 1)
 
     def get_dimension(self):
         return self.reader.get_dimension()
@@ -405,7 +408,7 @@ class MultivariateHistoricalWeatherBundle(DailyWeatherBundle):
             yield masteryyyyddd, weathers
 
     def get_years(self):
-        return range(self.year_start, self.year_end + 1)
+        return range(int(self.year_start), int(self.year_end) + 1)
 
     def baseline_average(self, maxyear):
         """Yield the average weather value up to `maxyear` for each region."""

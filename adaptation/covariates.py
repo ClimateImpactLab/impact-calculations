@@ -84,34 +84,41 @@ class EconomicCovariator(Covariator):
         return dict(loggdppc=np.log(gdppc), logpopop=np.log(popop))
 
 class MeanWeatherCovariator(Covariator):
-    def __init__(self, weatherbundle, numtempyears, maxbaseline):
+    def __init__(self, weatherbundle, numtempyears, maxbaseline, varindex=None):
         super(MeanWeatherCovariator, self).__init__(maxbaseline)
 
         self.numtempyears = numtempyears
+        self.varindex = varindex
 
         print "Collecting baseline information..."
         temp_predictors = {}
         for region, temps in weatherbundle.baseline_values(maxbaseline): # baseline through maxbaseline
-            temp_predictors[region] = rm_init(temps[-numtempyears:])
+            if varindex is None:
+                assert len(temps.shape) == 1
+                temp_predictors[region] = rm_init(temps[-numtempyears:])
+            else:
+                temp_predictors[region] = rm_init(temps[-numtempyears:, varindex])
 
         self.temp_predictors = temp_predictors
         self.weatherbundle = weatherbundle
 
     def get_baseline(self, region):
         #assert region in self.temp_predictors, "Missing " + region
-        return {self.weatherbundle.get_dimension()[0]: rm_mean(self.temp_predictors[region])}
+        return {self.weatherbundle.get_dimension()[self.varindex]: rm_mean(self.temp_predictors[region])}
 
     def get_update(self, region, year, temps):
         """Allow temps = None for dumb farmer who cannot adapt to temperature."""
         assert year < 10000
 
         if temps is not None and year > self.startupdateyear:
-            if isinstance(temps, np.ndarray) and len(temps.shape) == 2:
-                rm_add(self.temp_predictors[region], np.mean(temps[:, 0]), self.numtempyears) # always the first
-            else:
+            if self.varindex is None:
                 rm_add(self.temp_predictors[region], np.mean(temps), self.numtempyears)
+            elif len(temps.shape) == 1:
+                rm_add(self.temp_predictors[region], np.mean(temps[self.varindex]), self.numtempyears) # if only yearly values
+            else:
+                rm_add(self.temp_predictors[region], np.mean(temps[:, self.varindex]), self.numtempyears)
 
-        return {self.weatherbundle.get_dimension()[0]: rm_mean(self.temp_predictors[region])}
+        return {self.weatherbundle.get_dimension()[self.varindex]: rm_mean(self.temp_predictors[region])}
 
 class SeasonalWeatherCovariator(MeanWeatherCovariator):
     def __init__(self, weatherbundle, numtempyears, maxbaseline, day_start, day_end, weather_index):

@@ -44,33 +44,31 @@ def iterate_single():
     yield 'single', pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
 
 def binresult_callback(region, year, result, calculation, model):
-    filepath = os.path.join(targetdir, config['module'] + "-allbins.csv")
+    filepath = os.path.join(targetdir, config['module'] + "-allcoeffs.csv")
     if not os.path.exists(filepath):
-        with open(filepath, 'w') as fp:
+        metacsv.to_header(filepath, attrs=OrderedDict([('oneline', "Beta coefficients and result values by region and year"), ('version', config['module'] + config['outputdir'][config['outputdir'].rindex('-'):]), ('author', "James R."), ('contact', "jrising@berkeley.edu"), ('dependencies', [model + '.nc4'])]), variables=OrderedDict([('region', "Hierarchy region index"), ('year', "Year of the result"), ('model', "Specification (determined by the CSVV)"), ('result', "Change in death rate [deaths/person]"), ('spline_variables-0', "Coefficient for sum_tas [deaths/person/C]")] + [('spline_variables-%d' % ii, "Coefficient for spline_variables-%d [minutes / C^2]" % ii) for ii in range(1, 7)]))
+        with open(filepath, 'a') as fp:
             writer = csv.writer(fp)
-            writer.writerow(['region', 'year', 'model', 'result', 'bin_nInfC_n13C', 'bin_n13C_n8C', 'bin_87C_n3C', 'bin_n3C_2C', 'bin_2C_7C', 'bin_7C_12C', 'bin_12C_17C', 'bin_17C_22C', 'bin_22C_27C', 'bin_27C_32C', 'bin_32C_InfC'])
+            writer.writerow(['region', 'year', 'model', 'result', 'tas_sum'] + ['spline_variables-%d' % ii for ii in range(1, 7)])
 
     with open(filepath, 'a') as fp:
         writer = csv.writer(fp)
         curve = curvegen.region_curves[region].curr_curve
-        writer.writerow([region, year, model, result[0]] + list(curve.yy))
+        writer.writerow([region, year, model, result[0]] + list(curve.coeffs))
 
 def binpush_callback(region, year, application, get_predictors, model):
+    covars = ['climtas', 'loggdppc', 'logpopop']
+
     filepath = os.path.join(targetdir, config['module'] + "-allpreds.csv")
     if not os.path.exists(filepath):
-        with open(filepath, 'w') as fp:
+        metacsv.to_header(filepath, attrs=OrderedDict([('oneline', "Yearly covariates by region and year"), ('version', config['module'] + config['outputdir'][config['outputdir'].rindex('-'):]), ('author', "James R."), ('contact', "jrising@berkeley.edu"), ('dependencies', [model + '.nc4'])]), variables=OrderedDict([('region', "Hierarchy region index"), ('year', "Year of the result"), ('model', "Specification (determined by the CSVV)"), ('climtas', "Average surface temperature [C]"), ('loggdppc', "Log GDP per capita [none]"), ('logpopop', "Log population-weighted population density [none]")]))
+        with open(filepath, 'a') as fp:
             writer = csv.writer(fp)
-            writer.writerow(['region', 'year', 'model', 'meandays_nInfC_n13C', 'meandays_n13C_n8C', 'meandays_87C_n3C', 'meandays_n3C_2C', 'meandays_2C_7C', 'meandays_7C_12C', 'meandays_12C_17C', 'meandays_17C_22C', 'meandays_22C_27C', 'meandays_27C_32C', 'meandays_32C_InfC', 'loggdppc', 'logpopop'])
+            writer.writerow(['region', 'year', 'model'] + covars)
 
     with open(filepath, 'a') as fp:
         writer = csv.writer(fp)
-        predictors = get_predictors(region)[0]
-
-        bin_limits = [-100, -13, -8, -3, 2, 7, 12, 17, 22, 27, 32, 100]
-        bin_names = ['DayNumber-' + str(bin_limits[bb-1]) + '-' + str(bin_limits[bb]) for bb in range(1, len(bin_limits))]
-        covars = bin_names + ['loggdppc', 'logpopop']
-        if 'age0-4' in predictors:
-            covars += ['age0-4', 'age65+']
+        predictors = get_predictors(region)
 
         writer.writerow([region, year, model] + [predictors[covar] for covar in covars])
 
