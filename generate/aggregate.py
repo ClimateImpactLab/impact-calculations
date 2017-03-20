@@ -140,9 +140,8 @@ def make_costs_aggregate(targetdir, filename, get_population):
                     version="DEADLY-2016-04-22",
                     dependencies="TEMPERATURES, ADAPTATION-ALL-AGES",
                     author="Tamma Carleton")
-    limityears = lambda years: years[1:]
 
-    make_aggregates(targetdir, filename, get_population, dimensions_template=dimensions_template, metainfo=metainfo, limityears=limityears)
+    make_aggregates(targetdir, filename, get_population, dimensions_template=dimensions_template, metainfo=metainfo)
 
 def make_levels(targetdir, filename, get_population, dimensions_template=None, metainfo=None, limityears=None):
     # Find all variables that containing the region dimension
@@ -197,9 +196,8 @@ def make_costs_levels(targetdir, filename, get_population):
                     version="DEADLY-2016-04-22",
                     dependencies="TEMPERATURES, ADAPTATION-ALL-AGES",
                     author="Tamma Carleton")
-    limityears = lambda years: years[1:]
 
-    make_levels(targetdir, filename, get_population, dimensions_template=dimensions_template, metainfo=metainfo, limityears=limityears)
+    make_levels(targetdir, filename, get_population, dimensions_template=dimensions_template, metainfo=metainfo)
 
 if __name__ == '__main__':
     import sys
@@ -233,7 +231,7 @@ if __name__ == '__main__':
                     continue
 
                 try:
-                    if filename in ['interpolated_mortality_all_ages.nc4', 'interpolated_mortality65_plus.nc4', 'global_interaction_best.nc4', 'global_interaction_gmfd.nc4', 'global_interaction_no_popshare_best.nc4', 'global_interaction_no_popshare_gmfd.nc4', 'moratlity_cubic_splines_2factors_gmfd_031617.nc4', 'moratlity_cubic_splines_2factors_best_031617']:
+                    if filename in ['interpolated_mortality_all_ages.nc4', 'interpolated_mortality65_plus.nc4', 'global_interaction_best.nc4', 'global_interaction_gmfd.nc4', 'global_interaction_no_popshare_best.nc4', 'global_interaction_no_popshare_gmfd.nc4', 'moratlity_cubic_splines_2factors_gmfd_031617.nc4', 'moratlity_cubic_splines_2factors_best_031617.nc4']:
                         # Generate costs
                         # tempsfile = '/shares/gcp/outputs/temps/%s/%s/temps.nc4' % (clim_scenario, clim_model)
 

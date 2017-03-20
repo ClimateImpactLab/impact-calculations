@@ -1,5 +1,17 @@
 ## Find minimum of expression of the form intercept x + sum(coeffs[i] (x - offsets[i])^3)
+import numpy as np
 from openest.models.curve import CubicSplineCurve
+
+def quadratic(aa, bb, cc):
+    if bb**2 - 4 * aa * cc < 0:
+        return np.array([]), np.array([])
+
+    one = (-bb + np.sqrt(bb**2 - 4 * aa * cc)) / (2 * aa)
+    two = (-bb - np.sqrt(bb**2 - 4 * aa * cc)) / (2 * aa)
+    points = np.array([one, two])
+    seconds = np.sign(2 * aa * points + bb)
+
+    return points, seconds    
 
 def findextremes(intercept, coeffs, offsets):
     # Finds where intercept + sum(3 coeffs[i] (x - offsets[i])^2) = 0
@@ -9,15 +21,7 @@ def findextremes(intercept, coeffs, offsets):
     bb = np.sum(-6 * coeffs * offsets)
     cc = intercept + np.sum(3 * coeffs * (offsets**2))
 
-    if bb**2 - 4 * aa * cc < 0:
-        return np.array([]), np.array([])
-
-    one = -bb + np.sqrt(bb**2 - 4 * aa * cc) / (2 * aa)
-    two = -bb - np.sqrt(bb**2 - 4 * aa * cc) / (2 * aa)
-    points = np.array([one, two])
-    seconds = np.sign(2 * aa * points + bb)
-
-    return points, seconds
+    return quadratic(aa, bb, cc)
 
 def findminwithin(intercept, coeffs, offsets, minx, maxx):
     points, seconds = findextremes(intercept, coeffs, offsets)
@@ -47,11 +51,16 @@ def findsplinemin(knots, coeffs, minx, maxx):
     allpoints.extend(knots) # Could also be edge-points
 
     # Drop all poitns outside of range
-    allpoints = allpoints[(allpoints > minx) * (allpoints < maxx)]
+    allpoints = np.array(allpoints)
+    allpoints = list(allpoints[(allpoints > minx) * (allpoints < maxx)])
     allpoints.extend([minx, maxx])
 
     # Determine the true lowest
     curve = CubicSplineCurve(knots, coeffs)
-    minpt = np.argmin(curve(allpoints))
+    minpt = np.argmin(curve(np.array(allpoints)))
 
     return allpoints[minpt]
+
+if __name__ == '__main__':
+    print findextremes(-0.088404222535054311, [0.00044585141069226897, -0.0013680191382785048, 0.0015570001425749581, -0.00014956629970445078, -0.0036869690281538109], [-12, -7, 0, 10, 18])
+    print findsplinemin([-12, -7, 0, 10, 18, 23, 28, 33], [-0.088404222535054311, 0.00044585141069226897, -0.0013680191382785048, 0.0015570001425749581, -0.00014956629970445078, -0.0036869690281538109, 0.011688014471165964], 10, 25)

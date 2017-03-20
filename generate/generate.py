@@ -11,6 +11,8 @@ config = config.getConfigDictFromSysArgv()
 REDOCHECK_DELAY = 0 #12*60*60
 do_single = False
 
+singledir = 'single-delete'
+
 targetdir = None # The current targetdir
 
 def iterate_median():
@@ -37,11 +39,11 @@ def iterate_single():
     pvals = effectset.ConstantPvals(.5)
 
     # Check if this already exists and delete if so
-    targetdir = files.configpath(os.path.join(config['outputdir'], 'single', clim_scenario, clim_model, econ_model, econ_scenario))
+    targetdir = files.configpath(os.path.join(config['outputdir'], singledir, clim_scenario, clim_model, econ_model, econ_scenario))
     if os.path.exists(targetdir):
         shutil.rmtree(targetdir)
 
-    yield 'single', pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
+    yield singledir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
 
 def binresult_callback(region, year, result, calculation, model):
     filepath = os.path.join(targetdir, config['module'] + "-allcoeffs.csv")
@@ -100,7 +102,7 @@ def valpush_callback(region, year, application, get_predictors, model):
         predictors = get_predictors(region)
         writer.writerow([region, year, model] + [predictors[covar] for covar in covars])
 
-mode_iterators = {'median': iterate_median, 'montecarlo': iterate_montecarlo, 'single': iterate_single, 'writebins': iterate_single, 'writevals': iterate_single, 'profile': iterate_single}
+mode_iterators = {'median': iterate_median, 'montecarlo': iterate_montecarlo, singledir: iterate_single, 'writebins': iterate_single, 'writevals': iterate_single, 'profile': iterate_single}
 
 assert config['mode'] in mode_iterators.keys()
 

@@ -51,6 +51,12 @@ class CSVVCurveGenerator(CurveGenerator):
 
         return coefficients
 
+    def get_marginals(self, covar):
+        marginals = {} # {predname: sum}                                                                
+        for predname in set(self.prednames):
+            marginals[predname] = self.predgammas[predname][self.predcovars[predname].index(covar)]
+        return marginals
+
     def get_curve(self, region, covariates={}):
         raise NotImplementedError()
 
