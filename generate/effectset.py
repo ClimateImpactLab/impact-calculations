@@ -7,10 +7,6 @@ from adaptation import curvegen
 import server, nc4writer
 from pvalses import *
 
-def undercase(camelcase):
-    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', camelcase)
-    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
-
 def simultaneous_application(weatherbundle, calculation, get_apply_args, regions=None, push_callback=None):
     if regions is None:
         regions = weatherbundle.regions
@@ -48,10 +44,10 @@ def simultaneous_application(weatherbundle, calculation, get_apply_args, regions
 
     calculation.cleanup()
 
-def get_ncdf_path(targetdir, camelcase, suffix=''):
-    return os.path.join(targetdir, undercase(camelcase) + suffix + '.nc4')
+def get_ncdf_path(targetdir, basename, suffix=''):
+    return os.path.join(targetdir, basename + suffix + '.nc4')
 
-def write_ncdf(targetdir, camelcase, weatherbundle, calculation, get_apply_args, description, calculation_dependencies, filter_region=None, result_callback=None, push_callback=None, subset=None, do_interpbins=False, suffix='', diagnosefile=False):
+def write_ncdf(targetdir, basename, weatherbundle, calculation, get_apply_args, description, calculation_dependencies, filter_region=None, result_callback=None, push_callback=None, subset=None, do_interpbins=False, suffix='', diagnosefile=False):
     if filter_region is None:
         my_regions = weatherbundle.regions
     else:
@@ -60,9 +56,9 @@ def write_ncdf(targetdir, camelcase, weatherbundle, calculation, get_apply_args,
             if filter_region(weatherbundle.regions[ii]):
                 my_regions.append(weatherbundle.regions[ii])
 
-    rootgrp = Dataset(get_ncdf_path(targetdir, camelcase, suffix), 'w', format='NETCDF4')
+    rootgrp = Dataset(get_ncdf_path(targetdir, basename, suffix), 'w', format='NETCDF4')
     rootgrp.description = description
-    rootgrp.version = headre.dated_version(camelcase)
+    rootgrp.version = headre.dated_version(basename)
     rootgrp.dependencies = ', '.join([weatherbundle.version] + weatherbundle.dependencies + calculation_dependencies)
     rootgrp.author = "James Rising"
 
@@ -76,12 +72,12 @@ def write_ncdf(targetdir, camelcase, weatherbundle, calculation, get_apply_args,
     columns = []
     # Store all in columndata, for faster feeding in
     columndata = [] # [matrix(year x region)]
-    usednames = set()
+    usednames = [] # In order of infos
     for ii in range(len(calculation.unitses)):
         myname = infos[ii]['name']
         while myname in usednames:
             myname += "2"
-        usednames.add(myname)
+        usednames.append(myname)
 
         column = rootgrp.createVariable(myname, 'f8', ('year', 'region'))
         column.long_title = infos[ii]['title']
@@ -90,6 +86,9 @@ def write_ncdf(targetdir, camelcase, weatherbundle, calculation, get_apply_args,
 
         columns.append(column)
         columndata.append(np.zeros((len(yeardata), len(my_regions))))
+
+    nc4writer.make_str_variable(rootgrp, 'operation', 'orderofoperations', list(reversed(usednames)),
+                                "Order of the operations applied to the input weather data.")
 
     years[:] = yeardata
 

@@ -33,6 +33,18 @@ def make_regions_variable(rootgrp, regstrs, subset):
 
     return regions
 
+def make_str_variable(rootgrp, dimname, name, texts, long_title):
+    strdim = rootgrp.createDimension(dimname, len(texts))
+
+    strvar = rootgrp.createVariable(name, str, (dimname,))
+    strvar.long_title = long_title
+    strvar.units = "None"
+
+    for ii in range(len(texts)):
+        strvar[ii] = texts[ii]
+
+    return strvar    
+
 binlimits = [-np.inf, -13, -8, -3, 2, 7, 12, 17, 22, 27, 32, np.inf]
 tbinslen = len(binlimits) - 2
 dropbin = 8
