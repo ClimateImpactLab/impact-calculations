@@ -1,77 +1,328 @@
 ################################################
-# GENERATE ADAPTATION COST CURVES using GCP output for mortality
-# T. Carleton, 4/15/2016
-###############################################
+# GENERATE ADAPTATION COST CURVES 
+# This is an attempt to generalize the code to be able to use any functional form estimated in the response function
 
-rm(list=ls())
-library(ncdf4)
+# T. Carleton, 3/13/2017
 
-###############################################
+# This version uses AVERAGE temperature exposure rather than ANNUAL
+
+#### THIS VERSION INCORPORATES CLIPPING: We set adaptation costs to zero whenever the impact falls below zero..
+
 # FOR REFERENCE: the calculation we are performing is:
 # tbar_0[beta(y_0, p_0, tbar_0) - beta(y_0, p_0, tbar_1)] < COST < tbar_1[beta(y_1, p_1, tbar_0) - beta(y_1, p_1, tbar_1)]
 # We calculate this for every year-region-bin, sum across bins for each region, sum across years (and eventually we will sum across regions)
+
+# This simplifies to: sum_k [ T_0^k * gamma_k * (Tbar_0^k - Tbar_1^k)] < COST < sum_k [ T_1^k * gamma_k * (Tbar_0^k - Tbar_1^k)], where "k" indicates each term in the nonlinear response (e.g. if it's a fourth order polynomial, we have k = 1,...,4), and where the Tbar values may vary by climate term (e.g for bins we interact each bin variable by the average number of days in that bin)
+
 ###############################################
 
-args = commandArgs(trailingOnly = TRUE)
+rm(list=ls())
 
-# OPEN THE NETCDF - temps
-filename.betas <- args[1]
-nc.betas <- nc_open(filename.betas)
-betas <- ncvar_get(nc.betas, 'betas')
-regions <- ncvar_get(nc.betas, 'regions')
-rm(nc.betas)
+library(ncdf4)
+library(dplyr)
+library(DataCombine)
+library(zoo)
+library(abind)
 
-allgammas <- list("global_interaction_best.nc4"=c(-.0543956572063989, -.0175858209459401, .037350265384391, .0302714957462288, .0033472344936152, .0004503090785059, -.0083214355195548, -.0018556370166573, .0022432103697581, -.0042819657236181, .0683695388864395), "global_interaction_erai.nc4"=c(-.0054022723821048, -.068831546313602, .0724052788706477, .0295227498034261, -.0079385835765961, -.010152361492013, -.0135514154278937, -.0003489024035205, .0022457454098928, -.0024712849022487, -.0352632166729257), "global_interaction_gmfd.nc4"=c(-.0592313904670902, .0013769336476968, .0677441628835927, .0280530707690405, .0179417903789245, -.0142451921364773, -.0201576093365246, -.0029591338646701, .0010307954049073, -.0021684764793275, -.0879217250776229), "global_interaction_no_popshare_best.nc4"=c(-.056395718903577, -.0192868749495498, .0205402659903872, .0327999703354906, .0029118914248846, .0007723924136599, -.0020733915791474, .0015286881411285, .0016186052150206, -.0035468165939307, .0318947490389659), "global_interaction_no_popshare_erai.nc4"=c(-.0226998470505204, -.0671191127627215, .0478838916150864, .0413001147910242, -.0062704479589512, -.0078145891965233, -.0121905502195589, .0001760603414812, .0027378727098246, -.003105997854773, -.0102973301352238), "global_interaction_no_popshare_gmfd.nc4"=c(-.067069521739972, .0005023412758493, .0515017052847762, .0180543197115543, .0225846721014261, -.0176806841733947, -.0116932283615, .0002115659351837, .0004593802062941, -.001383025670633, -.0668006789256336))
+###############################################
+# Set up 
+###############################################
 
-dbeta <- allgammas[[basename(filename.betas)]]
+#local
+#setwd("/Volumes/GCP_shared_folder/")
+#Shackleton
+#setwd("/shares/gcp/")
 
-  # OPEN THE NETCDF - temps
-  filename.temp <- args[2]
-  nc.temps <- nc_open(filename.temp)
-  temps.ann <- ncvar_get(nc.temps, 'annual') #realized temperatures
-  temps.avg <- ncvar_get(nc.temps, 'averaged') #average temperatures
-  regions <- ncvar_get(nc.temps, 'regions')
-  year <- ncvar_get(nc.temps, 'year')
-  rm(nc.temps)
+args <- commandArgs(trailingOnly=T)
 
-  # counterfactual betas require dbeta/tbar: We need:
-  ###### #1: beta(y_0, p_0, tbar_1) = beta(y_0, p_0, tbar_0) + dbeta/dtbar(tbar_1-tbar_0)
-  ###### #2: beta(y_1, p_1, tbar_0) = beta(y_1, p_1, tbar_1) - dbeta/dtbar(tbar_1-tbar_0)
+# Filepath for climate covariates and annual temperatures by region-year through 2100
+tavgpath = args[1] # paste0("outputs/temps/rcp", rcp, "/", climmodel, "/climtas.nc4")
+tannpath = args[2] # paste0("climate/BCSD/aggregation/cmip5_new/IR_level/rcp", rcp, "/cubic_spline_tas/tas_restrict_cubic_spline_aggregate_rcp", rcp, "_r1i1p1_", climmodel, ".nc")
 
-  costs <- array(NaN, dim=c(2, dim(regions), dim(year)-1)) # First dimenstion: LOWER BOUND IN 1, UPPER BOUND IN 2
+# Filepath for impacts
+impactspath <- args[3] # paste0("outputs/", sector, "/", impactsfolder, "/median-clipped/rcp", rcp, "/", climmodel, "/high/SSP4/moratlity_cubic_splines_2factors_", climdata, "_031617.nc4")
 
-  for (r in 1:length(regions)) {
-    costs_lb <- matrix(NaN, nrow=length(year)-1,ncol=11)
-    costs_ub <- matrix(NaN, nrow=length(year)-1,ncol=11)
-    for (i in 1:11) {
-      clip <- (betas[r, -1 ,i] == betas[r, -119, i])
-      costs_lb[,i] <- temps.ann[i,r,-119] * (-dbeta[i]*(temps.avg[i,r,-1] - temps.avg[i,r,-119])) * !clip
-      costs_ub[,i] <- temps.ann[i,r,-1] * (-dbeta[i]*(temps.avg[i,r,-1] - temps.avg[i,r,-119])) * !clip
-    }
-    costs[1,r,] <- cumsum(rowSums(costs_lb, na.rm = TRUE))
-    costs[2,r,] <- cumsum(rowSums(costs_ub, na.rm = TRUE))
-    rm(list = c('costs_lb', 'costs_ub'))
+# Filepath for gammas -- where is the CSVV?
+gammapath = args[4] # paste0("social/parameters/", sector, "/", csvname, ".csvv")
+
+# Filepath for spline minimum values -- where is the CSV?
+minpath = args[5] # paste0("social/parameters/mortality/mortality_splines_03162017/splinemins.csv")
+
+
+#################### LOCAL -- FOR TESTING ONLY! 
+# tavgpath = "~/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/climtas.nc4"
+# tannpath = "~/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/tas_restrict_cubic_spline_aggregate_rcp85_r1i1p1_CCSM4.nc"
+# outpath = "~/Tamma-Shackleton/GCP/adaptation_costs/data"
+# impactspath <- "/Users/tammacarleton/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/doubleclip/moratlity_cubic_splines_2factors_best_031617.nc4"
+
+###############################################
+# Insert key information about the CSVV
+###############################################
+
+# What model spec are you running? Options: bin, cubic spline, poly
+model <- 'spline'
+knots <- c(-12, -7, 0, 10, 18, 23, 28, 33)
+powers <- NA  
+
+###############################################
+#  Get Gammas from CSVVs 
+###############################################
+
+csvv <- read.csv(gammapath, header=FALSE, skip = 18)
+
+# Covariate names as listed in the csvv
+row <- which(csvv[,1] == "covarnames")
+covnames <- csvv[row+1,]
+
+# Which covariates are climate covariates? (indicate climate covariates with a 1)
+climdummy <- rep(NA, times=length(covnames))
+
+for (i in 1:length(covnames)) {
+  climdummy[i] <- (covnames[i]!='1' & covnames[i]!='logpopop' & covnames[i]!='loggdppc')
+}
+
+# IMPORTANT: the climate covariates need to be in the same order as the climate variables they get multiplied by 
+if (length(climdummy)!=length(covnames)) stop()
+
+row <- which(csvv[,1] == "gamma")
+gammas <- csvv[row+1,which(climdummy == T)] # just the climate gammas extracted
+gammas <- sapply(gammas, function(x) as.numeric(as.character(x)))
+
+# How many climate variables interacted with climate covariates in the response function do we have?
+K = length(covnames[covnames=="1"])
+
+###############################################
+#  Get spline reference temperatures from CSV
+###############################################
+
+splinemins <- read.csv(minpath, header=T)
+
+##############################################################################################
+# LOAD realized climate variable from single folder
+##############################################################################################
+
+# OPEN THE NETCDF - average temps
+nc.tann <- nc_open(tannpath)
+nc.tavg <- nc_open(tavgpath)
+temps.avg <- ncvar_get(nc.tavg, 'averaged') #average temperatures
+regions <- ncvar_get(nc.tavg, 'regions')
+year.avg <- ncvar_get(nc.tavg, 'year')
+year.ann <- ncvar_get(nc.tann, 'year')
+
+## NOTE: Need to generalize this for Jiacan's other output (not sure how general her files are)
+if (model=="spline") {
+  temps.ann.spline0 <- ncvar_get(nc.tann, 'tas_sum') #realized temperatures
+  temps.ann.splineK <- ncvar_get(nc.tann, 'spline_variables')
+  # Combine tas_sum with spline terms
+  temps.ann <- array(NA, dim = c(dim(temps.ann.splineK)[1], length(knots)-1, length(year.ann)))
+  temps.ann[,1,] <- temps.ann.spline0
+  temps.ann[,2:(length(knots)-1),] <- temps.ann.splineK
+  rm(temps.ann.spline0, temps.ann.splineK)
+}
+if (model=="poly") {
+  #temps.ann <- ncvar_get(nc.tann, 'tas_variables')
+  print("NEED TO FORMAT FOR POLYNOMIALS -- SEE JIACAN's POLYNOMIAL FILES")
+}
+if (model == "bin") {
+  #temps.ann <- ncvar_get(nc.tann, 'bin_variables')
+  print("NEED TO FORMAT FOR POLYNOMIALS -- SEE JIACAN's POLYNOMIAL FILES")
+}
+
+rm(nc.tann, nc.tavg)
+
+print("ANNUAL AND LONG RUN AVERAGE TEMPERATURES LOADED")
+
+
+##############################################################################################
+# LOAD IMPACTS 
+##############################################################################################
+
+nc.imp <- nc_open(impactspath)
+impacts.positive <- ncvar_get(nc.imp, 'positive') # Clipped value
+impacts.rebased <- ncvar_get(nc.imp, 'rebased') # Clipped value
+rm(nc.imp)
+
+print("IMPACTS LOADED")
+
+##############################################################################################
+# Generate moving averages of each term in the spline, poly, or binned variables
+##############################################################################################
+
+# 15-year moving average of each term
+movingavg <- array(NA, dim=dim(temps.ann))
+
+R <- dim(temps.ann)[1]
+S <- dim(temps.ann)[2] # K = no. clim vars * no. clim covars, but S = no. clim vars
+
+for(r in 1:R) { #loop over all regions
+  for(s in 1:S) { # loop over all spline terms or poly terms
+    movingavg[r,s,] <- ave(temps.ann[r,s,], FUN=function(x) rollmean(x, k=15, fill="extend"))
   }
+}
+print("MOVING AVERAGE OF ANNUAL TEMPERATURES CALCULATED")
 
-  rm(list = c('temps.ann', 'temps.avg'))
+##############################################################################################
+# For non-binned models, generate the value for each climate variable that we subtract off
+# NOTE: for now thins only works for splines as of 03/16/2017! 
+##############################################################################################
 
-  yearminus <- year[-1]
-  dimregions <- ncdim_def("region", units="" ,1:length(regions))
-  dimtime <- ncdim_def("year",  units="", yearminus)
-  dimnchar <- ncdim_def("nchar", "", 1:30, create_dimvar=FALSE) # max is 35, but unique at 21
+if (model=="spline") {
+  
+  # Create an R x S array of spline reference terms for each impact region
+  terms_ref <- array(NA, dim=c(dim(movingavg)[1], dim(movingavg)[2]))
+  N <- length(knots) # How many knots
 
-  varregion <- ncvar_def(name = "regions",  units="", dim=list(dimnchar, dimregions), prec="char")
-  varyear <- ncvar_def(name = "years",   units="", dim=list(dimtime))
+for (r in 1:R) { 
+  rindex <- which(splinemins$region==regions[r]) # just in case they are not ordered the same way
+  ref <- splinemins$analytic[rindex]
+  terms_ref[r,1] <- ref
+  for(n in 1:(N-2)) {
+    terms_ref[r,1+n] <- (ref-knots[n])^3 * (ref>knots[n]) 
+    - (ref-knots[N-1])^3 * (ref>knots[N-1]) * ((knots[N]-knots[n])/(knots[N]-knots[N-1]))
+    + (ref-knots[N])^3 * (ref>knots[N]) * ((knots[N-1]-knots[n])/(knots[N]-knots[N-1]))
+  }
+}
+  terms_ref <- terms_ref*365 # to make it annual sum of the spline terms
+  print("SPLINE TERMS FOR THE REFERENCE TEMPERATURE CALCULATED")
+}
 
-  varcosts_lb <- ncvar_def(name = "costs_lb", units="deaths/100000", dim=list(dimregions, dimtime))
-  varcosts_ub <- ncvar_def(name = "costs_ub", units="deaths/100000", dim=list(dimregions, dimtime))
+if (model=="bin") {
+  print("REFERENCE TEMPERATURE NOT NEEDED FOR BINNED MODEL")
+}
+if (model=="poly") {
+  print("REFERENCE TEMPERATURE CODE NOT FORMULATED FOR POLYNOMIALS YET")
+}
 
-  vars <- list(varregion, varyear, varcosts_lb, varcosts_ub)
 
-  cost_nc <- nc_create(gsub('.nc4', '-costs.nc4', filename.betas), vars)
-  ncvar_put(cost_nc, varregion, regions)
-  ncvar_put(cost_nc, varyear, yearminus)
-  ncvar_put(cost_nc, varcosts_lb, costs[1, ,])
-  ncvar_put(cost_nc, varcosts_ub, costs[2, ,])
-  nc_close(cost_nc)
+###############################################
+# For each region-year, calculate lower and upper bounds
+###############################################
 
+# If the number of climate covariates is less than the number of climate variables, we need to expand
+if(length(dim(temps.avg)) < length(dim(temps.ann))) {
+  new <- array(NA, dim=c(dim(temps.avg)[1],K,tail(dim(temps.avg), n=1)))
+  for (k in 1:K) {
+    new[,k,] <- temps.avg
+  }
+  temps.avg <- new
+  rm(new)
+  print("I'm assuming this single climate covariate gets multiplied by all climate variables")
+}
+if(length(dim(temps.avg)) == length(dim(temps.ann)) & dim(temps.avg)[2] < dim(temps.ann)[2]) {
+  print("NEED TO FORMAT THIS FOR POLYNOMIALS")
+  if(dim(temps.avg) == dim(temps.ann)) {
+    print("Do nothing -- each climate variable has its own average climate covariate")
+  }
+}
+
+# Subset to get the average climate values that cover the same years as annual climate values
+yearstokeep <- which(year.avg %in% year.ann)
+temps.avg <- temps.avg[,,yearstokeep[1]:tail(yearstokeep, n =1)]
+
+# Initialize -- region by lb/ub by year 
+results <- array(0, dim=c(dim(temps.ann)[1], 2, dim(temps.ann)[3]) )
+
+# Loop: for each impact region and each year, calculate bounds
+for (r in 1:R){
+  for (k in 1:K) {
+    
+    options(warn=-1)
+    # Need a lead variable of the moving avg temp
+    tempdf <- as.data.frame(movingavg[r,k,])
+    colnames(tempdf) <- "climvar"
+    ann <- slide(tempdf, Var='climvar', NewVar = 'future', slideBy=1)
+    rm(tempdf)
+    
+    # Need a differenced variable for each climate covariate
+    tempdf <- as.data.frame(temps.avg[r,k,])
+    colnames(tempdf) <- "climcov"
+    avg <- slide(tempdf, Var="climcov", NewVar = 'future', slideBy=1)
+    avg$diff <- avg$climcov - avg$future
+    rm(tempdf)
+    options(warn=0)
+    
+    # Lower and upper bounds
+    results[r,1,] <- results[r,1,] + avg$diff * (ann$climvar - terms_ref[r,k]) * gammas[k] # lower
+    results[r,2,] <- results[r,2,] + avg$diff * (ann$future - terms_ref[r,k]) * gammas[k] # upper
+    
+    # Clear 
+    rm(avg, ann)
+  }
+  
+  # Track progress
+  if (r/10 == round(r/10)) {
+    print(paste0("------- REGION ", r, " FINISHED ------------"))  
+  }
+  
+}
+
+###############################################
+# CLIP, ADD ZEROs AT START, CUMULATIVELY SUM
+###############################################
+
+#Add in costs of zero for initial years
+if (length(year.avg) > length(year.ann)) {
+  add <- length(year.avg) - length(year.ann)
+  resultsnew <- array(NA, dim = c(dim(results)[1], dim(results)[2], (dim(results)[3]+add)))
+  
+  # First set of years have zero costs, until changing temperatures kick in
+  for (a in 1:add) {
+    resultsnew[,,a] <- 0
+  }
+  resultsnew[,,(a+1):dim(resultsnew)[3]] <- results
+  results <- resultsnew
+  rm(resultsnew)
+}
+
+# CLIP all values where impacts are zero from James' clipped version of output
+if (dim(results)[3]!=dim(impacts.positive)[2]) stop() 
+for (r in 1:R) {
+  for (y in 2:dim(results)[3]) {
+    if (impacts.positive[r,y] == 0 & (impacts.rebased[r,y] - impacts.rebased[r,y-1] ==0)) {
+      results[r,,y] <- 0 
+    } 
+  }
+  if (impacts.positive[r,1] == 0 ) {
+    results[r,,1] <- 0
+  }
+  
+  # Cumulative sum over all years
+  results[r,1,] <- cumsum(results[r,1,])
+  results[r,2,] <- cumsum(results[r,2,])
+}
+
+###############################################
+# Export as net CDF
+###############################################
+
+year <- year.avg
+dimregions <- ncdim_def("region", units="" ,1:R)
+dimtime <- ncdim_def("year",  units="", year)
+
+varregion <- ncvar_def(name = "regions",  units="", dim=list(dimregions))
+varyear <- ncvar_def(name = "years",   units="", dim=list(dimtime))
+
+varcosts_lb <- ncvar_def(name = "costs_lb", units="deaths/100000", dim=list(dimregions, dimtime))
+varcosts_ub <- ncvar_def(name = "costs_ub", units="deaths/100000", dim=list(dimregions, dimtime))
+
+vars <- list(varregion, varyear, varcosts_lb, varcosts_ub)
+
+# Filepath for cost output
+outpath <- gsub(".nc4", "-costs.nc4", impactspath)
+
+cost_nc <- nc_create(outpath, vars)
+print("CREATED NEW NETCDF FILE")
+
+ncvar_put(cost_nc, varregion, regions)
+ncvar_put(cost_nc, varyear, year)
+ncvar_put(cost_nc, varcosts_lb, results[,1 ,])
+ncvar_put(cost_nc, varcosts_ub, results[,2 ,])
+nc_close(cost_nc)
+
+print("----------- DONE DONE DONE ------------")
+
+print("----------- DONE DONE DONE ------------")
+
+print("----------- DONE DONE DONE ------------")
+
+print("----------- DONE DONE DONE ------------")
