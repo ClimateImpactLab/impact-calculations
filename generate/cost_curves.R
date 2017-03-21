@@ -31,23 +31,30 @@ library(abind)
 #local
 #setwd("/Volumes/GCP_shared_folder/")
 #Shackleton
-#setwd("/shares/gcp/")
+setwd("/shares/gcp/")
 
-args <- commandArgs(trailingOnly=T)
+rcp = '85' # Choose your RCP! 
+sector = 'mortality' # Choose your sector!
+climdata <- 'best'
+csvname = paste0("mortality_splines_03162017/moratlity_cubic_splines_2factors_BEST_031617") # Name of the csvv file 
+impactsfolder = 'impacts-dampwood' # Choose which set of results!
+climmodel <- 'CCSM4'
 
 # Filepath for climate covariates and annual temperatures by region-year through 2100
-tavgpath = args[1] # paste0("outputs/temps/rcp", rcp, "/", climmodel, "/climtas.nc4")
-tannpath = args[2] # paste0("climate/BCSD/aggregation/cmip5_new/IR_level/rcp", rcp, "/cubic_spline_tas/tas_restrict_cubic_spline_aggregate_rcp", rcp, "_r1i1p1_", climmodel, ".nc")
-
-# Filepath for impacts
-impactspath <- args[3] # paste0("outputs/", sector, "/", impactsfolder, "/median-clipped/rcp", rcp, "/", climmodel, "/high/SSP4/moratlity_cubic_splines_2factors_", climdata, "_031617.nc4")
+tavgpath = paste0("outputs/temps/rcp", rcp, "/", climmodel, "/climtas.nc4")
+tannpath = paste0("climate/BCSD/aggregation/cmip5_new/IR_level/rcp", rcp, "/cubic_spline_tas/tas_restrict_cubic_spline_aggregate_rcp", rcp, "_r1i1p1_", climmodel, ".nc")
 
 # Filepath for gammas -- where is the CSVV?
-gammapath = args[4] # paste0("social/parameters/", sector, "/", csvname, ".csvv")
+gammapath = paste0("social/parameters/", sector, "/", csvname, ".csvv")
 
 # Filepath for spline minimum values -- where is the CSV?
-minpath = args[5] # paste0("social/parameters/mortality/mortality_splines_03162017/splinemins.csv")
+minpath = paste0("social/parameters/mortality/mortality_splines_03162017/splinemins.csv")
 
+# Filepath for cost output
+outpath = paste0("outputs/", sector, "/", impactsfolder, "/median-clipped/rcp", rcp, "/", climmodel, "/high/SSP4")
+
+# Filepath for impacts
+impactspath <- paste0("outputs/", sector, "/", impactsfolder, "/median-clipped/rcp", rcp, "/", climmodel, "/high/SSP4/moratlity_cubic_splines_2factors_", climdata, "_031617.nc4")
 
 #################### LOCAL -- FOR TESTING ONLY! 
 # tavgpath = "~/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/climtas.nc4"
@@ -307,10 +314,13 @@ varcosts_ub <- ncvar_def(name = "costs_ub", units="deaths/100000", dim=list(dimr
 
 vars <- list(varregion, varyear, varcosts_lb, varcosts_ub)
 
-# Filepath for cost output
-outpath <- gsub(".nc4", "-costs.nc4", impactspath)
+if(is.na(unlist(strsplit(csvname, "[/]"))[2])==0){
+  name <- unlist(strsplit(csvname, "[/]"))[2]
+}  else {
+  name <- csvname
+}
 
-cost_nc <- nc_create(outpath, vars)
+cost_nc <- nc_create(paste0(outpath, "/", name, "-costs.nc"), vars)
 print("CREATED NEW NETCDF FILE")
 
 ncvar_put(cost_nc, varregion, regions)
