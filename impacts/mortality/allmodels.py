@@ -55,6 +55,7 @@ def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=N
             # Full Adaptation
             if check_doit(redocheck, targetdir, basename, suffix):
                 print "Smart Farmer"
+                caller.callinfo = dict(splineminpath=os.path.join(targetdir, basename + '-splinemins.csv'))
                 calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.mortality.pooled_cubic_spline', weatherbundle, economicmodel, pvals[basename])
 
                 if profile:

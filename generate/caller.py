@@ -7,6 +7,8 @@ from openest.generate.stdlib import *
 get_data = library.get_data
 get_model = effectset.get_model_server
 
+callinfo = None
+
 def get_model_by_gcpid(gcpid):
     wks, header, ids = server.get_model_info()
     rowvalues = wks.row_values(ids.index(gcpid) + 1)
