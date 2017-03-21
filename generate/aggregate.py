@@ -119,8 +119,8 @@ def make_aggregates(targetdir, filename, get_population, dimensions_template=Non
 
             for original in withinregions:
                 weights = stweight.get_time(original)
-                numers += weights * srcvalues[:, original_indices[original]]
-                denoms += weights
+                numers += weights * np.nan_to_num(srcvalues[:, original_indices[original]]) * np.isfinite(srcvalues[:, original_indices[original]])
+                denoms += weights * np.isfinite(srcvalues[:, original_indices[original]])
 
             dstvalues[:, ii] = numers / denoms
 
