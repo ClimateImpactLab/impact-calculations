@@ -11,7 +11,7 @@ config = config.getConfigDictFromSysArgv()
 REDOCHECK_DELAY = 0 #12*60*60
 do_single = False
 
-singledir = 'single-delete'
+singledir = 'single'
 
 targetdir = None # The current targetdir
 
