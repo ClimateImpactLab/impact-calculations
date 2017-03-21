@@ -1,5 +1,6 @@
 import numpy as np
 from adaptation import csvvfile, curvegen, curvegen_arbitrary, covariates
+from generate import caller
 from openest.models.curve import CubicSplineCurve
 from openest.generate.stdlib import *
 from openest.generate import diagnostic
@@ -22,19 +23,19 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
 
     # Determine minimum value of curve between 10C and 25C
     print "Determining minimum temperatures."
-    # with open('splinemins.csv', 'w') as fp:
-    #     writer = csv.writer(fp)
-    #     writer.writerow(['region', 'brute', 'analytic'])
-    baselinemins = {}
-    for region in weatherbundle.regions:
-        curve = curr_curvegen.get_curve(region, covariator.get_baseline(region))
-        temps = np.arange(10, 26)
-        mintemp = temps[np.argmin(curve(temps))]
-        mintemp2 = minspline.findsplinemin(knots, curve.coeffs, 10, 25)
-        if np.abs(mintemp - mintemp2) > 1:
-            print "WARNING: %s has unclear mintemp: %f, %f" % (region, mintemp, mintemp2)
-        baselinemins[region] = mintemp2
-        # writer.writerow([region, mintemp, mintemp2])
+    with open(caller.callinfo['splineminpath'], 'w') as fp:
+        writer = csv.writer(fp)
+        writer.writerow(['region', 'brute', 'analytic'])
+        baselinemins = {}
+        for region in weatherbundle.regions:
+            curve = curr_curvegen.get_curve(region, covariator.get_baseline(region))
+            temps = np.arange(10, 26)
+            mintemp = temps[np.argmin(curve(temps))]
+            mintemp2 = minspline.findsplinemin(knots, curve.coeffs, 10, 25)
+            if np.abs(mintemp - mintemp2) > 1:
+                print "WARNING: %s has unclear mintemp: %f, %f" % (region, mintemp, mintemp2)
+            baselinemins[region] = mintemp2
+            writer.writerow([region, mintemp, mintemp2])
     print "Finishing calculation setup."
 
     # Generating all curves, for baseline

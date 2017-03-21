@@ -1,14 +1,14 @@
 import os, Queue, traceback
 import numpy as np
 from netCDF4 import Dataset
-import nc4writer, agglib, checks
+import nc4writer, agglib, checks, csv
 
 costs_suffix = '-costs'
 levels_suffix = '-levels'
 suffix = "-aggregated"
 missing_only = True
 
-costs_command = "Rscript generate/cost_curves.R \"%s\" %s" # resultfile tempsfile
+costs_command = "Rscript generate/cost_curves.R \"%s\" \"%s\" \"%s\" \"%s\" \"%s\"" # tavgpath tannpath impactspath gammapath minpath
 
 checkfile = 'check-20161230.txt'
 
@@ -231,12 +231,17 @@ if __name__ == '__main__':
                     continue
 
                 try:
-                    if filename in ['interpolated_mortality_all_ages.nc4', 'interpolated_mortality65_plus.nc4', 'global_interaction_best.nc4', 'global_interaction_gmfd.nc4', 'global_interaction_no_popshare_best.nc4', 'global_interaction_no_popshare_gmfd.nc4', 'moratlity_cubic_splines_2factors_gmfd_031617.nc4', 'moratlity_cubic_splines_2factors_best_031617.nc4']:
+                    if filename in ['interpolated_mortality_all_ages.nc4', 'interpolated_mortality65_plus.nc4', 'global_interaction_best.nc4', 'global_interaction_gmfd.nc4', 'global_interaction_no_popshare_best.nc4', 'global_interaction_no_popshare_gmfd.nc4', 'moratlity_cubic_splines_2factors_GMFD_031617.nc4', 'moratlity_cubic_splines_2factors_BEST_031617.nc4']:
                         # Generate costs
-                        # tempsfile = '/shares/gcp/outputs/temps/%s/%s/temps.nc4' % (clim_scenario, clim_model)
+                        if not missing_only or not os.path.exists(os.path.join(targetdir, filename[:-4] + costs_suffix + '.nc4')):
+                            tavgpath = '/shares/gcp/outputs/temps/%s/%s/climtas.nc4' % (clim_scenario, clim_model)
+                            tannpath = '/shares/gcp/climate/BCSD/aggregation/cmip5_new/IR_level/{0}/cubic_spline_tas/tas_restrict_cubic_spline_aggregate_{0}_r1i1p1_{1}.nc'.format(clim_scenario, clim_model)
+                            impactspath = os.path.join(targetdir, filename)
+                            gammapath = '/shares/gcp/social/parameters/mortality/mortality_splines_03162017/' + filename.replace('.nc4', '.csvv')
+                            minpath = os.path.join(targetdir, filename.replace('.nc4', '-splinemins.csv'))
 
-                        # if not missing_only or not os.path.exists(os.path.join(targetdir, filename[:-4] + costs_suffix + '.nc4')):
-                        #     os.system(costs_command % (os.path.join(targetdir, filename), tempsfile))
+                            print costs_command % (tavgpath, tannpath, impactspath, gammapath, minpath)
+                            os.system(costs_command % (tavgpath, tannpath, impactspath, gammapath, minpath))
 
                         # Levels of costs
                         if not missing_only or not os.path.exists(os.path.join(targetdir, filename[:-4] + costs_suffix + levels_suffix + '.nc4')):
