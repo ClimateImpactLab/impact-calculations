@@ -31,30 +31,23 @@ library(abind)
 #local
 #setwd("/Volumes/GCP_shared_folder/")
 #Shackleton
-setwd("/shares/gcp/")
+#setwd("/shares/gcp/")
 
-rcp = '85' # Choose your RCP! 
-sector = 'mortality' # Choose your sector!
-climdata <- 'best'
-csvname = paste0("mortality_splines_03162017/moratlity_cubic_splines_2factors_BEST_031617") # Name of the csvv file 
-impactsfolder = 'impacts-dampwood' # Choose which set of results!
-climmodel <- 'CCSM4'
+args <- commandArgs(trailingOnly=T)
 
 # Filepath for climate covariates and annual temperatures by region-year through 2100
-tavgpath = paste0("outputs/temps/rcp", rcp, "/", climmodel, "/climtas.nc4")
-tannpath = paste0("climate/BCSD/aggregation/cmip5_new/IR_level/rcp", rcp, "/cubic_spline_tas/tas_restrict_cubic_spline_aggregate_rcp", rcp, "_r1i1p1_", climmodel, ".nc")
-
-# Filepath for gammas -- where is the CSVV?
-gammapath = paste0("social/parameters/", sector, "/", csvname, ".csvv")
-
-# Filepath for spline minimum values -- where is the CSV?
-minpath = paste0("social/parameters/mortality/mortality_splines_03162017/splinemins.csv")
-
-# Filepath for cost output
-outpath = paste0("outputs/", sector, "/", impactsfolder, "/median-clipped/rcp", rcp, "/", climmodel, "/high/SSP4")
+tavgpath = args[1] # outputs/temps/RCP/GCM/climtas.nc4
+tannpath = args[2] # climate/BCSD/aggregation/cmip5_new/IR_level/RCP/cubic_spline_tas/tas_restrict_cubic_spline_aggregate_RCP_r1i1p1_GCM.nc
 
 # Filepath for impacts
-impactspath <- paste0("outputs/", sector, "/", impactsfolder, "/median-clipped/rcp", rcp, "/", climmodel, "/high/SSP4/moratlity_cubic_splines_2factors_", climdata, "_031617.nc4")
+impactspath <- args[3] # paste0("outputs/", sector, "/", impactsfolder, "/median-clipped/rcp", rcp, "/", climmodel, "/high/SSP4/moratlity_cubic_splines_2factors_", climdata, "_031617.nc4")
+
+# Filepath for gammas -- where is the CSVV?
+gammapath = args[4] # paste0("social/parameters/", sector, "/", csvname, ".csvv")
+
+# Filepath for spline minimum values -- where is the CSV?
+minpath = args[5] # paste0("social/parameters/mortality/mortality_splines_03162017/splinemins.csv")
+
 
 #################### LOCAL -- FOR TESTING ONLY! 
 # tavgpath = "~/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/climtas.nc4"
@@ -163,7 +156,8 @@ S <- dim(temps.ann)[2] # K = no. clim vars * no. clim covars, but S = no. clim v
 
 for(r in 1:R) { #loop over all regions
   for(s in 1:S) { # loop over all spline terms or poly terms
-    movingavg[r,s,] <- ave(temps.ann[r,s,], FUN=function(x) rollmean(x, k=15, fill="extend"))
+    if (sum(is.finite(temps.ann[r,s,])) > 0)
+      movingavg[r,s,] <- ave(temps.ann[r,s,], FUN=function(x) rollmean(x, k=15, fill="extend"))
   }
 }
 print("MOVING AVERAGE OF ANNUAL TEMPERATURES CALCULATED")
@@ -237,13 +231,13 @@ for (r in 1:R){
     # Need a lead variable of the moving avg temp
     tempdf <- as.data.frame(movingavg[r,k,])
     colnames(tempdf) <- "climvar"
-    ann <- slide(tempdf, Var='climvar', NewVar = 'future', slideBy=1)
+    ann <- slide(tempdf, Var='climvar', NewVar = 'future', slideBy=1, reminder=F)
     rm(tempdf)
     
     # Need a differenced variable for each climate covariate
     tempdf <- as.data.frame(temps.avg[r,k,])
     colnames(tempdf) <- "climcov"
-    avg <- slide(tempdf, Var="climcov", NewVar = 'future', slideBy=1)
+    avg <- slide(tempdf, Var="climcov", NewVar = 'future', slideBy=1, reminder=F)
     avg$diff <- avg$climcov - avg$future
     rm(tempdf)
     options(warn=0)
@@ -314,13 +308,10 @@ varcosts_ub <- ncvar_def(name = "costs_ub", units="deaths/100000", dim=list(dimr
 
 vars <- list(varregion, varyear, varcosts_lb, varcosts_ub)
 
-if(is.na(unlist(strsplit(csvname, "[/]"))[2])==0){
-  name <- unlist(strsplit(csvname, "[/]"))[2]
-}  else {
-  name <- csvname
-}
+# Filepath for cost output
+outpath <- gsub(".nc4", "-costs.nc4", impactspath)
 
-cost_nc <- nc_create(paste0(outpath, "/", name, "-costs.nc"), vars)
+cost_nc <- nc_create(outpath, vars)
 print("CREATED NEW NETCDF FILE")
 
 ncvar_put(cost_nc, varregion, regions)
