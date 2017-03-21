@@ -20,34 +20,6 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
                                                         '100,000 * death/population', 'spline_variables-', len(knots) - 1, csvv)
     farm_curvegen = curvegen.FarmerCurveGenerator(curr_curvegen, covariator, farmer)
 
-    # Generating all curves, for baseline
-    baseline_loggdppc = {}
-    for region in weatherbundle.regions:
-        baseline_loggdppc[region] = covariator.get_baseline(region)['loggdppc']
-
-    loggdppc_marginals = curr_curvegen.get_marginals('loggdppc')
-    loggdppc_marginals = np.array([loggdppc_marginals[predname] for predname in curr_curvegen.prednames]) # same order as temps
-    print "MARGINALS"
-    print loggdppc_marginals
-
-    def coeff_getter_positive(region, year, temps, curve):
-        mareff = np.sum(loggdppc_marginals * temps)
-        if mareff > 0:
-            deltaloggdppc = covariator.get_baseline(region)['loggdppc'] - baseline_loggdppc[region] # get_baseline gives current sense, not really baseline
-            return curve.curr_curve.coeffs - deltaloggdppc * loggdppc_marginals
-        else:
-            return curve.curr_curve.coeffs
-
-    def coeff_getter_negative(region, year, temps, curve):
-        mareff = np.sum(loggdppc_marginals * temps)
-        if mareff > 0:
-            deltaloggdppc = covariator.get_baseline(region)['loggdppc'] - baseline_loggdppc[region] # get_baseline gives current sense, not really baseline
-            return curve.curr_curve.coeffs + deltaloggdppc * loggdppc_marginals
-        else:
-            return curve.curr_curve.coeffs
-
-    maineffect = YearlyCoefficients('100,000 * death/population', farm_curvegen, "the mortality response curve", coeff_getter_positive)
-
     # Determine minimum value of curve between 10C and 25C
     print "Determining minimum temperatures."
     # with open('splinemins.csv', 'w') as fp:
@@ -64,6 +36,34 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
         baselinemins[region] = mintemp2
         # writer.writerow([region, mintemp, mintemp2])
     print "Finishing calculation setup."
+
+    # Generating all curves, for baseline
+    baseline_loggdppc = {}
+    for region in weatherbundle.regions:
+        baseline_loggdppc[region] = covariator.get_baseline(region)['loggdppc']
+
+    loggdppc_marginals = curr_curvegen.get_marginals('loggdppc')
+    loggdppc_marginals = np.array([loggdppc_marginals[predname] for predname in curr_curvegen.prednames]) # same order as temps
+    print "MARGINALS"
+    print loggdppc_marginals
+
+    def coeff_getter_positive(region, year, temps, curve):
+        mareff = np.sum(loggdppc_marginals * (temps - 365 * np.array(CubicSplineCurve(knots, None).get_terms(baselinemins[region]))))
+        if mareff > 0:
+            deltaloggdppc = covariator.get_baseline(region)['loggdppc'] - baseline_loggdppc[region] # get_baseline gives current sense, not really baseline
+            return curve.curr_curve.coeffs - deltaloggdppc * loggdppc_marginals
+        else:
+            return curve.curr_curve.coeffs
+
+    def coeff_getter_negative(region, year, temps, curve):
+        mareff = np.sum(loggdppc_marginals * (temps - 365 * np.array(CubicSplineCurve(knots, None).get_terms(baselinemins[region]))))
+        if mareff > 0:
+            deltaloggdppc = covariator.get_baseline(region)['loggdppc'] - baseline_loggdppc[region] # get_baseline gives current sense, not really baseline
+            return curve.curr_curve.coeffs + deltaloggdppc * loggdppc_marginals
+        else:
+            return curve.curr_curve.coeffs
+
+    maineffect = YearlyCoefficients('100,000 * death/population', farm_curvegen, "the mortality response curve", coeff_getter_positive)
 
     # Subtract off result at 20C; currently need to reproduce adapting curve
     negcsvv = copy.copy(csvv)
