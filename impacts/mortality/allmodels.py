@@ -48,7 +48,8 @@ def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=N
         if push_callback is None:
             push_callback = lambda reg, yr, app, predget, mod: None
 
-        for filepath in glob.glob(files.sharedpath("social/parameters/mortality/mortality_splines_03162017/*2factors*.csvv")):
+        #for filepath in glob.glob(files.sharedpath("social/parameters/mortality/mortality_splines_03162017/*2factors*.csvv")):
+        for filepath in glob.glob(files.sharedpath("social/parameters/mortality/MLE_splines_03212017/*.csvv")):
             basename = os.path.basename(filepath)[:-5]
             print basename
 
