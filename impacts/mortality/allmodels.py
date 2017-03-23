@@ -57,7 +57,7 @@ def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=N
             if check_doit(redocheck, targetdir, basename, suffix):
                 print "Smart Farmer"
                 caller.callinfo = dict(splineminpath=os.path.join(targetdir, basename + '-splinemins.csv'))
-                calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.mortality.pooled_cubic_spline', weatherbundle, economicmodel, pvals[basename])
+                calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.mortality.mle_cubic_spline', weatherbundle, economicmodel, pvals[basename])
 
                 if profile:
                     effectset.small_test(weatherbundle, calculation, baseline_get_predictors, num_regions=10)
@@ -71,13 +71,13 @@ def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=N
 
                 # Comatose Farmer
                 if check_doit(redocheck, targetdir, basename + "-comatose", suffix):
-                    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.mortality.pooled_cubic_spline', weatherbundle, economicmodel, pvals[basename], farmer='coma')
+                    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.mortality.mle_cubic_spline', weatherbundle, economicmodel, pvals[basename], farmer='coma')
 
                     effectset.write_ncdf(targetdir, basename + "-comatose", weatherbundle, calculation, None, "Mortality impacts, with interpolation but no adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, basename + '-coma'), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, basename + '-coma'), suffix=suffix)
 
                 # Dumb Farmer
                 if check_doit(redocheck, targetdir, basename + "-dumb", suffix):
-                    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.mortality.pooled_cubic_spline', weatherbundle, economicmodel, pvals[basename], farmer='dumb')
+                    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.mortality.mle_cubic_spline', weatherbundle, economicmodel, pvals[basename], farmer='dumb')
 
                     effectset.write_ncdf(targetdir, basename + "-dumb", weatherbundle, calculation, None, "Mortality impacts, with interpolation and only environmental adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, basename + '-dumb'), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, basename + '-dumb'), suffix=suffix)
 

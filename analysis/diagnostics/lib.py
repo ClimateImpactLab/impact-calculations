@@ -82,12 +82,14 @@ def show_coefficient_mle(csvv, preds, year, coefname, covartrans):
     terms = []
     for ii in range(len(csvv['gamma'])):
         if csvv['prednames'][ii] == coefname:
-            if csvv['covarnames'][ii] in covartrans:
+            if csvv['covarnames'][ii] == '1':
+                continue
+            elif csvv['covarnames'][ii] in covartrans:
                 terms.append(str(csvv['gamma'][ii]) + " * " + str(excind(preds, predyear, covartrans[csvv['covarnames'][ii]])))
             else:
                 terms.append(str(csvv['gamma'][ii]) + " * " + str(excind(preds, predyear, csvv['covarnames'][ii])))
 
-    beta = [csvv['gamma'][ii] if csvv['prednames'][ii] == coefname and csvv['covarnames'][ii] == '1' for ii in range(len(csvv['gamma']))][0]
+    beta = [csvv['gamma'][ii] for ii in range(len(csvv['gamma'])) if csvv['prednames'][ii] == coefname and csvv['covarnames'][ii] == '1'][0]
 
     show_julia("%f * exp(%s)" % (beta, ' + '.join(terms)))
 
