@@ -58,7 +58,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
 
     # Subtract off result at 20C; currently need to reproduce adapting curve
     negcsvv = copy.copy(csvv)
-    negcsvv['gamma'] = -csvv['gamma']
+    negcsvv['gamma'] = [-csvv['gamma'][ii] if csvv['covarnames'][ii] == '1' else csvv['gamma'][ii] for ii in range(len(csvv['gamma']))]
 
     negcurr_curvegen = curvegen_arbitrary.MLECoefficientsCurveGenerator(lambda coeffs: CubicSplineCurve(knots, coeffs),
                                                                      ['C'] + ['C^3'] * (len(knots) - 2),
