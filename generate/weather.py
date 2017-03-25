@@ -269,8 +269,8 @@ class MultivariateHistoricalWeatherBundle2(DailyWeatherBundle):
         else:
             # Randomly choose years with replacement
             np.random.seed(seed)
-            choices = range(self.pastyear_start, self.pastyear_end + 1)
-            self.pastyears = np.random.choice(choices, self.futureyear_end - self.pastyear_start + 1)
+            choices = range(int(self.pastyear_start), int(self.pastyear_end) + 1)
+            self.pastyears = np.random.choice(choices, int(self.futureyear_end - self.pastyear_start + 1))
 
         self.load_readermeta(onereader)
         self.load_regions()
