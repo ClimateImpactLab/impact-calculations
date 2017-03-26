@@ -171,8 +171,9 @@ class YearlyWeatherCovariator(Covariator):
         predictors = {region: rm_init([]) for region in regions}
 
         for years, values in yearlyreader.read_iterator():
+            assert len(values) == 1
             for ii in range(len(regions)):
-                rm_add(predictors[regions[ii]], values[ii], duration)
+                rm_add(predictors[regions[ii]], values[0, ii], duration)
 
         self.predictors = predictors
 
