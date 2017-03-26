@@ -40,6 +40,9 @@ class YearlyWeatherReader(WeatherReader):
             if years[0] == year: # always a single value anyway
                 return years, values
 
+    def __str__(self):
+        return "%s: %s" % (self.filepath, self.variable)
+
 class YearlyCollectionWeatherReader(YearlyWeatherReader):
     """Returns several variables from a yearly file."""
 
@@ -114,10 +117,11 @@ class RandomRegionAccess(object):
     def get_region_year(self, region, year):
         if self.current_year != year:
             values = self.get_year(year)
+            assert len(values) == 1
             self.current_year = year
 
             self.region_values = {}
             for ii in range(len(self.regions)):
-                self.region_values[self.regions[ii]] = values[ii]
+                self.region_values[self.regions[ii]] = values[0, ii]
 
         return self.region_values[region]
