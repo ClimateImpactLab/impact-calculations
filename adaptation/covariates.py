@@ -104,7 +104,10 @@ class MeanWeatherCovariator(Covariator):
 
     def get_baseline(self, region):
         #assert region in self.temp_predictors, "Missing " + region
-        return {self.weatherbundle.get_dimension()[self.varindex]: rm_mean(self.temp_predictors[region])}
+        if self.varindex is None:
+            return {self.weatherbundle.get_dimension()[0]: rm_mean(self.temp_predictors[region])}
+        else:
+            return {self.weatherbundle.get_dimension()[self.varindex]: rm_mean(self.temp_predictors[region])}
 
     def get_update(self, region, year, temps):
         """Allow temps = None for dumb farmer who cannot adapt to temperature."""
@@ -118,10 +121,13 @@ class MeanWeatherCovariator(Covariator):
             else:
                 rm_add(self.temp_predictors[region], np.mean(temps[:, self.varindex]), self.numtempyears)
 
-        return {self.weatherbundle.get_dimension()[self.varindex]: rm_mean(self.temp_predictors[region])}
+        if self.varindex is None:
+            return {self.weatherbundle.get_dimension()[0]: rm_mean(self.temp_predictors[region])}
+        else:
+            return {self.weatherbundle.get_dimension()[self.varindex]: rm_mean(self.temp_predictors[region])}
 
 class SeasonalWeatherCovariator(MeanWeatherCovariator):
-    def __init__(self, weatherbundle, numtempyears, maxbaseline, day_start, day_end, weather_index):
+    def __init__(self, weatherbundle, numtempyears, maxbaseline, day_start, day_end, weather_index=None):
         super(SeasonalWeatherCovariator, self).__init__(weatherbundle, numtempyears, maxbaseline)
         self.maxbaseline = maxbaseline
         self.day_start = day_start
@@ -137,13 +143,13 @@ class SeasonalWeatherCovariator(MeanWeatherCovariator):
             print "Collecting " + self.mustr
             # Read in all regions
             self.all_values = {}
-            for times, weather in self.weatherbundle.yearbundles(maxyear=self.maxbaseline):
-                print times[0]
+            for weatherslice in self.weatherbundle.yearbundles(maxyear=self.maxbaseline):
+                print weatherslice.times[0]
                 for ii in range(len(self.weatherbundle.regions)):
                     if self.weatherbundle.regions[ii] not in self.all_values:
-                        self.all_values[self.weatherbundle.regions[ii]] = weather[self.day_start:self.day_end, ii]
+                        self.all_values[self.weatherbundle.regions[ii]] = weatherslice.weathers[self.day_start:self.day_end, ii]
                     else:
-                        self.all_values[self.weatherbundle.regions[ii]] = np.concatenate((self.all_values[self.weatherbundle.regions[ii]], weather[self.day_start:self.day_end, ii]))
+                        self.all_values[self.weatherbundle.regions[ii]] = np.concatenate((self.all_values[self.weatherbundle.regions[ii]], weatherslice.weathers[self.day_start:self.day_end, ii]))
 
         mu = np.mean(self.all_values[region])
         sigma = np.std(self.all_values[region])

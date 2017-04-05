@@ -20,11 +20,7 @@ class WeatherReader(object):
         raise NotImplementedError
 
     def read_iterator(self):
-        """Yields a tuple (times, weathers) in whatever chunks are convenient.
-
-        times should be a numpy array with a single dimension.  Let it have length T.
-        weather should be a numpy array of size T x REGIONS [x K]
-          the last dimension is optional, if more than one value is returned for each time.
+        """Yields a WeatherSlice in whatever chunks are convenient.
         """
         raise NotImplementedError
 
@@ -60,14 +56,10 @@ class YearlySplitWeatherReader(WeatherReader):
             year += 1
 
     def read_iterator_to(self, maxyear):
-        for times, weather in self.read_iterator():
-            yield times, weather
-            if times[0] > 10000:
-                if int(times[0]) / 1000 == maxyear:
-                    break
-            else:
-                if times[0] == maxyear:
-                    break
+        for weatherslice in self.read_iterator():
+            yield weatherslice
+            if weatherslice.get_years()[0] >= maxyear:
+                break
 
     # Random access
 

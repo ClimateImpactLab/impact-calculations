@@ -81,13 +81,13 @@ class ReaderWeatherBundle(WeatherBundle):
 
 class DailyWeatherBundle(WeatherBundle):
     def yearbundles(self, maxyear=np.inf):
-        """Yields the tuple (yyyyddd, weather) for each year up to `maxyear`.
+        """Yields a weatherslice for each year up to `maxyear`.
         Each yield should should produce all and only data for a single year.
 
         yyyyddd should be a numpy array of length 365, and integer values
         constructed like 2016001 for the first day of 2016.
 
-        weather should be a numpy array of size REGIONS x 365.
+        weather should be a numpy array of size REGIONS x 365. <<-- OR 365 x REGIONS?
         """
         raise NotImplementedError
 
@@ -108,10 +108,10 @@ class DailyWeatherBundle(WeatherBundle):
             regionsums = np.zeros((len(self.regions), len(self.get_dimension())))
 
         sumcount = 0
-        for yyyyddd, weather in self.yearbundles(maxyear):
-            print int(yyyyddd[0]) / 1000
+        for weatherslice in self.yearbundles(maxyear):
+            print weatherslice.get_years()[0]
 
-            regionsums += np.mean(weather, axis=0)
+            regionsums += np.mean(weatherslice.weathers, axis=0)
             sumcount += 1
 
         region_averages = regionsums / sumcount
@@ -128,11 +128,11 @@ class DailyWeatherBundle(WeatherBundle):
             regionvalues = np.ndarray((0, len(self.regions), len(self.get_dimension())))
 
         # Append each year
-        for yyyyddd, weather in self.yearbundles(maxyear):
-            print yyyyddd[0]
+        for weatherslice in self.yearbundles(maxyear):
+            print weatherslice.times[0]
 
             # Stack this year below the previous years
-            regionvalues = np.vstack((regionvalues, np.expand_dims(np.mean(weather, axis=0), axis=0)))
+            regionvalues = np.vstack((regionvalues, np.expand_dims(np.mean(weatherslice.weathers, axis=0), axis=0)))
 
         # Yield the entire collection of values for each region
         for ii in range(len(self.regions)):
@@ -143,8 +143,8 @@ class SingleWeatherBundle(ReaderWeatherBundle, DailyWeatherBundle):
         return False
 
     def yearbundles(self, maxyear=np.inf):
-        for values in self.reader.read_iterator_to(maxyear):
-            yield values
+        for weatherslice in self.reader.read_iterator_to(maxyear):
+            yield weatherslice
 
     def get_years(self):
         return self.reader.get_years()
@@ -166,17 +166,17 @@ class UnivariatePastFutureWeatherBundle(DailyWeatherBundle):
         return False
 
     def yearbundles(self, maxyear=np.inf):
-        for values in self.pastreader.read_iterator_to(min(self.futureyear1, maxyear)):
-            if len(values[1].shape) == 1:
-                assert values[1].shape[0] == len(self.regions)
+        for weatherslice in self.pastreader.read_iterator_to(min(self.futureyear1, maxyear)):
+            if len(weatherslice.weathers.shape) == 1:
+                assert weatherslice.weathers.shape[0] == len(self.regions)
             else:
-                assert values[1].shape[1] == len(self.regions)
-            yield values
+                assert weatherslice.weathers.shape[1] == len(self.regions)
+            yield weatherslice
 
         if maxyear > self.futureyear1:
-            for values in self.futurereader.read_iterator_to(maxyear):
-                assert values[1].shape[1] == len(self.regions)
-                yield values
+            for weatherslice in self.futurereader.read_iterator_to(maxyear):
+                assert weatherslice.weathers.shape[1] == len(self.regions)
+                yield weatherslice
 
     def get_years(self):
         return np.unique(self.pastreader.get_years() + self.futurereader.get_years())
@@ -203,27 +203,21 @@ class MultivariatePastFutureWeatherBundle(DailyWeatherBundle):
             if year == maxyear:
                 break
 
-            allweather = None
             for pastreader, futurereader in self.pastfuturereaders:
                 try:
                     if year < self.futureyear1:
-                        yyyyddd, weather = pastreader.read_year(year)
+                        weatherslice = pastreader.read_year(year)
                     else:
-                        yyyyddd, weather = futurereader.read_year(year)
+                        weatherslice = futurereader.read_year(year)
                 except:
                     print "Failed to get year", year
                     traceback.print_exc()
                     return # No more!
 
-                if len(weather.shape) == 2:
-                    weather = np.expand_dims(weather, axis=2)
+                if len(weatherslice.weathers.shape) == 2:
+                    weatherslice.weathers = np.expand_dims(weatherslice.weathers, axis=2)
 
-                if allweather is None:
-                    allweather = weather
-                else:
-                    allweather = np.concatenate((allweather, weather), axis=2)
-
-            yield yyyyddd, allweather
+            yield weatherslice
 
     def get_years(self):
         return np.unique(self.pastfuturereaders[0][0].get_years() + self.pastfuturereaders[0][1].get_years())
@@ -281,22 +275,16 @@ class MultivariateHistoricalWeatherBundle2(DailyWeatherBundle):
     def yearbundles(self, maxyear=np.inf):
         year = self.pastyear_start
         for pastyear in self.pastyears:
-            allweather = None
             for pastreader in self.pastreaders:
-                yyyyddd, weather = pastreader.read_year(pastyear)
+                weatherslice = pastreader.read_year(pastyear)
 
-                if len(weather.shape) == 2:
-                    weather = np.expand_dims(weather, axis=2)
+                if len(weatherslice.weathers.shape) == 2:
+                    weatherslice.weathers = np.expand_dims(weatherslice.weathers, axis=2)
 
-                if allweather is None:
-                    allweather = weather
-                else:
-                    allweather = np.concatenate((allweather, weather), axis=2)
-
-            if yyyyddd[0] > 10000:
-                yield (1000 * year) + (yyyyddd % 1000), allweather
+            if weatherslice.times[0] > 10000:
+                yield DailyWeatherSlice((1000 * year) + (weatherslice.times % 1000), weatherslice.weathers)
             else:
-                yield [year], allweather
+                yield DailyWeatherSlice([year], weatherslice.weathers)
             year += 1
 
     def get_years(self):
@@ -362,11 +350,11 @@ class RepeatedHistoricalWeatherBundle(DailyWeatherBundle):
     def yearbundles(self, maxyear=np.inf):
         year = self.pastyear_start
         for pastyear in self.pastyears:
-            yyyyddd, weather = self.reader.read_year(pastyear)
-            if yyyyddd[0] > 10000:
-                yield (1000 * year) + (yyyyddd % 1000), weather
+            weatherslice = self.reader.read_year(pastyear)
+            if weatherslice.times[0] > 10000:
+                yield DailyWeatherSlice((1000 * year) + (yyyyddd % 1000), weather)
             else:
-                yield [year], weather
+                yield YearlyWeatherSlice([year], weather)
             year += 1
 
     def get_years(self):
@@ -405,7 +393,7 @@ class MultivariateHistoricalWeatherBundle(DailyWeatherBundle):
 
                 weathers.append(weather)
 
-            yield masteryyyyddd, weathers
+            yield DailyWeatherSlice(masteryyyyddd, weathers)
 
     def get_years(self):
         return range(int(self.year_start), int(self.year_end) + 1)
@@ -415,14 +403,14 @@ class MultivariateHistoricalWeatherBundle(DailyWeatherBundle):
 
         regionsums = None
         sumcount = 0
-        for yyyyddd, weathers in self.yearbundles(maxyear):
-            print int(yyyyddd[0]) / 1000
+        for weatherslice in self.yearbundles(maxyear):
+            print weatherslice.get_years()[0]
 
             if regionsums is None:
-                regionsums = [np.mean(weather, axis=0) for weather in weathers]
+                regionsums = [np.mean(weather, axis=0) for weather in weatherslice.weathers]
             else:
-                for ii in range(len(weathers)):
-                    regionsums[ii] += np.mean(weathers[ii], axis=0)
+                for ii in range(len(weatherslice.weathers)):
+                    regionsums[ii] += np.mean(weatherslice.weathers[ii], axis=0)
 
             sumcount += 1
 
@@ -433,8 +421,8 @@ class MultivariateHistoricalWeatherBundle(DailyWeatherBundle):
 if __name__ == '__main__':
     template = "/shares/gcp/BCSD/grid2reg/cmip5/historical/CCSM4/{0}/{0}_day_aggregated_historical_r1i1p1_CCSM4_{1}.nc"
     weatherbundle = MultivariateHistoricalWeatherBundle(template, 1981, 2005, ['pr', 'tas'], 'historical', 'CCSM4')
-    yyyyddd, weathers = weatherbundle.yearbundles().next()
-    print len(yyyyddd), len(weathers), len(weathers[0]) # 365, 2, 365
+    weatherslice = weatherbundle.yearbundles().next()
+    print len(weatherslice.times), len(weatherslice.weathers), len(weatherslice.weathers[0]) # 365, 2, 365
 
     for region, weathers in weatherbundle.baseline_average(2005):
         print region, weathers
