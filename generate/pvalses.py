@@ -1,3 +1,14 @@
+"""
+Elsewhere in the code, pvals or qvals is an instance of either the
+ConstantPvals or OnDemandRandomPvals class from generate/pvalses.py
+(which I should have derive from a common superclass).  It's used to
+determine the set of p-values for a run, which is used for (1)
+determining parameters from the CSVV through collapse_bang, (2)
+determining the order of years for historical MC runs, (3) resolving
+the uncertainty forecasts for conflict and anything else that is
+stochastic.
+"""
+
 import os, yaml, time
 import numpy as np
 

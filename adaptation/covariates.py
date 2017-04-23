@@ -25,6 +25,9 @@ def rm_mean(rm):
     return rm[0] / rm[1]
 
 class Covariator(object):
+    """
+    Provides both baseline data and updated covariates in response to each year's values.
+    """
     def __init__(self, maxbaseline):
         self.startupdateyear = maxbaseline
 
@@ -333,7 +336,7 @@ class TranslateCovariator(Covariator):
             result[newname] = self.transforms[newname](covariates[oldname])
 
         return result
-                
+
     def get_baseline(self, region):
         baseline = self.covariator.get_baseline(region)
         return self.translate(baseline)
