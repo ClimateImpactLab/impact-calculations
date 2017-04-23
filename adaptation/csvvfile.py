@@ -46,6 +46,7 @@ def read_girdin(data, fp):
     return data
 
 def collapse_bang(data, seed):
+    """collapse_bang draws from the multivariate uncertainty in the parameters of a CSVV, and changes those values accordingly."""
     if seed == None:
         data['gammavcv'] = None
     else:
@@ -73,7 +74,7 @@ def binname_part(xxlimit):
         part += str(xxlimit) + 'C'
 
     return part
-    
+
 def subset(csvv, prednames):
     toinclude = map(lambda predname: predname in prednames, csvv['prednames'])
     toinclude = np.where(toinclude)[0]

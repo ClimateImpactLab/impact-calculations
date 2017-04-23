@@ -1,3 +1,7 @@
+"""
+Manages rcps and econ and climate models, and generate.effectset.simultaneous_application handles the regions and years.
+"""
+
 import sys, os, itertools, importlib, shutil, csv, time
 from collections import OrderedDict
 import loadmodels

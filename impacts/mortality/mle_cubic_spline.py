@@ -9,6 +9,14 @@ import minspline, csv, copy
 knots = [-12, -7, 0, 10, 18, 23, 28, 33]
 
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full'):
+    """Computes f(x_t | \theta(z_t)) - f(x_0 | \theta(z_t)), where f is
+    the adaptation-estimated cubic spline, x_t is the set of weather
+    predictors, and \theta(z_t) relates how the set of parameters that
+    determine the cubic spline depend on covariates z_t.  I currently
+    need to create two covariate instances, so that it doesn't get
+    updated twice in the calculation.
+    """
+
     covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 15, 2015, varindex=0), {'climtas': 'tas_sum'}, {'climtas': lambda x: x / 365}),
                                                 covariates.EconomicCovariator(economicmodel, 3, 2015)])
     covariator2 = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 15, 2015, varindex=0), {'climtas': 'tas_sum'}, {'climtas': lambda x: x / 365}),
