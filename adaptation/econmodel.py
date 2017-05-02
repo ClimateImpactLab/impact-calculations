@@ -1,6 +1,7 @@
 import csv
 import numpy as np
-from helpers import files, header
+from impactlab_tools.utils import files
+from helpers import header
 from datastore import population, popdensity, income
 
 def iterate_econmodels():

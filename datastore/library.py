@@ -1,6 +1,7 @@
 import csv
 import numpy as np
-from helpers import header, files
+from impactlab_tools.utils import files
+from helpers import header
 
 cached_data = {} # id => (data, version)
 

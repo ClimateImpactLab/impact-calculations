@@ -1,7 +1,7 @@
 import os, re, csv, traceback
 import numpy as np
 from netCDF4 import Dataset
-from helpers import files
+from impactlab_tools.utils import files
 import helpers.header as headre
 from climate import netcdfs
 
@@ -198,11 +198,14 @@ class MultivariatePastFutureWeatherBundle(DailyWeatherBundle):
     def is_historical(self):
         return False
 
-    def yearbundles(self, maxyear=np.inf):
+    def yearbundles(self, maxyear=np.inf, conversion=None):
+        """conversion applies to every weatherslice before combining; intended for WeatherSlice classes."""
+        
         for year in self.get_years():
             if year == maxyear:
                 break
 
+            allweather = None
             for pastreader, futurereader in self.pastfuturereaders:
                 try:
                     if year < self.futureyear1:
@@ -214,10 +217,18 @@ class MultivariatePastFutureWeatherBundle(DailyWeatherBundle):
                     traceback.print_exc()
                     return # No more!
 
+                if conversion is not None:
+                    weatherslice = conversion(weatherslice)
+                
                 if len(weatherslice.weathers.shape) == 2:
                     weatherslice.weathers = np.expand_dims(weatherslice.weathers, axis=2)
 
-            yield weatherslice
+                if allweather is None:
+                    allweather = weatherslice
+                else:
+                    allweather.weathers = np.concatenate((allweather.weathers, weatherslice.weathers), axis=2)
+
+            yield allweather
 
     def get_years(self):
         return np.unique(self.pastfuturereaders[0][0].get_years() + self.pastfuturereaders[0][1].get_years())
@@ -275,16 +286,22 @@ class MultivariateHistoricalWeatherBundle2(DailyWeatherBundle):
     def yearbundles(self, maxyear=np.inf):
         year = self.pastyear_start
         for pastyear in self.pastyears:
+            allweather = None
             for pastreader in self.pastreaders:
                 weatherslice = pastreader.read_year(pastyear)
 
                 if len(weatherslice.weathers.shape) == 2:
                     weatherslice.weathers = np.expand_dims(weatherslice.weathers, axis=2)
 
-            if weatherslice.times[0] > 10000:
-                yield DailyWeatherSlice((1000 * year) + (weatherslice.times % 1000), weatherslice.weathers)
+                if allweather is None:
+                    allweather = weatherslice
+                else:
+                    allweather.weathers = np.concatenate((allweather.weathers, weatherslice.weathers), axis=2)
+
+            if allweather.times[0] > 10000:
+                yield DailyWeatherSlice((1000 * year) + (allweather.times % 1000), allweather.weathers)
             else:
-                yield DailyWeatherSlice([year], weatherslice.weathers)
+                yield DailyWeatherSlice([year], allweather.weathers)
             year += 1
 
     def get_years(self):

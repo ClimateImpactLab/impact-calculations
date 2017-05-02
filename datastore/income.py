@@ -1,6 +1,7 @@
 import csv
 import numpy as np
-from helpers import header, files
+from impactlab_tools.utils import files
+from helpers import header
 import population
 
 gdppc_filepath = 'social/baselines/gdppc-merged.csv'
