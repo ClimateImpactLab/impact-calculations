@@ -3,18 +3,22 @@ from netCDF4 import Dataset
 from scipy.stats import norm
 from generate.weather import WeatherBundle, ReaderWeatherBundle
 from climate import forecasts, forecastreader
+from openest.generate.weatherslice import TriMonthlyWeatherSlice
 
 class ForecastBundle(ReaderWeatherBundle):
+    def __init__(self, reader, hierarchy='hierarchy.csv'):
+        super(ForecastBundle, self).__init__(reader, 'forecast', 'IRI', hierarchy=hierarchy)
+
     def get_months(self):
         return self.reader.get_times(), self.reader.time_units
 
     def monthbundles(self, maxyear=np.inf):
-        for month, values in self.reader.read_iterator():
-            yield month, values
+        for weatherslice in self.reader.read_iterator():
+            yield weatherslice
 
 class CombinedBundle(WeatherBundle):
     def __init__(self, bundles, hierarchy='hierarchy.csv'):
-        super(CombinedBundle, self).__init__(hierarchy)
+        super(CombinedBundle, self).__init__('forecast', 'IRI', hierarchy)
         self.bundles = bundles
         self.dependencies = set()
         for bundle in bundles:
@@ -34,11 +38,13 @@ class CombinedBundle(WeatherBundle):
         for month in months:
             results = []
             for iterator in iterators:
-                monthii, result = iterator.next()
-                assert month == monthii
-                results.append(result)
+                weatherslice = iterator.next()
+                assert month == weatherslice.times[0]
+                if len(weatherslice.weathers.shape) < 3:
+                    weatherslice.weathers = np.expand_dims(weatherslice.weathers, axis=2)
+                results.append(weatherslice.weathers)
 
-            yield month, np.array(results)
+            yield TriMonthlyWeatherSlice([month], np.concatenate(results, axis=2))
 
 if __name__ == '__main__':
     print np.mean(forecasts.readncdf_lastpred(forecasts.temp_path, "mean", 0))
