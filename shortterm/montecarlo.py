@@ -1,10 +1,11 @@
-import sys, os
-import standard, weather
-from climate import forecasts, forecastreader
+import sys, os, importlib
+import allmodels, weather
 from generate import pvalses
 
 do_only = None
 outputdir = sys.argv[1]
+
+mod = importlib.import_module('impacts.conflict.allmodels')
 
 for batch1 in range(100):
     for batch2 in range(100):
@@ -17,9 +18,7 @@ for batch1 in range(100):
 
         pvals = pvalses.OnDemandRandomPvals()
 
-        tbundle = weather.ForecastBundle(forecastreader.MonthlyZScoreForecastReader(forecasts.temp_zscore_path, forecasts.temp_normstddev_path, 'ztemp', pvals['weather']['ztemp']))
-        pbundle = weather.ForecastBundle(forecastreader.MonthlyStochasticForecastReader(forecasts.prcp_path, 'prcp', pvals['weather']['prcp']))
-        weatherbundle = weather.CombinedBundle([tbundle, pbundle])
+        weatherbundle = mod.get_bundle(pvals['weather'])
 
-        standard.produce(targetdir, weatherbundle, pvals, do_only=do_only)
+        mod.produce(targetdir, pvals)
         pvalses.make_pval_file(targetdir, pvals)

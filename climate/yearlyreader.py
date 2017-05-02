@@ -2,6 +2,7 @@ import os
 import numpy as np
 import netcdfs
 from reader import WeatherReader
+from openest.generate.weatherslice import YearlyWeatherSlice
 
 class YearlyWeatherReader(WeatherReader):
     """Exposes yearly weather data, with one file per GCM."""
@@ -27,18 +28,18 @@ class YearlyWeatherReader(WeatherReader):
         years = self.get_times()
 
         for ii in range(len(years)):
-            yield [years[ii]], np.expand_dims(values[ii, :], axis=0)
+            yield YearlyWeatherSlice([years[ii]], np.expand_dims(values[ii, :], axis=0))
 
     def read_iterator_to(self, maxyear):
-        for years, values in self.read_iterator():
-            if years[0] > maxyear:
+        for weatherslice in self.read_iterator():
+            if weatherslice.get_years()[0] > maxyear:
                 return
-            yield years, values
+            yield weatherslice
 
     def read_year(self, year):
-        for years, values in self.read_iterator():
-            if years[0] == year: # always a single value anyway
-                return years, values
+        for weatherslice in self.read_iterator():
+            if weatherslice.get_years()[0] == year: # always a single value anyway
+                return weatherslice
 
     def __str__(self):
         return "%s: %s" % (self.filepath, self.variable)
@@ -65,7 +66,7 @@ class YearlyCollectionWeatherReader(YearlyWeatherReader):
                 allvalues = np.concatenate((allvalues, values), axis=2)
 
         for ii in range(len(years)):
-            yield [years[ii]], np.expand_dims(values[ii, :, :], axis=0)
+            yield YearlyWeatherSlice([years[ii]], np.expand_dims(values[ii, :, :], axis=0))
 
 class YearlyArrayWeatherReader(YearlyWeatherReader):
     """Return several variables from a single array from a yearly file."""
@@ -84,7 +85,7 @@ class YearlyArrayWeatherReader(YearlyWeatherReader):
         yyrrvv = np.swapaxes(yyvvrr, 1, 2)
 
         for ii in range(len(years)):
-            yield [years[ii]], np.expand_dims(yyrrvv[ii, :, :], axis=0)
+            yield YearlyWeatherSlice([years[ii]], np.expand_dims(yyrrvv[ii, :, :], axis=0))
 
 class RandomYearlyAccess(object):
     def __init__(self, yearlyreader):
@@ -99,9 +100,9 @@ class RandomYearlyAccess(object):
             self.current_data = None
 
         while self.current_year is None or year > self.current_year:
-            years, values = self.current_iterator.next() # If run off the end, allow exception
-            self.current_year = years[0]
-            self.current_data = values
+            weatherslice = self.current_iterator.next() # If run off the end, allow exception
+            self.current_year = weatherslice.get_years()[0]
+            self.current_data = weatherslice.weathers
 
         assert year == self.current_year
         return self.current_data

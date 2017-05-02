@@ -93,3 +93,13 @@ def show_coefficient_mle(csvv, preds, year, coefname, covartrans):
 
     show_julia("%f * exp(%s)" % (beta, ' + '.join(terms)))
 
+def get_regionindex(region):
+    with open("/shares/gcp/regions/hierarchy.csv", 'r') as fp:
+        for line in fp:
+            if line[0] != '#':
+                break
+
+        reader = csv.reader(fp)
+        for row in reader:
+            if row[0] == region:
+                return int(row[6]) - 1
