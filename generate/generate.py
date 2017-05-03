@@ -112,7 +112,6 @@ assert config['mode'] in mode_iterators.keys()
 
 mod = importlib.import_module("impacts." + config['module'] + ".allmodels")
 
-get_model = effectset.get_model_server
 do_only = "interpolation"
 
 mod.preload()
@@ -149,11 +148,11 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
         effectset.make_pval_file(targetdir, pvals)
 
     if config['mode'] == 'writebins':
-        mod.produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=do_only, do_farmers=False, result_callback=binresult_callback, push_callback=binpush_callback, redocheck=config.get('redocheck', False), diagnosefile=os.path.join(targetdir, config['module'] + "-allcalcs.csv"))
+        mod.produce(targetdir, weatherbundle, economicmodel, pvals, do_only=do_only, do_farmers=False, result_callback=binresult_callback, push_callback=binpush_callback, redocheck=config.get('redocheck', False), diagnosefile=os.path.join(targetdir, config['module'] + "-allcalcs.csv"))
     elif config['mode'] == 'writevals':
-        mod.produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=do_only, do_farmers=False, result_callback=valresult_callback, push_callback=valpush_callback, redocheck=config.get('redocheck', False), diagnosefile=os.path.join(targetdir, config['module'] + "-allcalcs.csv"))
+        mod.produce(targetdir, weatherbundle, economicmodel, pvals, do_only=do_only, do_farmers=False, result_callback=valresult_callback, push_callback=valpush_callback, redocheck=config.get('redocheck', False), diagnosefile=os.path.join(targetdir, config['module'] + "-allcalcs.csv"))
     elif config['mode'] == 'profile':
-        mod.produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=do_only, profile=True, redocheck=config.get('redocheck', False))
+        mod.produce(targetdir, weatherbundle, economicmodel, pvals, do_only=do_only, profile=True, redocheck=config.get('redocheck', False))
         pr.disable()
 
         s = StringIO.StringIO()
@@ -165,7 +164,7 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
         exit()
 
     else:
-        mod.produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=do_only, do_farmers=True, redocheck=config.get('redocheck', False))
+        mod.produce(targetdir, weatherbundle, economicmodel, pvals, do_only=do_only, do_farmers=True, redocheck=config.get('redocheck', False))
 
     if config['mode'] != 'writebins' and config['mode'] != 'writevals':
         # Generate historical baseline
@@ -173,7 +172,7 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
         historybundle = weather.RepeatedHistoricalWeatherBundle.make_historical(weatherbundle, None if config['mode'] == 'median' else pvals['histclim'].get_seed())
         pvals.lock()
 
-        mod.produce(targetdir, historybundle, economicmodel, get_model, pvals, country_specific=False, suffix='-histclim', do_only=do_only)
+        mod.produce(targetdir, historybundle, economicmodel, pvals, country_specific=False, suffix='-histclim', do_only=do_only)
 
     effectset.make_pval_file(targetdir, pvals)
 
