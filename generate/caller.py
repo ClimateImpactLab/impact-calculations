@@ -56,9 +56,12 @@ def call_prepare(module, weatherbundle, economicmodel, pvals, getmodel=get_model
 
     raise ValueError("Could not find known prepare form.")
 
-def call_prepare_interp(filepath, module, weatherbundle, economicmodel, pvals, farmer='full'):
+def call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals, farmer='full'):
+    """Create the final calculation for a given model, according to the function that it exposes."""
+    
     mod = importlib.import_module(module)
-    csvv = csvvfile.read(filepath)
+    if isinstance(csvv, str):
+        csvv = csvvfile.read(csvv)
 
     if 'prepare_interp_raw' in dir(mod):
         calculation, dependencies, baseline_get_predictors = mod.prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, farmer)

@@ -3,6 +3,7 @@ Provides iterators of WeatherReaders (typically a historical and a
 future reader).
 """
 import os
+from reader import ConversionWeatherReader
 from dailyreader import DailyWeatherReader, YearlyBinnedWeatherReader
 from yearlyreader import YearlyWeatherReader, YearlyCollectionWeatherReader, YearlyArrayWeatherReader
 
@@ -140,3 +141,11 @@ def discover_yearly_corresponding(basedir, scenario, vardir, model, variable):
         if thismodel == model:
             filepath = os.path.join(basedir, scenario, vardir, filename)
             return YearlyWeatherReader(filepath, variable)
+
+def discover_convert(discover_iterator, time_conversion, weatherslice_conversion):
+    """Convert the readers coming out of a discover iterator."""
+    for scenario, model, pastreader, futurereader in discover_iterator:
+        newpastreader = ConversionWeatherReader(pastreader, time_conversion, weatherslice_conversion)
+        newfuturereader = ConversionWeatherReader(futurereader, time_conversion, weatherslice_conversion)
+        yield scenario, model, newpastreader, newfuturereader
+        
