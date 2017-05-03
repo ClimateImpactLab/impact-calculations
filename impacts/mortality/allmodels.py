@@ -3,8 +3,6 @@ from impactlab_tools.utils import files
 from generate import weather, server, effectset, caller, checks
 from climate.discover import discover_yearly_variable, discover_yearly_array
 
-do_interpbins = True
-
 def preload():
     from datastore import library
     library.get_data('mortality-deathrates', 'deaths/person')
@@ -12,11 +10,20 @@ def preload():
 rcp_only = 'rcp85'
 
 def get_bundle_iterator():
-    return weather.iterate_combined_bundles(discover_yearly_variable(files.sharedpath('climate/BCSD/aggregation/cmip5_new/IR_level'),
-                                                                     'cubic_spline_tas', 'tas_sum', rcp_only=rcp_only),
-                                            discover_yearly_array(files.sharedpath('climate/BCSD/aggregation/cmip5_new/IR_level'),
-                                                                  'cubic_spline_tas', 'spline_variables',
-                                                                  ['spline_variables-%d' % ii for ii in range(1, 7)], rcp_only=rcp_only))
+    def time_convert(times):
+        allyears = np.array(map(int, np.array(times) // 1000))
+        years, indexes = np.unique(allyears, return_index=True)
+        return allyears[np.sort(indexes)] # make sure in order
+
+    return weather.iterate_combined_bundles(discover_convert(discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'),
+                                                                               'tas', withyear=True, rcp_only='rcp85'),
+                                                             time_convert, YearlyWeatherSlice.convert),
+                                            discover_derived_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'),
+                                                                      'tas', 'power2', withyear=False, rcp_only=rcp_only),
+                                            discover_derived_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'),
+                                                                      'tas', 'power3', withyear=False, rcp_only=rcp_only),
+                                            discover_derived_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'),
+                                                                      'tas', 'power4', withyear=False, rcp_only=rcp_only))
 
 def check_doit(redocheck, targetdir, basename, suffix):
     if not redocheck:
@@ -48,38 +55,45 @@ def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=N
         if push_callback is None:
             push_callback = lambda reg, yr, app, predget, mod: None
 
-        #for filepath in glob.glob(files.sharedpath("social/parameters/mortality/mortality_splines_03162017/*2factors*.csvv")):
-        for filepath in glob.glob(files.sharedpath("social/parameters/mortality/MLE_splines_03212017/*.csvv")):
+        for filepath in glob.glob(files.sharedpath("social/parameters/mortality/Diagnostics_Apr17/*.csvv")):
             basename = os.path.basename(filepath)[:-5]
             print basename
 
-            # Full Adaptation
-            if check_doit(redocheck, targetdir, basename, suffix):
-                print "Smart Farmer"
-                caller.callinfo = dict(splineminpath=os.path.join(targetdir, basename + '-splinemins.csv'))
-                calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.mortality.mle_cubic_spline', weatherbundle, economicmodel, pvals[basename])
+            # Split into age groups and lock in q-draw
+            csvv = csvvfile.read(filepath)
+            csvvfile.collapse_bang(csvv)
 
-                if profile:
-                    effectset.small_test(weatherbundle, calculation, baseline_get_predictors, num_regions=10)
-                    return
-                else:
-                    effectset.write_ncdf(targetdir, basename, weatherbundle, calculation, None, "Mortality impacts, with interpolation and adaptation through interpolation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, basename), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, basename), do_interpbins=do_interpbins, suffix=suffix, diagnosefile=diagnosefile.replace('.csv', '-' + basename + '.csv') if diagnosefile else False)
+            agegroups = ['lt5', '5to64', 'gt64']
+            for ageii in range(len(agegroups)):
+                subcsvv = csvvfile.subset(csvv, 12 * ageii + np.arange(12))
+                subbasename = basename + '-' + agegroups[ageii]
+            
+                # Full Adaptation
+                if check_doit(redocheck, targetdir, subbasename, suffix):
+                    print "Smart Farmer"
+                    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(subcsvv, 'impacts.mortality.ols_polynomial', weatherbundle, economicmodel, pvals[subbasename])
 
-            if do_farmers and not weatherbundle.is_historical():
-                # Lock in the values
-                pvals[basename].lock()
+                    if profile:
+                        effectset.small_test(weatherbundle, calculation, baseline_get_predictors, num_regions=10)
+                        return
+                    else:
+                        effectset.write_ncdf(targetdir, subbasename, weatherbundle, calculation, None, "Mortality impacts, with interpolation and adaptation through interpolation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, subbasename), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, subbasename), suffix=suffix, diagnosefile=diagnosefile.replace('.csv', '-' + subbasename + '.csv') if diagnosefile else False)
 
-                # Comatose Farmer
-                if check_doit(redocheck, targetdir, basename + "-comatose", suffix):
-                    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.mortality.mle_cubic_spline', weatherbundle, economicmodel, pvals[basename], farmer='coma')
+                if do_farmers and not weatherbundle.is_historical():
+                    # Lock in the values
+                    pvals[subbasename].lock()
 
-                    effectset.write_ncdf(targetdir, basename + "-comatose", weatherbundle, calculation, None, "Mortality impacts, with interpolation but no adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, basename + '-coma'), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, basename + '-coma'), suffix=suffix)
+                    # Comatose Farmer
+                    if check_doit(redocheck, targetdir, subbasename + "-comatrump", suffix):
+                        calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(subcsvv, 'impacts.mortality.ols_polynomial', weatherbundle, economicmodel, pvals[subbasename], farmer='coma')
 
-                # Dumb Farmer
-                if check_doit(redocheck, targetdir, basename + "-dumb", suffix):
-                    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.mortality.mle_cubic_spline', weatherbundle, economicmodel, pvals[basename], farmer='dumb')
+                        effectset.write_ncdf(targetdir, subbasename + "-comatrump", weatherbundle, calculation, None, "Mortality impacts, with interpolation but no adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, subbasename + '-comatrump'), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, subbasename + '-comatrump'), suffix=suffix)
 
-                    effectset.write_ncdf(targetdir, basename + "-dumb", weatherbundle, calculation, None, "Mortality impacts, with interpolation and only environmental adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, basename + '-dumb'), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, basename + '-dumb'), suffix=suffix)
+                    # Dumb Farmer
+                    if check_doit(redocheck, targetdir, subbasename + "-dumgop", suffix):
+                        calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(subcsvv, 'impacts.mortality.ols_polynomial', weatherbundle, economicmodel, pvals[subbasename], farmer='dumb')
+
+                        effectset.write_ncdf(targetdir, subbasename + "-dumgop", weatherbundle, calculation, None, "Mortality impacts, with interpolation and only environmental adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, subbasename + '-dumgop'), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, subbasename + '-dumgop'), suffix=suffix)
 
     if do_only is None or do_only == 'country':
         # Other individual estimates

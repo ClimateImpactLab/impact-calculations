@@ -198,8 +198,8 @@ class MultivariatePastFutureWeatherBundle(DailyWeatherBundle):
     def is_historical(self):
         return False
 
-    def yearbundles(self, maxyear=np.inf, conversion=None):
-        """conversion applies to every weatherslice before combining; intended for WeatherSlice classes."""
+    def yearbundles(self, maxyear=np.inf):
+        """Yields weatherslices for each year up to (but not including) `maxyear`"""
         
         for year in self.get_years():
             if year == maxyear:
@@ -217,9 +217,6 @@ class MultivariatePastFutureWeatherBundle(DailyWeatherBundle):
                     traceback.print_exc()
                     return # No more!
 
-                if conversion is not None:
-                    weatherslice = conversion(weatherslice)
-                
                 if len(weatherslice.weathers.shape) == 2:
                     weatherslice.weathers = np.expand_dims(weatherslice.weathers, axis=2)
 

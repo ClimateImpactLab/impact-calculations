@@ -68,3 +68,34 @@ class YearlySplitWeatherReader(WeatherReader):
 
     def read_year(self, year):
         raise NotImplementedError
+
+class ConversionWeatherReader(WeatherReader):
+    """Wraps another weather reader, applying conversion to its weatherslices."""
+
+    def __init__(self, reader, time_conversion, weatherslice_conversion):
+        super(ConversionWeatherReader, self).__init__(reader.version, reader.units, reader.time_units)
+        self.reader = reader
+        self.time_conversion = time_conversion
+        self.weatherslice_conversion = weatherslice_conversion
+
+    def get_times(self):
+        """Returns a list of all times available."""
+        return self.time_conversion(self.reader.get_times())
+
+    def get_years(self):
+        return list(self.get_times()) # for now, assume converted to years
+        
+    def get_dimension(self):
+        """Returns a list of length K, describing the number of elements
+        describing the weather in each region and time period.
+        """
+        return self.reader.get_dimension()
+
+    def read_iterator(self):
+        """Yields a WeatherSlice in whatever chunks are convenient.
+        """
+        for weatherslice in self.read_iterator():
+            yield self.weatherslice_conversion(weatherslice)
+
+    def read_year(self, year):
+        return self.weatherslice_conversion(self.reader.read_year(year))
