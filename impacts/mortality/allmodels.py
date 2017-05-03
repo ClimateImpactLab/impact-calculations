@@ -42,12 +42,8 @@ def check_doit(redocheck, targetdir, basename, suffix):
 
     return False
 
-def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=None, country_specific=True, result_callback=None, push_callback=None, suffix='', do_farmers=False, do_65plus=True, profile=False, redocheck=None, diagnosefile=False):
+def produce(targetdir, weatherbundle, economicmodel, pvals, do_only=None, country_specific=True, result_callback=None, push_callback=None, suffix='', do_farmers=False, do_65plus=True, profile=False, redocheck=None, diagnosefile=False):
     print do_only
-    if do_only is None or do_only == 'acp':
-        # ACP response
-        calculation, dependencies = caller.call_prepare('impacts.mortality.ACRA_mortality_temperature', weatherbundle, economicmodel, pvals['ACRA_mortality_temperature'])
-        effectset.write_ncdf(targetdir, "ACPMortality", weatherbundle, calculation, None, "Mortality using the ACP response function.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, suffix=suffix)
 
     if do_only is None or do_only == 'interpolation':
         if result_callback is None:
@@ -95,6 +91,15 @@ def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=N
 
                         effectset.write_ncdf(targetdir, subbasename + "-dumgop", weatherbundle, calculation, None, "Mortality impacts, with interpolation and only environmental adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, subbasename + '-dumgop'), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, subbasename + '-dumgop'), suffix=suffix)
 
+    produce_external(targetdir, weatherbundle, exconomicmodel, pvals, do_only=do_only, country_specific=country_specific, suffix=suffix)
+                        
+def produce_external(targetdir, weatherbundle, exconomicmodel, pvals, do_only=None, country_specific=True, suffix=''):
+    if do_only is None or do_only == 'acp':
+        # ACP response
+        calculation, dependencies = caller.call_prepare('impacts.mortality.external.ACRA_mortality_temperature', weatherbundle, economicmodel, pvals['ACRA_mortality_temperature'])
+        effectset.write_ncdf(targetdir, "ACPMortality", weatherbundle, calculation, None, "Mortality using the ACP response function.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, suffix=suffix)
+
+                        
     if do_only is None or do_only == 'country':
         # Other individual estimates
         for gcpid in ['DM2009_USA_national_mortality_all', 'BCDGS2013_USA_national_mortality_all', 'BCDGS2013_USA_national_mortality_65plus', 'GHA2003_BRA_national_mortality_all', 'GHA2003_BRA_national_mortality_65plus', 'B2012_USA_national_mortality_all', 'VSMPMCL2004_FRA_national_mortality_all', 'InternalAnalysis_BRA_national_mortality_all', 'InternalAnalysis_BRA_national_mortality_65plus', 'InternalAnalysis_MEX_national_mortality_all', 'InternalAnalysis_MEX_national_mortality_65plus', 'InternalAnalysis_CHN_national_mortality_all', 'InternalAnalysis_FRA_national_mortality_all', 'InternalAnalysis_FRA_national_mortality_65plus', 'InternalAnalysis_IND_national_mortality_all', 'InternalAnalysis_USA_national_mortality_all', 'InternalAnalysis_USA_national_mortality_65plus']:
@@ -123,5 +128,5 @@ def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=N
                     assert False, "Unknown filter region."
 
             # Removed DG2011_USA_national_mortality_65plus: Amir considers unreliable
-            calculation, dependencies = caller.call_prepare('impacts.mortality.' + gcpid, weatherbundle, economicmodel, pvals[gcpid])
+            calculation, dependencies = caller.call_prepare('impacts.mortality.external.' + gcpid, weatherbundle, economicmodel, pvals[gcpid])
             effectset.write_ncdf(targetdir, gcpid, weatherbundle, calculation, None, "See https://bitbucket.org/ClimateImpactLab/socioeconomics/wiki/HealthModels#rst-header-" + gcpid.replace('_', '-').lower() + " for more information.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, filter_region=filter_region, subset=subset, suffix=suffix)
