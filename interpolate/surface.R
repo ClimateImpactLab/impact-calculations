@@ -8,6 +8,312 @@ require(texreg)
 stan.model <- "
 data {
     int<lower=1> N; // number of study regions
+    int<lower=1> K; // number of coefficients
+    int<lower=1> L; // number of predictors, including intercept
+
+    vector[K] beta[N]; // estimated effects
+    cov_matrix[K] Sigma[N]; // VCV across betas
+    //real<lower=0> gammaprior;
+
+    matrix[N, L] x[K]; // predictors across regions
+}
+transformed data {
+    // Optimization: only compute decomposition once
+    matrix[K, K] CholL[N];
+    for (ii in 1:N)
+      CholL[ii] = cholesky_decompose(Sigma[ii]);
+}
+parameters {
+    vector[L] gamma[K]; // surface parameters
+    real<lower=0> tau[K]; // variance in hyper equation
+    vector[K] delta[N]; // transformed true effects
+}
+transformed parameters {
+    vector[K] theta[N]; // true effects
+    vector[N] transtheta[K]; // transpose of theta
+    for (ii in 1:N) {
+      theta[ii] = beta[ii] + CholL[ii] * delta[ii];
+      for (kk in 1:K)
+        transtheta[kk][ii] = theta[ii][kk];
+    }
+}
+model {
+    // priors
+    //to_vector(gamma) ~ normal(0, gammaprior);
+    tau ~ cauchy(0, .25);
+
+    // observed betas drawn from true parameters
+    for (ii in 1:N) {
+      delta[ii] ~ normal(0, 1);
+      // implies: beta[ii] ~ multi_normal_cholesky(theta[ii], CholL[ii]);
+    }
+
+    // true parameters produced by linear expression
+    for (kk in 1:K)
+      target += normal_lpdf(transtheta[kk] | x[kk] * gamma[kk], tau[kk]);
+}"
+
+stan.model.8 <- "
+data {
+    int<lower=1> N; // number of study regions
+    int<lower=1> K; // number of coefficients
+    int<lower=1> L; // number of predictors, including intercept
+
+    vector[K] beta[N]; // estimated effects
+    cov_matrix[K] Sigma[N]; // VCV across betas
+    real<lower=0> tauscale[K];
+
+    matrix[N, L] x[K]; // predictors across regions
+}
+transformed data {
+    // Optimization: only compute decomposition once
+    matrix[K, K] CholL[N];
+    for (ii in 1:N)
+      CholL[ii] = cholesky_decompose(Sigma[ii]);
+}
+parameters {
+    vector[L] gamma[K]; // surface parameters
+    real<lower=0> tau; // variance in hyper equation
+    vector[K] delta[N]; // transformed true effects
+}
+transformed parameters {
+    vector[K] theta[N]; // true effects
+    vector[N] transtheta[K]; // transpose of theta
+    for (ii in 1:N) {
+      theta[ii] = beta[ii] + CholL[ii] * delta[ii];
+      for (kk in 1:K)
+        transtheta[kk][ii] = theta[ii][kk];
+    }
+}
+model {
+    // observed betas drawn from true parameters
+    for (ii in 1:N) {
+       delta[ii] ~ normal(0, 1);
+       // implies: beta[ii] ~ multi_normal_cholesky(theta[ii], CholL[ii]);
+    }
+
+    // true parameters produced by linear expression
+    for (kk in 1:K)
+      target += normal_lpdf(transtheta[kk] | x[kk] * gamma[kk], tau * tauscale[kk]);
+}"
+
+stan.model.7 <- "
+data {
+    int<lower=1> N; // number of study regions
+    int<lower=1> K; // number of coefficients
+    int<lower=1> L; // number of predictors, including intercept
+
+    vector[K] beta[N]; // estimated effects
+    cov_matrix[K] Sigma[N]; // VCV across betas
+
+    matrix[N, L] x[K]; // predictors across regions
+}
+transformed data {
+    // Optimization: only compute decomposition once
+    matrix[K, K] CholL[N];
+    for (ii in 1:N)
+      CholL[ii] = cholesky_decompose(Sigma[ii]);
+}
+parameters {
+    vector[L] gamma[K]; // surface parameters
+    real<lower=0> tau; // variance in hyper equation
+    vector[K] delta[N]; // transformed true effects
+}
+transformed parameters {
+    vector[K] theta[N]; // true effects
+    vector[N] transtheta[K]; // transpose of theta
+    for (ii in 1:N) {
+      theta[ii] = beta[ii] + CholL[ii] * delta[ii];
+      for (kk in 1:K)
+        transtheta[kk][ii] = theta[ii][kk];
+    }
+}
+model {
+    // observed betas drawn from true parameters
+    for (ii in 1:N) {
+       delta[ii] ~ normal(0, 1);
+       // implies: beta[ii] ~ multi_normal_cholesky(theta[ii], CholL[ii]);
+    }
+
+    // true parameters produced by linear expression
+    for (kk in 1:K)
+      target += normal_lpdf(transtheta[kk] | x[kk] * gamma[kk], tau);
+}"
+
+stan.model.6 <- "
+data {
+    int<lower=1> N; // number of study regions
+    int<lower=1> K; // number of coefficients
+
+    vector[K] gamma0; // pooled surface parameters
+    vector[K] beta[N]; // estimated effects
+    cov_matrix[K] Sigma[N]; // VCV across betas
+}
+transformed data {
+    // Optimization: only compute decomposition once
+    matrix[K, K] CholL[N];
+    for (ii in 1:N)
+      CholL[ii] = cholesky_decompose(Sigma[ii]);
+}
+parameters {
+    vector[K] dgamma; // surface parameters
+    real<lower=0> tau; // variance in hyper equation
+    vector[K] delta[N]; // transformed true effects
+}
+transformed parameters {
+    vector[K] theta[N]; // true effects
+    for (ii in 1:N)
+      theta[ii] = beta[ii] + CholL[ii] * delta[ii];
+}
+model {
+    // observed betas drawn from true parameters
+    for (ii in 1:N) {
+       delta[ii] ~ normal(0, 1);
+       // implies: beta[ii] ~ multi_normal_cholesky(theta[ii], CholL[ii]);
+       target += normal_lpdf(theta[ii] | gamma0 + dgamma, tau);
+    }
+}"
+
+stan.model.5 <- "
+data {
+    int<lower=1> N; // number of study regions
+    int<lower=1> K; // number of coefficients
+
+    vector[K] beta[N]; // estimated effects
+    cov_matrix[K] Sigma[N]; // VCV across betas
+}
+transformed data {
+    // Optimization: only compute decomposition once
+    matrix[K, K] CholL[N];
+    for (ii in 1:N)
+      CholL[ii] = cholesky_decompose(Sigma[ii]);
+}
+parameters {
+    vector[K] gamma; // surface parameters
+    real<lower=0> tau; // variance in hyper equation
+    vector[K] delta[N]; // transformed true effects
+}
+transformed parameters {
+    vector[K] theta[N]; // true effects
+    for (ii in 1:N)
+      theta[ii] = beta[ii] + CholL[ii] * delta[ii];
+}
+model {
+    // observed betas drawn from true parameters
+    for (ii in 1:N) {
+       delta[ii] ~ normal(0, 1);
+       // implies: beta[ii] ~ multi_normal_cholesky(theta[ii], CholL[ii]);
+       target += normal_lpdf(theta[ii] | gamma, tau);
+    }
+}"
+
+stan.model.4 <- "
+data {
+    int<lower=1> N; // number of study regions
+    int<lower=1> K; // number of coefficients
+
+    vector[K] beta[N]; // estimated effects
+    cov_matrix[K] Sigma[N]; // VCV across betas
+}
+transformed data {
+    // Optimization: only compute decomposition once
+    matrix[K, K] CholL[N];
+    for (ii in 1:N)
+      CholL[ii] = cholesky_decompose(Sigma[ii]);
+}
+parameters {
+    vector[K] gamma; // surface parameters
+    real<lower=0> tau; // variance in hyper equation
+    vector[K] theta[N]; // z-scores of true effects
+}
+model {
+    // observed betas drawn from true parameters
+    for (ii in 1:N) {
+       beta[ii] ~ multi_normal_cholesky(theta[ii], CholL[ii]);
+       theta[ii] ~ normal(gamma, tau);
+    }
+}"
+
+stan.model.3 <- "
+data {
+    int<lower=1> N; // number of study regions
+    int<lower=1> K; // number of coefficients
+
+    vector[K] beta[N]; // estimated effects
+    cov_matrix[K] Sigma[N]; // VCV across betas
+}
+transformed data {
+    // Optimization: only compute decomposition once
+    matrix[K, K] CholL[N];
+    for (ii in 1:N)
+      CholL[ii] = cholesky_decompose(Sigma[ii]);
+}
+parameters {
+    real gamma[K]; // surface parameters
+    real<lower=0> tau[K]; // variance in hyper equation
+    vector[K] theta[N]; // z-scores of true effects
+}
+transformed parameters {
+    vector[N] transtheta[K]; // transpose of theta
+    for (ii in 1:N) {
+      for (kk in 1:K)
+        transtheta[kk][ii] = theta[ii][kk];
+    }
+}
+model {
+    // observed betas drawn from true parameters
+    for (ii in 1:N)
+       beta[ii] ~ multi_normal_cholesky(theta[ii], CholL[ii]);
+
+    // true parameters produced by linear expression
+    for (kk in 1:K) {
+      target += normal_lpdf(transtheta[kk] | gamma[kk], tau[kk]);
+    }
+}"
+
+stan.model.2 <- "
+data {
+    int<lower=1> N; // number of study regions
+    int<lower=1> K; // number of coefficients
+    int<lower=1> L; // number of predictors, including intercept
+
+    vector[K] beta[N]; // estimated effects
+    cov_matrix[K] Sigma[N]; // VCV across betas
+
+    matrix[N, L] x[K]; // predictors across regions
+}
+transformed data {
+    // Optimization: only compute decomposition once
+    matrix[K, K] CholL[N];
+    for (ii in 1:N)
+      CholL[ii] = cholesky_decompose(Sigma[ii]);
+}
+parameters {
+    vector[L] gamma[K]; // surface parameters
+    real<lower=0> tau[K]; // variance in hyper equation
+    vector[K] theta[N]; // z-scores of true effects
+}
+transformed parameters {
+    vector[N] transtheta[K]; // transpose of theta
+    for (ii in 1:N) {
+      for (kk in 1:K)
+        transtheta[kk][ii] = theta[ii][kk];
+    }
+}
+model {
+    // observed betas drawn from true parameters
+    for (ii in 1:N)
+       beta[ii] ~ multi_normal_cholesky(theta[ii], CholL[ii]);
+
+    // true parameters produced by linear expression
+    for (kk in 1:K) {
+      target += normal_lpdf(transtheta[kk] | x[kk] * gamma[kk], tau[kk]);
+    }
+}"
+
+stan.model.binsmooth <- "
+data {
+    int<lower=1> N; // number of study regions
     int<lower=1> K; // number of coefficients (not including dropped)
     int<lower=1> L; // number of predictors, including intercept
 
@@ -23,7 +329,7 @@ transformed data {
     // Optimization: only compute decomposition once
     matrix[K, K] CholL[N];
     for (ii in 1:N)
-      CholL[ii] <- cholesky_decompose(Sigma[ii]);
+      CholL[ii] = cholesky_decompose(Sigma[ii]);
 }
 parameters {
     vector[L] gamma[K]; // surface parameters
@@ -34,7 +340,7 @@ transformed parameters {
     vector[N] transtheta[K]; // transpose of theta
     for (ii in 1:N) {
       for (kk in 1:K)
-        transtheta[kk][ii] <- theta[ii][kk];
+        transtheta[kk][ii] = theta[ii][kk];
     }
 }
 model {
@@ -85,7 +391,7 @@ transformed data {
     // Optimization: only compute decomposition once
     matrix[K, K] CholL[N];
     for (ii in 1:N)
-      CholL[ii] <- cholesky_decompose(Sigma[ii]);
+      CholL[ii] = cholesky_decompose(Sigma[ii]);
 }
 parameters {
     vector[M] fes[K];
@@ -98,10 +404,10 @@ transformed parameters {
     vector[N] transtheta[K]; // transpose of theta
     vector[N] allfes[K]; // including the right FEs for each obs.
     for (ii in 1:N) {
-      theta[ii] <- beta[ii] + CholL[ii] * theta_z[ii];
+      theta[ii] = beta[ii] + CholL[ii] * theta_z[ii];
       for (kk in 1:K) {
-        transtheta[kk][ii] <- theta[ii][kk];
-        allfes[kk][ii] <- fes[kk][supers[ii]];
+        transtheta[kk][ii] = theta[ii][kk];
+        allfes[kk][ii] = fes[kk][supers[ii]];
       }
     }
 }
@@ -196,9 +502,21 @@ setMethod("prepdata",
               for (jj in 1:this@K)
                   allpreds2[jj, , ] <- as.matrix(this@allpredses[[jj]])
 
-              allvcv2 <- array(0, c(N, this@K, this@K))
+              ## Calculate the average variance
+              allvar <- array(0, c(N, surface@K))
               for (ii in 1:N)
+                  allvar[ii, ] <- diag(as.matrix(surface@allvcv[[ii]]))
+              allvar[allvar == 0] <- Inf
+              mastervar <- N / colSums(1 / allvar)
+
+              allvcv2 <- array(0, c(N, this@K, this@K))
+              for (ii in 1:N) {
                   allvcv2[ii, , ] <- as.matrix(this@allvcv[[ii]])
+                  if (any(diag(allvcv2[ii,,]) == 0))
+                      for (kk in 1:this@K)
+                          if (allvcv2[ii,kk,kk] == 0)
+                              allvcv2[ii,kk,kk] <- mastervar[kk] # Best estimate
+              }
 
               for (ii in 1:N)
                   for (jj in 1:this@K)
@@ -207,7 +525,7 @@ setMethod("prepdata",
 
               this@allbetas[is.na(this@allbetas)] <- 0
 
-              list(N=N, K=this@K, L=this@L, beta=this@allbetas, Sigma=allvcv2, x=allpreds2, smooth=smooth, dropbin=dropbin, maxsigma=max(colSds(as.matrix(this@allbetas))), maxgamma=max(colMeans(abs(this@allbetas))))
+              list(N=N, K=this@K, L=this@L, tauscale=mastervar, beta=this@allbetas, Sigma=allvcv2, x=allpreds2, smooth=smooth, dropbin=dropbin, maxsigma=max(colSds(as.matrix(this@allbetas))), maxgamma=max(colMeans(abs(this@allbetas))))
           })
 
 ## Estimate the system using Stan
@@ -226,10 +544,10 @@ setMethod("estimate.bayes",
 
               if (is.null(fit)) {
                   fit <- stan(model_code=stan.model.here, data=stan.data,
-                              iter = 1000, chains = chains)
+                              iter=1000, chains=chains, control=list(max_treedepth=15))
               } else
                   fit <- stan(fit=fit, data=stan.data,
-                              iter = 1000, chains = chains)
+                              iter=1000, chains=chains, control=list(max_treedepth=15))
 
               fit
           })
