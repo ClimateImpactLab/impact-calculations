@@ -59,11 +59,12 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, do_only=None, countr
             csvv = csvvfile.read(filepath)
             csvvfile.collapse_bang(csvv)
 
-            agegroups = ['lt5', '5to64', 'gt64']
+            agegroups = ['kid', 'person', 'geezer']
             for ageii in range(len(agegroups)):
                 subcsvv = csvvfile.subset(csvv, 12 * ageii + np.arange(12))
                 subbasename = basename + '-' + agegroups[ageii]
-            
+                caller.callinfo = dict(polyminpath=os.path.join(targetdir, subbasename + '-polymins.csv'))
+                
                 # Full Adaptation
                 if check_doit(redocheck, targetdir, subbasename, suffix):
                     print "Smart Farmer"
