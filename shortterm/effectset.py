@@ -15,21 +15,21 @@ def simultaneous_application(qval, weatherbundle, calculation, get_apply_args, r
         applications.append(calculation.apply(region, *applyargs))
 
     print "Processing months..."
-    for month, values in weatherbundle.monthbundles(qval):
-        if values.shape[-1] < len(applications):
-            print "WARNING: fewer regions in weather than expected; dropping from end."
-            applications = applications[:values.shape[-1]]
+    for weatherslice in weatherbundle.monthbundles(qval):
+        if weatherslice.weathers.shape[1] < len(applications):
+            print "WARNING: fewer regions in weather than expected (%d < %d); dropping from end." % (weatherslice.weathers.shape[1], len(applications))
+            applications = applications[:weatherslice.weathers.shape[1]]
 
-        print "Push", month
+        print "Push", weatherslice.times[0]
 
         for ii in range(len(applications)):
             jj = ii if regions == weatherbundle.regions else weatherbundle.regions.index(regions[ii])
 
-            if len(values.shape) == 1:
-                valuesii = values[jj]
+            if len(weatherslice.weathers.shape) == 1:
+                valuesii = weatherslice.weathers[jj]
             else:
-                valuesii = values[:, jj]
-            for monthresult in applications[ii].push([month], [valuesii]):
+                valuesii = weatherslice.weathers[:, jj]
+            for monthresult in applications[ii].push(weatherslice.times, [valuesii]):
                 yield (ii, monthresult[0], monthresult[1:])
 
     for ii in range(len(applications)):

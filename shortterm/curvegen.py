@@ -4,47 +4,29 @@ from openest.generate.curvegen import CurveGenerator
 from openest.models.curve import LinearCurve, PolynomialCurve
 
 class CSVVCurveGenerator(CurveGenerator):
-    def __init__(self, indepunits, depenunits, seed, gamma, gammavcv, residvcv, callback=None):
+    def __init__(self, indepunits, depenunits, covarnames, gamma, residvcv, callback=None):
         super(CSVVCurveGenerator, self).__init__(indepunits, depenunits)
 
-        if seed is None:
-            self.gamma = gamma
-        else:
-            np.random.seed(seed)
-            self.gamma = multivariate_normal.rvs(gamma, gammavcv)
-        self.residvcv = residvcv
+        self.covarnames = covarnames
+        assert len(self.covarnames) == len(gamma), "%d <> %d" % (len(covarnames), len(self.gamma))
 
+        self.gamma = gamma
+        self.residvcv = residvcv
         self.callback = callback
 
 class LinearCurveGenerator(CSVVCurveGenerator):
-    def get_curve(self, region, *predictors):
-        assert len(predictors) == len(self.gamma) - 1, "%d <> %d" % (len(predictors), len(self.gamma) - 1)
-
-        yy = self.gamma[0] + np.sum(self.gamma[1:] * np.array(predictors))
+    def get_curve(self, region, predictors):
+        yy = 0
+        for ll in range(len(self.gamma)):
+            if self.covarnames[ll] == '1':
+                yy += self.gamma[ll]
+            else:
+                yy += self.gamma[ll] * predictors[self.covarnames[ll]]
 
         if self.callback is not None:
             self.callback(region, predictors, yy)
 
         return LinearCurve(yy)
-
-class PolynomialCurveGenerator(CSVVCurveGenerator):
-    def __init__(self, order, indepunits, depenunits, seed, gamma, gammavcv, residvcv, callback=None):
-        super(PolynomialCurveGenerator, self).__init__(indepunits, depenunits, seed, gamma, gammavcv, residvcv)
-        self.order = order
-        self.callback = callback
-
-    def get_curve(self, region, *predictors):
-        assert len(predictors) * self.order == len(self.gamma) - self.order, "%d <> %d x %d" % (len(predictors), len(self.gamma), self.order)
-
-        ccs = []
-        for oo in range(self.order):
-            mygamma = self.gamma[oo * (len(predictors) + 1):(oo + 1) * (len(predictors) + 1)]
-            ccs.append(mygamma[0]  + np.sum(mygamma[1:] * np.array(predictors)))
-
-        if self.callback is not None:
-            self.callback(region, predictors, ccs)
-
-        return PolynomialCurve([-np.inf, np.inf], ccs)
 
 class WeatherPredictorator(object):
     def __init__(self, weatherbundle, economicmodel, numtempyears, numeconyears, maxbaseline, polyorder=1):
@@ -63,7 +45,7 @@ class WeatherPredictorator(object):
 
     def get_baseline(self, region):
         econpreds = self.econ_predictors.get(region, self.econ_predictors['mean'])
-        return self.weather_predictors[region], np.log(econpreds['gdppcs']), np.log(econpreds['popop'])
+        return {'climtas': self.weather_predictors[region], 'loggdppc': np.log(econpreds['gdppcs']), 'logpopop': np.log(econpreds['popop'])}
 
 if __name__ == '__main__':
     curvegen = LinearCurveGenerator('X', 'Y', 1234, [1, 1], [[.01, 0], [0, .01]], [0])
