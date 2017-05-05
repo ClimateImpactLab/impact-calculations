@@ -329,7 +329,7 @@ class CombinedCovariator(Covariator):
         return result
 
 class TranslateCovariator(Covariator):
-    def __init__(self, covariator, renames, transforms):
+    def __init__(self, covariator, renames, transforms={}):
         super(TranslateCovariator, self).__init__(covariator.startupdateyear)
         self.covariator = covariator
         self.renames = renames
@@ -339,7 +339,7 @@ class TranslateCovariator(Covariator):
         result = {}
         for newname in self.renames:
             oldname = self.renames[newname]
-            result[newname] = self.transforms[newname](covariates[oldname])
+            result[newname] = self.transforms.get(newname, lambda x: x)(covariates[oldname])
 
         return result
 

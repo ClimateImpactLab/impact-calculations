@@ -28,12 +28,8 @@ def simultaneous_application(weatherbundle, calculation, get_apply_args, regions
         for ii in range(len(applications)):
             jj = ii if regions == weatherbundle.regions else weatherbundle.regions.index(regions[ii])
 
-            if len(weatherslice.weathers.shape) == 3:
-                for yearresult in applications[ii].push(weatherslice.times, weatherslice.weathers[:, jj, :]):
-                    yield (ii, yearresult[0], yearresult[1:])
-            else:
-                for yearresult in applications[ii].push(weatherslice.times, weatherslice.weathers[:, jj]):
-                    yield (ii, yearresult[0], yearresult[1:])
+            for yearresult in applications[ii].push(weatherslice.select_region(ii)):
+                yield (ii, yearresult[0], yearresult[1:])
 
             if push_callback is not None:
                 push_callback(regions[ii], weatherslice.times[0], applications[ii])
