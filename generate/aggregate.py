@@ -82,6 +82,9 @@ def make_aggregates(targetdir, filename, get_population, dimensions_template=Non
         os.remove(os.path.join(targetdir, filename[:-4] + suffix + '.nc4')) # Needs to be deleted
     writer = Dataset(os.path.join(targetdir, filename[:-4] + suffix + '.nc4'), 'w', format='NETCDF4')
 
+    print "HERE"
+    print dimreader.variables['regions'][:10]
+    print dimreader.variables['regions'][:][:10]
     regions = dimreader.variables['regions'][:].tolist()
     originals, prefixes, dependencies = agglib.get_aggregated_regions(regions)
 
@@ -221,7 +224,7 @@ if __name__ == '__main__':
                 print filename
 
                 if filename == 'covariates.nc4':
-                    variable = 'tas'
+                    variable = 'loggdppc'
                 else:
                     variable = 'rebased'
 

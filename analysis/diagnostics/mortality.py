@@ -1,5 +1,4 @@
 import sys, os, csv
-from netCDF4 import Dataset
 import numpy as np
 from openest.models.curve import CubicSplineCurve
 import lib

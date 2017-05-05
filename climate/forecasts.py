@@ -1,10 +1,10 @@
 import numpy as np
 from netCDF4 import Dataset
 
-temp_path = "/shares/gcp/climate/IRI/tas_aggregated_forecast_2012-2016Dec.nc"
-prcp_path = "/shares/gcp/climate/IRI/prcp_aggregated_forecast_2012-2016Dec.nc"
-temp_zscore_path = "/shares/gcp/climate/IRI/tas_zscores_aggregated_forecast_2012-2016Dec.nc"
-prcp_zscore_path = "/shares/gcp/climate/IRI/prcp_zscores_aggregated_forecast_2012-2016Dec.nc"
+temp_path = "/shares/gcp/climate/IRI/tas_aggregated_forecast_2012-2017Mar.nc"
+prcp_path = "/shares/gcp/climate/IRI/prcp_aggregated_forecast_2012-2017Mar.nc"
+temp_zscore_path = "/shares/gcp/climate/IRI/tas_zscores_aggregated_forecast_2012-2017Mar.nc"
+prcp_zscore_path = "/shares/gcp/climate/IRI/prcp_zscores_aggregated_forecast_2012-2017Mar.nc"
 temp_normstddev_path = "/shares/gcp/climate/IRI/tas_normSTDDEV_aggregated_forecast.nc"
 prcp_normstddev_path = "/shares/gcp/climate/IRI/prcp_normSTDDEV_aggregated_forecast.nc"
 temp_climate_path = "/shares/gcp/climate/IRI/tas_aggregated_climatology_1981-2010.nc"

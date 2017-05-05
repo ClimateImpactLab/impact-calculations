@@ -1,13 +1,21 @@
 import glob, os, csv
-from impacts.conflict import standard
 from generate.weather import SingleWeatherBundle
 from climate.dailyreader import DailyWeatherReader
 from adaptation.econmodel import iterate_econmodels
-import curvegen, effectset
+from shortterm import weather, curvegen, effectset
+from climate import forecasts, forecastreader
+import standard
+
+def get_bundle(qvals):
+    tbundle = weather.ForecastBundle(forecastreader.MonthlyZScoreForecastOTFReader(forecasts.temp_path, forecasts.temp_climate_path, 'mean', qvals['tmean']))
+    pbundle = weather.ForecastBundle(forecastreader.MonthlyStochasticForecastReader(forecasts.prcp_path, 'prcp', qvals['pmean']))
+    weatherbundle = weather.CombinedBundle([tbundle, pbundle])
+
+    return weatherbundle
 
 def produce(targetdir, weatherbundle, qvals, do_only=None, suffix=''):
-    historicalbundle = SingleWeatherBundle(DailyWeatherReader("/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level/historical/CCSM4/tas/tas_day_aggregated_historical_r1i1p1_CCSM4_%d.nc", 1991, 'tas'))
-    model, scenario, econmodel = (mse for mse in iterate_econmodels() if mse[0] == 'OECD Env-Growth').next()
+    historicalbundle = SingleWeatherBundle(DailyWeatherReader("/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level/historical/CCSM4/tas/tas_day_aggregated_historical_r1i1p1_CCSM4_%d.nc", 1991, 'tas'), 'historical', 'CCSM4')
+    model, scenario, econmodel = (mse for mse in iterate_econmodels() if mse[0] == 'high').next()
 
     # if do_only is None or do_only == 'acp':
     #     # ACP response
@@ -20,7 +28,7 @@ def produce(targetdir, weatherbundle, qvals, do_only=None, suffix=''):
         predgen1 = curvegen.WeatherPredictorator(historicalbundle, econmodel, 15, 3, 2005)
 
         ## Full interpolation
-        for filepath in glob.glob("/shares/gcp/social/parameters/conflict/conflict_single_stage_12202016/*.csvv"):
+        for filepath in glob.glob("/shares/gcp/social/parameters/conflict/single_stage_03282017/*.csvv"):
             basename = os.path.basename(filepath)[:-5]
 
             predicted_betas = {}
@@ -32,9 +40,9 @@ def produce(targetdir, weatherbundle, qvals, do_only=None, suffix=''):
 
             thisqvals = qvals[basename]
 
-            calculation, dependencies, predvars = standard.prepare_csvv(filepath, thisqvals, betas_callback)
+            calculation, dependencies, covarnames = standard.prepare_csvv(filepath, thisqvals, betas_callback)
 
-            columns = effectset.write_ncdf(thisqvals['weather'], targetdir, basename, weatherbundle, calculation, predgen1.get_baseline, "Interpolated response for " + basename + ".", dependencies + weatherbundle.dependencies, suffix=suffix)
+            columns = effectset.write_ncdf(thisqvals['weather'], targetdir, basename, weatherbundle, calculation, lambda region: (predgen1.get_baseline(region),), "Interpolated response for " + basename + ".", dependencies + weatherbundle.dependencies, suffix=suffix)
 
             with open(os.path.join(targetdir, basename + '-final.csv'), 'w') as fp:
                 writer = csv.writer(fp)
@@ -47,12 +55,12 @@ def produce(targetdir, weatherbundle, qvals, do_only=None, suffix=''):
             with open(os.path.join(targetdir, basename + '-betas.csv'), 'w') as fp:
                 writer = csv.writer(fp)
 
-                header = ['region'] + predvars[1:] + ['beta-temp']
+                header = ['region'] + covarnames[1:] + ['beta-temp']
                 writer.writerow(header)
 
                 for region in weatherbundle.regions:
                     if region not in predicted_betas:
                         row = [region] + ['NA'] * (len(header) - 1)
                     else:
-                        row = [region] + list(predicted_betas[region]['pred']) + [predicted_betas[region]['temp']]
+                        row = [region] + [predicted_betas[region]['pred'][covar] for covar in covarnames[1:]] + [predicted_betas[region]['temp']]
                     writer.writerow(row)
