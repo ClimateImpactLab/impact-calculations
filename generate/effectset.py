@@ -28,12 +28,8 @@ def simultaneous_application(weatherbundle, calculation, get_apply_args, regions
         for ii in range(len(applications)):
             jj = ii if regions == weatherbundle.regions else weatherbundle.regions.index(regions[ii])
 
-            if len(weatherslice.weathers.shape) == 3:
-                for yearresult in applications[ii].push(weatherslice.times, weatherslice.weathers[:, jj, :]):
-                    yield (ii, yearresult[0], yearresult[1:])
-            else:
-                for yearresult in applications[ii].push(weatherslice.times, weatherslice.weathers[:, jj]):
-                    yield (ii, yearresult[0], yearresult[1:])
+            for yearresult in applications[ii].push(weatherslice.select_region(ii)):
+                yield (ii, yearresult[0], yearresult[1:])
 
             if push_callback is not None:
                 push_callback(regions[ii], weatherslice.times[0], applications[ii])
@@ -47,7 +43,7 @@ def simultaneous_application(weatherbundle, calculation, get_apply_args, regions
 def get_ncdf_path(targetdir, basename, suffix=''):
     return os.path.join(targetdir, basename + suffix + '.nc4')
 
-def write_ncdf(targetdir, basename, weatherbundle, calculation, get_apply_args, description, calculation_dependencies, filter_region=None, result_callback=None, push_callback=None, subset=None, do_interpbins=False, suffix='', diagnosefile=False):
+def write_ncdf(targetdir, basename, weatherbundle, calculation, get_apply_args, description, calculation_dependencies, filter_region=None, result_callback=None, push_callback=None, subset=None, suffix='', diagnosefile=False):
     if filter_region is None:
         my_regions = weatherbundle.regions
     else:
@@ -92,14 +88,6 @@ def write_ncdf(targetdir, basename, weatherbundle, calculation, get_apply_args, 
 
     years[:] = yeardata
 
-    if do_interpbins:
-        nc4writer.make_betas_variables(rootgrp, 7)
-        betas = rootgrp.createVariable('betas', 'f8', ('betadim', 'year', 'region'))
-        betas.long_title = "Response curve coefficient values"
-        betas.units = calculation.unitses[-1]
-
-        betasdata = None
-
     if diagnosefile:
         diagnostic.begin(diagnosefile)
 
@@ -108,11 +96,6 @@ def write_ncdf(targetdir, basename, weatherbundle, calculation, get_apply_args, 
             result_callback(my_regions[ii], year, results, calculation)
         for col in range(len(results)):
             columndata[col][year - yeardata[0], ii] = results[col]
-        if do_interpbins:
-            curve = curvegen.region_curves[my_regions[ii]].curr_curve
-            if betasdata is None:
-                betasdata = np.zeros((len(curve.coeffs), len(yeardata), len(my_regions)))
-            betasdata[:, year - yeardata[0], ii] = curve.coeffs
         if diagnosefile:
             diagnostic.finish(my_regions[ii], year)
 
@@ -121,9 +104,6 @@ def write_ncdf(targetdir, basename, weatherbundle, calculation, get_apply_args, 
 
     for col in range(len(results)):
         columns[col][:, :] = columndata[col]
-
-    if do_interpbins:
-        betas[:, :, :] = betasdata
 
     rootgrp.close()
 

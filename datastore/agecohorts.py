@@ -1,6 +1,7 @@
 import csv
 import numpy as np
-from helpers import files, header
+from impactlab_tools.utils import files
+from helpers import header
 
 columns = ['age0-4', 'age5-64', 'age65+']
 
