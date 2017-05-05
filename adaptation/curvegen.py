@@ -49,6 +49,9 @@ class CSVVCurveGenerator(CurveGenerator):
                     print covariates
                     raise e
 
+        if debug:
+            print "CG", coefficients, covariates, self.constant, self.predgammas, self.predcovars
+            
         return coefficients
 
     def get_marginals(self, covar):

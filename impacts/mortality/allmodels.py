@@ -1,7 +1,10 @@
 import os, glob
+import numpy as np
 from impactlab_tools.utils import files
+from adaptation import csvvfile
 from generate import weather, server, effectset, caller, checks
-from climate.discover import discover_yearly_variable, discover_yearly_array
+from openest.generate.weatherslice import YearlyWeatherSlice
+from climate.discover import discover_variable, discover_derived_variable, discover_convert
 
 def preload():
     from datastore import library
@@ -57,7 +60,7 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, do_only=None, countr
 
             # Split into age groups and lock in q-draw
             csvv = csvvfile.read(filepath)
-            csvvfile.collapse_bang(csvv)
+            csvvfile.collapse_bang(csvv, pvals[basename].get_seed())
 
             agegroups = ['kid', 'person', 'geezer']
             for ageii in range(len(agegroups)):
@@ -92,9 +95,9 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, do_only=None, countr
 
                         effectset.write_ncdf(targetdir, subbasename + "-dumgop", weatherbundle, calculation, None, "Mortality impacts, with interpolation and only environmental adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, subbasename + '-dumgop'), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, subbasename + '-dumgop'), suffix=suffix)
 
-    produce_external(targetdir, weatherbundle, exconomicmodel, pvals, do_only=do_only, country_specific=country_specific, suffix=suffix)
+    produce_external(targetdir, weatherbundle, economicmodel, pvals, do_only=do_only, country_specific=country_specific, suffix=suffix)
                         
-def produce_external(targetdir, weatherbundle, exconomicmodel, pvals, do_only=None, country_specific=True, suffix=''):
+def produce_external(targetdir, weatherbundle, economicmodel, pvals, do_only=None, country_specific=True, suffix=''):
     if do_only is None or do_only == 'acp':
         # ACP response
         calculation, dependencies = caller.call_prepare('impacts.mortality.external.ACRA_mortality_temperature', weatherbundle, economicmodel, pvals['ACRA_mortality_temperature'])
