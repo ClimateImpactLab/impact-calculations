@@ -1,5 +1,5 @@
 import os, glob
-from helpers import files
+from impactlab_tools.utils import files
 from generate import weather, server, effectset, caller, checks
 from climate.discover import discover_variable, discover_derived_variable
 
@@ -31,7 +31,7 @@ def check_doit(redocheck, targetdir, basename, suffix, deletebad=False):
 
     return False
 
-def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=None, country_specific=True, result_callback=None, push_callback=None, suffix='', do_farmers=False, profile=False, redocheck=False, diagnosefile=False):
+def produce(targetdir, weatherbundle, economicmodel, pvals, do_only=None, country_specific=True, result_callback=None, push_callback=None, suffix='', do_farmers=False, profile=False, redocheck=False, diagnosefile=False):
     if do_only is None or do_only == 'acp':
         pass
 

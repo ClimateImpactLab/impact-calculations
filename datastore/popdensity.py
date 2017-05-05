@@ -1,5 +1,5 @@
 import csv
-from helpers import files
+from impactlab_tools.utils import files
 
 def simple_densities(dependencies):
     densities = {} # {region: density}

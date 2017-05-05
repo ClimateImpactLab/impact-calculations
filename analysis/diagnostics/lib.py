@@ -44,17 +44,21 @@ def get_excerpt(filepath, first_col, regionid, years, hasmodel=True, onlymodel=N
 def excind(data, year, column):
     return data[str(year)][data['header'].index(column)]
 
-def get_csvv(filepath):
+def get_csvv(filepath, index0=None, indexend=None):
     csvv = {}
     with open(filepath, 'rU') as fp:
         printline = None
         for line in fp:
             if printline is not None:
-                print line.rstrip()
                 if printline == 'gamma':
                     csvv['gamma'] = map(float, line.rstrip().split(','))
                 else:
                     csvv[printline] = map(lambda x: x.strip(), line.rstrip().split(','))
+
+                if index0 is not None:
+                    csvv[printline] = csvv[printline][index0:indexend]
+                print ','.join(map(str, csvv[printline]))
+                    
                 printline = None
             if line.rstrip() in ["prednames", "covarnames", "gamma"]:
                 printline = line.rstrip()

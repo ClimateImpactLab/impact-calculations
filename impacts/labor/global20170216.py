@@ -9,7 +9,7 @@ from openest.models.curve import FlatCurve
 from openest.generate.curvegen import ConstantCurveGenerator
 from adaptation import csvvfile, covariates, curvegen_poly, curvegen
 from climate import discover
-from helpers import files
+from impactlab_tools.utils import files
 
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full'):
     reader_coldd = discover.discover_yearly_corresponding(files.sharedpath('climate/BCSD/aggregation/cmip5_new/IR_level'),

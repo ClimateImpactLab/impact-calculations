@@ -75,9 +75,14 @@ def binname_part(xxlimit):
 
     return part
 
-def subset(csvv, prednames):
-    toinclude = map(lambda predname: predname in prednames, csvv['prednames'])
-    toinclude = np.where(toinclude)[0]
+def subset(csvv, toinclude):
+    """Create a CSVV object with the contents of a subset of the variables in csvv.
+    `toinclude` may be either a list of predictor names from prednames, or a list of indices."""
+    if isinstance(toinclude[0], str):
+        toinclude = map(lambda predname: predname in toinclude, csvv['prednames'])
+        toinclude = np.where(toinclude)[0]
+    else:
+        toinclude = np.array(toinclude)
 
     subcsvv = copy.copy(csvv)
     subcsvv['prednames'] = [csvv['prednames'][ii] for ii in toinclude]

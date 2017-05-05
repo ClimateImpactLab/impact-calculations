@@ -1,5 +1,5 @@
 from generate import weather, effectset
-from helpers import files
+from impactlab_tools.utils import files
 from climate.discover import discover_variable
 from adaptation import covariates
 from openest.generate.curvegen import RecursiveInstantaneousCurveGenerator
@@ -13,7 +13,7 @@ def get_bundle_iterator():
     return weather.iterate_combined_bundles(discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tas'),
                                             discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'pr'))
 
-def produce(targetdir, weatherbundle, economicmodel, get_model, pvals, do_only=None, country_specific=True, result_callback=None, push_callback=None, suffix='', do_farmers=False, profile=False, redocheck=False, diagnosefile=False):
+def produce(targetdir, weatherbundle, economicmodel, pvals, do_only=None, country_specific=True, result_callback=None, push_callback=None, suffix='', do_farmers=False, profile=False, redocheck=False, diagnosefile=False):
     predgen = covariates.CombinedCovariator([covariates.MeanWeatherCovariator(weatherbundle.get_subset(0), 15, 2015),
                                              covariates.SeasonalWeatherCovariator(weatherbundle.get_subset(0), 15, 2015, 0, 90, 0),
                                              covariates.SeasonalWeatherCovariator(weatherbundle.get_subset(0), 15, 2015, 180, 270, 0),
