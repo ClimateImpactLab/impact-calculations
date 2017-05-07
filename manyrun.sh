@@ -1,5 +1,4 @@
 #!/bin/bash
-source ~/aggregator/env/bin/activate
 
 logpath1=${1/configs/logs}
 logpath2=${logpath/.yml/}
