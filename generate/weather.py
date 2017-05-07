@@ -3,6 +3,7 @@ import numpy as np
 from netCDF4 import Dataset
 from impactlab_tools.utils import files
 import helpers.header as headre
+from openest.generate import weatherslice
 from climate import netcdfs
 
 def iterate_bundles(iterator_readers):
@@ -296,9 +297,9 @@ class MultivariateHistoricalWeatherBundle2(DailyWeatherBundle):
                     allweather.weathers = np.concatenate((allweather.weathers, weatherslice.weathers), axis=2)
 
             if allweather.times[0] > 10000:
-                yield DailyWeatherSlice((1000 * year) + (allweather.times % 1000), allweather.weathers)
+                yield weatherslice.DailyWeatherSlice((1000 * year) + (allweather.times % 1000), allweather.weathers)
             else:
-                yield DailyWeatherSlice([year], allweather.weathers)
+                yield weatherslice.DailyWeatherSlice([year], allweather.weathers)
             year += 1
 
     def get_years(self):
@@ -366,9 +367,9 @@ class RepeatedHistoricalWeatherBundle(DailyWeatherBundle):
         for pastyear in self.pastyears:
             weatherslice = self.reader.read_year(pastyear)
             if weatherslice.times[0] > 10000:
-                yield DailyWeatherSlice((1000 * year) + (yyyyddd % 1000), weather)
+                yield weatherslice.DailyWeatherSlice((1000 * year) + (yyyyddd % 1000), weather)
             else:
-                yield YearlyWeatherSlice([year], weather)
+                yield weatherslice.YearlyWeatherSlice([year], weather)
             year += 1
 
     def get_years(self):
@@ -407,7 +408,7 @@ class MultivariateHistoricalWeatherBundle(DailyWeatherBundle):
 
                 weathers.append(weather)
 
-            yield DailyWeatherSlice(masteryyyyddd, weathers)
+            yield weatherslice.DailyWeatherSlice(masteryyyyddd, weathers)
 
     def get_years(self):
         return range(int(self.year_start), int(self.year_end) + 1)
