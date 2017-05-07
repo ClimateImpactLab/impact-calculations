@@ -29,7 +29,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
         writer.writerow(['region', 'brute', 'analytic'])
         baselinemins = {}
         for region in weatherbundle.regions:
-            curve = curr_curvegen.get_curve(region, covariator.get_baseline(region))
+            curve = curr_curvegen.get_curve(region, covariator.get_current(region))
             temps = np.arange(10, 26)
             mintemp = temps[np.argmin(curve(temps))]
             mintemp2 = minspline.findsplinemin(knots, curve.coeffs, 10, 25)
@@ -61,4 +61,4 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
                             '100,000 * death/population', 'deaths/person/year', lambda x: x / 1e5,
                             'convert to deaths/person/year', "Divide by 100000 to convert to deaths/person/year.")
 
-    return calculation, [], covariator.get_baseline
+    return calculation, [], covariator.get_current

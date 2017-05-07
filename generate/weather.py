@@ -129,7 +129,7 @@ class DailyWeatherBundle(WeatherBundle):
 
         # Append each year
         for weatherslice in self.yearbundles(maxyear):
-            print weatherslice.times[0]
+            print weatherslice.get_years()[0]
 
             # Stack this year below the previous years
             regionvalues = np.vstack((regionvalues, np.expand_dims(np.mean(weatherslice.weathers, axis=0), axis=0)))

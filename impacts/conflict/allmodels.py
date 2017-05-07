@@ -42,7 +42,7 @@ def produce(targetdir, weatherbundle, qvals, do_only=None, suffix=''):
 
             calculation, dependencies, covarnames = standard.prepare_csvv(filepath, thisqvals, betas_callback)
 
-            columns = effectset.write_ncdf(thisqvals['weather'], targetdir, basename, weatherbundle, calculation, lambda region: (predgen1.get_baseline(region),), "Interpolated response for " + basename + ".", dependencies + weatherbundle.dependencies, suffix=suffix)
+            columns = effectset.write_ncdf(thisqvals['weather'], targetdir, basename, weatherbundle, calculation, lambda region: (predgen1.get_current(region),), "Interpolated response for " + basename + ".", dependencies + weatherbundle.dependencies, suffix=suffix)
 
             with open(os.path.join(targetdir, basename + '-final.csv'), 'w') as fp:
                 writer = csv.writer(fp)

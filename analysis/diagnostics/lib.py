@@ -1,4 +1,5 @@
 import subprocess, csv
+import numpy as np
 
 def show_header(text):
     print "\n\033[1m" + text + "\033[0m"
@@ -24,6 +25,8 @@ def get_excerpt(filepath, first_col, regionid, years, hasmodel=True, onlymodel=N
         print ','.join(header)
         print "..."
         for row in reader:
+            if 'e+06' in row[1]:
+                row[1] = str(int(float(row[1]) / 1000))
             if '.' in row[1]:
                 row[1] = str(int(float(row[1])))
             if row[0] == regionid and row[1] in map(str, years):
@@ -37,7 +40,13 @@ def get_excerpt(filepath, first_col, regionid, years, hasmodel=True, onlymodel=N
                 print ','.join(row)
                 if int(row[1]) + 1 not in years:
                     print "..."
-                data[row[1]] = map(float, row[first_col:])
+                if row[1] in data:
+                    # Just fill in NAs (until we figure out why dubling up lines)
+                    for ii in range(len(data[row[1]])):
+                        if np.isnan(data[row[1]][ii]):
+                            data[row[1]][ii] = float(row[first_col+ii])
+                else:
+                    data[row[1]] = map(lambda x: float(x) if x != 'NA' else np.nan, row[first_col:])
 
     return data
 
