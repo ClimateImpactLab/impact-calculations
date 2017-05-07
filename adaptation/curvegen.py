@@ -1,5 +1,6 @@
 import numpy as np
-from openest.generate.curvegen import CurveGenerator
+from openest.generate.curvegen import *
+from openest.generate import diagnostic
 from openest.models.curve import AdaptableCurve
 
 region_curves = {}
@@ -49,9 +50,6 @@ class CSVVCurveGenerator(CurveGenerator):
                     print covariates
                     raise e
 
-        if debug:
-            print "CG", coefficients, covariates, self.constant, self.predgammas, self.predcovars
-            
         return coefficients
 
     def get_marginals(self, covar):
@@ -74,7 +72,7 @@ class FarmerCurveGenerator(CurveGenerator):
 
     def get_curve(self, region, covariates={}):
         if len(covariates) == 0:
-            covariates = self.covariator.get_baseline(region)
+            covariates = self.covariator.get_current(region)
 
         curr_curve = self.curr_curvegen.get_curve(region, covariates)
 

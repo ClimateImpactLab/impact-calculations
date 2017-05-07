@@ -31,14 +31,14 @@ class Covariator(object):
     def __init__(self, maxbaseline):
         self.startupdateyear = maxbaseline
 
-    def get_baseline(self, region):
+    def get_current(self, region):
         raise NotImplementedError
 
     def get_update(self, region, year, weather):
         raise NotImplementedError
 
-    def get_baseline_args(self, region):
-        return (self.get_baseline(region),)
+    def get_current_args(self, region):
+        return (self.get_current(region),)
 
 class EconomicCovariator(Covariator):
     def __init__(self, economicmodel, numeconyears, maxbaseline):
@@ -64,7 +64,7 @@ class EconomicCovariator(Covariator):
 
         return dict(gdppc=gdppcs, popop=density)
 
-    def get_baseline(self, region):
+    def get_current(self, region):
         econpreds = self.get_econ_predictors(region)
         return dict(loggdppc=np.log(econpreds['gdppc']),
                     logpopop=np.log(econpreds['popop']))
@@ -84,7 +84,7 @@ class EconomicCovariator(Covariator):
         gdppc = self.get_econ_predictors(region)['gdppc']
         popop = self.get_econ_predictors(region)['popop']
 
-        return dict(loggdppc=np.log(gdppc), logpopop=np.log(popop))
+        return dict(loggdppc=np.log(gdppc), logpopop=np.log(popop), year=year)
 
 class MeanWeatherCovariator(Covariator):
     def __init__(self, weatherbundle, numtempyears, maxbaseline, varindex=None):
@@ -105,7 +105,7 @@ class MeanWeatherCovariator(Covariator):
         self.temp_predictors = temp_predictors
         self.weatherbundle = weatherbundle
 
-    def get_baseline(self, region):
+    def get_current(self, region):
         #assert region in self.temp_predictors, "Missing " + region
         if self.varindex is None:
             return {self.weatherbundle.get_dimension()[0]: rm_mean(self.temp_predictors[region])}
@@ -141,7 +141,7 @@ class SeasonalWeatherCovariator(MeanWeatherCovariator):
         self.mustr = "%smu%d-%d" % (self.weatherbundle.get_dimension()[0], self.day_start, self.day_end)
         self.sigmastr = "%ssigma%d-%d" % (self.weatherbundle.get_dimension()[0], self.day_start, self.day_end)
 
-    def get_baseline(self, region):
+    def get_current(self, region):
         if self.all_values is None:
             print "Collecting " + self.mustr
             # Read in all regions
@@ -194,12 +194,12 @@ class YearlyWeatherCovariator(Covariator):
         random_year_access = RandomYearlyAccess(yearlyreader)
         self.random_region_access = RandomRegionAccess(random_year_access.get_year, regions)
 
-    def get_baseline(self, region):
+    def get_current(self, region):
         return {self.yearlyreader.get_dimension()[0]: rm_mean(self.predictors[region])}
 
     def get_update(self, region, year, temps):
         if self.is_historical or temps is None:
-            return self.get_baseline(region)
+            return self.get_current(region)
 
         assert year < 10000
 
@@ -227,7 +227,7 @@ class MeanBinsCovariator(Covariator):
         self.temp_predictors = temp_predictors
         self.weatherbundle = weatherbundle
 
-    def get_baseline(self, region):
+    def get_current(self, region):
         #assert region in self.temp_predictors, "Missing " + region
         assert len(self.weatherbundle.get_dimension()) == len(self.temp_predictors[region])
         return {self.weatherbundle.get_dimension()[ii]: rm_mean(self.temp_predictors[region][ii]) for ii in range(len(self.weatherbundle.get_dimension()))}
@@ -267,9 +267,9 @@ class AgeShareCovariator(Covariator):
         self.economicmodel = economicmodel
 
         self.agerm = {}
-        self.get_baseline('mean') # Fill in the mean agerm
+        self.get_current('mean') # Fill in the mean agerm
 
-    def get_baseline(self, region):
+    def get_current(self, region):
         # Fill in the rm for this region
         if region != 'mean':
             region = region[:3] # Just country code
@@ -310,10 +310,10 @@ class CombinedCovariator(Covariator):
         super(CombinedCovariator, self).__init__(covariators[0].startupdateyear)
         self.covariators = covariators
 
-    def get_baseline(self, region):
+    def get_current(self, region):
         result = {}
         for covariator in self.covariators:
-            subres = covariator.get_baseline(region)
+            subres = covariator.get_current(region)
             for key in subres:
                 result[key] = subres[key]
 
@@ -343,8 +343,8 @@ class TranslateCovariator(Covariator):
 
         return result
 
-    def get_baseline(self, region):
-        baseline = self.covariator.get_baseline(region)
+    def get_current(self, region):
+        baseline = self.covariator.get_current(region)
         return self.translate(baseline)
 
     def get_update(self, region, year, temps):
