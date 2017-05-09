@@ -2,7 +2,7 @@ import csv, copy
 import numpy as np
 from adaptation import csvvfile, curvegen, curvegen_arbitrary, covariates, constraints
 from generate import caller
-from openest.models.curve import PolynomialCurve
+from openest.models.curve import ZeroInterceptPolynomialCurve
 from openest.generate.stdlib import *
 from openest.generate import diagnostic
 from impactcommon.math import minpoly
@@ -15,7 +15,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
 
     #csvvfile.collapse_bang(csvv, qvals.get_seed())
     
-    curr_curvegen = curvegen_arbitrary.CoefficientsCurveGenerator(lambda coeffs: PolynomialCurve([-np.inf, np.inf], coeffs),
+    curr_curvegen = curvegen_arbitrary.CoefficientsCurveGenerator(lambda coeffs: ZeroInterceptPolynomialCurve([-np.inf, np.inf], coeffs),
                                                                   ['C'] * 4, #, 'C^2', 'C^3', 'C^4'],
                                                                   '100,000 * death/population', 'tas', 4, csvv, zerostart=False)
     farm_curvegen = curvegen.FarmerCurveGenerator(curr_curvegen, covariator, farmer)
@@ -45,7 +45,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
     negcsvv = copy.copy(csvv)
     negcsvv['gamma'] = -csvv['gamma']
 
-    negcurr_curvegen = curvegen_arbitrary.CoefficientsCurveGenerator(lambda coeffs: PolynomialCurve([-np.inf, np.inf], coeffs),
+    negcurr_curvegen = curvegen_arbitrary.CoefficientsCurveGenerator(lambda coeffs: ZeroInterceptPolynomialCurve([-np.inf, np.inf], coeffs),
                                                                      ['C'] * 4, #'C^2', 'C^3', 'C^4'],
                                                                      '100,000 * death/population', 'tas', 4, negcsvv, zerostart=False)
     negfarm_curvegen = curvegen.FarmerCurveGenerator(negcurr_curvegen, covariator2, farmer, save_curve=False)

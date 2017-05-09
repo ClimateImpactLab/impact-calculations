@@ -299,7 +299,7 @@ class MultivariateHistoricalWeatherBundle2(DailyWeatherBundle):
             if allweather.times[0] > 10000:
                 yield DailyWeatherSlice((1000 * year) + (allweather.times % 1000), allweather.weathers)
             else:
-                yield DailyWeatherSlice([year], allweather.weathers)
+                yield YearlyWeatherSlice([year], allweather.weathers)
             year += 1
 
     def get_years(self):

@@ -62,7 +62,7 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, do_only=None, countr
             csvv = csvvfile.read(filepath)
             csvvfile.collapse_bang(csvv, pvals[basename].get_seed())
 
-            agegroups = ['kid', 'person', 'geezer']
+            agegroups = ['young', 'older', 'oldest']
             for ageii in range(len(agegroups)):
                 subcsvv = csvvfile.subset(csvv, 12 * ageii + np.arange(12))
                 subbasename = basename + '-' + agegroups[ageii]
@@ -84,16 +84,16 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, do_only=None, countr
                     pvals[subbasename].lock()
 
                     # Comatose Farmer
-                    if check_doit(redocheck, targetdir, subbasename + "-comatrump", suffix):
+                    if check_doit(redocheck, targetdir, subbasename + "-noadapt", suffix):
                         calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(subcsvv, 'impacts.mortality.ols_polynomial', weatherbundle, economicmodel, pvals[subbasename], farmer='coma')
 
-                        effectset.write_ncdf(targetdir, subbasename + "-comatrump", weatherbundle, calculation, None, "Mortality impacts, with interpolation but no adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, subbasename + '-comatrump'), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, subbasename + '-comatrump'), suffix=suffix)
+                        effectset.write_ncdf(targetdir, subbasename + "-noadapt", weatherbundle, calculation, None, "Mortality impacts, with interpolation but no adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, subbasename + '-noadapt'), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, subbasename + '-noadapt'), suffix=suffix)
 
                     # Dumb Farmer
-                    if check_doit(redocheck, targetdir, subbasename + "-dumgop", suffix):
+                    if check_doit(redocheck, targetdir, subbasename + "-incadapt", suffix):
                         calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(subcsvv, 'impacts.mortality.ols_polynomial', weatherbundle, economicmodel, pvals[subbasename], farmer='dumb')
 
-                        effectset.write_ncdf(targetdir, subbasename + "-dumgop", weatherbundle, calculation, None, "Mortality impacts, with interpolation and only environmental adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, subbasename + '-dumgop'), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, subbasename + '-dumgop'), suffix=suffix)
+                        effectset.write_ncdf(targetdir, subbasename + "-incadapt", weatherbundle, calculation, None, "Mortality impacts, with interpolation and only environmental adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, subbasename + '-incadapt'), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, subbasename + '-incadapt'), suffix=suffix)
 
     produce_external(targetdir, weatherbundle, economicmodel, pvals, do_only=do_only, country_specific=country_specific, suffix=suffix)
                         
