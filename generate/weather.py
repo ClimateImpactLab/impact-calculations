@@ -130,7 +130,7 @@ class DailyWeatherBundle(WeatherBundle):
 
         # Append each year
         for weatherslice in self.yearbundles(maxyear):
-            print weatherslice.times[0]
+            print weatherslice.get_years()[0]
 
             # Stack this year below the previous years
             regionvalues = np.vstack((regionvalues, np.expand_dims(np.mean(weatherslice.weathers, axis=0), axis=0)))
@@ -367,9 +367,9 @@ class RepeatedHistoricalWeatherBundle(DailyWeatherBundle):
         for pastyear in self.pastyears:
             weatherslice = self.reader.read_year(pastyear)
             if weatherslice.times[0] > 10000:
-                yield DailyWeatherSlice((1000 * year) + (yyyyddd % 1000), weather)
+                yield DailyWeatherSlice((1000 * year) + (weatherslice.times % 1000), weatherslice.weathers)
             else:
-                yield YearlyWeatherSlice([year], weather)
+                yield YearlyWeatherSlice([year], weatherslice.weathers)
             year += 1
 
     def get_years(self):
