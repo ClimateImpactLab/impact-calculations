@@ -50,4 +50,4 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
 
     calculation = Sum([tempeffect, negtempeffect, zeroeffect])
 
-    return calculation, [], predgen.get_baseline
+    return calculation, [], predgen.get_current

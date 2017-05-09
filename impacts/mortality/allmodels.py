@@ -13,20 +13,8 @@ def preload():
 rcp_only = 'rcp85'
 
 def get_bundle_iterator():
-    def time_convert(times):
-        allyears = np.array(map(int, np.array(times) // 1000))
-        years, indexes = np.unique(allyears, return_index=True)
-        return allyears[np.sort(indexes)] # make sure in order
-
-    return weather.iterate_combined_bundles(discover_convert(discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'),
-                                                                               'tas', withyear=True, rcp_only='rcp85'),
-                                                             time_convert, YearlyWeatherSlice.convert),
-                                            discover_derived_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'),
-                                                                      'tas', 'power2', withyear=False, rcp_only=rcp_only),
-                                            discover_derived_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'),
-                                                                      'tas', 'power3', withyear=False, rcp_only=rcp_only),
-                                            discover_derived_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'),
-                                                                      'tas', 'power4', withyear=False, rcp_only=rcp_only))
+    return weather.iterate_bundles(discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'),
+                                                     'tas', withyear=True, rcp_only='rcp85'))
 
 def check_doit(redocheck, targetdir, basename, suffix):
     if not redocheck:

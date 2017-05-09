@@ -1,6 +1,7 @@
 import numpy as np
 import csvvfile, curvegen
-from openest.models.curve import PolynomialCurve
+from openest.generate import diagnostic
+from openest.models.curve import ZeroInterceptPolynomialCurve
 
 class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
     def __init__(self, indepunits, depenunit, prefix, order, csvv):
@@ -12,5 +13,7 @@ class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
         coefficients = self.get_coefficients(covariates)
         yy = [coefficients[predname] for predname in self.prednames]
 
-        return PolynomialCurve([-np.inf, np.inf], yy)
+        for predname in self.prednames:
+            diagnostic.record(region, covariates.get('year', 2000), predname, coefficients[predname])
 
+        return ZeroInterceptPolynomialCurve([-np.inf, np.inf], yy)

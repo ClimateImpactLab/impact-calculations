@@ -83,15 +83,14 @@ def polyresult_callback(region, year, result, calculation, model):
     if not os.path.exists(filepath):
         column_info = calculation.column_info()[0]
         result_description = "%s [%s]" % (column_info['title'], calculation.unitses[0])
-        metacsv.to_header(filepath, attrs=OrderedDict([('oneline', "Beta coefficients and result values by region and year"), ('version', config['module'] + config['outputdir'][config['outputdir'].rindex('-'):]), ('author', "James R."), ('contact', "jrising@berkeley.edu"), ('dependencies', [model + '.nc4'])]), variables=OrderedDict([('region', "Hierarchy region index"), ('year', "Year of the result"), ('model', "Specification (determined by the CSVV)"), ('result', result_description), ('tas', "Coefficient for tas [%s / C]" % calculation.unitses[0]), ('tas2', "Coefficient for tas2 [%s / C^2]" % calculation.unitses[0]), ('tas3', "Coefficient for tas3 [%s / C^3]" % calculation.unitses[0]), ('tas4', "Coefficient for tas4 [%s / C^4]" % calculation.unitses[0])]))
+        metacsv.to_header(filepath, attrs=OrderedDict([('oneline', "Beta coefficients and result values by region and year"), ('version', config['module'] + config['outputdir'][config['outputdir'].rindex('-'):]), ('author', "James R."), ('contact', "jrising@berkeley.edu"), ('dependencies', [model + '.nc4'])]), variables=OrderedDict([('region', "Hierarchy region index"), ('year', "Year of the result"), ('model', "Specification (determined by the CSVV)"), ('result', result_description)]))
         with open(filepath, 'a') as fp:
             writer = csv.writer(fp)
-            writer.writerow(['region', 'year', 'model', 'result', 'tas', 'tas2', 'tas3', 'tas4'])
+            writer.writerow(['region', 'year', 'model', 'result'])
 
     with open(filepath, 'a') as fp:
         writer = csv.writer(fp)
-        ccs = curvegen.region_curves[region].curr_curve.ccs
-        writer.writerow([region, year, model, result[0]] + list(ccs))
+        writer.writerow([region, year, model, result[0]])
 
 def polypush_callback(region, year, application, get_predictors, model):
     covars = ['climtas', 'loggdppc']
