@@ -15,7 +15,7 @@
 # This simplifies to: sum_k [ T_0^k * gamma_k * (Tbar_0^k - Tbar_1^k)] < COST < sum_k [ T_1^k * gamma_k * (Tbar_0^k - Tbar_1^k)], where "k" indicates each term in the nonlinear response (e.g. if it's a fourth order polynomial, we have k = 1,...,4), and where the Tbar values may vary by climate term (e.g for bins we interact each bin variable by the average number of days in that bin)
 
 ###########################
-# Syntax: cost_curves(tavgpath, tannpath, impactspath, gammapath, minpath, functionalform, gammarange), Where:
+# Syntax: cost_curves(tavgpath, tannpath, impactspath, gammapath, minpath, functionalform, 'powers', 'gammarange'), Where:
 # tavgpath = filepath for long run average climate data by impact region year 
 # tannpath = filepath for annual temperature data by impact region year (can be a folder with subfolders if polynomial!)
 # impactspath = filepath for the projected impacts for this model
@@ -23,6 +23,7 @@
 # minpath = filepath for the CSV of impact region-specific reference temperatures
 # functionalform = 'spline', 'poly', or 'bin'
 # gammarange = range of numbers indicating which of the gammas you want to pull (e.g. only a subset of them if you want just one age category)
+# powers = number of powers for the polynomial, IF it's a polynomial model, (entered as string!)
 ###########################
 
 ###############################################
@@ -35,16 +36,19 @@ library(DataCombine)
 library(zoo)
 library(abind)
 
-
-#################### LOCAL -- FOR TESTING ONLY! 
-# tavgpath = "~/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/climtas.nc4"
-# tannpath = "~/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/poly/"
-# outpath = "~/Tamma-Shackleton/GCP/adaptation_costs/data/poly"
-# impactspath <- "/Users/tammacarleton/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/poly/global_interaction_Tmean-POLY-4-AgeSpec-geezer.nc4"
-# gammapath = "~/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/poly/global_interaction_Tmean-POLY-4-AgeSpec.csvv"
-# gammarange = 13:24
-# minpath <- "~/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/poly/global_interaction_Tmean-POLY-4-AgeSpec-geezer-polymins.csv"
-# model <- 'poly'
+#####################
+is.local <- F
+if(is.local) {
+tavgpath = "~/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/climtas.nc4"
+tannpath = "~/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/poly/"
+outpath = "~/Tamma-Shackleton/GCP/adaptation_costs/data/poly"
+impactspath <- "/Users/tammacarleton/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/poly/global_interaction_Tmean-POLY-4-AgeSpec-geezer.nc4"
+gammapath = "~/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/poly/global_interaction_Tmean-POLY-4-AgeSpec.csvv"
+gammarange = 13:24
+minpath <- "~/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/poly/global_interaction_Tmean-POLY-4-AgeSpec-geezer-polymins.csv"
+model <- 'poly'
+powers <- 4
+}
 #####################
 
 ###############################################
@@ -69,15 +73,18 @@ minpath = args[5] # paste0("social/parameters/mortality/mortality_splines_031620
 # What model spec are you running? Options: bin, cubic spline, poly
 model <- args[6]
 
+# If polynomial, how many powers?
+powers <- as.numeric(args[7])
+
 # Which gammas do you want to pull?
-gammarange <- args[7]
+gammarange <- unlist(strsplit(args[8], ':')) 
+gammarange <- as.numeric(gammarange[1]):as.numeric(gammarange[2])
 
 ###############################################
-# Insert key information about the CSVV
+# Insert other key information about the CSVV
 ###############################################
 
 knots <- c(-12, -7, 0, 10, 18, 23, 28, 33)
-powers <- 4 
 
 ###############################################
 #  Get Gammas from CSVVs 
@@ -90,7 +97,7 @@ row <- which(csvv[,1] == "covarnames")
 covnames <- csvv[row+1,]
 
 # Subset the covnames to only take the values for the subset called by the function (e.g. old age only)
-covnames <- covnames[gammarange[1]:tail(gammarange,n=1)]
+covnames <- covnames[gammarange]
 
 # Which covariates are climate covariates? (indicate climate covariates with a 1)
 climdummy <- rep(NA, times=length(covnames))
@@ -189,7 +196,7 @@ movingavg <- array(NA, dim=dim(temps.ann))
 
 R <- dim(temps.ann)[1]
 S <- dim(temps.ann)[2] # K = no. clim vars * no. clim covars, but S = no. clim vars
-S<-2
+
 for(r in 1:R) { #loop over all regions
   for(s in 1:S) { # loop over all spline terms or poly terms
     if (sum(is.finite(temps.ann[r,s,])) > 0)
