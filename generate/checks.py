@@ -5,7 +5,8 @@ def check_result_100years(filepath, variable='rebased', regioncount=24378):
     try:
         rootgrp = Dataset(filepath, 'r', format='NETCDF4')
         values = rootgrp.variables[variable][:, :]
-
+        rootgrp.close()
+        
         if values.shape[0] < 100 or values.shape[1] < regioncount:
             return False
 
