@@ -367,9 +367,9 @@ class RepeatedHistoricalWeatherBundle(DailyWeatherBundle):
         for pastyear in self.pastyears:
             weatherslice = self.reader.read_year(pastyear)
             if weatherslice.times[0] > 10000:
-                yield DailyWeatherSlice((1000 * year) + (yyyyddd % 1000), weather)
+                yield DailyWeatherSlice((1000 * year) + (weatherslice.times % 1000), weatherslice.weathers)
             else:
-                yield YearlyWeatherSlice([year], weather)
+                yield YearlyWeatherSlice([year], weatherslice.weathers)
             year += 1
 
     def get_years(self):
