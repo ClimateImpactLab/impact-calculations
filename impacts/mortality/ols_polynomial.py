@@ -1,6 +1,6 @@
 import csv, copy
 import numpy as np
-from adaptation import csvvfile, curvegen, curvegen_poly, covariates, constraints
+from adaptation import csvvfile, curvegen, curvegen_known, covariates, constraints
 from generate import caller
 from openest.models.curve import ZeroInterceptPolynomialCurve, ClippedCurve, ShiftedCurve, MinimumCurve
 from openest.generate.stdlib import *
@@ -16,8 +16,9 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
     # Don't collapse: already collapsed in allmodels
     #csvvfile.collapse_bang(csvv, qvals.get_seed())
 
-    curr_curvegen = curvegen_poly.PolynomialCurveGenerator(['C'] * 4, #, 'C^2', 'C^3', 'C^4'],
-                                                           '100,000 * death/population', 'tas', 4, csvv)
+    order = len(csvv['gamma']) / 3
+    curr_curvegen = curvegen_known.PolynomialCurveGenerator(['C'] + ['C^%d' % pow for pow in range(2, order+1)],
+                                                           '100,000 * death/population', 'tas', order, csvv)
 
     # Determine minimum value of curve between 10C and 25C
     print "Determining minimum temperatures."
@@ -40,8 +41,11 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
     print "Finishing calculation setup."
     
     def transform(region, curve):
-        goodmoney_curve = MinimumCurve(curve, constantincomecurves[region])
-        return ClippedCurve(ShiftedCurve(goodmoney_curve, -curve(baselinemins[region])))
+        fulladapt_curve = ShiftedCurve(curve, -curve(baselinemins[region]))
+        noincadapt_curve = ShiftedCurve(constantincomecurves[region], -constantincomecurves[region](baselinemins[region]))
+        
+        goodmoney_curve = MinimumCurve(fulladapt_curve, noincadapt_curve)
+        return ClippedCurve(goodmoney_curve)
 
     clip_curvegen = curvegen.TransformCurveGenerator(curr_curvegen, transform)
     farm_curvegen = curvegen.FarmerCurveGenerator(clip_curvegen, covariator, farmer)

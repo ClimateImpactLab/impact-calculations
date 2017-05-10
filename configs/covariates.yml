@@ -1,3 +1,5 @@
 module: covariates
 mode: median
 outputdir: /shares/gcp/outputs/covariates/results-michener
+do_only: interpolation
+do_farmers: false

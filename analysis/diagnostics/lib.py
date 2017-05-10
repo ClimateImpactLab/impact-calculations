@@ -12,7 +12,7 @@ def show_julia(command):
         print "\n".join(command)
         print "# " + subprocess.check_output(["julia", "-e", "; ".join(command[:-1]) + "; println(" + command[-1] + ")"])
 
-def get_excerpt(filepath, first_col, regionid, years, hasmodel=True, onlymodel=None):
+def get_excerpt(filepath, first_col, regionid, years, hasmodel=True, onlymodel=None, hidecols=[]):
     data = {}
     model = None
     with open(filepath, 'r') as fp:
@@ -22,7 +22,10 @@ def get_excerpt(filepath, first_col, regionid, years, hasmodel=True, onlymodel=N
         reader = csv.reader(fp)
         header = reader.next()
         data['header'] = header[first_col:]
-        print ','.join(header)
+        # Find columns to hide
+        showcols = np.array([col not in hidecols for col in header])
+        
+        print ','.join(np.array(header)[showcols])
         print "..."
         for row in reader:
             if 'e+06' in row[1]:
@@ -37,7 +40,7 @@ def get_excerpt(filepath, first_col, regionid, years, hasmodel=True, onlymodel=N
                         model = row[2]
                     elif model != row[2]:
                         break
-                print ','.join(row)
+                print ','.join(np.array(row)[showcols[:len(row)]])
                 if int(row[1]) + 1 not in years:
                     print "..."
                 if row[1] in data:

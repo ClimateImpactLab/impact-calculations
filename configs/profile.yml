@@ -1,0 +1,5 @@
+module: mortality
+mode: profile
+outputdir: /shares/gcp/outputs/mortality/impacts-harvester
+do_only: interpolation
+do_farmers: false
