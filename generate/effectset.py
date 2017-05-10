@@ -111,7 +111,6 @@ def small_test(weatherbundle, calculation, get_apply_args, num_regions=10, *xarg
     yeardata = weatherbundle.get_years()
     values = [np.zeros((len(yeardata), num_regions)) for ii in range(len(calculation.unitses))]
     for ii, year, results in simultaneous_application(weatherbundle, calculation, get_apply_args, regions=np.random.choice(weatherbundle.regions, num_regions).tolist()):
-        print ii, year, results
         for col in range(len(results)):
             values[col][year - yeardata[0]] = results[col]
 

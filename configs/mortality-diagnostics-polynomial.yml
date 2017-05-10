@@ -1,3 +1,5 @@
 module: mortality
 mode: writepolys
 outputdir: /shares/gcp/outputs/mortality/impacts-harvester
+do_only: interpolation
+do_farmers: false

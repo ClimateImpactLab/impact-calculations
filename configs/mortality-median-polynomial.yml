@@ -1,4 +1,5 @@
 module: mortality
 mode: median
 outputdir: outputs/mortality/impacts-harvester
-
+do_only: interpolation
+do_farmers: true

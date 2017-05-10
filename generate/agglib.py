@@ -1,9 +1,9 @@
 import csv
 from helpers import header
 
-def copy_timereg_variable(writer, variable, key, dstvalues, suffix, timevar='year'):
+def copy_timereg_variable(writer, variable, key, dstvalues, suffix, unitchange, timevar='year'):
     column = writer.createVariable(key, 'f8', (timevar, 'region'))
-    column.units = variable.units
+    column.units = unitchange(variable.units)
     if hasattr(variable, 'long_title'):
         column.long_title = variable.long_title
     if hasattr(variable, 'source'):

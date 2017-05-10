@@ -1,3 +1,5 @@
 module: labor
 mode: montecarlo
 outputdir: outputs/labor/impacts-texanus
+do_only: interpolation
+do_farmers: true

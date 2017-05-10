@@ -31,11 +31,11 @@ def check_doit(redocheck, targetdir, basename, suffix, deletebad=False):
 
     return False
 
-def produce(targetdir, weatherbundle, economicmodel, pvals, do_only=None, country_specific=True, result_callback=None, push_callback=None, suffix='', do_farmers=False, profile=False, redocheck=False, diagnosefile=False):
-    if do_only is None or do_only == 'acp':
+def produce(targetdir, weatherbundle, economicmodel, pvals, config, result_callback=None, push_callback=None, suffix='', profile=False, redocheck=False, diagnosefile=False):
+    if config['do_only'] is None or config['do_only'] == 'acp':
         pass
 
-    if do_only is None or do_only == 'interpolation':
+    if config['do_only'] is None or config['do_only'] == 'interpolation':
         if result_callback is None:
             result_callback = lambda reg, yr, res, calc, mod: None
         if push_callback is None:
@@ -55,7 +55,7 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, do_only=None, countr
                 else:
                     effectset.write_ncdf(targetdir, basename, weatherbundle, calculation, None, "Extensive margin labor impacts, with interpolation and adaptation through interpolation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, basename), push_callback=lambda reg, yr, app: push_callback(reg, int(yr) / 1000, app, baseline_get_predictors, basename), do_interpbins=False, suffix=suffix, diagnosefile=diagnosefile.replace('.csv', '-' + basename + '.csv') if diagnosefile else False)
 
-            if do_farmers and not weatherbundle.is_historical():
+            if config['do_farmers'] and not weatherbundle.is_historical():
                 # Lock in the values
                 pvals[basename].lock()
 

@@ -29,6 +29,21 @@ def iterate_combined_bundles(*iterators_readers):
         weatherbundle = MultivariatePastFutureWeatherBundle(scenmodels[(scenario, model)], scenario, model)
         yield scenario, model, weatherbundle
 
+def iterate_amorphous_bundles(iterators_reader_dict):
+    scenmodels = {} # {(scenario, model): [(pastreader, futurereader), ...]}
+    for name in iterators_reader_dict:
+        for scenario, model, pastreader, futurereader in iterators_reader_dict[name]:
+            if (scenario, model) not in scenmodels:
+                scenmodels[(scenario, model)] = {}
+            scenmodels[(scenario, model)][name] = (pastreader, futurereader)
+
+    for scenario, model in scenmodels:
+        if len(scenmodels[(scenario, model)]) < len(iterators_reader_dict):
+            continue
+
+        weatherbundle = AmorphousWeatherBundle(scenmodels[(scenario, model)], scenario, model)
+        yield scenario, model, weatherbundle
+
 class WeatherBundle(object):
     """A WeatherBundle object is used to access the values for a single variable
     across years, as provided by a given GCM.
@@ -432,6 +447,20 @@ class MultivariateHistoricalWeatherBundle(DailyWeatherBundle):
         region_averages = [regionsum / sumcount for regionsum in regionsums]
         for ii in range(len(self.regions)):
             yield self.regions[ii], [region_averages[jj][ii] for jj in range(len(region_averages))]
+
+class AmorphousWeatherBundle(WeatherBundle):
+    def __init__(self, pastfuturereader_dict, scenario, model, hierarchy='hierarchy.csv'):
+        super(AmorphousWeatherBundle, self).__init__(scenario, model, hierarchy)
+
+        self.pastfuturereader_dict = pastfuturereader_dict
+
+    def get_single(self, name):
+        return UnivariatePastFutureWeatherBundle(self.pastfuturereader_dict[name][0], self.pastfuturereader_dict[name][1],
+                                                 self.scenario, self.model)
+        
+    def get_concrete(self, names):
+        pastfuturereaders = [self.pastfuturereader_dict[name] for name in names]
+        return MultivariatePastFutureWeatherBundle(pastfuturereaders, self.scenario, self.model)
 
 if __name__ == '__main__':
     template = "/shares/gcp/BCSD/grid2reg/cmip5/historical/CCSM4/{0}/{0}_day_aggregated_historical_r1i1p1_CCSM4_{1}.nc"

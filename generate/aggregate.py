@@ -8,7 +8,7 @@ levels_suffix = '-levels'
 suffix = "-aggregated"
 missing_only = True
 
-costs_command = "Rscript generate/cost_curves.R \"%s\" \"%s\" \"%s\" \"%s\" \"%s\"" # tavgpath tannpath impactspath gammapath minpath
+costs_command = "Rscript generate/cost_curves.R \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\"" # tavgpath tannpath impactspath gammapath minpath functionalform powers gammarange
 
 checkfile = 'check-20161230.txt'
 
@@ -127,7 +127,7 @@ def make_aggregates(targetdir, filename, get_population, dimensions_template=Non
 
             dstvalues[:, ii] = numers / denoms
 
-        agglib.copy_timereg_variable(writer, variable, key, dstvalues, "(aggregated)")
+        agglib.copy_timereg_variable(writer, variable, key, dstvalues, "(aggregated)", unitchange=lambda unit: unit + '/person'))
 
     reader.close()
     if dimensions_template is not None:
@@ -183,7 +183,7 @@ def make_levels(targetdir, filename, get_population, dimensions_template=None, m
         for ii in range(len(regions)):
             dstvalues[:, ii] = srcvalues[:, ii] * stweight.get_time(regions[ii])
 
-        agglib.copy_timereg_variable(writer, variable, key, dstvalues, "(levels)")
+        agglib.copy_timereg_variable(writer, variable, key, dstvalues, "(levels)", unitchange=lambda unit: unit.replace('/person', '')))
 
     reader.close()
     if dimensions_template is not None:
@@ -243,8 +243,24 @@ if __name__ == '__main__':
                             gammapath = '/shares/gcp/social/parameters/mortality/mortality_splines_03162017/' + filename.replace('.nc4', '.csvv')
                             minpath = os.path.join(targetdir, filename.replace('.nc4', '-splinemins.csv'))
 
-                            print costs_command % (tavgpath, tannpath, impactspath, gammapath, minpath)
-                            os.system(costs_command % (tavgpath, tannpath, impactspath, gammapath, minpath))
+                            if 'POLY-4' in filename:
+                                functionalform = 'poly'
+                                powers = 4
+                            elif 'POLY-5' in filename:
+                                functionalform = 'poly'
+                                powers = 4
+                            else:
+                                ValueError('Unknown functional form')
+                                
+                            if '-young' in filename:
+                                gammarange = '0:%s' % (powers * 3)
+                            elif '-older' in filename:
+                                gammarange = '%s:%s' % (powers * 3, powers * 6)
+                            elif '-oldest' in filename:
+                                gammarange = '%s:%s' % (powers * 6, powers * 9)
+                                
+                            print costs_command % (tavgpath, tannpath, impactspath, gammapath, minpath, functionalform, powers, gammarange))
+                            os.system(costs_command % (tavgpath, tannpath, impactspath, gammapath, minpath, functionalform, powers, gammarange))
 
                         # Levels of costs
                         if not missing_only or not os.path.exists(os.path.join(targetdir, filename[:-4] + costs_suffix + levels_suffix + '.nc4')):
