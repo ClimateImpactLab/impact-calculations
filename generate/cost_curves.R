@@ -15,15 +15,15 @@
 # This simplifies to: sum_k [ T_0^k * gamma_k * (Tbar_0^k - Tbar_1^k)] < COST < sum_k [ T_1^k * gamma_k * (Tbar_0^k - Tbar_1^k)], where "k" indicates each term in the nonlinear response (e.g. if it's a fourth order polynomial, we have k = 1,...,4), and where the Tbar values may vary by climate term (e.g for bins we interact each bin variable by the average number of days in that bin)
 
 ###########################
-# Syntax: cost_curves(tavgpath, tannpath, impactspath, gammapath, minpath, functionalform, 'powers', 'gammarange'), Where:
+# Syntax: cost_curves(tavgpath, tannpath, impactspath, gammapath, minpath, functionalform, 'ffparameters', 'gammarange'), Where:
 # tavgpath = filepath for long run average climate data by impact region year 
 # tannpath = filepath for annual temperature data by impact region year (can be a folder with subfolders if polynomial!)
 # impactspath = filepath for the projected impacts for this model
 # gammapath = filepath for the CSVV of gammas
 # minpath = filepath for the CSV of impact region-specific reference temperatures
 # functionalform = 'spline', 'poly', or 'bin'
-# gammarange = range of numbers indicating which of the gammas you want to pull (e.g. only a subset of them if you want just one age category)
-# powers = number of powers for the polynomial, IF it's a polynomial model, (entered as string!)
+# 'ffparameters' = details on the functional form chosen. E.g. for spline, this can be 'LS' or 'NS', and for polynomial this can be 'poly4' or 'poly5'. 
+# gammarange = range of numbers indicating which of the gammas you want to pull (e.g. only a subset of them if you want just one age category) -- entered as a string!
 ###########################
 
 ###############################################
@@ -76,6 +76,17 @@ model <- args[6]
 # If polynomial, how many powers?
 powers <- as.numeric(args[7])
 
+# Details on the functional form
+if(args[7]=='NS') {
+  knots <- c(-12, -7, 0, 10, 18, 23, 28, 33)
+}
+if(args[7]=='LS'){
+  knots <- c(-10, 0, 10, 20, 28, 33)
+}
+if(args[6]=='poly'){
+  powers <- as.numeric(substr(args[7],5,5))
+}
+
 # Which gammas do you want to pull?
 gammarange <- unlist(strsplit(args[8], ':')) 
 gammarange <- as.numeric(gammarange[1]):as.numeric(gammarange[2])
@@ -84,7 +95,6 @@ gammarange <- as.numeric(gammarange[1]):as.numeric(gammarange[2])
 # Insert other key information about the CSVV
 ###############################################
 
-knots <- c(-12, -7, 0, 10, 18, 23, 28, 33)
 
 ###############################################
 #  Get Gammas from CSVVs 
@@ -241,7 +251,7 @@ if (model=="poly") {
   
   for (r in 1:R) { 
     rindex <- which(splinemins$region==regions[r]) # just in case they are not ordered the same way
-    ref <- splinemins$brute[rindex] # this is a scalar -- CHANGE THIS BACK!! JAMES NEEDS TO FIX THE ANALYTIC SOLUTION
+    ref <- splinemins$analytic[rindex] # this is a scalar -- CHANGE THIS BACK!! JAMES NEEDS TO FIX THE ANALYTIC SOLUTION
     for(n in 1:N-1) {
       terms_ref[r,n] <- ref^n 
     }
