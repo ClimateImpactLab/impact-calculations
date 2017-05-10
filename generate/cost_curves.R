@@ -6,13 +6,25 @@
 
 # This version uses AVERAGE temperature exposure rather than ANNUAL
 
-#### THIS VERSION INCORPORATES CLIPPING: We set adaptation costs to zero whenever the impact falls below zero..
+#### THIS VERSION INCORPORATES CLIPPING: We set adaptation costs to zero whenever the impact falls below zero.
 
 # FOR REFERENCE: the calculation we are performing is:
 # tbar_0[beta(y_0, p_0, tbar_0) - beta(y_0, p_0, tbar_1)] < COST < tbar_1[beta(y_1, p_1, tbar_0) - beta(y_1, p_1, tbar_1)]
 # We calculate this for every year-region-bin, sum across bins for each region, sum across years (and eventually we will sum across regions)
 
 # This simplifies to: sum_k [ T_0^k * gamma_k * (Tbar_0^k - Tbar_1^k)] < COST < sum_k [ T_1^k * gamma_k * (Tbar_0^k - Tbar_1^k)], where "k" indicates each term in the nonlinear response (e.g. if it's a fourth order polynomial, we have k = 1,...,4), and where the Tbar values may vary by climate term (e.g for bins we interact each bin variable by the average number of days in that bin)
+
+###########################
+# Syntax: cost_curves(tavgpath, tannpath, impactspath, gammapath, minpath, functionalform, 'powers', 'gammarange'), Where:
+# tavgpath = filepath for long run average climate data by impact region year 
+# tannpath = filepath for annual temperature data by impact region year (can be a folder with subfolders if polynomial!)
+# impactspath = filepath for the projected impacts for this model
+# gammapath = filepath for the CSVV of gammas
+# minpath = filepath for the CSV of impact region-specific reference temperatures
+# functionalform = 'spline', 'poly', or 'bin'
+# gammarange = range of numbers indicating which of the gammas you want to pull (e.g. only a subset of them if you want just one age category)
+# powers = number of powers for the polynomial, IF it's a polynomial model, (entered as string!)
+###########################
 
 ###############################################
 
@@ -24,14 +36,24 @@ library(DataCombine)
 library(zoo)
 library(abind)
 
+#####################
+is.local <- F
+if(is.local) {
+tavgpath = "~/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/climtas.nc4"
+tannpath = "~/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/poly/"
+outpath = "~/Tamma-Shackleton/GCP/adaptation_costs/data/poly"
+impactspath <- "/Users/tammacarleton/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/poly/global_interaction_Tmean-POLY-4-AgeSpec-geezer.nc4"
+gammapath = "~/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/poly/global_interaction_Tmean-POLY-4-AgeSpec.csvv"
+gammarange = 13:24
+minpath <- "~/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/poly/global_interaction_Tmean-POLY-4-AgeSpec-geezer-polymins.csv"
+model <- 'poly'
+powers <- 4
+}
+#####################
+
 ###############################################
 # Set up 
 ###############################################
-
-#local
-#setwd("/Volumes/GCP_shared_folder/")
-#Shackleton
-#setwd("/shares/gcp/")
 
 args <- commandArgs(trailingOnly=T)
 
@@ -48,44 +70,48 @@ gammapath = args[4] # paste0("social/parameters/", sector, "/", csvname, ".csvv"
 # Filepath for spline minimum values -- where is the CSV?
 minpath = args[5] # paste0("social/parameters/mortality/mortality_splines_03162017/splinemins.csv")
 
-
-#################### LOCAL -- FOR TESTING ONLY! 
-# tavgpath = "~/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/climtas.nc4"
-# tannpath = "~/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/tas_restrict_cubic_spline_aggregate_rcp85_r1i1p1_CCSM4.nc"
-# outpath = "~/Tamma-Shackleton/GCP/adaptation_costs/data"
-# impactspath <- "/Users/tammacarleton/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/doubleclip/moratlity_cubic_splines_2factors_best_031617.nc4"
-
-###############################################
-# Insert key information about the CSVV
-###############################################
-
 # What model spec are you running? Options: bin, cubic spline, poly
-model <- 'spline'
+model <- args[6]
+
+# If polynomial, how many powers?
+powers <- as.numeric(args[7])
+
+# Which gammas do you want to pull?
+gammarange <- unlist(strsplit(args[8], ':')) 
+gammarange <- as.numeric(gammarange[1]):as.numeric(gammarange[2])
+
+###############################################
+# Insert other key information about the CSVV
+###############################################
+
 knots <- c(-12, -7, 0, 10, 18, 23, 28, 33)
-powers <- NA  
 
 ###############################################
 #  Get Gammas from CSVVs 
 ###############################################
 
-csvv <- read.csv(gammapath, header=FALSE, skip = 18)
+csvv <- read.csv(gammapath, header=FALSE, skip = 18, strip.white=TRUE)
 
 # Covariate names as listed in the csvv
 row <- which(csvv[,1] == "covarnames")
 covnames <- csvv[row+1,]
 
+# Subset the covnames to only take the values for the subset called by the function (e.g. old age only)
+covnames <- covnames[gammarange]
+
 # Which covariates are climate covariates? (indicate climate covariates with a 1)
 climdummy <- rep(NA, times=length(covnames))
 
 for (i in 1:length(covnames)) {
-  climdummy[i] <- (covnames[i]!='1' & covnames[i]!='logpopop' & covnames[i]!='loggdppc')
+  climdummy[i] <- (covnames[i]!='1' & covnames[i]!='logpopop' & covnames[i]!='loggdppc'  & covnames[i]!='lggdppc')
 }
 
 # IMPORTANT: the climate covariates need to be in the same order as the climate variables they get multiplied by 
 if (length(climdummy)!=length(covnames)) stop()
 
 row <- which(csvv[,1] == "gamma")
-gammas <- csvv[row+1,which(climdummy == T)] # just the climate gammas extracted
+gammas <- csvv[row+1,gammarange[1]:tail(gammarange,n=1)]
+gammas <- gammas[which(climdummy == T)] # just the climate gammas extracted
 gammas <- sapply(gammas, function(x) as.numeric(as.character(x)))
 
 # How many climate variables interacted with climate covariates in the response function do we have?
@@ -102,15 +128,15 @@ splinemins <- read.csv(minpath, header=T)
 ##############################################################################################
 
 # OPEN THE NETCDF - average temps
-nc.tann <- nc_open(tannpath)
 nc.tavg <- nc_open(tavgpath)
 temps.avg <- ncvar_get(nc.tavg, 'averaged') #average temperatures
 regions <- ncvar_get(nc.tavg, 'regions')
 year.avg <- ncvar_get(nc.tavg, 'year')
-year.ann <- ncvar_get(nc.tann, 'year')
 
 ## NOTE: Need to generalize this for Jiacan's other output (not sure how general her files are)
 if (model=="spline") {
+  nc.tann <- nc_open(tannpath)
+  year.ann <- ncvar_get(nc.tann, 'year')
   temps.ann.spline0 <- ncvar_get(nc.tann, 'tas_sum') #realized temperatures
   temps.ann.splineK <- ncvar_get(nc.tann, 'spline_variables')
   # Combine tas_sum with spline terms
@@ -119,10 +145,27 @@ if (model=="spline") {
   temps.ann[,2:(length(knots)-1),] <- temps.ann.splineK
   rm(temps.ann.spline0, temps.ann.splineK)
 }
+
 if (model=="poly") {
-  #temps.ann <- ncvar_get(nc.tann, 'tas_variables')
-  print("NEED TO FORMAT FOR POLYNOMIALS -- SEE JIACAN's POLYNOMIAL FILES")
+  
+  # Get first power from James' test files
+  temps.ann1 <- ncvar_get(nc.tavg, 'annual')*365
+  
+  # Fill in an R-by-#powers array with all annual clim data
+  temps.ann <- array(NA, dim = c(dim(temps.ann1)[1], powers, length(year.avg[year.avg>=2006])))
+  temps.ann[,1,] <- temps.ann1[,which(year.avg>=2006)]
+  rm(temps.ann1)
+  
+  # Loop over polynomial power subfolders (change this if Jiacan changes her folder structure)
+  for(p in 2:powers) {
+    nc.tann <- nc_open(paste0(tannpath, 'tas_power', p, '/tas_annual_aggregated_rcp85_r1i1p1_CCSM4.nc'))
+    temporary <- ncvar_get(nc.tann, 'tas')*365
+    temps.ann[,p,] <- temporary 
+    rm(temporary)
+  }
+  year.ann <- ncvar_get(nc.tann, 'year')
 }
+
 if (model == "bin") {
   #temps.ann <- ncvar_get(nc.tann, 'bin_variables')
   print("NEED TO FORMAT FOR POLYNOMIALS -- SEE JIACAN's POLYNOMIAL FILES")
@@ -164,7 +207,6 @@ print("MOVING AVERAGE OF ANNUAL TEMPERATURES CALCULATED")
 
 ##############################################################################################
 # For non-binned models, generate the value for each climate variable that we subtract off
-# NOTE: for now thins only works for splines as of 03/16/2017! 
 ##############################################################################################
 
 if (model=="spline") {
@@ -190,8 +232,22 @@ for (r in 1:R) {
 if (model=="bin") {
   print("REFERENCE TEMPERATURE NOT NEEDED FOR BINNED MODEL")
 }
+
 if (model=="poly") {
-  print("REFERENCE TEMPERATURE CODE NOT FORMULATED FOR POLYNOMIALS YET")
+  
+  # Create an R x S array of poly reference terms for each impact region
+  terms_ref <- array(NA, dim=c(dim(movingavg)[1], dim(movingavg)[2]))
+  N <- powers # How many knots
+  
+  for (r in 1:R) { 
+    rindex <- which(splinemins$region==regions[r]) # just in case they are not ordered the same way
+    ref <- splinemins$brute[rindex] # this is a scalar -- CHANGE THIS BACK!! JAMES NEEDS TO FIX THE ANALYTIC SOLUTION
+    for(n in 1:N-1) {
+      terms_ref[r,n] <- ref^n 
+    }
+  }
+  terms_ref <- terms_ref*365 # to make it annual sum of the poly terms
+  print("POLYNOMIAL TERMS FOR THE REFERENCE TEMPERATURE CALCULATED")
 }
 
 
@@ -210,7 +266,7 @@ if(length(dim(temps.avg)) < length(dim(temps.ann))) {
   print("I'm assuming this single climate covariate gets multiplied by all climate variables")
 }
 if(length(dim(temps.avg)) == length(dim(temps.ann)) & dim(temps.avg)[2] < dim(temps.ann)[2]) {
-  print("NEED TO FORMAT THIS FOR POLYNOMIALS")
+  print("NEED TO FORMAT THIS CASE")
   if(dim(temps.avg) == dim(temps.ann)) {
     print("Do nothing -- each climate variable has its own average climate covariate")
   }
