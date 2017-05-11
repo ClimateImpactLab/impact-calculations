@@ -14,6 +14,7 @@ config = files.get_argv_config()
 
 REDOCHECK_DELAY = 0 #12*60*60
 do_single = False
+do_fillin = False
 
 singledir = 'single'
 
@@ -48,19 +49,6 @@ def iterate_single():
         shutil.rmtree(targetdir)
 
     yield singledir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
-
-def splineresult_callback(region, year, result, calculation, model):
-    filepath = os.path.join(targetdir, config['module'] + "-allcoeffs.csv")
-    if not os.path.exists(filepath):
-        metacsv.to_header(filepath, attrs=OrderedDict([('oneline', "Beta coefficients and result values by region and year"), ('version', config['module'] + config['outputdir'][config['outputdir'].rindex('-'):]), ('author', "James R."), ('contact', "jrising@berkeley.edu"), ('dependencies', [model + '.nc4'])]), variables=OrderedDict([('region', "Hierarchy region index"), ('year', "Year of the result"), ('model', "Specification (determined by the CSVV)"), ('result', "Change in death rate [deaths/person]"), ('spline_variables-0', "Coefficient for sum_tas [deaths/person/C]")] + [('spline_variables-%d' % ii, "Coefficient for spline_variables-%d [minutes / C^2]" % ii) for ii in range(1, 7)]))
-        with open(filepath, 'a') as fp:
-            writer = csv.writer(fp)
-            writer.writerow(['region', 'year', 'model', 'result', 'tas_sum'] + ['spline_variables-%d' % ii for ii in range(1, 7)])
-
-    with open(filepath, 'a') as fp:
-        writer = csv.writer(fp)
-        curve = curvegen.region_curves[region].curr_curve
-        writer.writerow([region, year, model, result[0]] + list(curve.coeffs))
 
 def splinepush_callback(region, year, application, get_predictors, model):
     covars = ['climtas', 'loggdppc', 'logpopop']
@@ -121,14 +109,17 @@ mod = importlib.import_module("impacts." + config['module'] + ".allmodels")
 mod.preload()
 
 for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in mode_iterators[config['mode']]():
+    targetdir = files.configpath(os.path.join(config['outputdir'], batchdir, clim_scenario, clim_model, econ_model, econ_scenario))
+
+    if do_fillin and not os.path.exists(targetdir):
+        continue
+    
     print clim_scenario, clim_model
     print econ_scenario, econ_model
 
     if config['mode'] == 'profile':
         pr = cProfile.Profile()
         pr.enable()
-
-    targetdir = files.configpath(os.path.join(config['outputdir'], batchdir, clim_scenario, clim_model, econ_model, econ_scenario))
 
     if config.get('redocheck', False):
         if os.path.exists(targetdir) and os.path.exists(os.path.join(targetdir, config['redocheck'])):
@@ -152,7 +143,7 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
         effectset.make_pval_file(targetdir, pvals)
 
     if config['mode'] == 'writesplines':
-        mod.produce(targetdir, weatherbundle, economicmodel, pvals, config, result_callback=splineresult_callback, push_callback=splinepush_callback, redocheck=config.get('redocheck', False), diagnosefile=os.path.join(targetdir, config['module'] + "-allcalcs.csv"))
+        mod.produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callback=splinepush_callback, redocheck=config.get('redocheck', False), diagnosefile=os.path.join(targetdir, config['module'] + "-allcalcs.csv"))
     elif config['mode'] == 'writepolys':
         mod.produce(targetdir, weatherbundle, economicmodel, pvals, config, result_callback=polyresult_callback, push_callback=polypush_callback, redocheck=config.get('redocheck', False), diagnosefile=os.path.join(targetdir, config['module'] + "-allcalcs.csv"))
     elif config['mode'] == 'profile':
@@ -176,7 +167,7 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
         historybundle = weather.RepeatedHistoricalWeatherBundle.make_historical(weatherbundle, None if config['mode'] == 'median' else pvals['histclim'].get_seed())
         pvals.lock()
 
-        mod.produce(targetdir, historybundle, economicmodel, pvals, config, suffix='-histclim', do_only=do_only)
+        mod.produce(targetdir, historybundle, economicmodel, pvals, config, suffix='-histclim')
 
     effectset.make_pval_file(targetdir, pvals)
 

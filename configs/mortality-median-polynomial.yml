@@ -3,3 +3,4 @@ mode: median
 outputdir: outputs/mortality/impacts-harvester
 do_only: interpolation
 do_farmers: true
+redocheck: CHECK-10170510.txt

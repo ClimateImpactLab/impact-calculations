@@ -24,7 +24,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
     print "Determining minimum temperatures."
     baselinemins = {}
     constantincomecurves = {}
-    with open(caller.callinfo['polyminpath'], 'w') as fp:
+    with open(caller.callinfo['minpath'], 'w') as fp:
         writer = csv.writer(fp)
         writer.writerow(['region', 'brute', 'analytic'])
         for region in weatherbundle.regions:
