@@ -15,9 +15,10 @@
 # This simplifies to: sum_k [ T_0^k * gamma_k * (Tbar_0^k - Tbar_1^k)] < COST < sum_k [ T_1^k * gamma_k * (Tbar_0^k - Tbar_1^k)], where "k" indicates each term in the nonlinear response (e.g. if it's a fourth order polynomial, we have k = 1,...,4), and where the Tbar values may vary by climate term (e.g for bins we interact each bin variable by the average number of days in that bin)
 
 ###########################
-# Syntax: cost_curves(tavgpath, tannpath, impactspath, gammapath, minpath, functionalform, 'ffparameters', 'gammarange'), Where:
+# Syntax: cost_curves(tavgpath, rcp, climate_model, impactspath, gammapath, minpath, functionalform, 'ffparameters', 'gammarange'), Where:
 # tavgpath = filepath for long run average climate data by impact region year 
-# tannpath = filepath for annual temperature data by impact region year (can be a folder with subfolders if polynomial!)
+# rcp = which RCP? enter as a string --  'rcp85' or 'rcp45'
+# climate_model = which climate model? enter as a string -- e.g. 'MIROC-ESM'
 # impactspath = filepath for the projected impacts for this model
 # gammapath = filepath for the CSVV of gammas
 # minpath = filepath for the CSV of impact region-specific reference temperatures
@@ -59,39 +60,35 @@ args <- commandArgs(trailingOnly=T)
 
 # Filepath for climate covariates and annual temperatures by region-year through 2100
 tavgpath = args[1] # outputs/temps/RCP/GCM/climtas.nc4
-tannpath = args[2] # climate/BCSD/aggregation/cmip5_new/IR_level/RCP/cubic_spline_tas/tas_restrict_cubic_spline_aggregate_RCP_r1i1p1_GCM.nc
+rcp = args[2] 
+climmodel = args[3]
 
 # Filepath for impacts
-impactspath <- args[3] # paste0("outputs/", sector, "/", impactsfolder, "/median-clipped/rcp", rcp, "/", climmodel, "/high/SSP4/moratlity_cubic_splines_2factors_", climdata, "_031617.nc4")
+impactspath <- args[4] # paste0("outputs/", sector, "/", impactsfolder, "/median-clipped/rcp", rcp, "/", climmodel, "/high/SSP4/moratlity_cubic_splines_2factors_", climdata, "_031617.nc4")
 
 # Filepath for gammas -- where is the CSVV?
-gammapath = args[4] # paste0("social/parameters/", sector, "/", csvname, ".csvv")
+gammapath = args[5] # paste0("social/parameters/", sector, "/", csvname, ".csvv")
 
 # Filepath for spline minimum values -- where is the CSV?
-minpath = args[5] # paste0("social/parameters/mortality/mortality_splines_03162017/splinemins.csv")
+minpath = args[6] # paste0("social/parameters/mortality/mortality_splines_03162017/splinemins.csv")
 
 # What model spec are you running? Options: bin, cubic spline, poly
-model <- args[6]
+model <- args[7]
 
 # Details on the functional form
-if(args[7]=='NS') {
+if(args[8]=='NS') {
   knots <- c(-12, -7, 0, 10, 18, 23, 28, 33)
 }
-if(args[7]=='LS'){
+if(args[8]=='LS'){
   knots <- c(-10, 0, 10, 20, 28, 33)
 }
-if(args[6]=='poly'){
+if(args[8]=='poly'){
   powers <- as.numeric(substr(args[7],5,5))
 }
 
 # Which gammas do you want to pull?
-gammarange <- unlist(strsplit(args[8], ':')) 
+gammarange <- unlist(strsplit(args[9], ':')) 
 gammarange <- as.numeric(gammarange[1]):as.numeric(gammarange[2])
-
-###############################################
-# Insert other key information about the CSVV
-###############################################
-
 
 ###############################################
 #  Get Gammas from CSVVs 
@@ -142,6 +139,9 @@ year.avg <- ncvar_get(nc.tavg, 'year')
 
 ## NOTE: Need to generalize this for Jiacan's other output (not sure how general her files are)
 if (model=="spline") {
+  
+  tannpath <- paste0('/shares/gcp/climate/BCSD/aggregation/cmip5_new/IR_level/', rcp, '/cubic_spline_tas/', length(knots), 'knots/tas_restrict_cubic_spline_aggregate_', rcp, '_r1i1p1_', climmodel, '.nc')
+  
   nc.tann <- nc_open(tannpath)
   year.ann <- ncvar_get(nc.tann, 'year')
   temps.ann.spline0 <- ncvar_get(nc.tann, 'tas_sum') #realized temperatures
@@ -165,7 +165,10 @@ if (model=="poly") {
   
   # Loop over polynomial power subfolders (change this if Jiacan changes her folder structure)
   for(p in 2:powers) {
-    nc.tann <- nc_open(paste0(tannpath, 'tas_power', p, '/tas_annual_aggregated_rcp85_r1i1p1_CCSM4.nc'))
+    
+    tannpath <- paste0('/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level/', rcp, '/', climmodel, '/tas_power', p, '/tas_annual_aggregated_',rcp, '_r1i1p1_', climmodel, '.nc')
+    
+    nc.tann <- nc_open(tannpath)
     temporary <- ncvar_get(nc.tann, 'tas')*365
     temps.ann[,p,] <- temporary 
     rm(temporary)
