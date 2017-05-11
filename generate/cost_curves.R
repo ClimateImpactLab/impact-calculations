@@ -167,15 +167,34 @@ if (model=="poly") {
   rm(temps.ann1)
   
   # Loop over polynomial power subfolders (change this if Jiacan changes her folder structure)
-  for(p in 2:powers) {
-    
+  # (with temporary fix for power 5 since we have no data yet!)
+  if(powers<5) {
+      for(p in 2:powers) {
     tannpath <- paste0('/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level/', rcp, '/', climmodel, '/tas_power', p, '/tas_annual_aggregated_',rcp, '_r1i1p1_', climmodel, '.nc')
-    
     nc.tann <- nc_open(tannpath)
     temporary <- ncvar_get(nc.tann, 'tas')*365
     temps.ann[,p,] <- temporary 
     rm(temporary)
+      }
   }
+  
+  if(powers>=5) {
+    for(p in 2:4) {
+      tannpath <- paste0('/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level/', rcp, '/', climmodel, '/tas_power', p, '/tas_annual_aggregated_',rcp, '_r1i1p1_', climmodel, '.nc')
+      nc.tann <- nc_open(tannpath)
+      temporary <- ncvar_get(nc.tann, 'tas')*365
+      temps.ann[,p,] <- temporary 
+      rm(temporary)
+    }
+    for(pp in 4:powers) {
+      tannpath <- paste0('/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level/', rcp, '/', climmodel, '/tas_power4/tas_annual_aggregated_',rcp, '_r1i1p1_', climmodel, '.nc')
+      nc.tann <- nc_open(tannpath)
+      temporary <- ncvar_get(nc.tann, 'tas')*365
+      temps.ann[,p,] <- temporary 
+      rm(temporary)
+    }
+  }
+  
   year.ann <- ncvar_get(nc.tann, 'year')
 }
 
