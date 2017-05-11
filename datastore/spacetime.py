@@ -14,3 +14,12 @@ class SpaceTimeLoadedData(SpaceTimeData):
         #ii = self.regions.index(region)
         ii = self.indices[region]
         return self.array[:, ii]
+
+class SpaceTimeLazyData(SpaceTimeData):
+    def __init__(self, year0, year1, regions, get_time):
+        super(SpaceTimeLazyData, self).__init__(year0, year1, regions)
+        self.get_time = get_time
+
+    def get_time(self, region):
+        return self.get_time(region)
+    

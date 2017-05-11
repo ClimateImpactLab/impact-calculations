@@ -14,7 +14,6 @@ config = files.get_argv_config()
 
 REDOCHECK_DELAY = 0 #12*60*60
 do_single = False
-do_fillin = False
 
 singledir = 'single'
 
@@ -111,7 +110,7 @@ mod.preload()
 for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in mode_iterators[config['mode']]():
     targetdir = files.configpath(os.path.join(config['outputdir'], batchdir, clim_scenario, clim_model, econ_model, econ_scenario))
 
-    if do_fillin and not os.path.exists(targetdir):
+    if config.get('do_fillin', False) and not os.path.exists(targetdir):
         continue
     
     print clim_scenario, clim_model
