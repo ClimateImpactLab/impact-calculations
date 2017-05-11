@@ -94,6 +94,6 @@ class SpaceTimeBipartiteData(spacetime.SpaceTimeData):
         stweight = self.total_population.load_population(year0, year1, model, scenario)
         ageshares = load_ageshares_allyears(year0, year1, model, scenario, agegroup)
 
-        return spacetime.SpaceTimeLazyData(self.year0, self.year1, self.regions, lambda region: stweight.get_time(region) * ageshares.get(region, ageshares['mean']))
+        return spacetime.SpaceTimeLazyData(self.year0, self.year1, self.regions, lambda region: stweight.get_time(region) * ageshares.get(region[:3], ageshares['mean']))
 
 
