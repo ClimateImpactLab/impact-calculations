@@ -1,5 +1,6 @@
 import subprocess, csv
 import numpy as np
+from netCDF4 import Dataset
 
 def show_header(text):
     print "\n\033[1m" + text + "\033[0m"
@@ -119,3 +120,15 @@ def get_regionindex(region):
         for row in reader:
             if row[0] == region:
                 return int(row[6]) - 1
+
+def get_weather(weathertemplate, years, shapenum):
+    weather = {}
+    for year in years:
+        rootgrp = Dataset(weathertemplate.format('historical' if year < 2006 else 'rcp85', year), 'r', format='NETCDF4')
+        data = rootgrp.variables['tas'][:, shapenum]
+        rootgrp.close()
+
+        print str(year) + ': ' + ','.join(map(str, data))
+        weather[year] = data
+
+    return weather

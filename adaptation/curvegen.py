@@ -1,6 +1,5 @@
 import numpy as np
 from openest.generate.curvegen import *
-from openest.generate import diagnostic
 from openest.models.curve import AdaptableCurve
 
 region_curves = {}
@@ -14,7 +13,7 @@ class CSVVCurveGenerator(CurveGenerator):
             assert predname in csvv['variables'], "Predictor %s not found in CSVV." % predname
             if predname in csvv['variables']:
                 if 'unit' in csvv['variables'][predname]:
-                    assert csvv['variables'][predname]['unit'] == indepunits[ii], "Units error: %s <> %s" % (csvv['variables'][predname]['unit'], indepunits[ii])
+                    assert csvv['variables'][predname]['unit'] == indepunits[ii], "Units error for %s: %s <> %s" % (predname, csvv['variables'][predname]['unit'], indepunits[ii])
 
         assert csvv['variables']['outcome']['unit'] == depenunit, "Dependent units %s does not match %s." % (csvv['variables']['outcome']['unit'], depenunit)
 

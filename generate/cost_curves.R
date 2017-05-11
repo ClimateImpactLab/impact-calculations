@@ -73,9 +73,6 @@ minpath = args[5] # paste0("social/parameters/mortality/mortality_splines_031620
 # What model spec are you running? Options: bin, cubic spline, poly
 model <- args[6]
 
-# If polynomial, how many powers?
-powers <- as.numeric(args[7])
-
 # Details on the functional form
 if(args[7]=='NS') {
   knots <- c(-12, -7, 0, 10, 18, 23, 28, 33)

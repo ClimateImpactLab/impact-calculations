@@ -1,7 +1,6 @@
 import sys, os, csv
 import numpy as np
 from openest.models.curve import ZeroInterceptPolynomialCurve
-from netCDF4 import Dataset
 import lib
 
 futureyear = 2050
@@ -42,14 +41,7 @@ lib.show_header("CSVV:")
 csvv = lib.get_csvv(csvvpath, *csvvargs)
 
 lib.show_header("Weather:")
-weather = {}
-for year in range(2001, 2011) + [2050]:
-    rootgrp = Dataset(weathertemplate.format('historical' if year < 2006 else 'rcp85', year), 'r', format='NETCDF4')
-    data = rootgrp.variables['tas'][:, shapenum]
-    rootgrp.close()
-
-    print str(year) + ': ' + ','.join(map(str, data))
-    weather[year] = data
+weather = lib.get_weather(weathertemplate, range(2001, 2011) + [2050], shapenum)
 
 for year in [2009, futureyear]:
     lib.show_header("Calc. of tas coefficient in %d (%f reported)" % (year, lib.excind(calcs, year-1, 'tas')))

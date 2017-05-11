@@ -7,7 +7,7 @@ from openest.generate.stdlib import *
 from openest.generate import diagnostic
 from impactcommon.math import minspline
 
-knots = [-12, -7, 0, 10, 18, 23, 28, 33]
+knots = [-10, 0, 10, 20, 28, 33]
 
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full'):
     covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 15, 2015, varindex=0), {'climtas': 'tas_sum'}, {'climtas': lambda x: x / 365}),
@@ -18,7 +18,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
     csvvfile.collapse_bang(csvv, qvals.get_seed())
 
     curr_curvegen = curvegen_arbitrary.CoefficientsCurveGenerator(lambda coeffs: CubicSplineCurve(knots, coeffs),
-                                                        ['C'] + ['C^3'] * (len(knots) - 2),
+                                                                  ['C'] + ['C^3'] * (len(knots) - 2),
                                                         '100,000 * death/population', 'spline_variables-', len(knots) - 1, csvv)
     farm_curvegen = curvegen.FarmerCurveGenerator(curr_curvegen, covariator, farmer)
 

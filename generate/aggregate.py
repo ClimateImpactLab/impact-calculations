@@ -8,7 +8,7 @@ levels_suffix = '-levels'
 suffix = "-aggregated"
 missing_only = True
 
-costs_command = "Rscript generate/cost_curves.R \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\"" # tavgpath tannpath impactspath gammapath minpath functionalform powers gammarange
+costs_command = "Rscript generate/cost_curves.R \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\"" # tavgpath tannpath impactspath gammapath minpath functionalform ffparameters gammarange
 
 checkfile = 'check-20161230.txt'
 
@@ -82,9 +82,6 @@ def make_aggregates(targetdir, filename, get_population, dimensions_template=Non
         os.remove(os.path.join(targetdir, filename[:-4] + suffix + '.nc4')) # Needs to be deleted
     writer = Dataset(os.path.join(targetdir, filename[:-4] + suffix + '.nc4'), 'w', format='NETCDF4')
 
-    print "HERE"
-    print dimreader.variables['regions'][:10]
-    print dimreader.variables['regions'][:][:10]
     regions = dimreader.variables['regions'][:].tolist()
     originals, prefixes, dependencies = agglib.get_aggregated_regions(regions)
 
@@ -127,7 +124,7 @@ def make_aggregates(targetdir, filename, get_population, dimensions_template=Non
 
             dstvalues[:, ii] = numers / denoms
 
-        agglib.copy_timereg_variable(writer, variable, key, dstvalues, "(aggregated)", unitchange=lambda unit: unit + '/person'))
+        agglib.copy_timereg_variable(writer, variable, key, dstvalues, "(aggregated)", unitchange=lambda unit: unit + '/person')
 
     reader.close()
     if dimensions_template is not None:
@@ -183,7 +180,7 @@ def make_levels(targetdir, filename, get_population, dimensions_template=None, m
         for ii in range(len(regions)):
             dstvalues[:, ii] = srcvalues[:, ii] * stweight.get_time(regions[ii])
 
-        agglib.copy_timereg_variable(writer, variable, key, dstvalues, "(levels)", unitchange=lambda unit: unit.replace('/person', '')))
+        agglib.copy_timereg_variable(writer, variable, key, dstvalues, "(levels)", unitchange=lambda unit: unit.replace('/person', ''))
 
     reader.close()
     if dimensions_template is not None:
@@ -234,33 +231,40 @@ if __name__ == '__main__':
                     continue
 
                 try:
-                    if filename in ['interpolated_mortality_all_ages.nc4', 'interpolated_mortality65_plus.nc4', 'global_interaction_best.nc4', 'global_interaction_gmfd.nc4', 'global_interaction_no_popshare_best.nc4', 'global_interaction_no_popshare_gmfd.nc4', 'moratlity_cubic_splines_2factors_GMFD_031617.nc4', 'moratlity_cubic_splines_2factors_BEST_031617.nc4']:
+                    if False: #'-noadapt' not in filename and '-incadapt' not in filename: #filename in ['interpolated_mortality_all_ages.nc4', 'interpolated_mortality65_plus.nc4', 'global_interaction_best.nc4', 'global_interaction_gmfd.nc4', 'global_interaction_no_popshare_best.nc4', 'global_interaction_no_popshare_gmfd.nc4', 'moratlity_cubic_splines_2factors_GMFD_031617.nc4', 'moratlity_cubic_splines_2factors_BEST_031617.nc4']:
                         # Generate costs
                         if not missing_only or not os.path.exists(os.path.join(targetdir, filename[:-4] + costs_suffix + '.nc4')):
                             tavgpath = '/shares/gcp/outputs/temps/%s/%s/climtas.nc4' % (clim_scenario, clim_model)
-                            tannpath = '/shares/gcp/climate/BCSD/aggregation/cmip5_new/IR_level/{0}/cubic_spline_tas/tas_restrict_cubic_spline_aggregate_{0}_r1i1p1_{1}.nc'.format(clim_scenario, clim_model)
                             impactspath = os.path.join(targetdir, filename)
-                            gammapath = '/shares/gcp/social/parameters/mortality/mortality_splines_03162017/' + filename.replace('.nc4', '.csvv')
-                            minpath = os.path.join(targetdir, filename.replace('.nc4', '-splinemins.csv'))
+                            gammapath = '/shares/gcp/social/parameters/mortality/Diagnostics_Apr17/' + filename.replace('.nc4', '.csvv')
+                            gammapath = gammapath.replace('-young', '').replace('-older', '').replace('-oldest', '')
 
                             if 'POLY-4' in filename:
                                 functionalform = 'poly'
-                                powers = 4
+                                ffparameters = 'poly4'
+                                numpreds = 4
+                                minpath = os.path.join(targetdir, filename.replace('.nc4', '-polymins.csv'))
+                                tannpath = '/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level/{0}/{1}/'.format(clim_scenario, clim_model)
                             elif 'POLY-5' in filename:
                                 functionalform = 'poly'
-                                powers = 4
+                                ffparameters = 'poly5'
+                                numpreds = 5
+                                minpath = os.path.join(targetdir, filename.replace('.nc4', '-polymins.csv'))
+                                tannpath = '/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level/{0}/{1}/'.format(clim_scenario, clim_model)
                             else:
+                                minpath = os.path.join(targetdir, filename.replace('.nc4', '-splinemins.csv'))
+                                tannpath = '/shares/gcp/climate/BCSD/aggregation/cmip5_new/IR_level/{0}/cubic_spline_tas/tas_restrict_cubic_spline_aggregate_{0}_r1i1p1_{1}.nc'.format(clim_scenario, clim_model)
                                 ValueError('Unknown functional form')
                                 
                             if '-young' in filename:
-                                gammarange = '0:%s' % (powers * 3)
+                                gammarange = '0:%s' % (numpreds * 3)
                             elif '-older' in filename:
-                                gammarange = '%s:%s' % (powers * 3, powers * 6)
+                                gammarange = '%s:%s' % (numpreds * 3, numpreds * 6)
                             elif '-oldest' in filename:
-                                gammarange = '%s:%s' % (powers * 6, powers * 9)
+                                gammarange = '%s:%s' % (numpreds * 6, numpreds * 9)
                                 
-                            print costs_command % (tavgpath, tannpath, impactspath, gammapath, minpath, functionalform, powers, gammarange))
-                            os.system(costs_command % (tavgpath, tannpath, impactspath, gammapath, minpath, functionalform, powers, gammarange))
+                            print costs_command % (tavgpath, tannpath, impactspath, gammapath, minpath, functionalform, ffparameters, gammarange)
+                            os.system(costs_command % (tavgpath, tannpath, impactspath, gammapath, minpath, functionalform, ffparameters, gammarange))
 
                         # Levels of costs
                         if not missing_only or not os.path.exists(os.path.join(targetdir, filename[:-4] + costs_suffix + levels_suffix + '.nc4')):

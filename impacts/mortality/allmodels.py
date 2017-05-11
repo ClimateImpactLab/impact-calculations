@@ -56,11 +56,13 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, result_callb
                 else:
                     ValueError("Unknown number of predictors")
                 module = 'impacts.mortality.ols_polynomial'
+                minpath_suffix = '-polymins'
             elif 'subterran' in config['outputdir']:
                 if 'CSpline' not in basename:
                     continue
                 numpreds = 5
                 module = 'impacts.mortality.ols_cubic_spline'
+                minpath_suffix = '-splinemins'
             else:
                 raise ValueError("Unknown version.")
                 
@@ -72,7 +74,7 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, result_callb
             for ageii in range(len(agegroups)):
                 subcsvv = csvvfile.subset(csvv, 3 * numpreds * ageii + np.arange(3 * numpreds))
                 subbasename = basename + '-' + agegroups[ageii]
-                caller.callinfo = dict(polyminpath=os.path.join(targetdir, subbasename + '-polymins.csv'))
+                caller.callinfo = dict(minpath=os.path.join(targetdir, subbasename + minpath_suffix + '.csv'))
                 
                 # Full Adaptation
                 if check_doit(redocheck, targetdir, subbasename, suffix):
