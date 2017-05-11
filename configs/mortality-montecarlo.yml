@@ -3,3 +3,5 @@ mode: montecarlo
 outputdir: outputs/mortality/impacts-harvester
 do_only: interpolation
 do_farmers: true
+do_fillin: true
+redocheck: check-20170511.txt

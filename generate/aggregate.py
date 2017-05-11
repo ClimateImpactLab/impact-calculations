@@ -12,7 +12,7 @@ costs_command = "Rscript generate/cost_curves.R \"%s\" \"%s\" \"%s\" \"%s\" \"%s
 
 checkfile = 'check-20161230.txt'
 
-batchfilter = lambda batch: batch == 'median' or 'batch' in batch
+batchfilter = lambda batch: batch == 'median' or batch == 'median-yearly' or 'batch' in batch
 targetdirfilter = lambda targetdir: True #'SSP3' in targetdir and 'Env-Growth' in targetdir and checkfile not in os.listdir(targetdir)
 
 # The full population, if we just read it.  Only 1 at a time (it's big!)
@@ -200,13 +200,17 @@ def make_costs_levels(targetdir, filename, get_population):
     make_levels(targetdir, filename, get_population, dimensions_template=dimensions_template, metainfo=metainfo)
 
 if __name__ == '__main__':
-    import sys
-    from datastore import population
-    outputdir = sys.argv[1]
+    from impactlab_tools.utils import files
+    from datastore import population, agecohorts
 
-    halfweight = population.SpaceTimeBipartiteData(1981, 2100, None)
+    config = files.get_argv_config()
 
-    for batch, clim_scenario, clim_model, econ_scenario, econ_model, targetdir in iterresults(outputdir):
+    if config['weighting'] == 'agecohorts':
+        halfweight = agecohorts.SpaceTimeBipartiteData(1981, 2100, None)
+    else:
+        halfweight = population.SpaceTimeBipartiteData(1981, 2100, None)
+
+    for batch, clim_scenario, clim_model, econ_scenario, econ_model, targetdir in iterresults(config['outputdir']):
         print targetdir
         print econ_model, econ_scenario
 
@@ -214,7 +218,6 @@ if __name__ == '__main__':
             fp.write("START")
 
         incomplete = False
-        get_population = lambda year0, year1: halfweight.load_population(year0, year1, econ_model, econ_scenario)
 
         for filename in os.listdir(targetdir):
             if filename[-4:] == '.nc4' and suffix not in filename and costs_suffix not in filename and levels_suffix not in filename:
@@ -224,6 +227,11 @@ if __name__ == '__main__':
                     variable = 'loggdppc'
                 else:
                     variable = 'rebased'
+
+                if config['weighting'] == 'agecohorts':
+                    get_population = lambda year0, year1: halfweight.load_population(year0, year1, econ_model, econ_scenario, agecohorts.age_from_filename(filename))
+                else:
+                    get_population = lambda year0, year1: halfweight.load_population(year0, year1, econ_model, econ_scenario)
 
                 if not checks.check_result_100years(os.path.join(targetdir, filename), variable=variable):
                     print "Incomplete."
