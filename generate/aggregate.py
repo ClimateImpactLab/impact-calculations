@@ -1,4 +1,4 @@
-import os, Queue, traceback
+import os, Queue, traceback, time
 import numpy as np
 from netCDF4 import Dataset
 import nc4writer, agglib, checks, csv
@@ -10,9 +10,10 @@ missing_only = True
 
 costs_command = "Rscript generate/cost_curves.R \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\"" # tavgpath tannpath impactspath gammapath minpath functionalform ffparameters gammarange
 
+REDOCHECK_DELAY = 60*60
 checkfile = 'check-20161230.txt'
 
-batchfilter = lambda batch: batch == 'median' or batch == 'median-yearly' or 'batch' in batch
+batchfilter = lambda batch: batch == 'median' or 'batch' in batch
 targetdirfilter = lambda targetdir: True #'SSP3' in targetdir and 'Env-Growth' in targetdir and checkfile not in os.listdir(targetdir)
 
 # The full population, if we just read it.  Only 1 at a time (it's big!)
@@ -214,6 +215,9 @@ if __name__ == '__main__':
         print targetdir
         print econ_model, econ_scenario
 
+        if os.path.exists(os.path.join(targetdir, checkfile)) and time.time() - os.path.getmtime(os.path.join(targetdir, checkfile)) < REDOCHECK_DELAY:
+            continue
+        
         with open(os.path.join(targetdir, checkfile), 'w') as fp:
             fp.write("START")
 
