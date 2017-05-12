@@ -274,11 +274,11 @@ if __name__ == '__main__':
                                 ValueError('Unknown functional form')
                                 
                             if '-young' in filename:
-                                gammarange = '0:%s' % (numpreds * 3)
+                                gammarange = '1:%s' % (numpreds * 3)
                             elif '-older' in filename:
-                                gammarange = '%s:%s' % (numpreds * 3, numpreds * 6)
+                                gammarange = '%s:%s' % (numpreds * 3 + 1, numpreds * 6)
                             elif '-oldest' in filename:
-                                gammarange = '%s:%s' % (numpreds * 6, numpreds * 9)
+                                gammarange = '%s:%s' % (numpreds * 6 + 1, numpreds * 9)
                                 
                             print costs_command % (tavgpath, clim_scenario, clim_model, impactspath, gammapath, minpath, functionalform, ffparameters, gammarange)
                             os.system(costs_command % (tavgpath, clim_scenario, clim_model, impactspath, gammapath, minpath, functionalform, ffparameters, gammarange))
