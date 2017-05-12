@@ -44,8 +44,8 @@ tavgpath = "~/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/climtas.nc4"
 tannpath = "~/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/poly/"
 outpath = "~/Tamma-Shackleton/GCP/adaptation_costs/data/poly"
 impactspath <- "/Users/tammacarleton/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/poly/global_interaction_Tmean-POLY-4-AgeSpec-geezer.nc4"
-gammapath = "~/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/poly/global_interaction_Tmean-POLY-4-AgeSpec.csvv"
-gammarange = 13:24
+gammapath = "~/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/global_interaction_Tmean-POLY-4-AgeSpec.csvv"
+gammarange = 25:36
 minpath <- "~/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/poly/global_interaction_Tmean-POLY-4-AgeSpec-geezer-polymins.csv"
 model <- 'poly'
 powers <- 4
@@ -183,15 +183,13 @@ if (model=="poly") {
       temps.ann[,p,] <- temporary 
       rm(temporary)
     }
-    for(pp in 4:powers) {
-      tannpath <- paste0('/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level/', rcp, '/', climmodel, '/tas_power4/tas_annual_aggregated_',rcp, '_r1i1p1_', climmodel, '.nc')
-      nc.tann <- nc_open(tannpath)
-      temporary <- ncvar_get(nc.tann, 'tas')*365
-      temps.ann[,p,] <- temporary 
-      rm(temporary)
+    for(pp in 5:powers) {
+      temps.ann1 <- ncvar_get(nc.tavg, 'annual')
+      temps.ann[,pp,] <- 365*(temps.ann1^pp)
+      rm(temps.ann1)
     }
   }
-  
+
   year.ann <- ncvar_get(nc.tann, 'year')
 }
 
@@ -269,8 +267,8 @@ if (model=="poly") {
   
   for (r in 1:R) { 
     rindex <- which(splinemins$region==regions[r]) # just in case they are not ordered the same way
-    ref <- splinemins$analytic[rindex] # this is a scalar -- CHANGE THIS BACK!! JAMES NEEDS TO FIX THE ANALYTIC SOLUTION
-    for(n in 1:N-1) {
+    ref <- splinemins$analytic[rindex] 
+    for(n in 1:N) {
       terms_ref[r,n] <- ref^n 
     }
   }
@@ -335,7 +333,7 @@ for (r in 1:R){
   }
   
   # Track progress
-  if (r/10 == round(r/10)) {
+  if (r/1000 == round(r/1000)) {
     print(paste0("------- REGION ", r, " FINISHED ------------"))  
   }
   
