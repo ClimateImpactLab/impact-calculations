@@ -1,5 +1,5 @@
 ################################################
-# GENERATE ADAPTATION COST CURVES 
+# GENERATE ADAPTATION COST CURVES
 # This is an attempt to generalize the code to be able to use any functional form estimated in the response function
 
 # T. Carleton, 3/13/2017
@@ -16,14 +16,14 @@
 
 ###########################
 # Syntax: cost_curves(tavgpath, rcp, climate_model, impactspath, gammapath, minpath, functionalform, 'ffparameters', 'gammarange'), Where:
-# tavgpath = filepath for long run average climate data by impact region year 
+# tavgpath = filepath for long run average climate data by impact region year
 # rcp = which RCP? enter as a string --  'rcp85' or 'rcp45'
 # climate_model = which climate model? enter as a string -- e.g. 'MIROC-ESM'
 # impactspath = filepath for the projected impacts for this model
 # gammapath = filepath for the CSVV of gammas
 # minpath = filepath for the CSV of impact region-specific reference temperatures
 # functionalform = 'spline', 'poly', or 'bin'
-# 'ffparameters' = details on the functional form chosen. E.g. for spline, this can be 'LS' or 'NS', and for polynomial this can be 'poly4' or 'poly5'. 
+# 'ffparameters' = details on the functional form chosen. E.g. for spline, this can be 'LS' or 'NS', and for polynomial this can be 'poly4' or 'poly5'.
 # gammarange = range of numbers indicating which of the gammas you want to pull (e.g. only a subset of them if you want just one age category) -- entered as a string!
 ###########################
 
@@ -53,14 +53,14 @@ powers <- 4
 #####################
 
 ###############################################
-# Set up 
+# Set up
 ###############################################
 
 args <- commandArgs(trailingOnly=T)
 
 # Filepath for climate covariates and annual temperatures by region-year through 2100
 tavgpath = args[1] # outputs/temps/RCP/GCM/climtas.nc4
-rcp = args[2] 
+rcp = args[2]
 climmodel = args[3]
 
 # Filepath for impacts
@@ -87,11 +87,11 @@ if(args[7]=='poly'){
 }
 
 # Which gammas do you want to pull?
-gammarange <- unlist(strsplit(args[9], ':')) 
+gammarange <- unlist(strsplit(args[9], ':'))
 gammarange <- as.numeric(gammarange[1]):as.numeric(gammarange[2])
 
 ###############################################
-#  Get Gammas from CSVVs 
+#  Get Gammas from CSVVs
 ###############################################
 
 csvv <- read.csv(gammapath, header=FALSE, skip = 18, strip.white=TRUE)
@@ -110,7 +110,7 @@ for (i in 1:length(covnames)) {
   climdummy[i] <- (covnames[i]!='1' & covnames[i]!='logpopop' & covnames[i]!='loggdppc'  & covnames[i]!='lggdppc')
 }
 
-# IMPORTANT: the climate covariates need to be in the same order as the climate variables they get multiplied by 
+# IMPORTANT: the climate covariates need to be in the same order as the climate variables they get multiplied by
 if (length(climdummy)!=length(covnames)) stop()
 
 row <- which(csvv[,1] == "gamma")
@@ -139,9 +139,9 @@ year.avg <- ncvar_get(nc.tavg, 'year')
 
 ## NOTE: Need to generalize this for Jiacan's other output (not sure how general her files are)
 if (model=="spline") {
-  
+
   tannpath <- paste0('/shares/gcp/climate/BCSD/aggregation/cmip5_new/IR_level/', rcp, '/cubic_spline_tas/', length(knots), 'knots/tas_restrict_cubic_spline_aggregate_', rcp, '_r1i1p1_', climmodel, '.nc')
-  
+
   nc.tann <- nc_open(tannpath)
   year.ann <- ncvar_get(nc.tann, 'year')
   temps.ann.spline0 <- ncvar_get(nc.tann, 'tas_sum') #realized temperatures
@@ -154,15 +154,15 @@ if (model=="spline") {
 }
 
 if (model=="poly") {
-  
+
   # Get first power from James' test files
   temps.ann1 <- ncvar_get(nc.tavg, 'annual')*365
-  
+
   # Fill in an R-by-#powers array with all annual clim data
   temps.ann <- array(NA, dim = c(dim(temps.ann1)[1], powers, length(year.avg[year.avg>=2006])))
   temps.ann[,1,] <- temps.ann1[,which(year.avg>=2006)]
   rm(temps.ann1)
-  
+
   # Loop over polynomial power subfolders (change this if Jiacan changes her folder structure)
   # (with temporary fix for power 5 since we have no data yet!)
   if(powers<5) {
@@ -170,22 +170,22 @@ if (model=="poly") {
     tannpath <- paste0('/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level/', rcp, '/', climmodel, '/tas_power', p, '/tas_annual_aggregated_',rcp, '_r1i1p1_', climmodel, '.nc')
     nc.tann <- nc_open(tannpath)
     temporary <- ncvar_get(nc.tann, 'tas')*365
-    temps.ann[,p,] <- temporary 
+    temps.ann[,p,] <- temporary
     rm(temporary)
       }
   }
-  
+
   if(powers>=5) {
     for(p in 2:4) {
       tannpath <- paste0('/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level/', rcp, '/', climmodel, '/tas_power', p, '/tas_annual_aggregated_',rcp, '_r1i1p1_', climmodel, '.nc')
       nc.tann <- nc_open(tannpath)
       temporary <- ncvar_get(nc.tann, 'tas')*365
-      temps.ann[,p,] <- temporary 
+      temps.ann[,p,] <- temporary
       rm(temporary)
     }
     for(pp in 5:powers) {
       temps.ann1 <- ncvar_get(nc.tavg, 'annual')
-      temps.ann[,pp,] <- 365*(temps.ann1^pp)
+      temps.ann[,pp,] <- 365*(temps.ann1[, (dim(temps.ann1)[2] - dim(temps.ann)[3] + 1):dim(temps.ann1)[2]]^pp)
       rm(temps.ann1)
     }
   }
@@ -204,7 +204,7 @@ print("ANNUAL AND LONG RUN AVERAGE TEMPERATURES LOADED")
 
 
 ##############################################################################################
-# LOAD IMPACTS 
+# LOAD IMPACTS
 ##############################################################################################
 
 nc.imp <- nc_open(impactspath)
@@ -236,17 +236,17 @@ print("MOVING AVERAGE OF ANNUAL TEMPERATURES CALCULATED")
 ##############################################################################################
 
 if (model=="spline") {
-  
+
   # Create an R x S array of spline reference terms for each impact region
   terms_ref <- array(NA, dim=c(dim(movingavg)[1], dim(movingavg)[2]))
   N <- length(knots) # How many knots
 
-for (r in 1:R) { 
+for (r in 1:R) {
   rindex <- which(splinemins$region==regions[r]) # just in case they are not ordered the same way
   ref <- splinemins$analytic[rindex]
   terms_ref[r,1] <- ref
   for(n in 1:(N-2)) {
-    terms_ref[r,1+n] <- (ref-knots[n])^3 * (ref>knots[n]) 
+    terms_ref[r,1+n] <- (ref-knots[n])^3 * (ref>knots[n])
     - (ref-knots[N-1])^3 * (ref>knots[N-1]) * ((knots[N]-knots[n])/(knots[N]-knots[N-1]))
     + (ref-knots[N])^3 * (ref>knots[N]) * ((knots[N-1]-knots[n])/(knots[N]-knots[N-1]))
   }
@@ -260,16 +260,16 @@ if (model=="bin") {
 }
 
 if (model=="poly") {
-  
+
   # Create an R x S array of poly reference terms for each impact region
   terms_ref <- array(NA, dim=c(dim(movingavg)[1], dim(movingavg)[2]))
   N <- powers # How many knots
-  
-  for (r in 1:R) { 
+
+  for (r in 1:R) {
     rindex <- which(splinemins$region==regions[r]) # just in case they are not ordered the same way
-    ref <- splinemins$analytic[rindex] 
+    ref <- splinemins$analytic[rindex]
     for(n in 1:N) {
-      terms_ref[r,n] <- ref^n 
+      terms_ref[r,n] <- ref^n
     }
   }
   terms_ref <- terms_ref*365 # to make it annual sum of the poly terms
@@ -302,20 +302,20 @@ if(length(dim(temps.avg)) == length(dim(temps.ann)) & dim(temps.avg)[2] < dim(te
 yearstokeep <- which(year.avg %in% year.ann)
 temps.avg <- temps.avg[,,yearstokeep[1]:tail(yearstokeep, n =1)]
 
-# Initialize -- region by lb/ub by year 
+# Initialize -- region by lb/ub by year
 results <- array(0, dim=c(dim(temps.ann)[1], 2, dim(temps.ann)[3]) )
 
 # Loop: for each impact region and each year, calculate bounds
 for (r in 1:R){
   for (k in 1:K) {
-    
+
     options(warn=-1)
     # Need a lead variable of the moving avg temp
     tempdf <- as.data.frame(movingavg[r,k,])
     colnames(tempdf) <- "climvar"
     ann <- slide(tempdf, Var='climvar', NewVar = 'future', slideBy=1, reminder=F)
     rm(tempdf)
-    
+
     # Need a differenced variable for each climate covariate
     tempdf <- as.data.frame(temps.avg[r,k,])
     colnames(tempdf) <- "climcov"
@@ -323,20 +323,20 @@ for (r in 1:R){
     avg$diff <- avg$climcov - avg$future
     rm(tempdf)
     options(warn=0)
-    
+
     # Lower and upper bounds
     results[r,1,] <- results[r,1,] + avg$diff * (ann$climvar - terms_ref[r,k]) * gammas[k] # lower
     results[r,2,] <- results[r,2,] + avg$diff * (ann$future - terms_ref[r,k]) * gammas[k] # upper
-    
-    # Clear 
+
+    # Clear
     rm(avg, ann)
   }
-  
+
   # Track progress
   if (r/1000 == round(r/1000)) {
-    print(paste0("------- REGION ", r, " FINISHED ------------"))  
+    print(paste0("------- REGION ", r, " FINISHED ------------"))
   }
-  
+
 }
 
 ###############################################
@@ -347,7 +347,7 @@ for (r in 1:R){
 if (length(year.avg) > length(year.ann)) {
   add <- length(year.avg) - length(year.ann)
   resultsnew <- array(NA, dim = c(dim(results)[1], dim(results)[2], (dim(results)[3]+add)))
-  
+
   # First set of years have zero costs, until changing temperatures kick in
   for (a in 1:add) {
     resultsnew[,,a] <- 0
@@ -358,14 +358,14 @@ if (length(year.avg) > length(year.ann)) {
 }
 
 # CLIP all values where impacts are zero from James' clipped version of output
-if (dim(results)[3]!=dim(impacts.rebased)[2]) stop() 
+if (dim(results)[3]!=dim(impacts.rebased)[2]) stop()
 for (r in 1:R) {
   for (y in 2:dim(results)[3]) {
     if ( impacts.rebased[r,y] - impacts.rebased[r,y-1] ==0) {
-      results[r,,y] <- 0 
-    } 
+      results[r,,y] <- 0
+    }
   }
-  
+
   # Cumulative sum over all years
   results[r,1,] <- cumsum(results[r,1,])
   results[r,2,] <- cumsum(results[r,2,])
@@ -398,11 +398,5 @@ ncvar_put(cost_nc, varyear, year)
 ncvar_put(cost_nc, varcosts_lb, results[,1 ,])
 ncvar_put(cost_nc, varcosts_ub, results[,2 ,])
 nc_close(cost_nc)
-
-print("----------- DONE DONE DONE ------------")
-
-print("----------- DONE DONE DONE ------------")
-
-print("----------- DONE DONE DONE ------------")
 
 print("----------- DONE DONE DONE ------------")
