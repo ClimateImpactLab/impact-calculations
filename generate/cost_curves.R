@@ -338,7 +338,7 @@ for (r in 1:R){
   }
   
   # Track progress
-  if (r/10 == round(r/10)) {
+  if (r/1000 == round(r/1000)) {
     print(paste0("------- REGION ", r, " FINISHED ------------"))  
   }
   
