@@ -82,8 +82,8 @@ if(args[8]=='NS') {
 if(args[8]=='LS'){
   knots <- c(-10, 0, 10, 20, 28, 33)
 }
-if(args[8]=='poly'){
-  powers <- as.numeric(substr(args[7],5,5))
+if(args[7]=='poly'){
+  powers <- as.numeric(substr(args[8],5,5))
 }
 
 # Which gammas do you want to pull?
