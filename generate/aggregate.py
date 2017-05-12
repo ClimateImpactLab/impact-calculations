@@ -2,19 +2,19 @@ import os, Queue, traceback, time
 import numpy as np
 from netCDF4 import Dataset
 import nc4writer, agglib, checks, csv
+from impactlab_tools.utils import paralog
 
 costs_suffix = '-costs'
 levels_suffix = '-levels'
 suffix = "-aggregated"
 missing_only = True
 
-costs_command = "Rscript generate/cost_curves.R \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\"" # tavgpath tannpath impactspath gammapath minpath functionalform ffparameters gammarange
+costs_command = "Rscript generate/cost_curves.R \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\"" # tavgpath rcp gcm impactspath gammapath minpath functionalform ffparameters gammarange
 
-REDOCHECK_DELAY = 60*60
-checkfile = 'check-20161230.txt'
+CLAIM_TIMEOUT = 60*60
 
 batchfilter = lambda batch: batch == 'median' or 'batch' in batch
-targetdirfilter = lambda targetdir: True #'SSP3' in targetdir and 'Env-Growth' in targetdir and checkfile not in os.listdir(targetdir)
+targetdirfilter = lambda targetdir: True #'SSP3' in targetdir and 'Env-Growth' in targetdir
 
 # The full population, if we just read it.  Only 1 at a time (it's big!)
 # Tuple of (get_population, minyear, maxyear, population)
@@ -201,11 +201,14 @@ def make_costs_levels(targetdir, filename, get_population):
     make_levels(targetdir, filename, get_population, dimensions_template=dimensions_template, metainfo=metainfo)
 
 if __name__ == '__main__':
+    import sys
     from impactlab_tools.utils import files
     from datastore import population, agecohorts
 
     config = files.get_argv_config()
 
+    statman = paralog.StatusManager('aggregate', "generate.aggregate " + sys.argv[1], 'logs', CLAIM_TIMEOUT)
+    
     if config['weighting'] == 'agecohorts':
         halfweight = agecohorts.SpaceTimeBipartiteData(1981, 2100, None)
     else:
@@ -215,11 +218,8 @@ if __name__ == '__main__':
         print targetdir
         print econ_model, econ_scenario
 
-        if os.path.exists(os.path.join(targetdir, checkfile)) and time.time() - os.path.getmtime(os.path.join(targetdir, checkfile)) < REDOCHECK_DELAY:
+        if not statman.claim(targetdir):
             continue
-        
-        with open(os.path.join(targetdir, checkfile), 'w') as fp:
-            fp.write("START")
 
         incomplete = False
 
@@ -243,7 +243,15 @@ if __name__ == '__main__':
                     continue
 
                 try:
-                    if False: #'-noadapt' not in filename and '-incadapt' not in filename: #filename in ['interpolated_mortality_all_ages.nc4', 'interpolated_mortality65_plus.nc4', 'global_interaction_best.nc4', 'global_interaction_gmfd.nc4', 'global_interaction_no_popshare_best.nc4', 'global_interaction_no_popshare_gmfd.nc4', 'moratlity_cubic_splines_2factors_GMFD_031617.nc4', 'moratlity_cubic_splines_2factors_BEST_031617.nc4']:
+                    # Generate total deaths
+                    if not missing_only or not checks.check_result_100years(os.path.join(targetdir, filename[:-4] + levels_suffix + '.nc4'), variable=variable) or not os.path.exists(os.path.join(targetdir, filename[:-4] + levels_suffix + '.nc4')):
+                        make_levels(targetdir, filename, get_population)
+
+                    # Aggregate impacts
+                    if not missing_only or not checks.check_result_100years(os.path.join(targetdir, filename[:-4] + suffix + '.nc4'), variable=variable, regioncount=5665) or not os.path.exists(os.path.join(targetdir, filename[:-4] + suffix + '.nc4')):
+                        make_aggregates(targetdir, filename, get_population)
+
+                    if '-noadapt' not in filename and '-incadapt' not in filename and 'histclim' not in filename: #filename in ['interpolated_mortality_all_ages.nc4', 'interpolated_mortality65_plus.nc4', 'global_interaction_best.nc4', 'global_interaction_gmfd.nc4', 'global_interaction_no_popshare_best.nc4', 'global_interaction_no_popshare_gmfd.nc4', 'moratlity_cubic_splines_2factors_GMFD_031617.nc4', 'moratlity_cubic_splines_2factors_BEST_031617.nc4']:
                         # Generate costs
                         if not missing_only or not os.path.exists(os.path.join(targetdir, filename[:-4] + costs_suffix + '.nc4')):
                             tavgpath = '/shares/gcp/outputs/temps/%s/%s/climtas.nc4' % (clim_scenario, clim_model)
@@ -256,16 +264,13 @@ if __name__ == '__main__':
                                 ffparameters = 'poly4'
                                 numpreds = 4
                                 minpath = os.path.join(targetdir, filename.replace('.nc4', '-polymins.csv'))
-                                tannpath = '/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level/{0}/{1}/'.format(clim_scenario, clim_model)
                             elif 'POLY-5' in filename:
                                 functionalform = 'poly'
                                 ffparameters = 'poly5'
                                 numpreds = 5
                                 minpath = os.path.join(targetdir, filename.replace('.nc4', '-polymins.csv'))
-                                tannpath = '/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level/{0}/{1}/'.format(clim_scenario, clim_model)
                             else:
                                 minpath = os.path.join(targetdir, filename.replace('.nc4', '-splinemins.csv'))
-                                tannpath = '/shares/gcp/climate/BCSD/aggregation/cmip5_new/IR_level/{0}/cubic_spline_tas/tas_restrict_cubic_spline_aggregate_{0}_r1i1p1_{1}.nc'.format(clim_scenario, clim_model)
                                 ValueError('Unknown functional form')
                                 
                             if '-young' in filename:
@@ -275,8 +280,8 @@ if __name__ == '__main__':
                             elif '-oldest' in filename:
                                 gammarange = '%s:%s' % (numpreds * 6, numpreds * 9)
                                 
-                            print costs_command % (tavgpath, tannpath, impactspath, gammapath, minpath, functionalform, ffparameters, gammarange)
-                            os.system(costs_command % (tavgpath, tannpath, impactspath, gammapath, minpath, functionalform, ffparameters, gammarange))
+                            print costs_command % (tavgpath, clim_scenario, clim_model, impactspath, gammapath, minpath, functionalform, ffparameters, gammarange)
+                            os.system(costs_command % (tavgpath, clim_scenario, clim_model, impactspath, gammapath, minpath, functionalform, ffparameters, gammarange))
 
                         # Levels of costs
                         if not missing_only or not os.path.exists(os.path.join(targetdir, filename[:-4] + costs_suffix + levels_suffix + '.nc4')):
@@ -286,22 +291,9 @@ if __name__ == '__main__':
                         if not missing_only or not os.path.exists(os.path.join(targetdir, filename[:-4] + costs_suffix + suffix + '.nc4')):
                             make_costs_aggregate(targetdir, filename[:-4] + costs_suffix + '.nc4', get_population)
 
-                    # Generate total deaths
-                    if not missing_only or not checks.check_result_100years(os.path.join(targetdir, filename[:-4] + levels_suffix + '.nc4'), variable=variable) or not os.path.exists(os.path.join(targetdir, filename[:-4] + levels_suffix + '.nc4')):
-                        make_levels(targetdir, filename, get_population)
-
-                    # Aggregate impacts
-                    if not missing_only or not checks.check_result_100years(os.path.join(targetdir, filename[:-4] + suffix + '.nc4'), variable=variable, regioncount=5665) or not os.path.exists(os.path.join(targetdir, filename[:-4] + suffix + '.nc4')):
-                        make_aggregates(targetdir, filename, get_population)
-
                 except Exception as ex:
                     print "Failed."
                     traceback.print_exc()
                     incomplete = True
 
-        if incomplete:
-            os.remove(os.path.join(targetdir, checkfile))
-        else:
-            with open(os.path.join(targetdir, checkfile), 'w') as fp:
-                fp.write("END")
-
+        statman.release(targetdir, "Incomplete" if incomplete else "Complete")
