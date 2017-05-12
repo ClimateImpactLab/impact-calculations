@@ -213,7 +213,6 @@ print("ANNUAL AND LONG RUN AVERAGE TEMPERATURES LOADED")
 ##############################################################################################
 
 nc.imp <- nc_open(impactspath)
-impacts.positive <- ncvar_get(nc.imp, 'positive') # Clipped value
 impacts.rebased <- ncvar_get(nc.imp, 'rebased') # Clipped value
 rm(nc.imp)
 
@@ -364,15 +363,12 @@ if (length(year.avg) > length(year.ann)) {
 }
 
 # CLIP all values where impacts are zero from James' clipped version of output
-if (dim(results)[3]!=dim(impacts.positive)[2]) stop() 
+if (dim(results)[3]!=dim(impacts.rebased)[2]) stop() 
 for (r in 1:R) {
   for (y in 2:dim(results)[3]) {
-    if (impacts.positive[r,y] == 0 & (impacts.rebased[r,y] - impacts.rebased[r,y-1] ==0)) {
+    if ( impacts.rebased[r,y] - impacts.rebased[r,y-1] ==0) {
       results[r,,y] <- 0 
     } 
-  }
-  if (impacts.positive[r,1] == 0 ) {
-    results[r,,1] <- 0
   }
   
   # Cumulative sum over all years
