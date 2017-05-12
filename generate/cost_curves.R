@@ -164,15 +164,34 @@ if (model=="poly") {
   rm(temps.ann1)
   
   # Loop over polynomial power subfolders (change this if Jiacan changes her folder structure)
-  for(p in 2:powers) {
-    
+  # (with temporary fix for power 5 since we have no data yet!)
+  if(powers<5) {
+      for(p in 2:powers) {
     tannpath <- paste0('/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level/', rcp, '/', climmodel, '/tas_power', p, '/tas_annual_aggregated_',rcp, '_r1i1p1_', climmodel, '.nc')
-    
     nc.tann <- nc_open(tannpath)
     temporary <- ncvar_get(nc.tann, 'tas')*365
     temps.ann[,p,] <- temporary 
     rm(temporary)
+      }
   }
+  
+  if(powers>=5) {
+    for(p in 2:4) {
+      tannpath <- paste0('/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level/', rcp, '/', climmodel, '/tas_power', p, '/tas_annual_aggregated_',rcp, '_r1i1p1_', climmodel, '.nc')
+      nc.tann <- nc_open(tannpath)
+      temporary <- ncvar_get(nc.tann, 'tas')*365
+      temps.ann[,p,] <- temporary 
+      rm(temporary)
+    }
+    for(pp in 4:powers) {
+      tannpath <- paste0('/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level/', rcp, '/', climmodel, '/tas_power4/tas_annual_aggregated_',rcp, '_r1i1p1_', climmodel, '.nc')
+      nc.tann <- nc_open(tannpath)
+      temporary <- ncvar_get(nc.tann, 'tas')*365
+      temps.ann[,p,] <- temporary 
+      rm(temporary)
+    }
+  }
+  
   year.ann <- ncvar_get(nc.tann, 'year')
 }
 
@@ -191,7 +210,6 @@ print("ANNUAL AND LONG RUN AVERAGE TEMPERATURES LOADED")
 ##############################################################################################
 
 nc.imp <- nc_open(impactspath)
-impacts.positive <- ncvar_get(nc.imp, 'positive') # Clipped value
 impacts.rebased <- ncvar_get(nc.imp, 'rebased') # Clipped value
 rm(nc.imp)
 
@@ -342,15 +360,12 @@ if (length(year.avg) > length(year.ann)) {
 }
 
 # CLIP all values where impacts are zero from James' clipped version of output
-if (dim(results)[3]!=dim(impacts.positive)[2]) stop() 
+if (dim(results)[3]!=dim(impacts.rebased)[2]) stop() 
 for (r in 1:R) {
   for (y in 2:dim(results)[3]) {
-    if (impacts.positive[r,y] == 0 & (impacts.rebased[r,y] - impacts.rebased[r,y-1] ==0)) {
+    if ( impacts.rebased[r,y] - impacts.rebased[r,y-1] ==0) {
       results[r,,y] <- 0 
     } 
-  }
-  if (impacts.positive[r,1] == 0 ) {
-    results[r,,1] <- 0
   }
   
   # Cumulative sum over all years
