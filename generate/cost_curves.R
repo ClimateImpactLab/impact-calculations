@@ -36,6 +36,7 @@ library(dplyr)
 library(DataCombine)
 library(zoo)
 library(abind)
+source("generate/stochpower.R")
 
 #####################
 is.local <- F
@@ -176,6 +177,11 @@ if (model=="poly") {
   }
 
   if(powers>=5) {
+    if (powers > 5) {
+      print("Cannot handle powers > 5")
+      exit()
+    }
+
     for(p in 2:4) {
       tannpath <- paste0('/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level/', rcp, '/', climmodel, '/tas_power', p, '/tas_annual_aggregated_',rcp, '_r1i1p1_', climmodel, '.nc')
       nc.tann <- nc_open(tannpath)
@@ -183,11 +189,9 @@ if (model=="poly") {
       temps.ann[,p,] <- temporary
       rm(temporary)
     }
-    for(pp in 5:powers) {
-      temps.ann1 <- ncvar_get(nc.tavg, 'annual')
-      temps.ann[,pp,] <- 365*(temps.ann1[, (dim(temps.ann1)[2] - dim(temps.ann)[3] + 1):dim(temps.ann1)[2]]^pp)
-      rm(temps.ann1)
-    }
+    vvs <- estimate.var.vector(temps.ann[,1,]/365, temps.ann[,2,]/365, temps.ann[,3,]/365)
+    vvs.matrix <- matrix(rep(vvs, each=dim(temps.ann)[3]), ncol=dim(temps.ann)[3], byrow=TRUE)
+    temps.ann[,5,] <- 365 * normal.power5(temps.ann[,1,]/365, vvs.matrix)
   }
 
   year.ann <- ncvar_get(nc.tann, 'year')
