@@ -28,11 +28,7 @@ def get_bundle_iterator():
                                             discover_derived_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'),
                                                                       'tas', 'power4', withyear=False, rcp_only=rcp_only))
 
-def check_doit(redocheck, targetdir, basename, suffix):
-    if not redocheck:
-        print "REDO: Missing", basename, suffix
-        return True
-
+def check_doit(targetdir, basename, suffix):
     filepath = effectset.get_ncdf_path(targetdir, basename, suffix)
     if not os.path.exists(filepath):
         print "REDO: Cannot find", filepath
@@ -45,7 +41,7 @@ def check_doit(redocheck, targetdir, basename, suffix):
 
     return False
 
-def produce(targetdir, weatherbundle, economicmodel, pvals, do_only=None, country_specific=True, result_callback=None, push_callback=None, suffix='', do_farmers=False, do_65plus=True, profile=False, redocheck=None, diagnosefile=False):
+def produce(targetdir, weatherbundle, economicmodel, pvals, do_only=None, country_specific=True, result_callback=None, push_callback=None, suffix='', do_farmers=False, do_65plus=True, profile=False, diagnosefile=False):
     print do_only
 
     if do_only is None or do_only == 'interpolation':
@@ -67,9 +63,9 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, do_only=None, countr
                 subcsvv = csvvfile.subset(csvv, 12 * ageii + np.arange(12))
                 subbasename = basename + '-' + agegroups[ageii]
                 caller.callinfo = dict(polyminpath=os.path.join(targetdir, subbasename + '-polymins.csv'))
-                
+
                 # Full Adaptation
-                if check_doit(redocheck, targetdir, subbasename, suffix):
+                if check_doit(targetdir, subbasename, suffix):
                     print "Smart Farmer"
                     calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(subcsvv, 'impacts.mortality.ols_polynomial', weatherbundle, economicmodel, pvals[subbasename])
 
@@ -84,26 +80,26 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, do_only=None, countr
                     pvals[subbasename].lock()
 
                     # Comatose Farmer
-                    if check_doit(redocheck, targetdir, subbasename + "-noadapt", suffix):
+                    if check_doit(targetdir, subbasename + "-noadapt", suffix):
                         calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(subcsvv, 'impacts.mortality.ols_polynomial', weatherbundle, economicmodel, pvals[subbasename], farmer='coma')
 
                         effectset.write_ncdf(targetdir, subbasename + "-noadapt", weatherbundle, calculation, None, "Mortality impacts, with interpolation but no adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, subbasename + '-noadapt'), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, subbasename + '-noadapt'), suffix=suffix)
 
                     # Dumb Farmer
-                    if check_doit(redocheck, targetdir, subbasename + "-incadapt", suffix):
+                    if check_doit(targetdir, subbasename + "-incadapt", suffix):
                         calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(subcsvv, 'impacts.mortality.ols_polynomial', weatherbundle, economicmodel, pvals[subbasename], farmer='dumb')
 
                         effectset.write_ncdf(targetdir, subbasename + "-incadapt", weatherbundle, calculation, None, "Mortality impacts, with interpolation and only environmental adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, subbasename + '-incadapt'), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, subbasename + '-incadapt'), suffix=suffix)
 
     produce_external(targetdir, weatherbundle, economicmodel, pvals, do_only=do_only, country_specific=country_specific, suffix=suffix)
-                        
+
 def produce_external(targetdir, weatherbundle, economicmodel, pvals, do_only=None, country_specific=True, suffix=''):
     if do_only is None or do_only == 'acp':
         # ACP response
         calculation, dependencies = caller.call_prepare('impacts.mortality.external.ACRA_mortality_temperature', weatherbundle, economicmodel, pvals['ACRA_mortality_temperature'])
         effectset.write_ncdf(targetdir, "ACPMortality", weatherbundle, calculation, None, "Mortality using the ACP response function.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, suffix=suffix)
 
-                        
+
     if do_only is None or do_only == 'country':
         # Other individual estimates
         for gcpid in ['DM2009_USA_national_mortality_all', 'BCDGS2013_USA_national_mortality_all', 'BCDGS2013_USA_national_mortality_65plus', 'GHA2003_BRA_national_mortality_all', 'GHA2003_BRA_national_mortality_65plus', 'B2012_USA_national_mortality_all', 'VSMPMCL2004_FRA_national_mortality_all', 'InternalAnalysis_BRA_national_mortality_all', 'InternalAnalysis_BRA_national_mortality_65plus', 'InternalAnalysis_MEX_national_mortality_all', 'InternalAnalysis_MEX_national_mortality_65plus', 'InternalAnalysis_CHN_national_mortality_all', 'InternalAnalysis_FRA_national_mortality_all', 'InternalAnalysis_FRA_national_mortality_65plus', 'InternalAnalysis_IND_national_mortality_all', 'InternalAnalysis_USA_national_mortality_all', 'InternalAnalysis_USA_national_mortality_65plus']:
