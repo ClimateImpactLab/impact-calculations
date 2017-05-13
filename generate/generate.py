@@ -5,7 +5,7 @@ Manages rcps and econ and climate models, and generate.effectset.simultaneous_ap
 import sys, os, itertools, importlib, shutil, csv, time, yaml
 from collections import OrderedDict
 import loadmodels
-import weather, effectset, pvalses
+import weather, pvalses
 from adaptation import curvegen
 from impactlab_tools.utils import files, paralog
 import cProfile, pstats, StringIO, metacsv
@@ -23,18 +23,18 @@ targetdir = None # The current targetdir
 
 def iterate_median():
     for clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in loadmodels.random_order(mod.get_bundle_iterator(config)):
-        pvals = effectset.ConstantPvals(.5)
+        pvals = pvalses.ConstantPvals(.5)
         yield 'median', pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
 
 def iterate_montecarlo():
     for batch in itertools.count():
         for clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in loadmodels.random_order(mod.get_bundle_iterator(config)):
-            pvals = effectset.OnDemandRandomPvals()
+            pvals = pvalses.OnDemandRandomPvals()
             yield 'batch' + str(batch), pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
 
 def iterate_single():
     clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel = loadmodels.single(mod.get_bundle_iterator(config))
-    pvals = effectset.ConstantPvals(.5)
+    pvals = pvalses.ConstantPvals(.5)
 
     # Check if this already exists and delete if so
     targetdir = files.configpath(os.path.join(config['outputdir'], singledir, clim_scenario, clim_model, econ_model, econ_scenario))
@@ -119,10 +119,10 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
 
     print targetdir
 
-    if effectset.has_pval_file(targetdir):
-        pvals = effectset.read_pval_file(targetdir)
+    if pvalses.has_pval_file(targetdir):
+        pvals = pvalses.read_pval_file(targetdir)
     else:
-        effectset.make_pval_file(targetdir, pvals)
+        pvalses.make_pval_file(targetdir, pvals)
 
     if config['mode'] == 'writesplines':
         mod.produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callback=splinepush_callback, diagnosefile=os.path.join(targetdir, config['module'] + "-allcalcs.csv"))
@@ -153,7 +153,7 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
 
         mod.produce(targetdir, historybundle, economicmodel, pvals, config, suffix='-histclim')
 
-    effectset.make_pval_file(targetdir, pvals)
+    pvalses.make_pval_file(targetdir, pvals)
 
     statman.release(targetdir, "Generated")
 
