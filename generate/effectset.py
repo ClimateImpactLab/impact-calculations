@@ -5,7 +5,6 @@ import helpers.header as headre
 from openest.generate import retrieve, diagnostic
 from adaptation import curvegen
 import server, nc4writer
-from pvalses import *
 
 def simultaneous_application(weatherbundle, calculation, get_apply_args, regions=None, push_callback=None):
     if regions is None:
