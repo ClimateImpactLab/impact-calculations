@@ -37,6 +37,8 @@ with open(os.path.join(dir, onlymodel + "-polymins.csv"), 'r') as fp:
             break
         shapenum += 1
 
+print "SHAPENUM: " + str(shapenum)
+        
 lib.show_header("CSVV:")
 csvv = lib.get_csvv(csvvpath, *csvvargs)
 
