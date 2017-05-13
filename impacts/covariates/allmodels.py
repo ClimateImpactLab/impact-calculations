@@ -38,4 +38,4 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, result_callb
                               'Estimate GDP per capita',
                               'Population density, as weighted by population'])
 
-    effectset.write_ncdf(targetdir, 'Covariates', weatherbundle, calculation, None, "Extensive margin labor impacts, with interpolation and adaptation through interpolation.", weatherbundle.dependencies + economicmodel.dependencies, suffix=suffix)
+    effectset.generate(targetdir, 'Covariates', weatherbundle, calculation, None, "Extensive margin labor impacts, with interpolation and adaptation through interpolation.", weatherbundle.dependencies + economicmodel.dependencies, config, suffix=suffix)

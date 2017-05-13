@@ -42,6 +42,15 @@ def simultaneous_application(weatherbundle, calculation, get_apply_args, regions
 def get_ncdf_path(targetdir, basename, suffix=''):
     return os.path.join(targetdir, basename + suffix + '.nc4')
 
+def generate(targetdir, basename, weatherbundle, calculation, get_apply_args, description, calculation_dependencies, config, filter_region=None, result_callback=None, push_callback=None, subset=None, suffix='', diagnosefile=False):
+    if config['mode'] == 'profile':
+        return small_print(weatherbundle, calculation, get_apply_args, regions=10)
+
+    if config['mode'] == 'diagnostic':
+        return small_print(weatherbundle, calculation, get_apply_args, regions=[config['region']])
+
+    return write_ncdf(targetdir, basename, weatherbundle, calculation, get_apply_args, description, calculation_dependencies, filter_region=filter_region, result_callback=result_callback, push_callback=push_callback, subset=subset, suffix=suffix, diagnosefile=diagnosefile)
+
 def write_ncdf(targetdir, basename, weatherbundle, calculation, get_apply_args, description, calculation_dependencies, filter_region=None, result_callback=None, push_callback=None, subset=None, suffix='', diagnosefile=False):
     if filter_region is None:
         my_regions = weatherbundle.regions
@@ -106,10 +115,19 @@ def write_ncdf(targetdir, basename, weatherbundle, calculation, get_apply_args, 
 
     rootgrp.close()
 
-def small_test(weatherbundle, calculation, get_apply_args, num_regions=10, *xargs):
+def small_print(weatherbundle, calculation, get_apply_args, regions=10):
+    """
+    Generate results for a small set of regions, and print out the results without generating any files.
+
+    Args:
+        regions: May be a number (e.g., 10) or a list of region codes
+    """
+    if isinstance(regions, int):
+        regions = np.random.choice(weatherbundle.regions, regions).tolist()
+
     yeardata = weatherbundle.get_years()
-    values = [np.zeros((len(yeardata), num_regions)) for ii in range(len(calculation.unitses))]
-    for ii, year, results in simultaneous_application(weatherbundle, calculation, get_apply_args, regions=np.random.choice(weatherbundle.regions, num_regions).tolist()):
+    values = [np.zeros((len(yeardata), len(regions))) for ii in range(len(calculation.unitses))]
+    for ii, year, results in simultaneous_application(weatherbundle, calculation, get_apply_args, regions=regions):
         for col in range(len(results)):
             values[col][year - yeardata[0]] = results[col]
 
