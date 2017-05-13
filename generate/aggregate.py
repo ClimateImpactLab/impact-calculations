@@ -269,8 +269,12 @@ if __name__ == '__main__':
                                 ffparameters = 'poly5'
                                 numpreds = 5
                                 minpath = os.path.join(targetdir, filename.replace('.nc4', '-polymins.csv'))
-                            else:
+                            elif 'CSpline' in filename:
+                                functionalform = 'spline'
+                                ffparameters = 'LS'
+                                numpreds = 5
                                 minpath = os.path.join(targetdir, filename.replace('.nc4', '-splinemins.csv'))
+                            else:
                                 ValueError('Unknown functional form')
                                 
                             if '-young' in filename:
