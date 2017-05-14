@@ -108,10 +108,13 @@ mod = importlib.import_module("impacts." + config['module'] + ".allmodels")
 mod.preload()
 
 for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in mode_iterators[config['mode']]():
-    targetdir = files.configpath(os.path.join(config['outputdir'], batchdir, clim_scenario, clim_model, econ_model, econ_scenario))
+    if batchdir is not None:
+        targetdir = files.configpath(os.path.join(config['outputdir'], batchdir, clim_scenario, clim_model, econ_model, econ_scenario))
 
-    if config.get('do_fillin', False) and not os.path.exists(targetdir):
-        continue
+        if config.get('do_fillin', False) and not os.path.exists(targetdir):
+            continue
+    else:
+        targetdir = None
 
     print clim_scenario, clim_model
     print econ_scenario, econ_model
@@ -120,15 +123,16 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
         pr = cProfile.Profile()
         pr.enable()
 
-    if not statman.claim(targetdir):
-        continue
+    if targetdir is not None:
+        if not statman.claim(targetdir):
+            continue
 
-    print targetdir
+        print targetdir
 
-    if pvalses.has_pval_file(targetdir):
-        pvals = pvalses.read_pval_file(targetdir)
-    else:
-        pvalses.make_pval_file(targetdir, pvals)
+        if pvalses.has_pval_file(targetdir):
+            pvals = pvalses.read_pval_file(targetdir)
+        else:
+            pvalses.make_pval_file(targetdir, pvals)
 
     if config['mode'] == 'writesplines':
         mod.produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callback=splinepush_callback, diagnosefile=os.path.join(targetdir, config['module'] + "-allcalcs.csv"))
@@ -151,7 +155,7 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
     else:
         mod.produce(targetdir, weatherbundle, economicmodel, pvals, config)
 
-    if config['mode'] != 'writesplines' and config['mode'] != 'writepolys':
+    if config['mode'] not in ['writesplines', 'writepolys', 'diagnostic']:
         # Generate historical baseline
         print "Historical"
         historybundle = weather.RepeatedHistoricalWeatherBundle.make_historical(weatherbundle, None if config['mode'] == 'median' else pvals['histclim'].get_seed())
@@ -159,9 +163,10 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
 
         mod.produce(targetdir, historybundle, economicmodel, pvals, config, suffix='-histclim')
 
-    pvalses.make_pval_file(targetdir, pvals)
+    if targetdir is not None:
+        pvalses.make_pval_file(targetdir, pvals)
 
-    statman.release(targetdir, "Generated")
+        statman.release(targetdir, "Generated")
 
     if do_single:
         break
