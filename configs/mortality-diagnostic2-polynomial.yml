@@ -1,0 +1,5 @@
+module: mortality
+mode: diagnostic
+outputdir: null
+do_only: interpolation
+do_farmers: false
