@@ -13,7 +13,7 @@ def get_bundle_iterator():
     return weather.iterate_combined_bundles(discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tas'),
                                             discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'pr'))
 
-def produce(targetdir, weatherbundle, economicmodel, pvals, config, result_callback=None, push_callback=None, suffix='', profile=False, redocheck=False, diagnosefile=False):
+def produce(targetdir, weatherbundle, economicmodel, pvals, config, result_callback=None, push_callback=None, suffix='', profile=False, diagnosefile=False):
     predgen = covariates.CombinedCovariator([covariates.MeanWeatherCovariator(weatherbundle.get_subset(0), 15, 2015),
                                              covariates.SeasonalWeatherCovariator(weatherbundle.get_subset(0), 15, 2015, 0, 90, 0),
                                              covariates.SeasonalWeatherCovariator(weatherbundle.get_subset(0), 15, 2015, 180, 270, 0),
@@ -38,4 +38,4 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, result_callb
                               'Estimate GDP per capita',
                               'Population density, as weighted by population'])
 
-    effectset.write_ncdf(targetdir, 'Covariates', weatherbundle, calculation, None, "Extensive margin labor impacts, with interpolation and adaptation through interpolation.", weatherbundle.dependencies + economicmodel.dependencies, suffix=suffix)
+    effectset.generate(targetdir, 'Covariates', weatherbundle, calculation, None, "Extensive margin labor impacts, with interpolation and adaptation through interpolation.", weatherbundle.dependencies + economicmodel.dependencies, config, suffix=suffix)
