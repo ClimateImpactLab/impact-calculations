@@ -32,6 +32,12 @@ def iterate_montecarlo():
             pvals = pvalses.OnDemandRandomPvals()
             yield 'batch' + str(batch), pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
 
+def iterate_nosideeffects():
+    clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel = loadmodels.single(mod.get_bundle_iterator(config))
+    pvals = pvalses.ConstantPvals(.5)
+
+    yield None, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
+
 def iterate_single():
     clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel = loadmodels.single(mod.get_bundle_iterator(config))
     pvals = pvalses.ConstantPvals(.5)
@@ -93,7 +99,7 @@ def polypush_callback(region, year, application, get_predictors, model):
         predictors = get_predictors(region)
         writer.writerow([region, year, model] + [predictors[covar] for covar in covars])
 
-mode_iterators = {'median': iterate_median, 'montecarlo': iterate_montecarlo, 'single': iterate_single, 'writesplines': iterate_single, 'writepolys': iterate_single, 'profile': iterate_single, 'diagnostic': iterate_single}
+mode_iterators = {'median': iterate_median, 'montecarlo': iterate_montecarlo, 'single': iterate_single, 'writesplines': iterate_single, 'writepolys': iterate_single, 'profile': iterate_nosideeffects, 'diagnostic': iterate_nosideeffects}
 
 assert config['mode'] in mode_iterators.keys()
 
