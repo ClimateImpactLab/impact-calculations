@@ -5,12 +5,17 @@ from netCDF4 import Dataset
 def show_header(text):
     print "\n\033[1m" + text + "\033[0m"
 
-def show_julia(command):
+def show_julia(command, clipto=160):
     if isinstance(command, str):
         print command
         print "# " + subprocess.check_output(["julia", "-e", "println(" + command + ")"])
     else:
-        print "\n".join(command)
+        for line in command:
+            if len(line) > clipto:
+                print line[:(clipto-3)] + '...'
+            else:
+                print line
+                
         print "# " + subprocess.check_output(["julia", "-e", "; ".join(command[:-1]) + "; println(" + command[-1] + ")"])
 
 def get_excerpt(filepath, first_col, regionid, years, hasmodel=True, onlymodel=None, hidecols=[]):
@@ -128,7 +133,7 @@ def get_weather(weathertemplate, years, shapenum):
         data = rootgrp.variables['tas'][:, shapenum]
         rootgrp.close()
 
-        print str(year) + ': ' + ','.join(map(str, data))
+        print str(year) + ': ' + ','.join(map(str, data[:10])) +  ' ...'
         weather[year] = data
 
     return weather
