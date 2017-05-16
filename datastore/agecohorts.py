@@ -80,6 +80,8 @@ def age_from_filename(filename):
         return 'age5-64'
     if '-oldest' in filename or '-geezer' in filename:
         return 'age65+'
+    if '-combined' in filename:
+        return 'total'
 
     raise ValueError('Unknown age group')
 
@@ -93,6 +95,10 @@ class SpaceTimeBipartiteData(spacetime.SpaceTimeData):
         
     def load_population(self, year0, year1, model, scenario, agegroup):
         stweight = self.total_population.load_population(year0, year1, model, scenario)
+
+        if agegroup == 'total':
+            return stweight
+        
         ageshares = load_ageshares_allyears(year0, year1, model, scenario, agegroup)
 
         return spacetime.SpaceTimeLazyData(self.year0, self.year1, self.regions, lambda region: stweight.get_time(region) * ageshares.get(region[:3], ageshares['mean']))
