@@ -12,6 +12,8 @@ class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
     def get_curve(self, region, covariates={}):
         coefficients = self.get_coefficients(covariates)
         yy = [coefficients[predname] for predname in self.prednames]
+        if covariates:
+            print region, yy
 
         if diagnostic.is_recording():
             for predname in self.prednames:

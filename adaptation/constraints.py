@@ -41,6 +41,7 @@ class ConstantIncomeInstantAdaptingCurve(InstantAdaptingCurve):
         self.baseline_loggdppc = covariator.get_current(region)['loggdppc']
     
     def update(self, year, weather):
+        print "Update", np.mean(weather)
         covariates = self.covariator.get_update(self.region, year, weather)
         covariates['loggdppc'] = self.baseline_loggdppc
         self.curr_curve = self.curvegen.get_curve(self.region, covariates)

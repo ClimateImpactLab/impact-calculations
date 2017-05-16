@@ -2,7 +2,7 @@
 Manages rcps and econ and climate models, and generate.effectset.simultaneous_application handles the regions and years.
 """
 
-import sys, os, itertools, importlib, shutil, csv, time, yaml
+import sys, os, itertools, importlib, shutil, csv, time, yaml, tempfile
 from collections import OrderedDict
 import loadmodels
 import weather, pvalses
@@ -114,7 +114,7 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
         if config.get('do_fillin', False) and not os.path.exists(targetdir):
             continue
     else:
-        targetdir = None
+        targetdir = tempfile.mkdtemp()
 
     print clim_scenario, clim_model
     print econ_scenario, econ_model
@@ -123,16 +123,15 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
         pr = cProfile.Profile()
         pr.enable()
 
-    if targetdir is not None:
-        if not statman.claim(targetdir):
-            continue
+    if not statman.claim(targetdir):
+        continue
 
-        print targetdir
+    print targetdir
 
-        if pvalses.has_pval_file(targetdir):
-            pvals = pvalses.read_pval_file(targetdir)
-        else:
-            pvalses.make_pval_file(targetdir, pvals)
+    if pvalses.has_pval_file(targetdir):
+        pvals = pvalses.read_pval_file(targetdir)
+    else:
+        pvalses.make_pval_file(targetdir, pvals)
 
     if config['mode'] == 'writesplines':
         mod.produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callback=splinepush_callback, diagnosefile=os.path.join(targetdir, config['module'] + "-allcalcs.csv"))
@@ -163,10 +162,9 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
 
         mod.produce(targetdir, historybundle, economicmodel, pvals, config, suffix='-histclim')
 
-    if targetdir is not None:
-        pvalses.make_pval_file(targetdir, pvals)
+    pvalses.make_pval_file(targetdir, pvals)
 
-        statman.release(targetdir, "Generated")
+    statman.release(targetdir, "Generated")
 
     if do_single:
         break

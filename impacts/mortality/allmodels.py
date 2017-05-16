@@ -2,9 +2,10 @@ import os, glob
 import numpy as np
 from impactlab_tools.utils import files
 from adaptation import csvvfile
-from generate import weather, server, effectset, caller, checks
+from generate import weather, server, effectset, caller, checks, agglib
 from openest.generate.weatherslice import YearlyWeatherSlice
 from climate.discover import discover_variable, discover_derived_variable, discover_convert
+from datastore import agecohorts
 
 def preload():
     from datastore import library
@@ -94,6 +95,14 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, result_callb
                         calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(subcsvv, module, weatherbundle, economicmodel, pvals[subbasename], farmer='dumb')
 
                         effectset.generate(targetdir, subbasename + "-incadapt", weatherbundle, calculation, None, "Mortality impacts, with interpolation and only environmental adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, subbasename + '-incadapt'), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, subbasename + '-incadapt'), suffix=suffix)
+
+            # Combine the ages
+            for assumption in ['', '-noadapt', '-incadapt']:
+                halfweight = agecohorts.SpaceTimeBipartiteData(1981, 2100, None)
+                basenames = [basename + '-' + agegroup + assumption for agegroup in agegroups]
+                get_stweights = [lambda year0, year1: halfweight.load_population(year0, year1, economicmodel.model, economicmodel.scenario, 'age0-4'), lambda year0, year1: halfweight.load_population(year0, year1, economicmodel.model, economicmodel.scenario, 'age5-64'), lambda year0, year1: halfweight.load_population(year0, year1, economicmodel.model, economicmodel.scenario, 'age65+')]
+                if check_doit(targetdir, basename + '-combined' + assumption, suffix):
+                    agglib.combine_results(targetdir, basename + '-combined' + assumption, basenames, get_stweights, "Combined mortality across age-groups for " + basename, suffix=suffix)
 
     produce_external(targetdir, weatherbundle, economicmodel, pvals, config, suffix=suffix)
 
