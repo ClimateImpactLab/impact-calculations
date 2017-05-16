@@ -1,4 +1,11 @@
+import os
 import numpy as np
+from netCDF4 import Dataset
+
+def create(targetdir, basename):
+    if os.path.exists(os.path.join(targetdir, basename + '.nc4')):
+        os.remove(os.path.join(targetdir, basename + '.nc4')) # Needs to be deleted
+    return Dataset(os.path.join(targetdir, basename + '.nc4'), 'w', format='NETCDF4')
 
 def make_years_variable(rootgrp):
     year = rootgrp.createDimension('year', None)

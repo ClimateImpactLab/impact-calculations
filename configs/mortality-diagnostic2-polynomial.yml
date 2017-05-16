@@ -1,6 +1,6 @@
 module: mortality
 mode: diagnostic
-outputdir: null
+outputdir: impacts-harvester
 do_only: interpolation
 do_farmers: false
 region: IND.33.542.2153

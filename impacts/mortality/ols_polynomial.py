@@ -7,6 +7,9 @@ from openest.generate.stdlib import *
 from openest.generate import diagnostic
 from impactcommon.math import minpoly
 
+## NOTE: Currently allows no anti-adaptation, because constantcurves don't respond to temp;
+##  Problem is that full curve gets regenerated, but not constantcurves.
+
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full'):
     covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 15, 2015), {'climtas': 'tas'}),
                                                 covariates.EconomicCovariator(economicmodel, 3, 2015)])
@@ -41,6 +44,8 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
     print "Finishing calculation setup."
     
     def transform(region, curve):
+        print "Full", curve.ccs
+        print "NoInc", constantincomecurves[region].curr_curve.ccs
         fulladapt_curve = ShiftedCurve(curve, -curve(baselinemins[region]))
         noincadapt_curve = ShiftedCurve(constantincomecurves[region], -constantincomecurves[region](baselinemins[region]))
         

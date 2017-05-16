@@ -81,44 +81,29 @@ lib.show_header("Calc. of result (%f reported)" % (coeffs[str(futureyear)][0]))
 
 lib.show_header("  Without the goodmoney assumption:")
 lines = ["weather_%d = [%s]" % (futureyear, ','.join(["%.12g" % weday for weday in weather[futureyear]])),
+         "bl1(weather) = ([%s]' * weather) / 100000" % ', '.join(["%.12g" % lib.excind(calcs, futureyear, coeff) for coeff in coefflist]),
+         "bl2(weather) = bl1(exp((1:%d) * transpose(log(weather)))) - bl1(%.12g .^ (1:%d))[1]" % (polypower, lib.excind(mintemps, 2009, 'analytic'), polypower),
+         "bl(weather) = sum(bl2(weather) .* (bl2(weather) .> 0))",
+         "bl(weather_%d) - %.12g" % (futureyear, lib.excind(calcs, 2009, 'baseline'))]
+lib.show_julia(lines)
+
+lib.show_header("  Using the baseline curve only")
+lines = ["weather_%d = [%s]" % (futureyear, ','.join(["%.12g" % weday for weday in weather[futureyear]])),
          "bl1(weather) = ([%s]' * weather) / 100000" % ', '.join(["%.12g" % lib.excind(calcs, 2009, coeff) for coeff in coefflist]),
          "bl2(weather) = bl1(exp((1:%d) * transpose(log(weather)))) - bl1(%.12g .^ (1:%d))[1]" % (polypower, lib.excind(mintemps, 2009, 'analytic'), polypower),
          "bl(weather) = sum(bl2(weather) .* (bl2(weather) .> 0))",
-         "bl(weather_%d)" % futureyear]
+         "bl(weather_%d) - %.12g" % (futureyear, lib.excind(calcs, 2009, 'baseline'))]
 lib.show_julia(lines)
 
-# What are the new coefficients
-lib.show_header("  Marginal effect of money")
-lines = ["gdpgammas = [%s]" % ', '.join(["%.12g" % csvv['gamma'][ii] for ii in range(len(csvv['gamma'])) if csvv['covarnames'][ii] == 'loggdppc']),
-         "transpose(gdpgammas) * [%s]" % ', '.join(get_preds(futureyear))]
-lib.show_julia(lines)
-
-lines = ["gdpgammas = [%s]" % ', '.join(["%.12g" % csvv['gamma'][ii] for ii in range(len(csvv['gamma'])) if csvv['covarnames'][ii] == 'loggdppc']),
-         "deltacoeff = gdpgammas .* (%.12g - %.12g)" % (lib.excind(preds, futureyear - 1, 'loggdppc'), lib.excind(preds, 2009, 'loggdppc')),
-         "[%s] - deltacoeff" % ', '.join(["%.12g" % lib.excind(calcs, futureyear, coeff) for coeff in coefflist])]
-lib.show_julia(lines)
-
-lib.show_header("  Using the goodmoney alone")
+lib.show_header("  Using the no-anti-adaptation assumption")
 lines = ["weather_%d = [%s]" % (futureyear, ','.join(["%.12g" % weday for weday in weather[futureyear]])),
-         "gdpgammas = [%s]" % ', '.join(["%.12g" % csvv['gamma'][ii] for ii in range(len(csvv['gamma'])) if csvv['covarnames'][ii] == 'loggdppc']),
-         "deltacoeff = gdpgammas .* (%.12g - %.12g)" % (lib.excind(preds, futureyear - 1, 'loggdppc'), lib.excind(preds, 2009, 'loggdppc')),
-         "bl1(weather) = (([%s] - deltacoeff)' * weather) / 100000" % ', '.join(["%.12g" % lib.excind(calcs, 2009, coeff) for coeff in coefflist]),
-         "bl2(weather) = bl1(exp((1:%d) * transpose(log(weather)))) - bl1(%.12g .^ (1:%d))[1]" % (polypower, lib.excind(mintemps, 2009, 'analytic'), polypower),
-         "bl(weather) = sum(bl2(weather) .* (bl2(weather) .> 0))",
-         "bl(weather_%d)" % futureyear]
-lib.show_julia(lines)
-
-lib.show_header("  Using the goodmoney assumption")
-lines = ["weather_%d = [%s]" % (futureyear, ','.join(["%.12g" % weday for weday in weather[futureyear]])),
-         "bl1(weather) = ([%s]' * weather) / 100000" % ', '.join(["%.12g" % lib.excind(calcs, 2009, coeff) for coeff in coefflist]),
+         "bl1(weather) = ([%s]' * weather) / 100000" % ', '.join(["%.12g" % lib.excind(calcs, futureyear, coeff) for coeff in coefflist]),
          "bl2(weather) = bl1(exp((1:%d) * transpose(log(weather)))) - bl1(%.12g .^ (1:%d))[1]" % (polypower, lib.excind(mintemps, 2009, 'analytic'), polypower),
          "bl(weather) = bl2(weather) .* (bl2(weather) .> 0)",
          "original = bl(weather_%d)" % futureyear,
-         "gdpgammas = [%s]" % ', '.join(["%.12g" % csvv['gamma'][ii] for ii in range(len(csvv['gamma'])) if csvv['covarnames'][ii] == 'loggdppc']),
-         "deltacoeff = gdpgammas .* (%.12g - %.12g)" % (lib.excind(preds, futureyear - 1, 'loggdppc'), lib.excind(preds, 2009, 'loggdppc')),
-         "bl1(weather) = (([%s] - deltacoeff)' * weather) / 100000" % ', '.join(["%.12g" % lib.excind(calcs, 2009, coeff) for coeff in coefflist]),
+         "bl1(weather) = ([%s]' * weather) / 100000" % ', '.join(["%.12g" % lib.excind(calcs, 2009, coeff) for coeff in coefflist]),
          "bl2(weather) = bl1(exp((1:%d) * transpose(log(weather)))) - bl1(%.12g .^ (1:%d))[1]" % (polypower, lib.excind(mintemps, 2009, 'analytic'), polypower),
          "bl(weather) = bl2(weather) .* (bl2(weather) .> 0)",
          "goodmoney = bl(weather_%d)" % futureyear,
-         "sum(min(original, goodmoney))"]
+         "sum(min(original, goodmoney)) - %.12g" % lib.excind(calcs, 2009, 'baseline')]
 lib.show_julia(lines)

@@ -53,22 +53,6 @@ def iterresults(outdir):
                             continue
                         yield batch, clim_scenario, clim_model, econ_scenario, econ_model, espath
 
-def get_years(reader, limityears=None):
-    if 'year' in reader.variables:
-        readeryears = reader.variables['year'][:]
-    elif 'years' in reader.variables:
-        readeryears = reader.variables['years'][:]
-    else:
-        raise RuntimeError("Cannot find years variable")
-
-    if limityears is not None:
-        readeryears = limityears(readeryears)
-
-    if len(readeryears) == 0:
-        raise ValueError("Incomplete!")
-
-    return readeryears
-
 def make_aggregates(targetdir, filename, get_population, dimensions_template=None, metainfo=None, limityears=None):
     # Find all variables that containing the region dimension
     reader = Dataset(os.path.join(targetdir, filename), 'r', format='NETCDF4')
@@ -77,11 +61,9 @@ def make_aggregates(targetdir, filename, get_population, dimensions_template=Non
     else:
         dimreader = Dataset(dimensions_template, 'r', format='NETCDF4')
 
-    readeryears = get_years(dimreader, limityears)
+    readeryears = agglib.get_years(dimreader, limityears)
 
-    if os.path.exists(os.path.join(targetdir, filename[:-4] + suffix + '.nc4')):
-        os.remove(os.path.join(targetdir, filename[:-4] + suffix + '.nc4')) # Needs to be deleted
-    writer = Dataset(os.path.join(targetdir, filename[:-4] + suffix + '.nc4'), 'w', format='NETCDF4')
+    writer = nc4writer.create(targetdir, filename[:-4] + suffix)
 
     regions = dimreader.variables['regions'][:].tolist()
     originals, prefixes, dependencies = agglib.get_aggregated_regions(regions)
@@ -154,9 +136,7 @@ def make_levels(targetdir, filename, get_population, dimensions_template=None, m
 
     regions = dimreader.variables['regions'][:].tolist()
 
-    if os.path.exists(os.path.join(targetdir, filename[:-4] + levels_suffix + '.nc4')):
-        os.remove(os.path.join(targetdir, filename[:-4] + levels_suffix + '.nc4')) # Needs to be deleted
-    writer = Dataset(os.path.join(targetdir, filename[:-4] + levels_suffix + '.nc4'), 'w', format='NETCDF4')
+    writer = nc4writer.create(targetdir,  filename[:-4] + levels_suffix)
 
     if metainfo is None:
         writer.description = reader.description + " (levels)"
@@ -170,7 +150,7 @@ def make_levels(targetdir, filename, get_population, dimensions_template=None, m
         writer.author = metainfo['author']
 
     years = nc4writer.make_years_variable(writer)
-    years[:] = get_years(dimreader, limityears)
+    years[:] = agglib.get_years(dimreader, limityears)
     nc4writer.make_regions_variable(writer, regions, 'regions')
 
     stweight = get_cached_population(get_population, years)
