@@ -5,6 +5,7 @@
 # T. Carleton, 3/13/2017
 
 # This version uses AVERAGE temperature exposure rather than ANNUAL
+# This includes TWO VERSIONS OF COSTS: one that cumulates year-to-year costs, and one that estimates costs independently in each year
 
 #### THIS VERSION INCORPORATES CLIPPING: We set adaptation costs to zero whenever the impact falls below zero.
 
@@ -307,6 +308,7 @@ temps.avg <- temps.avg[,,yearstokeep[1]:tail(yearstokeep, n =1)]
 
 # Initialize -- region by lb/ub by year 
 results <- array(0, dim=c(dim(temps.ann)[1], 2, dim(temps.ann)[3]) )
+results_cum <- array(0, dim=c(dim(temps.ann)[1], 2, dim(temps.ann)[3]) )
 
 # Loop: for each impact region and each year, calculate bounds
 for (r in 1:R){
@@ -319,17 +321,24 @@ for (r in 1:R){
     ann <- slide(tempdf, Var='climvar', NewVar = 'future', slideBy=1, reminder=F)
     rm(tempdf)
     
-    # Need a differenced variable for each climate covariate
+    # COSTS: "EXACT" VERSION 
+    avg <- as.data.frame(temps.avg[r,k,])
+    colnames(avg) <- "climcov"
+    avg$diff <- avg$climcov[which(year.ann==2010)] - avg$climcov 
+    
+    # COSTS: CUMULATIVE COSTS VERSION
     tempdf <- as.data.frame(temps.avg[r,k,])
     colnames(tempdf) <- "climcov"
-    avg <- slide(tempdf, Var="climcov", NewVar = 'future', slideBy=1, reminder=F)
-    avg$diff <- avg$climcov - avg$future
+    avg2 <- slide(tempdf, Var="climcov", NewVar = 'lag', slideBy=-1, reminder=F)
+    avg2$diff <- avg2$lag - avg2$climcov
     rm(tempdf)
     options(warn=0)
     
     # Lower and upper bounds
     results[r,1,] <- results[r,1,] + avg$diff * (ann$climvar - terms_ref[r,k]) * gammas[k] # lower
     results[r,2,] <- results[r,2,] + avg$diff * (ann$future - terms_ref[r,k]) * gammas[k] # upper
+    results_cum[r,1,] <- results_cum[r,1,] + avg2$diff * (ann$climvar - terms_ref[r,k]) * gammas[k] # lower
+    results_cum[r,2,] <- results_cum[r,2,] + avg2$diff * (ann$future - terms_ref[r,k]) * gammas[k] # upper
     
     # Clear 
     rm(avg, ann)
@@ -350,28 +359,35 @@ for (r in 1:R){
 if (length(year.avg) > length(year.ann)) {
   add <- length(year.avg) - length(year.ann)
   resultsnew <- array(NA, dim = c(dim(results)[1], dim(results)[2], (dim(results)[3]+add)))
+  resultsnew2 <- array(NA, dim = c(dim(results_cum)[1], dim(results_cum)[2], (dim(results_cum)[3]+add)))
   
   # First set of years have zero costs, until changing temperatures kick in
-  for (a in 1:add) {
-    resultsnew[,,a] <- 0
+  baseline <- which(year.avg==2010)
+  for (a in 1:baseline) {
+    resultsnew[,,a] <- matrix(0,dim(results)[1], dim(results)[2])
+    resultsnew2[,,a] <- matrix(0,dim(results_cum)[1], dim(results_cum)[2])
   }
-  resultsnew[,,(a+1):dim(resultsnew)[3]] <- results
+  resultsnew[,,(baseline+1):dim(resultsnew)[3]] <- results[,,which(year.ann==2011):dim(results)[3]]
+  resultsnew2[,,(baseline+1):dim(resultsnew2)[3]] <- results_cum[,,which(year.ann==2011):dim(results_cum)[3]]
   results <- resultsnew
-  rm(resultsnew)
+  results_cum <- resultsnew2
+  rm(resultsnew, resultsnew2)
 }
 
 # CLIP all values where impacts are zero from James' clipped version of output
 if (dim(results)[3]!=dim(impacts.rebased)[2]) stop() 
+
 for (r in 1:R) {
   for (y in 2:dim(results)[3]) {
     if ( impacts.rebased[r,y] - impacts.rebased[r,y-1] ==0) {
       results[r,,y] <- 0 
+      results_cum[r,,y] <- 0 
     } 
   }
   
-  # Cumulative sum over all years
-  results[r,1,] <- cumsum(results[r,1,])
-  results[r,2,] <- cumsum(results[r,2,])
+  # Cumulative sum over all years for cumulative results
+  results_cum[r,1,] <- cumsum(results_cum[r,1,])
+  results_cum[r,2,] <- cumsum(results_cum[r,2,])
 }
 
 ###############################################
@@ -387,19 +403,24 @@ varyear <- ncvar_def(name = "years",   units="", dim=list(dimtime))
 
 varcosts_lb <- ncvar_def(name = "costs_lb", units="deaths/100000", dim=list(dimregions, dimtime))
 varcosts_ub <- ncvar_def(name = "costs_ub", units="deaths/100000", dim=list(dimregions, dimtime))
+varcosts_lb_cum <- ncvar_def(name = "costs_lb_cum", units="deaths/100000", dim=list(dimregions, dimtime))
+varcosts_ub_cum <- ncvar_def(name = "costs_ub_cum", units="deaths/100000", dim=list(dimregions, dimtime))
 
-vars <- list(varregion, varyear, varcosts_lb, varcosts_ub)
+vars <- list(varregion, varyear, varcosts_lb, varcosts_ub, varcosts_lb_cum, varcosts_ub_cum)
 
 # Filepath for cost output
 outpath <- gsub(".nc4", "-costs.nc4", impactspath)
 
 cost_nc <- nc_create(outpath, vars)
+
 print("CREATED NEW NETCDF FILE")
 
 ncvar_put(cost_nc, varregion, regions)
 ncvar_put(cost_nc, varyear, year)
 ncvar_put(cost_nc, varcosts_lb, results[,1 ,])
 ncvar_put(cost_nc, varcosts_ub, results[,2 ,])
+ncvar_put(cost_nc, varcosts_lb_cum, results_cum[,1 ,])
+ncvar_put(cost_nc, varcosts_ub_cum, results_cum[,2 ,])
 nc_close(cost_nc)
 
 print("----------- DONE DONE DONE ------------")
