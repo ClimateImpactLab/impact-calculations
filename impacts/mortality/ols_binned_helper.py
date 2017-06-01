@@ -30,4 +30,4 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
         '100,000 * death/population', 'deaths/person/year', lambda x: x / 1e5,
         'convert to deaths/person/year', "Divide by 100000 to convert to deaths/person/year.")
 
-    return calculation, [], covariator.get_baseline_args
+    return calculation, [], covariator.get_current_args

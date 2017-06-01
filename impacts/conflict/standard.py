@@ -9,7 +9,7 @@ from openest.generate.stdlib import *
 from adaptation import csvvfile
 from shortterm import curvegen, weather
 from climate import forecasts, forecastreader
-from openest.models.curve import PolynomialCurve
+from openest.models.curve import ZeroInterceptPolynomialCurve
 
 def prepare_csvv(csvvpath, qvals, callback):
     data = csvvfile.read(csvvpath)
@@ -26,10 +26,10 @@ def prepare_csvv(csvvpath, qvals, callback):
 
     teffect = SingleWeatherApply('rate', tcurve, 'the linear temperature effect', lambda tp: tp[0, 0])
 
-    p2curve = PolynomialCurve([-np.inf, np.inf], pggr)
+    p2curve = ZeroInterceptPolynomialCurve([-np.inf, np.inf], pggr)
     p2effect = SingleWeatherApply('rate', p2curve, 'the quadratic precipitation effect', lambda tp: (365.25 / 30) * (tp[0, 1]**2))
 
-    negp2curve = PolynomialCurve([-np.inf, np.inf], -pggr)
+    negp2curve = ZeroInterceptPolynomialCurve([-np.inf, np.inf], -pggr)
     print negp2curve(68.35459792023)
     p2climate = MonthlyClimateApply('rate', negp2curve, 'negative climatic precipitation effect', prcp_climate_mean, regions, lambda p: (365.25 / 30) * (p**2))
 

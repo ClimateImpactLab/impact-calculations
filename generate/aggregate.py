@@ -1,19 +1,20 @@
-import os, Queue, traceback
+import os, Queue, traceback, time
 import numpy as np
 from netCDF4 import Dataset
 import nc4writer, agglib, checks, csv
+from impactlab_tools.utils import paralog
 
 costs_suffix = '-costs'
 levels_suffix = '-levels'
 suffix = "-aggregated"
 missing_only = True
 
-costs_command = "Rscript generate/cost_curves.R \"%s\" \"%s\" \"%s\" \"%s\" \"%s\"" # tavgpath tannpath impactspath gammapath minpath
+costs_command = "Rscript generate/cost_curves.R \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\"" # tavgpath rcp gcm impactspath gammapath minpath functionalform ffparameters gammarange
 
-checkfile = 'check-20161230.txt'
+CLAIM_TIMEOUT = 60*60
 
 batchfilter = lambda batch: batch == 'median' or 'batch' in batch
-targetdirfilter = lambda targetdir: True #'SSP3' in targetdir and 'Env-Growth' in targetdir and checkfile not in os.listdir(targetdir)
+targetdirfilter = lambda targetdir: True #'SSP3' in targetdir and 'Env-Growth' in targetdir
 
 # The full population, if we just read it.  Only 1 at a time (it's big!)
 # Tuple of (get_population, minyear, maxyear, population)
@@ -52,22 +53,6 @@ def iterresults(outdir):
                             continue
                         yield batch, clim_scenario, clim_model, econ_scenario, econ_model, espath
 
-def get_years(reader, limityears=None):
-    if 'year' in reader.variables:
-        readeryears = reader.variables['year'][:]
-    elif 'years' in reader.variables:
-        readeryears = reader.variables['years'][:]
-    else:
-        raise RuntimeError("Cannot find years variable")
-
-    if limityears is not None:
-        readeryears = limityears(readeryears)
-
-    if len(readeryears) == 0:
-        raise ValueError("Incomplete!")
-
-    return readeryears
-
 def make_aggregates(targetdir, filename, get_population, dimensions_template=None, metainfo=None, limityears=None):
     # Find all variables that containing the region dimension
     reader = Dataset(os.path.join(targetdir, filename), 'r', format='NETCDF4')
@@ -76,15 +61,10 @@ def make_aggregates(targetdir, filename, get_population, dimensions_template=Non
     else:
         dimreader = Dataset(dimensions_template, 'r', format='NETCDF4')
 
-    readeryears = get_years(dimreader, limityears)
+    readeryears = agglib.get_years(dimreader, limityears)
 
-    if os.path.exists(os.path.join(targetdir, filename[:-4] + suffix + '.nc4')):
-        os.remove(os.path.join(targetdir, filename[:-4] + suffix + '.nc4')) # Needs to be deleted
-    writer = Dataset(os.path.join(targetdir, filename[:-4] + suffix + '.nc4'), 'w', format='NETCDF4')
+    writer = nc4writer.create(targetdir, filename[:-4] + suffix)
 
-    print "HERE"
-    print dimreader.variables['regions'][:10]
-    print dimreader.variables['regions'][:][:10]
     regions = dimreader.variables['regions'][:].tolist()
     originals, prefixes, dependencies = agglib.get_aggregated_regions(regions)
 
@@ -127,7 +107,7 @@ def make_aggregates(targetdir, filename, get_population, dimensions_template=Non
 
             dstvalues[:, ii] = numers / denoms
 
-        agglib.copy_timereg_variable(writer, variable, key, dstvalues, "(aggregated)")
+        agglib.copy_timereg_variable(writer, variable, key, dstvalues, "(aggregated)", unitchange=lambda unit: unit + '/person')
 
     reader.close()
     if dimensions_template is not None:
@@ -156,9 +136,7 @@ def make_levels(targetdir, filename, get_population, dimensions_template=None, m
 
     regions = dimreader.variables['regions'][:].tolist()
 
-    if os.path.exists(os.path.join(targetdir, filename[:-4] + levels_suffix + '.nc4')):
-        os.remove(os.path.join(targetdir, filename[:-4] + levels_suffix + '.nc4')) # Needs to be deleted
-    writer = Dataset(os.path.join(targetdir, filename[:-4] + levels_suffix + '.nc4'), 'w', format='NETCDF4')
+    writer = nc4writer.create(targetdir,  filename[:-4] + levels_suffix)
 
     if metainfo is None:
         writer.description = reader.description + " (levels)"
@@ -172,7 +150,7 @@ def make_levels(targetdir, filename, get_population, dimensions_template=None, m
         writer.author = metainfo['author']
 
     years = nc4writer.make_years_variable(writer)
-    years[:] = get_years(dimreader, limityears)
+    years[:] = agglib.get_years(dimreader, limityears)
     nc4writer.make_regions_variable(writer, regions, 'regions')
 
     stweight = get_cached_population(get_population, years)
@@ -183,7 +161,7 @@ def make_levels(targetdir, filename, get_population, dimensions_template=None, m
         for ii in range(len(regions)):
             dstvalues[:, ii] = srcvalues[:, ii] * stweight.get_time(regions[ii])
 
-        agglib.copy_timereg_variable(writer, variable, key, dstvalues, "(levels)")
+        agglib.copy_timereg_variable(writer, variable, key, dstvalues, "(levels)", unitchange=lambda unit: unit.replace('/person', ''))
 
     reader.close()
     if dimensions_template is not None:
@@ -204,20 +182,26 @@ def make_costs_levels(targetdir, filename, get_population):
 
 if __name__ == '__main__':
     import sys
-    from datastore import population
-    outputdir = sys.argv[1]
+    from impactlab_tools.utils import files
+    from datastore import population, agecohorts
 
-    halfweight = population.SpaceTimeBipartiteData(1981, 2100, None)
+    config = files.get_argv_config()
 
-    for batch, clim_scenario, clim_model, econ_scenario, econ_model, targetdir in iterresults(outputdir):
+    statman = paralog.StatusManager('aggregate', "generate.aggregate " + sys.argv[1], 'logs', CLAIM_TIMEOUT)
+    
+    if config['weighting'] == 'agecohorts':
+        halfweight = agecohorts.SpaceTimeBipartiteData(1981, 2100, None)
+    else:
+        halfweight = population.SpaceTimeBipartiteData(1981, 2100, None)
+
+    for batch, clim_scenario, clim_model, econ_scenario, econ_model, targetdir in iterresults(config['outputdir']):
         print targetdir
         print econ_model, econ_scenario
 
-        with open(os.path.join(targetdir, checkfile), 'w') as fp:
-            fp.write("START")
+        if not statman.claim(targetdir):
+            continue
 
         incomplete = False
-        get_population = lambda year0, year1: halfweight.load_population(year0, year1, econ_model, econ_scenario)
 
         for filename in os.listdir(targetdir):
             if filename[-4:] == '.nc4' and suffix not in filename and costs_suffix not in filename and levels_suffix not in filename:
@@ -228,23 +212,60 @@ if __name__ == '__main__':
                 else:
                     variable = 'rebased'
 
+                if config['weighting'] == 'agecohorts':
+                    get_population = lambda year0, year1: halfweight.load_population(year0, year1, econ_model, econ_scenario, agecohorts.age_from_filename(filename))
+                else:
+                    get_population = lambda year0, year1: halfweight.load_population(year0, year1, econ_model, econ_scenario)
+
                 if not checks.check_result_100years(os.path.join(targetdir, filename), variable=variable):
                     print "Incomplete."
                     incomplete = True
                     continue
 
                 try:
-                    if filename in ['interpolated_mortality_all_ages.nc4', 'interpolated_mortality65_plus.nc4', 'global_interaction_best.nc4', 'global_interaction_gmfd.nc4', 'global_interaction_no_popshare_best.nc4', 'global_interaction_no_popshare_gmfd.nc4', 'moratlity_cubic_splines_2factors_GMFD_031617.nc4', 'moratlity_cubic_splines_2factors_BEST_031617.nc4']:
+                    # Generate total deaths
+                    if not missing_only or not checks.check_result_100years(os.path.join(targetdir, filename[:-4] + levels_suffix + '.nc4'), variable=variable) or not os.path.exists(os.path.join(targetdir, filename[:-4] + levels_suffix + '.nc4')):
+                        make_levels(targetdir, filename, get_population)
+
+                    # Aggregate impacts
+                    if not missing_only or not checks.check_result_100years(os.path.join(targetdir, filename[:-4] + suffix + '.nc4'), variable=variable, regioncount=5665) or not os.path.exists(os.path.join(targetdir, filename[:-4] + suffix + '.nc4')):
+                        make_aggregates(targetdir, filename, get_population)
+
+                    if '-noadapt' not in filename and '-incadapt' not in filename and 'histclim' not in filename: #filename in ['interpolated_mortality_all_ages.nc4', 'interpolated_mortality65_plus.nc4', 'global_interaction_best.nc4', 'global_interaction_gmfd.nc4', 'global_interaction_no_popshare_best.nc4', 'global_interaction_no_popshare_gmfd.nc4', 'moratlity_cubic_splines_2factors_GMFD_031617.nc4', 'moratlity_cubic_splines_2factors_BEST_031617.nc4']:
                         # Generate costs
                         if not missing_only or not os.path.exists(os.path.join(targetdir, filename[:-4] + costs_suffix + '.nc4')):
                             tavgpath = '/shares/gcp/outputs/temps/%s/%s/climtas.nc4' % (clim_scenario, clim_model)
-                            tannpath = '/shares/gcp/climate/BCSD/aggregation/cmip5_new/IR_level/{0}/cubic_spline_tas/tas_restrict_cubic_spline_aggregate_{0}_r1i1p1_{1}.nc'.format(clim_scenario, clim_model)
                             impactspath = os.path.join(targetdir, filename)
-                            gammapath = '/shares/gcp/social/parameters/mortality/mortality_splines_03162017/' + filename.replace('.nc4', '.csvv')
-                            minpath = os.path.join(targetdir, filename.replace('.nc4', '-splinemins.csv'))
+                            gammapath = '/shares/gcp/social/parameters/mortality/Diagnostics_Apr17/' + filename.replace('.nc4', '.csvv')
+                            gammapath = gammapath.replace('-young', '').replace('-older', '').replace('-oldest', '')
 
-                            print costs_command % (tavgpath, tannpath, impactspath, gammapath, minpath)
-                            os.system(costs_command % (tavgpath, tannpath, impactspath, gammapath, minpath))
+                            if 'POLY-4' in filename:
+                                functionalform = 'poly'
+                                ffparameters = 'poly4'
+                                numpreds = 4
+                                minpath = os.path.join(targetdir, filename.replace('.nc4', '-polymins.csv'))
+                            elif 'POLY-5' in filename:
+                                functionalform = 'poly'
+                                ffparameters = 'poly5'
+                                numpreds = 5
+                                minpath = os.path.join(targetdir, filename.replace('.nc4', '-polymins.csv'))
+                            elif 'CSpline' in filename:
+                                functionalform = 'spline'
+                                ffparameters = 'LS'
+                                numpreds = 5
+                                minpath = os.path.join(targetdir, filename.replace('.nc4', '-splinemins.csv'))
+                            else:
+                                ValueError('Unknown functional form')
+                                
+                            if '-young' in filename:
+                                gammarange = '1:%s' % (numpreds * 3)
+                            elif '-older' in filename:
+                                gammarange = '%s:%s' % (numpreds * 3 + 1, numpreds * 6)
+                            elif '-oldest' in filename:
+                                gammarange = '%s:%s' % (numpreds * 6 + 1, numpreds * 9)
+                                
+                            print costs_command % (tavgpath, clim_scenario, clim_model, impactspath, gammapath, minpath, functionalform, ffparameters, gammarange)
+                            os.system(costs_command % (tavgpath, clim_scenario, clim_model, impactspath, gammapath, minpath, functionalform, ffparameters, gammarange))
 
                         # Levels of costs
                         if not missing_only or not os.path.exists(os.path.join(targetdir, filename[:-4] + costs_suffix + levels_suffix + '.nc4')):
@@ -254,22 +275,9 @@ if __name__ == '__main__':
                         if not missing_only or not os.path.exists(os.path.join(targetdir, filename[:-4] + costs_suffix + suffix + '.nc4')):
                             make_costs_aggregate(targetdir, filename[:-4] + costs_suffix + '.nc4', get_population)
 
-                    # Generate total deaths
-                    if not missing_only or not checks.check_result_100years(os.path.join(targetdir, filename[:-4] + levels_suffix + '.nc4'), variable=variable) or not os.path.exists(os.path.join(targetdir, filename[:-4] + levels_suffix + '.nc4')):
-                        make_levels(targetdir, filename, get_population)
-
-                    # Aggregate impacts
-                    if not missing_only or not checks.check_result_100years(os.path.join(targetdir, filename[:-4] + suffix + '.nc4'), variable=variable, regioncount=5665) or not os.path.exists(os.path.join(targetdir, filename[:-4] + suffix + '.nc4')):
-                        make_aggregates(targetdir, filename, get_population)
-
                 except Exception as ex:
                     print "Failed."
                     traceback.print_exc()
                     incomplete = True
 
-        if incomplete:
-            os.remove(os.path.join(targetdir, checkfile))
-        else:
-            with open(os.path.join(targetdir, checkfile), 'w') as fp:
-                fp.write("END")
-
+        statman.release(targetdir, "Incomplete" if incomplete else "Complete")

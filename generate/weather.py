@@ -3,6 +3,7 @@ import numpy as np
 from netCDF4 import Dataset
 from impactlab_tools.utils import files
 import helpers.header as headre
+from openest.generate.weatherslice import DailyWeatherSlice, YearlyWeatherSlice
 from climate import netcdfs
 
 def iterate_bundles(iterator_readers):
@@ -26,6 +27,21 @@ def iterate_combined_bundles(*iterators_readers):
             continue
 
         weatherbundle = MultivariatePastFutureWeatherBundle(scenmodels[(scenario, model)], scenario, model)
+        yield scenario, model, weatherbundle
+
+def iterate_amorphous_bundles(iterators_reader_dict):
+    scenmodels = {} # {(scenario, model): [(pastreader, futurereader), ...]}
+    for name in iterators_reader_dict:
+        for scenario, model, pastreader, futurereader in iterators_reader_dict[name]:
+            if (scenario, model) not in scenmodels:
+                scenmodels[(scenario, model)] = {}
+            scenmodels[(scenario, model)][name] = (pastreader, futurereader)
+
+    for scenario, model in scenmodels:
+        if len(scenmodels[(scenario, model)]) < len(iterators_reader_dict):
+            continue
+
+        weatherbundle = AmorphousWeatherBundle(scenmodels[(scenario, model)], scenario, model)
         yield scenario, model, weatherbundle
 
 class WeatherBundle(object):
@@ -129,7 +145,7 @@ class DailyWeatherBundle(WeatherBundle):
 
         # Append each year
         for weatherslice in self.yearbundles(maxyear):
-            print weatherslice.times[0]
+            print weatherslice.get_years()[0]
 
             # Stack this year below the previous years
             regionvalues = np.vstack((regionvalues, np.expand_dims(np.mean(weatherslice.weathers, axis=0), axis=0)))
@@ -298,7 +314,7 @@ class MultivariateHistoricalWeatherBundle2(DailyWeatherBundle):
             if allweather.times[0] > 10000:
                 yield DailyWeatherSlice((1000 * year) + (allweather.times % 1000), allweather.weathers)
             else:
-                yield DailyWeatherSlice([year], allweather.weathers)
+                yield YearlyWeatherSlice([year], allweather.weathers)
             year += 1
 
     def get_years(self):
@@ -366,9 +382,9 @@ class RepeatedHistoricalWeatherBundle(DailyWeatherBundle):
         for pastyear in self.pastyears:
             weatherslice = self.reader.read_year(pastyear)
             if weatherslice.times[0] > 10000:
-                yield DailyWeatherSlice((1000 * year) + (yyyyddd % 1000), weather)
+                yield DailyWeatherSlice((1000 * year) + (weatherslice.times % 1000), weatherslice.weathers)
             else:
-                yield YearlyWeatherSlice([year], weather)
+                yield YearlyWeatherSlice([year], weatherslice.weathers)
             year += 1
 
     def get_years(self):
@@ -431,6 +447,20 @@ class MultivariateHistoricalWeatherBundle(DailyWeatherBundle):
         region_averages = [regionsum / sumcount for regionsum in regionsums]
         for ii in range(len(self.regions)):
             yield self.regions[ii], [region_averages[jj][ii] for jj in range(len(region_averages))]
+
+class AmorphousWeatherBundle(WeatherBundle):
+    def __init__(self, pastfuturereader_dict, scenario, model, hierarchy='hierarchy.csv'):
+        super(AmorphousWeatherBundle, self).__init__(scenario, model, hierarchy)
+
+        self.pastfuturereader_dict = pastfuturereader_dict
+
+    def get_single(self, name):
+        return UnivariatePastFutureWeatherBundle(self.pastfuturereader_dict[name][0], self.pastfuturereader_dict[name][1],
+                                                 self.scenario, self.model)
+        
+    def get_concrete(self, names):
+        pastfuturereaders = [self.pastfuturereader_dict[name] for name in names]
+        return MultivariatePastFutureWeatherBundle(pastfuturereaders, self.scenario, self.model)
 
 if __name__ == '__main__':
     template = "/shares/gcp/BCSD/grid2reg/cmip5/historical/CCSM4/{0}/{0}_day_aggregated_historical_r1i1p1_CCSM4_{1}.nc"

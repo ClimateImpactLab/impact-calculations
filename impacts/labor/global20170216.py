@@ -7,7 +7,7 @@ import numpy as np
 from openest.generate.stdlib import *
 from openest.models.curve import FlatCurve
 from openest.generate.curvegen import ConstantCurveGenerator
-from adaptation import csvvfile, covariates, curvegen_poly, curvegen
+from adaptation import csvvfile, covariates, curvegen_known, curvegen
 from climate import discover
 from impactlab_tools.utils import files
 
@@ -34,14 +34,14 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
 
     subcsvv = csvvfile.subset(csvv, ['tasmax', 'tasmax2', 'tasmax3', 'tasmax4'])
 
-    temp_curvegen = curvegen_poly.PolynomialCurveGenerator('C', 'minutes worked by individual', 'tasmax', 4, subcsvv)
+    temp_curvegen = curvegen_known.PolynomialCurveGenerator('C', 'minutes worked by individual', 'tasmax', 4, subcsvv)
     farm_temp_curvegen = curvegen.FarmerCurveGenerator(temp_curvegen, predgen, farmer)
     tempeffect = YearlyDividedPolynomialAverageDay('minutes worked by individual', farm_temp_curvegen, 'the quartic temperature effect')
 
     negsubcsvv = copy.copy(subcsvv)
     negsubcsvv['gamma'] = -negsubcsvv['gamma']
 
-    negtempoffset_curvegen = curvegen_poly.PolynomialCurveGenerator('C', 'minutes worked by individual', 'tasmax', 4, negsubcsvv)
+    negtempoffset_curvegen = curvegen_known.PolynomialCurveGenerator('C', 'minutes worked by individual', 'tasmax', 4, negsubcsvv)
     farm_negtempoffset_curvegen = curvegen.FarmerCurveGenerator(negtempoffset_curvegen, predgen2, farmer=farmer, save_curve=False)
     negtempeffect = YearlyAverageDay('minutes worked by individual', farm_negtempoffset_curvegen, 'offset to normalize to 27 degrees', weather_change=lambda temps: np.ones(len(temps)) * 27)
 
@@ -50,4 +50,4 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
 
     calculation = Sum([tempeffect, negtempeffect, zeroeffect])
 
-    return calculation, [], predgen.get_baseline
+    return calculation, [], predgen.get_current

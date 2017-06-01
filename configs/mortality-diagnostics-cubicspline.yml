@@ -1,0 +1,5 @@
+module: mortality
+mode: writesplines
+outputdir: /shares/gcp/outputs/mortality/impacts-subterran
+do_only: interpolation
+do_farmers: false
