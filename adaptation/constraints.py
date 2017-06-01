@@ -1,0 +1,48 @@
+import numpy as np
+from curvegen import InstantAdaptingCurve
+
+"""
+The "Good Money" condition:
+An increase in your wealth will always decrease your sensitivity.
+
+Let your response be defined by f(x | gdppc), for weather x, conditional on gdppc.
+We want to ensure that 
+(df / dgdppc)(x) has a sign in the direction of less sensitivity.
+
+For each x, f(x | gdppc_t) against f(x | gdppc_0) and take the better of the two.
+"""
+
+def make_get_coeff_goodmoney(weatherbundle, covariator, curvegen, baselinemins, curve_get_coeff, flipsign=False):
+    # Record all baseline log GDP p.c.
+    baseline_loggdppc = {}
+    for region in weatherbundle.regions:
+        baseline_loggdppc[region] = covariator.get_current(region)['loggdppc']
+
+    # Get marginals on loggdppc (assumed to be constant)
+    loggdppc_marginals = curvegen.get_marginals('loggdppc')
+    loggdppc_marginals = np.array([loggdppc_marginals[predname] for predname in curvegen.prednames]) # same order as temps
+
+    # flipsign = True when subtracting off baseline
+    signcoeff = -1 if flipsign else 1
+
+    def coeff_getter(region, year, temps, curve):
+        # Is the marginal effect positive (that is, toward more bad stuff)?
+        mareff = np.sum(loggdppc_marginals * (temps - baselinemins[region]))
+        if mareff > 0:
+            deltaloggdppc = covariator.get_current(region)['loggdppc'] - baseline_loggdppc[region]
+            return curve_get_coeff(curve) - signcoeff * deltaloggdppc * loggdppc_marginals
+        else:
+            return curve_get_coeff(curve)
+    return coeff_getter
+
+class ConstantIncomeInstantAdaptingCurve(InstantAdaptingCurve):
+    def __init__(self, region, curr_curve, covariator, curvegen):
+        super(ConstantIncomeInstantAdaptingCurve, self).__init__(region, curr_curve, covariator, curvegen)
+        self.baseline_loggdppc = covariator.get_current(region)['loggdppc']
+    
+    def update(self, year, weather):
+        print "Update", np.mean(weather)
+        covariates = self.covariator.get_update(self.region, year, weather)
+        covariates['loggdppc'] = self.baseline_loggdppc
+        self.curr_curve = self.curvegen.get_curve(self.region, covariates)
+        

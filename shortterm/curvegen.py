@@ -43,7 +43,7 @@ class WeatherPredictorator(object):
 
         self.economicmodel = economicmodel
 
-    def get_baseline(self, region):
+    def get_current(self, region):
         econpreds = self.econ_predictors.get(region, self.econ_predictors['mean'])
         return {'climtas': self.weather_predictors[region], 'loggdppc': np.log(econpreds['gdppcs']), 'logpopop': np.log(econpreds['popop'])}
 
@@ -59,4 +59,4 @@ if __name__ == '__main__':
     model, scenario, econmodel = (mse for mse in iterate_econmodels() if mse[0] == 'OECD Env-Growth').next()
 
     predgen = TemperaturePrecipitationPredictorator(historicalbundle, econmodel, 15, 15, 2005)
-    print predgen.get_baseline('CAN.1.2.28')
+    print predgen.get_current('CAN.1.2.28')
