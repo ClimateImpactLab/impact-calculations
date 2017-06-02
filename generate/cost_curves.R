@@ -336,8 +336,8 @@ for (r in 1:R){
     options(warn=0)
 
     # Lower and upper bounds
-    results[r,1,] <- results[r,1,] + avg$diff * (ann$climvar - terms_ref[r,k]) * gammas[k] # lower
-    results[r,2,] <- results[r,2,] + avg$diff * (ann$future - terms_ref[r,k]) * gammas[k] # upper
+    results[r,1,] <- results[r,1,] + avg$diff * (ann$climvar[which(year.ann==2010)] - terms_ref[r,k]) * gammas[k] # lower
+    results[r,2,] <- results[r,2,] + avg$diff * (ann$climvar - terms_ref[r,k]) * gammas[k] # upper
     results_cum[r,1,] <- results_cum[r,1,] + avg2$diff * (ann$climvar - terms_ref[r,k]) * gammas[k] # lower
     results_cum[r,2,] <- results_cum[r,2,] + avg2$diff * (ann$future - terms_ref[r,k]) * gammas[k] # upper
     
