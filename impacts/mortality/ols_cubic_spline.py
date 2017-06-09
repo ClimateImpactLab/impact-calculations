@@ -23,29 +23,13 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
                                                              knots, csvv)
 
     # Determine minimum value of curve between 10C and 25C
-    print "Determining minimum temperatures."
-    baselinemins = {}
-    constantincomecurves = {}
-    with open(caller.callinfo['minpath'], 'w') as fp:
-        writer = csv.writer(fp)
-        writer.writerow(['region', 'brute', 'analytic'])
-        for region in weatherbundle.regions:
-            curve = curr_curvegen.get_curve(region, covariator.get_current(region))
-            temps = np.arange(10, 26)
-            mintemp = temps[np.argmin(curve(temps))]
-            mintemp2 = minspline.findsplinemin(knots, curve.coeffs, 10, 25)
-            if np.abs(mintemp - mintemp2) > 1:
-                print "WARNING: %s has unclear mintemp: %f, %f" % (region, mintemp, mintemp2)
-            baselinemins[region] = mintemp2
-            writer.writerow([region, mintemp, mintemp2])
+    baselinecurves, baselinemins = constraints.get_curve_minima(weatherbundle, curr_curvegen, covariator, 10, 25,
+                                                                lambda curve: minspline.findsplinemin(knots, curve.coeffs, 10, 25))
 
-            constantincomecurves[region] = constraints.ConstantIncomeInstantAdaptingCurve(region, curr_curvegen.get_curve(region, covariator.get_current(region)), covariator2, curr_curvegen)
-    print "Finishing calculation setup."
-    
     def transform(region, curve):
         fulladapt_curve = ShiftedCurve(curve, -curve(baselinemins[region]))
-        noincadapt_curve = ShiftedCurve(constantincomecurves[region], -constantincomecurves[region](baselinemins[region]))
-        
+        noincadapt_curve = ShiftedCurve(baselinecurves[region], -baselinecurves[region](baselinemins[region]))
+
         goodmoney_curve = MinimumCurve(fulladapt_curve, noincadapt_curve)
         return ClippedCurve(goodmoney_curve)
 

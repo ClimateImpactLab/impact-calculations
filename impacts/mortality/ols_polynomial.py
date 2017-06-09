@@ -1,8 +1,7 @@
 import csv, copy
 import numpy as np
 from adaptation import csvvfile, curvegen, curvegen_known, covariates, constraints
-from generate import caller
-from openest.models.curve import ZeroInterceptPolynomialCurve, ClippedCurve, ShiftedCurve, MinimumCurve
+from openest.models.curve import ZeroInterceptPolynomialCurve, ClippedCurve, ShiftedCurve, MinimumCurve, SelectiveZeroCurve
 from openest.generate.stdlib import *
 from openest.generate import diagnostic
 from impactcommon.math import minpoly
@@ -13,8 +12,6 @@ from impactcommon.math import minpoly
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full'):
     covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 15, 2015), {'climtas': 'tas'}),
                                                 covariates.EconomicCovariator(economicmodel, 3, 2015)])
-    covariator2 = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 15, 2015), {'climtas': 'tas'}),
-                                                covariates.EconomicCovariator(economicmodel, 3, 2015)])
 
     # Don't collapse: already collapsed in allmodels
     #csvvfile.collapse_bang(csvv, qvals.get_seed())
@@ -24,36 +21,33 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
                                                            '100,000 * death/population', 'tas', order, csvv)
 
     # Determine minimum value of curve between 10C and 25C
-    print "Determining minimum temperatures."
-    baselinemins = {}
-    constantincomecurves = {}
-    with open(caller.callinfo['minpath'], 'w') as fp:
-        writer = csv.writer(fp)
-        writer.writerow(['region', 'brute', 'analytic'])
-        for region in weatherbundle.regions:
-            curve = curr_curvegen.get_curve(region, covariator.get_current(region))
-            temps = np.arange(10, 26)
-            mintemp = temps[np.argmin(curve(temps))]
-            mintemp2 = minpoly.findpolymin([0] + curve.ccs, 10, 25)
-            if np.abs(mintemp - mintemp2) > 1:
-                print "WARNING: %s has unclear mintemp: %f, %f" % (region, mintemp, mintemp2)
-            baselinemins[region] = mintemp2
-            writer.writerow([region, mintemp, mintemp2])
+    baselinecurves, baselinemins = constraints.get_curve_minima(weatherbundle, curr_curvegen, covariator, 10, 25,
+                                                                lambda curve: minpoly.findpolymin([0] + curve.ccs, 10, 25))
 
-            constantincomecurves[region] = constraints.ConstantIncomeInstantAdaptingCurve(region, curr_curvegen.get_curve(region, covariator.get_current(region)), covariator2, curr_curvegen)
-    print "Finishing calculation setup."
-    
     def transform(region, curve):
         fulladapt_curve = ShiftedCurve(curve, -curve(baselinemins[region]))
-        noincadapt_curve = ShiftedCurve(constantincomecurves[region], -constantincomecurves[region](baselinemins[region]))
-        
+        noincadapt_curve = ShiftedCurve(baselinecurves[region], -baselinecurves[region](baselinemins[region]))
+
         goodmoney_curve = MinimumCurve(fulladapt_curve, noincadapt_curve)
         return ClippedCurve(goodmoney_curve)
 
     clip_curvegen = curvegen.TransformCurveGenerator(curr_curvegen, transform)
     farm_curvegen = curvegen.FarmerCurveGenerator(clip_curvegen, covariator, farmer)
 
-    calculation = Transform(YearlyAverageDay('100,000 * death/population', farm_curvegen, "the mortality response curve"),
+    # Generate the marginal income curve
+    income_effect_curve = ZeroInterceptPolynomialCurve([-np.inf, np.inf], [csvvfile.get_gamma(csvv, tasvar, 'loggdppc') for tasvar in ['tas', 'tas2', 'tas3', 'tas4']])
+
+    def transform_income_effect(region, curve):
+        assert isinstance(curve, ClippedCurve)
+        return SelectiveZeroCurve(income_effect_curve, curve.last_clipped)
+
+    income_effect_curvegen = curvegen.TransformCurveGenerator(farm_curvegen, transform_income_effect)
+
+    # Produce the final calculation
+    calculation = Transform(AuxillaryResult(YearlyAverageDay('100,000 * death/population', farm_curvegen,
+                                                             "the mortality response curve"),
+                                            YearlyAverageDay('100,000 * death/population', income_effect_curvegen,
+                                                             "income effect after clipping"), 'income_effect'),
                             '100,000 * death/population', 'deaths/person/year', lambda x: 365 * x / 1e5,
                             'convert to deaths/person/year', "Divide by 100000 to convert to deaths/person/year.")
 

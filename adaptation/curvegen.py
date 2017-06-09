@@ -1,6 +1,5 @@
 import numpy as np
 from openest.generate.curvegen import *
-from openest.models.curve import AdaptableCurve
 
 region_curves = {}
 
@@ -52,7 +51,7 @@ class CSVVCurveGenerator(CurveGenerator):
         return coefficients
 
     def get_marginals(self, covar):
-        marginals = {} # {predname: sum}                                                                
+        marginals = {} # {predname: sum}
         for predname in set(self.prednames):
             marginals[predname] = self.predgammas[predname][self.predcovars[predname].index(covar)]
         return marginals
@@ -60,57 +59,37 @@ class CSVVCurveGenerator(CurveGenerator):
     def get_curve(self, region, covariates={}):
         raise NotImplementedError()
 
-## New-style covariate-based curvegen
-class FarmerCurveGenerator(CurveGenerator):
-    def __init__(self, curr_curvegen, covariator, farmer='full', save_curve=True):
-        super(FarmerCurveGenerator, self).__init__(curr_curvegen.indepunits, curr_curvegen.depenunit)
-        self.curr_curvegen = curr_curvegen
+class FarmerCurveGenerator(WeatherDelayedCurveGenerator):
+    """Handles different adaptation assumptions."""
+    def __init__(self, curvegen, covariator, farmer='full', save_curve=True):
+        super(FarmerCurveGenerator, self).__init__(curvegen.indepunits, curvegen.depenunit)
+        self.curvegen = curvegen
         self.covariator = covariator
         self.farmer = farmer
         self.save_curve = save_curve
 
-    def get_curve(self, region, covariates={}):
-        if len(covariates) == 0:
-            covariates = self.covariator.get_current(region)
+    def get_baseline_curve(self, region, *args, **kwargs):
+        covariates = self.covariator.get_current(region)
+        curve = self.curvegen.get_curve(region, covariates)
 
-        curr_curve = self.curr_curvegen.get_curve(region, covariates)
+        if self.save_curve:
+            region_curves[region] = curve
 
+        return curve
+
+    def get_next_curve(self, region, *args, **kwargs):
         if self.farmer == 'full':
-            full_curve = InstantAdaptingCurve(region, curr_curve, self.covariator, self.curr_curvegen)
+            covariates = self.covariator.get_update(region, year, kwargs['weather'])
+            curve = self.curvegen.get_curve(region, covariates)
         elif self.farmer == 'coma':
-            full_curve = ComatoseInstantAdaptingCurve(region, curr_curve, self.covariator, self.curr_curvegen)
+            curve = self.last_curve
         elif self.farmer == 'dumb':
-            full_curve = DumbInstantAdaptingCurve(region, curr_curve, self.covariator, self.curr_curvegen)
+            covariates = self.covariator.get_update(region, year, None)
+            curve = self.curvegen.get_curve(region, covariates)
         else:
             raise ValueError("Unknown farmer type " + str(self.farmer))
 
         if self.save_curve:
-            region_curves[region] = full_curve
+            region_curves[region] = curve
 
-        return full_curve
-
-class InstantAdaptingCurve(AdaptableCurve):
-    def __init__(self, region, curr_curve, covariator, curvegen):
-        super(InstantAdaptingCurve, self).__init__(curr_curve.xx)
-
-        self.region = region
-        self.curr_curve = curr_curve
-        self.covariator = covariator
-        self.curvegen = curvegen
-
-    def update(self, year, weather):
-        covariates = self.covariator.get_update(self.region, year, weather)
-        self.curr_curve = self.curvegen.get_curve(self.region, covariates)
-
-    def __call__(self, x):
-        return self.curr_curve(x)
-
-class ComatoseInstantAdaptingCurve(InstantAdaptingCurve):
-    def update(self, year, weather):
-        # Ignore for the comatose farmer
-        pass
-
-class DumbInstantAdaptingCurve(InstantAdaptingCurve):
-    def update(self, year, weather):
-        # Set weather to None so no adaptation to it
-        super(DumbInstantAdaptingCurve, self).update(year, None)
+        return curve
