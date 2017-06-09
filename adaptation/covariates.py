@@ -104,6 +104,7 @@ class MeanWeatherCovariator(Covariator):
 
         self.temp_predictors = temp_predictors
         self.weatherbundle = weatherbundle
+        self.lastyear = -np.inf
 
     def get_current(self, region):
         #assert region in self.temp_predictors, "Missing " + region
@@ -115,6 +116,9 @@ class MeanWeatherCovariator(Covariator):
     def get_update(self, region, year, temps):
         """Allow temps = None for dumb farmer who cannot adapt to temperature."""
         assert year < 10000
+        # Ensure that we aren't called with a year twice
+        assert self.lastyear < year
+        self.lastyear = year
 
         if temps is not None and year > self.startupdateyear:
             if self.varindex is None:

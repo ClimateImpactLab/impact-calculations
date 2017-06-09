@@ -92,3 +92,10 @@ def subset(csvv, toinclude):
         subcsvv['gammavcv'] = csvv['gammavcv'][toinclude, toinclude]
 
     return subcsvv
+
+def get_gamma(csvv, predname, covarname):
+    for ii in range(len(csvv['gamma'])):
+        if csvv['prednames'][ii] == predname and csvv['covarnames'][ii] == covarname:
+            return csvv['gamma'][ii]
+
+    return None

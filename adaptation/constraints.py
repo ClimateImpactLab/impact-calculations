@@ -1,12 +1,12 @@
 import numpy as np
-from curvegen import InstantAdaptingCurve
+from generate import caller
 
 """
 The "Good Money" condition:
 An increase in your wealth will always decrease your sensitivity.
 
 Let your response be defined by f(x | gdppc), for weather x, conditional on gdppc.
-We want to ensure that 
+We want to ensure that
 (df / dgdppc)(x) has a sign in the direction of less sensitivity.
 
 For each x, f(x | gdppc_t) against f(x | gdppc_0) and take the better of the two.
@@ -35,14 +35,25 @@ def make_get_coeff_goodmoney(weatherbundle, covariator, curvegen, baselinemins, 
             return curve_get_coeff(curve)
     return coeff_getter
 
-class ConstantIncomeInstantAdaptingCurve(InstantAdaptingCurve):
-    def __init__(self, region, curr_curve, covariator, curvegen):
-        super(ConstantIncomeInstantAdaptingCurve, self).__init__(region, curr_curve, covariator, curvegen)
-        self.baseline_loggdppc = covariator.get_current(region)['loggdppc']
-    
-    def update(self, year, weather):
-        print "Update", np.mean(weather)
-        covariates = self.covariator.get_update(self.region, year, weather)
-        covariates['loggdppc'] = self.baseline_loggdppc
-        self.curr_curve = self.curvegen.get_curve(self.region, covariates)
-        
+def get_curve_minima(weatherbundle, curvegen, covariator, mint, maxt, analytic):
+    # Determine minimum value of curve between mint and maxt
+    print "Determining minimum temperatures."
+    baselinecurves = {}
+    baselinemins = {}
+    with open(caller.callinfo['minpath'], 'w') as fp:
+        writer = csv.writer(fp)
+        writer.writerow(['region', 'brute', 'analytic'])
+        for region in weatherbundle.regions:
+            curve = curr_curvegen.get_curve(region, covariator.get_current(region))
+            baselinecurves[region] = curve
+            temps = np.arange(mint, maxt+1)
+            mintemp = temps[np.argmin(curve(temps))]
+            mintemp2 = analytic(curve)
+            if np.abs(mintemp - mintemp2) > 1:
+                print "WARNING: %s has unclear mintemp: %f, %f" % (region, mintemp, mintemp2)
+            baselinemins[region] = mintemp2
+            writer.writerow([region, mintemp, mintemp2])
+
+    return baselinecurves, baselinemins
+
+
