@@ -13,7 +13,7 @@ costs_command = "Rscript generate/cost_curves.R \"%s\" \"%s\" \"%s\" \"%s\" \"%s
 
 CLAIM_TIMEOUT = 60*60
 
-batchfilter = lambda batch: batch == 'median' or 'batch' in batch
+batchfilter = lambda batch: batch == 'median' # XXX: or 'batch' in batch
 targetdirfilter = lambda targetdir: True #'SSP3' in targetdir and 'Env-Growth' in targetdir
 
 # The full population, if we just read it.  Only 1 at a time (it's big!)
@@ -263,6 +263,8 @@ if __name__ == '__main__':
                                 gammarange = '%s:%s' % (numpreds * 3 + 1, numpreds * 6)
                             elif '-oldest' in filename:
                                 gammarange = '%s:%s' % (numpreds * 6 + 1, numpreds * 9)
+                            else:
+                                continue # Cannot calculate costs
                                 
                             print costs_command % (tavgpath, clim_scenario, clim_model, impactspath, gammapath, minpath, functionalform, ffparameters, gammarange)
                             os.system(costs_command % (tavgpath, clim_scenario, clim_model, impactspath, gammapath, minpath, functionalform, ffparameters, gammarange))

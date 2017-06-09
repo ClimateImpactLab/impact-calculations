@@ -44,8 +44,6 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
     print "Finishing calculation setup."
     
     def transform(region, curve):
-        print "Full", curve.ccs
-        print "NoInc", constantincomecurves[region].curr_curve.ccs
         fulladapt_curve = ShiftedCurve(curve, -curve(baselinemins[region]))
         noincadapt_curve = ShiftedCurve(constantincomecurves[region], -constantincomecurves[region](baselinemins[region]))
         

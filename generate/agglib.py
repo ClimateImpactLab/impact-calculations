@@ -75,7 +75,7 @@ def get_years(reader, limityears=None):
     return readeryears
 
 def combine_results(targetdir, basename, sub_basenames, get_stweights, description, suffix=''):
-    writer = nc4writer.create(targetdir, basename)
+    writer = nc4writer.create(targetdir, basename + suffix)
 
     sub_filepaths = [os.path.join(targetdir, sub_basename + '.nc4') for sub_basename in sub_basenames]
     readers = [Dataset(sub_filepath, 'r', format='NETCDF4') for sub_filepath in sub_filepaths]
