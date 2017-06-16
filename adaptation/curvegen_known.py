@@ -9,11 +9,9 @@ class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
         prednames = [prefix + str(ii) if ii > 1 else prefix for ii in range(1, order+1)]
         super(PolynomialCurveGenerator, self).__init__(prednames, indepunits * order, depenunit, csvv)
 
-    def get_curve(self, region, covariates={}):
+    def get_curve(self, region, year, covariates={}):
         coefficients = self.get_coefficients(covariates)
         yy = [coefficients[predname] for predname in self.prednames]
-        if covariates:
-            print region, yy
 
         if diagnostic.is_recording():
             for predname in self.prednames:
@@ -27,7 +25,7 @@ class CubicSplineCurveGenerator(curvegen.CSVVCurveGenerator):
         prednames = [prefix + str(ii) for ii in range(len(knots)-1)]
         super(CubicSplineCurveGenerator, self).__init__(prednames, indepunits, depenunit, csvv)
 
-    def get_curve(self, region, covariates={}):
+    def get_curve(self, region, year, covariates={}):
         coefficients = self.get_coefficients(covariates)
         yy = [coefficients[predname] for predname in self.prednames]
 

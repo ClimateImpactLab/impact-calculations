@@ -56,36 +56,38 @@ class CSVVCurveGenerator(CurveGenerator):
             marginals[predname] = self.predgammas[predname][self.predcovars[predname].index(covar)]
         return marginals
 
-    def get_curve(self, region, covariates={}):
+    def get_curve(self, region, year, covariates={}):
         raise NotImplementedError()
 
-class FarmerCurveGenerator(WeatherDelayedCurveGenerator):
+class FarmerCurveGenerator(DelayedCurveGenerator):
     """Handles different adaptation assumptions."""
     def __init__(self, curvegen, covariator, farmer='full', save_curve=True):
-        super(FarmerCurveGenerator, self).__init__(curvegen.indepunits, curvegen.depenunit)
-        self.curvegen = curvegen
+        super(FarmerCurveGenerator, self).__init__(curvegen)
         self.covariator = covariator
         self.farmer = farmer
         self.save_curve = save_curve
 
-    def get_baseline_curve(self, region, *args, **kwargs):
-        covariates = self.covariator.get_current(region)
-        curve = self.curvegen.get_curve(region, covariates)
+    def get_next_curve(self, region, year, *args, **kwargs):
+        if year < 2015:
+            if self.last_curve is None:
+                covariates = self.covariator.get_current(region)
+                curve = self.curvegen.get_curve(region, year, covariates)
 
-        if self.save_curve:
-            region_curves[region] = curve
+                if self.save_curve:
+                    region_curves[region] = curve
 
-        return curve
+                return curve
 
-    def get_next_curve(self, region, *args, **kwargs):
+            return self.last_curve
+
         if self.farmer == 'full':
             covariates = self.covariator.get_update(region, year, kwargs['weather'])
-            curve = self.curvegen.get_curve(region, covariates)
+            curve = self.curvegen.get_curve(region, year, covariates)
         elif self.farmer == 'coma':
             curve = self.last_curve
         elif self.farmer == 'dumb':
             covariates = self.covariator.get_update(region, year, None)
-            curve = self.curvegen.get_curve(region, covariates)
+            curve = self.curvegen.get_curve(region, year, covariates)
         else:
             raise ValueError("Unknown farmer type " + str(self.farmer))
 

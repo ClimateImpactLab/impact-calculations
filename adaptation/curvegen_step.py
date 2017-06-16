@@ -11,7 +11,7 @@ class BinnedStepCurveGenerator(curvegen.CSVVCurveGenerator):
         super(BinnedStepCurveGenerator, self).__init__(prednames, indepunits, depenunit, csvv)
         self.min_betas = {}
 
-    def get_curve(self, region, covariates={}):
+    def get_curve(self, region, year, covariates={}):
         coefficients = self.get_coefficients(covariates)
         yy = [coefficients[predname] for predname in self.prednames]
 

@@ -16,7 +16,7 @@ class CoefficientsCurveGenerator(curvegen.CSVVCurveGenerator):
         return [allcoeffs[predname] for predname in self.prednames]
 
     def get_curve(self, region, covariates={}):
-        mycoeffs = self.get_curve_parameters(region, covariates)
+        mycoeffs = self.get_curve_parameters(region, year, covariates)
         return self.curvefunc(mycoeffs)
 
 class MLECoefficientsCurveGenerator(CoefficientsCurveGenerator):
