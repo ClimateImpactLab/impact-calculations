@@ -1,3 +1,4 @@
+import csv
 import numpy as np
 from generate import caller
 
@@ -44,7 +45,7 @@ def get_curve_minima(weatherbundle, curvegen, covariator, mint, maxt, analytic):
         writer = csv.writer(fp)
         writer.writerow(['region', 'brute', 'analytic'])
         for region in weatherbundle.regions:
-            curve = curr_curvegen.get_curve(region, covariator.get_current(region))
+            curve = curvegen.get_curve(region, 2005, covariator.get_current(region))
             baselinecurves[region] = curve
             temps = np.arange(mint, maxt+1)
             mintemp = temps[np.argmin(curve(temps))]
