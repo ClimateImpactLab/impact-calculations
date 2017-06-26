@@ -1,3 +1,4 @@
+
 ################################################
 # GENERATE ADAPTATION COST CURVES
 # This is an attempt to generalize the code to be able to use any functional form estimated in the response function
@@ -46,12 +47,12 @@ if(is.local) {
 tavgpath = "~/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/climtas.nc4"
 tannpath = "~/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/poly/"
 outpath = "~/Tamma-Shackleton/GCP/adaptation_costs/data/poly_dailyclip"
-impactspath <- "/Users/tammacarleton/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/poly_dailyclip/global_interaction_Tmean-POLY-5-AgeSpec-oldest.nc4"
-gammapath = "~/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/poly_dailyclip/global_interaction_Tmean-POLY-5-AgeSpec.csvv"
-gammarange = 31:45 #oldest! 
-minpath <- "~/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/poly_dailyclip/global_interaction_Tmean-POLY-5-AgeSpec-oldest-polymins.csv"
+impactspath <- "/Users/tammacarleton/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/poly_dailyclip/global_interaction_Tmean-POLY-4-AgeSpec-oldest.nc4"
+gammapath = "~/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/poly_dailyclip/global_interaction_Tmean-POLY-4-AgeSpec.csvv"
+gammarange = 25:36 #oldest! 
+minpath <- "~/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/poly_dailyclip/global_interaction_Tmean-POLY-4-AgeSpec-oldest-polymins.csv"
 model <- 'poly'
-powers <- 5
+powers <- 4
 }
 #####################
 
@@ -139,8 +140,11 @@ year.avg <- ncvar_get(nc.tavg, 'year')
 ##############################################################################################
 
 nc.imp <- nc_open(impactspath)
-impacts.inceffect <- ncvar_get(nc.imp, 'income_effect') # Sum of adaptive investments at daily level
+impacts.climtaseff <- ncvar_get(nc.imp, 'climtas_effect') # Sum of adaptive investments at daily level
 rm(nc.imp)
+
+# NOTE: James' average climate effect terms need to be multiplied by 365 (as of June 24 2017 -- may update later when integrating updated climate data from Justin and Mike)
+impacts.climtaseff <- impacts.climtaseff * 365
 
 print("IMPACTS LOADED")
 
@@ -149,13 +153,13 @@ print("IMPACTS LOADED")
 ##############################################################################################
 
 # 15-year moving average 
-movingavg <- array(NA, dim=dim(impacts.inceffect))
+movingavg <- array(NA, dim=dim(impacts.climtaseff))
 
-R <- dim(impacts.inceffect)[1]
+R <- dim(impacts.climtaseff)[1]
 
 for(r in 1:R) { #loop over all regions
-    if (sum(is.finite(impacts.inceffect[r,])) > 0)
-      movingavg[r,] <- ave(impacts.inceffect[r,], FUN=function(x) rollmean(x, k=15, fill="extend"))
+    if (sum(is.finite(impacts.climtaseff[r,])) > 0)
+      movingavg[r,] <- ave(impacts.climtaseff[r,], FUN=function(x) rollmean(x, k=15, fill="extend"))
   }
 
 print("MOVING AVERAGE OF ADAPTIVE INVESTMENTS CALCULATED")
@@ -172,10 +176,10 @@ results_cum <- array(0, dim=c(dim(temps.avg)[1], 2, dim(temps.avg)[2]) )
 for (r in 1:R){
 
     options(warn=-1)
-    # Need a lead variable of the expected value of adaptive investments term
+    # Need a lag variable of the expected value of adaptive investments term
     tempdf <- as.data.frame(movingavg[r,])
     colnames(tempdf) <- "climvar"
-    expect <- slide(tempdf, Var='climvar', NewVar = 'future', slideBy=1, reminder=F)
+    expect <- slide(tempdf, Var='climvar', NewVar = 'lag', slideBy=-1, reminder=F)
     rm(tempdf)
     
     # COSTS: "EXACT" VERSION 
@@ -186,16 +190,16 @@ for (r in 1:R){
     # COSTS: CUMULATIVE COSTS VERSION
     tempdf <- as.data.frame(temps.avg[r,])
     colnames(tempdf) <- "climcov"
-    avg2 <- slide(tempdf, Var="climcov", NewVar = 'future', slideBy=1, reminder=F)
-    avg2$diff <- avg2$climcov - avg2$future
+    avg2 <- slide(tempdf, Var="climcov", NewVar = 'lag', slideBy=-1, reminder=F)
+    avg2$diff <- avg2$lag - avg2$climcov
     rm(tempdf)
     options(warn=0)
 
     # Lower and upper bounds
     results[r,1,] <-  avg$diff * (expect$climvar[which(year.avg==2010)])  # lower
     results[r,2,] <-  avg$diff * (expect$climvar) # upper
-    results_cum[r,1,] <-  avg2$diff * (expect$climvar) # lower
-    results_cum[r,2,] <-  avg2$diff * (expect$future) # upper
+    results_cum[r,1,] <-  avg2$diff * (expect$lag) # lower
+    results_cum[r,2,] <-  avg2$diff * (expect$climvar) # upper
     
     # Clear
     rm(avg, expect)
@@ -211,7 +215,7 @@ for (r in 1:R){
 ###############################################
 
 #Add in costs of zero for initial years
-  baseline <- which(year.avg==2010)
+  baseline <- which(year.avg==2015)
   for (a in 1:baseline) {
     results[,,a] <- matrix(0,dim(results)[1], dim(results)[2])
     results_cum[,,a] <- matrix(0,dim(results_cum)[1], dim(results_cum)[2])
