@@ -9,7 +9,7 @@ levels_suffix = '-levels'
 suffix = "-aggregated"
 missing_only = True
 
-costs_command = "Rscript generate/cost_curves.R \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\"" # tavgpath rcp gcm impactspath gammapath minpath functionalform ffparameters gammarange
+costs_command = "Rscript generate/cost_curves.R \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\"" # tavgpath rcp gcm impactspath gammapath minpath gammarange
 
 CLAIM_TIMEOUT = 60*60
 
@@ -240,18 +240,12 @@ if __name__ == '__main__':
                             gammapath = gammapath.replace('-young', '').replace('-older', '').replace('-oldest', '')
 
                             if 'POLY-4' in filename:
-                                functionalform = 'poly'
-                                ffparameters = 'poly4'
                                 numpreds = 4
                                 minpath = os.path.join(targetdir, filename.replace('.nc4', '-polymins.csv'))
                             elif 'POLY-5' in filename:
-                                functionalform = 'poly'
-                                ffparameters = 'poly5'
                                 numpreds = 5
                                 minpath = os.path.join(targetdir, filename.replace('.nc4', '-polymins.csv'))
                             elif 'CSpline' in filename:
-                                functionalform = 'spline'
-                                ffparameters = 'LS'
                                 numpreds = 5
                                 minpath = os.path.join(targetdir, filename.replace('.nc4', '-splinemins.csv'))
                             else:
@@ -266,8 +260,8 @@ if __name__ == '__main__':
                             else:
                                 continue # Cannot calculate costs
                                 
-                            print costs_command % (tavgpath, clim_scenario, clim_model, impactspath, gammapath, minpath, functionalform, ffparameters, gammarange)
-                            os.system(costs_command % (tavgpath, clim_scenario, clim_model, impactspath, gammapath, minpath, functionalform, ffparameters, gammarange))
+                            print costs_command % (tavgpath, clim_scenario, clim_model, impactspath, gammapath, minpath, gammarange)
+                            os.system(costs_command % (tavgpath, clim_scenario, clim_model, impactspath, gammapath, minpath, gammarange))
 
                         # Levels of costs
                         if not missing_only or not os.path.exists(os.path.join(targetdir, filename[:-4] + costs_suffix + levels_suffix + '.nc4')):

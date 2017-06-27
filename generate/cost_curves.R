@@ -18,15 +18,13 @@
 # This simplifies to: sum_k [ T_0^k * gamma_k * (Tbar_0^k - Tbar_1^k)] < COST < sum_k [ T_1^k * gamma_k * (Tbar_0^k - Tbar_1^k)], where "k" indicates each term in the nonlinear response (e.g. if it's a fourth order polynomial, we have k = 1,...,4), and where the Tbar values may vary by climate term (e.g for bins we interact each bin variable by the average number of days in that bin)
 
 ###########################
-# Syntax: cost_curves(tavgpath, rcp, climate_model, impactspath, gammapath, minpath, functionalform, 'ffparameters', 'gammarange'), Where:
+# Syntax: cost_curves(tavgpath, rcp, climate_model, impactspath, gammapath, minpath, 'gammarange'), Where:
 # tavgpath = filepath for long run average climate data by impact region year
 # rcp = which RCP? enter as a string --  'rcp85' or 'rcp45'
 # climate_model = which climate model? enter as a string -- e.g. 'MIROC-ESM'
 # impactspath = filepath for the projected impacts for this model
 # gammapath = filepath for the CSVV of gammas
 # minpath = filepath for the CSV of impact region-specific reference temperatures
-# functionalform = 'spline', 'poly', or 'bin'
-# 'ffparameters' = details on the functional form chosen. E.g. for spline, this can be 'LS' or 'NS', and for polynomial this can be 'poly4' or 'poly5'.
 # gammarange = range of numbers indicating which of the gammas you want to pull (e.g. only a subset of them if you want just one age category) -- entered as a string!
 ###########################
 
@@ -76,22 +74,8 @@ gammapath = args[5] # paste0("social/parameters/", sector, "/", csvname, ".csvv"
 # Filepath for spline minimum values -- where is the CSV?
 minpath = args[6] # paste0("social/parameters/mortality/mortality_splines_03162017/splinemins.csv")
 
-# What model spec are you running? Options: bin, cubic spline, poly
-model <- args[7]
-
-# Details on the functional form
-if(args[8]=='NS') {
-  knots <- c(-12, -7, 0, 10, 18, 23, 28, 33)
-}
-if(args[8]=='LS'){
-  knots <- c(-10, 0, 10, 20, 28, 33)
-}
-if(args[7]=='poly'){
-  powers <- as.numeric(substr(args[8],5,5))
-}
-
 # Which gammas do you want to pull?
-gammarange <- unlist(strsplit(args[9], ':'))
+gammarange <- unlist(strsplit(args[7], ':'))
 gammarange <- as.numeric(gammarange[1]):as.numeric(gammarange[2])
 
 ###############################################
@@ -142,9 +126,6 @@ year.avg <- ncvar_get(nc.tavg, 'year')
 nc.imp <- nc_open(impactspath)
 impacts.climtaseff <- ncvar_get(nc.imp, 'climtas_effect') # Sum of adaptive investments at daily level
 rm(nc.imp)
-
-# NOTE: James' average climate effect terms need to be multiplied by 365 (as of June 24 2017 -- may update later when integrating updated climate data from Justin and Mike)
-impacts.climtaseff <- impacts.climtaseff * 365
 
 print("IMPACTS LOADED")
 
