@@ -13,7 +13,7 @@ costs_command = "Rscript generate/cost_curves.R \"%s\" \"%s\" \"%s\" \"%s\" \"%s
 
 CLAIM_TIMEOUT = 60*60
 
-batchfilter = lambda batch: batch == 'median' # XXX: or 'batch' in batch
+batchfilter = lambda batch: True #batch == 'median' or 'batch' in batch
 targetdirfilter = lambda targetdir: True #'SSP3' in targetdir and 'Env-Growth' in targetdir
 
 # The full population, if we just read it.  Only 1 at a time (it's big!)
@@ -231,37 +231,45 @@ if __name__ == '__main__':
                     if not missing_only or not checks.check_result_100years(os.path.join(targetdir, filename[:-4] + suffix + '.nc4'), variable=variable, regioncount=5665) or not os.path.exists(os.path.join(targetdir, filename[:-4] + suffix + '.nc4')):
                         make_aggregates(targetdir, filename, get_population)
 
-                    if '-noadapt' not in filename and '-incadapt' not in filename and 'histclim' not in filename: #filename in ['interpolated_mortality_all_ages.nc4', 'interpolated_mortality65_plus.nc4', 'global_interaction_best.nc4', 'global_interaction_gmfd.nc4', 'global_interaction_no_popshare_best.nc4', 'global_interaction_no_popshare_gmfd.nc4', 'moratlity_cubic_splines_2factors_GMFD_031617.nc4', 'moratlity_cubic_splines_2factors_BEST_031617.nc4']:
+                    if '-noadapt' not in filename and '-incadapt' not in filename and 'histclim' not in filename:
                         # Generate costs
                         if not missing_only or not os.path.exists(os.path.join(targetdir, filename[:-4] + costs_suffix + '.nc4')):
-                            tavgpath = '/shares/gcp/outputs/temps/%s/%s/climtas.nc4' % (clim_scenario, clim_model)
-                            impactspath = os.path.join(targetdir, filename)
-                            gammapath = '/shares/gcp/social/parameters/mortality/Diagnostics_Apr17/' + filename.replace('.nc4', '.csvv')
-                            gammapath = gammapath.replace('-young', '').replace('-older', '').replace('-oldest', '')
+                            if '-combined' in filename:
+                                # Look for age-specific costs
+                                agegroups = ['young', 'older', 'oldest']
+                                basenames = [filename[:-4].replace('-combined', '-' + agegroup) for agegroup in agegroups]
+                                get_stweights = [lambda year0, year1: halfweight.load_population(1981, 2100, econ_model, econ_scenario, 'age0-4'), lambda year0, year1: halfweight.load_population(1981, 2100, econ_model, econ_scenario, 'age5-64'), lambda year0, year1: halfweight.load_population(1981, 2100, econ_model, econ_scenario, 'age65+')]
+                                
+                                agglib.combine_results(targetdir, filename[:-4] + costs_suffix + '.nc4', basenames, get_stweights, "Combined costs across age-groups for " + filename.replace('-combined.nc4', ''))
+                            else:
+                                tavgpath = '/shares/gcp/outputs/temps/%s/%s/climtas.nc4' % (clim_scenario, clim_model)
+                                impactspath = os.path.join(targetdir, filename)
+                                gammapath = '/shares/gcp/social/parameters/mortality/Diagnostics_Apr17/' + filename.replace('.nc4', '.csvv')
+                                gammapath = gammapath.replace('-young', '').replace('-older', '').replace('-oldest', '')
 
-                            if 'POLY-4' in filename:
-                                numpreds = 4
-                                minpath = os.path.join(targetdir, filename.replace('.nc4', '-polymins.csv'))
-                            elif 'POLY-5' in filename:
-                                numpreds = 5
-                                minpath = os.path.join(targetdir, filename.replace('.nc4', '-polymins.csv'))
-                            elif 'CSpline' in filename:
-                                numpreds = 5
-                                minpath = os.path.join(targetdir, filename.replace('.nc4', '-splinemins.csv'))
-                            else:
-                                ValueError('Unknown functional form')
+                                if 'POLY-4' in filename:
+                                    numpreds = 4
+                                    minpath = os.path.join(targetdir, filename.replace('.nc4', '-polymins.csv'))
+                                elif 'POLY-5' in filename:
+                                    numpreds = 5
+                                    minpath = os.path.join(targetdir, filename.replace('.nc4', '-polymins.csv'))
+                                elif 'CSpline' in filename:
+                                    numpreds = 5
+                                    minpath = os.path.join(targetdir, filename.replace('.nc4', '-splinemins.csv'))
+                                else:
+                                    ValueError('Unknown functional form')
                                 
-                            if '-young' in filename:
-                                gammarange = '1:%s' % (numpreds * 3)
-                            elif '-older' in filename:
-                                gammarange = '%s:%s' % (numpreds * 3 + 1, numpreds * 6)
-                            elif '-oldest' in filename:
-                                gammarange = '%s:%s' % (numpreds * 6 + 1, numpreds * 9)
-                            else:
-                                continue # Cannot calculate costs
+                                if '-young' in filename:
+                                    gammarange = '1:%s' % (numpreds * 3)
+                                elif '-older' in filename:
+                                    gammarange = '%s:%s' % (numpreds * 3 + 1, numpreds * 6)
+                                elif '-oldest' in filename:
+                                    gammarange = '%s:%s' % (numpreds * 6 + 1, numpreds * 9)
+                                else:
+                                    continue # Cannot calculate costs
                                 
-                            print costs_command % (tavgpath, clim_scenario, clim_model, impactspath, gammapath, minpath, gammarange)
-                            os.system(costs_command % (tavgpath, clim_scenario, clim_model, impactspath, gammapath, minpath, gammarange))
+                                print costs_command % (tavgpath, clim_scenario, clim_model, impactspath, gammapath, minpath, gammarange)
+                                os.system(costs_command % (tavgpath, clim_scenario, clim_model, impactspath, gammapath, minpath, gammarange))
 
                         # Levels of costs
                         if not missing_only or not os.path.exists(os.path.join(targetdir, filename[:-4] + costs_suffix + levels_suffix + '.nc4')):
