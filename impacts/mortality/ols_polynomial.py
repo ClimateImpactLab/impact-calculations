@@ -1,7 +1,7 @@
 import csv, copy
 import numpy as np
 from adaptation import csvvfile, curvegen, curvegen_known, covariates, constraints
-from openest.models.curve import ZeroInterceptPolynomialCurve, ClippedCurve, ShiftedCurve, MinimumCurve, SelectiveZeroCurve
+from openest.models.curve import ZeroInterceptPolynomialCurve, ClippedCurve, ShiftedCurve, MinimumCurve, OtherClippedCurve
 from openest.generate.stdlib import *
 from openest.generate import diagnostic
 from impactcommon.math import minpoly
@@ -37,15 +37,11 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
     farm_curvegen = curvegen.FarmerCurveGenerator(clip_curvegen, covariator, farmer)
 
     # Generate the marginal income curve
-    climtas_effect_curve = ZeroInterceptPolynomialCurve([-np.inf, np.inf], 365 * [csvvfile.get_gamma(csvv, tasvar, 'climtas') for tasvar in ['tas', 'tas2', 'tas3', 'tas4', 'tas5'][:order]]) # x 365, to undo / 365 later
+    climtas_effect_curve = ZeroInterceptPolynomialCurve([-np.inf, np.inf], 365 * np.array([csvvfile.get_gamma(csvv, tasvar, 'climtas') for tasvar in ['tas', 'tas2', 'tas3', 'tas4', 'tas5'][:order]])) # x 365, to undo / 365 later
 
     def transform_climtas_effect(region, curve):
-        assert isinstance(curve, ClippedCurve)
         shifted_curve = ShiftedCurve(climtas_effect_curve, -climtas_effect_curve(baselinemins[region]))
-        if region == 'IND.10.121.371':
-            print np.mean(curve.last_clipped) if curve.last_clipped is not None else "Pre-clipping."
-            print curve.last_clipped
-        return SelectiveZeroCurve(shifted_curve, curve.last_clipped)
+        return OtherClippedCurve(curve, shifted_curve)
 
     climtas_effect_curvegen = curvegen.TransformCurveGenerator(farm_curvegen, transform_climtas_effect)
 
