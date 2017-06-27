@@ -27,7 +27,7 @@ def simultaneous_application(weatherbundle, calculation, get_apply_args, regions
         for ii in range(len(applications)):
             jj = ii if regions == weatherbundle.regions else weatherbundle.regions.index(regions[ii])
 
-            for yearresult in applications[ii].push(weatherslice.select_region(ii)):
+            for yearresult in applications[ii].push(weatherslice.select_region(jj)):
                 yield (ii, yearresult[0], yearresult[1:])
 
             if push_callback is not None:
@@ -49,10 +49,13 @@ def generate(targetdir, basename, weatherbundle, calculation, get_apply_args, de
     if config['mode'] == 'diagnostic':
         return small_print(weatherbundle, calculation, get_apply_args, regions=[config['region']])
 
+    if filter_region is None:
+        filter_region = config.get('filter_region', None)
+    
     return write_ncdf(targetdir, basename, weatherbundle, calculation, get_apply_args, description, calculation_dependencies, filter_region=filter_region, result_callback=result_callback, push_callback=push_callback, subset=subset, suffix=suffix, diagnosefile=diagnosefile)
 
 def write_ncdf(targetdir, basename, weatherbundle, calculation, get_apply_args, description, calculation_dependencies, filter_region=None, result_callback=None, push_callback=None, subset=None, suffix='', diagnosefile=False):
-    if config.get('filter_region', filter_region) is None:
+    if filter_region is None:
         my_regions = weatherbundle.regions
     else:
         my_regions = []

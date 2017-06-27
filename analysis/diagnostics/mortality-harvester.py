@@ -15,6 +15,7 @@ weathertemplate = "/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level/{0}/CCSM4
 onlymodel = "global_interaction_Tmean-POLY-%d-AgeSpec-young" % polypower
 csvvargs = (0, 3 * polypower) # (None, None)
 region = 'IND.33.542.2153'
+onlyreg = True # False
 
 lib.show_header("The Covariates File (allpreds):")
 preds = lib.get_excerpt(os.path.join(dir, "mortality-allpreds.csv"), 3, region, [2001, 2009, futureyear-1, futureyear], onlymodel=onlymodel)
@@ -45,7 +46,7 @@ lib.show_header("Weather:")
 weather = lib.get_weather(weathertemplate, range(2001, 2011) + [2049, 2050], shapenum)
 
 lib.show_header("Outputs:")
-outputs = lib.get_outputs(os.path.join(dir, onlymodel + '.nc4'), [2049, 2050], shapenum)
+outputs = lib.get_outputs(os.path.join(dir, onlymodel + '.nc4'), [2049, 2050], shapenum if not onlyreg else 0)
 
 for year in [2001, futureyear]:
     lib.show_header("Calc. of tas coefficient in %d (%f reported)" % (year, lib.excind(calcs, year-1, 'tas')))
@@ -79,7 +80,7 @@ lib.show_julia(lines)
 
 lib.show_header("Calc. of clipped days portion (%f reported)" % lib.excind(calcs, 2050, 'zero'))
 lines = ["weather_%d = [%s]" % (2050, ','.join(["%.12g" % weday for weday in weather[2050]])),
-         "bl1(weather) = ([%s]' * weather) / 100000" % ', '.join(["%.12g" % lib.excind(calcs, 2050, coeff) for coeff in coefflist]),
+         "bl1(weather) = ([%s]' * weather) / 100000" % ', '.join(["%.12g" % lib.excind(calcs, 2049, coeff) for coeff in coefflist]),
          "bl2(weather) = bl1(exp((1:%d) * transpose(log(weather)))) - bl1(%.12g .^ (1:%d))[1]" % (polypower, lib.excind(mintemps, 2009, 'analytic'), polypower),
          "mean(bl2(weather_%d) .<= 0)" % 2050]
 lib.show_julia(lines)
@@ -115,11 +116,12 @@ lines = ["weather_%d = [%s]" % (futureyear, ','.join(["%.12g" % weday for weday 
          "sum(min(original, goodmoney)) - %.12g" % lib.excind(calcs, 2000, 'baseline')]
 lib.show_julia(lines)
 
-for year in [2049, 2050]:
-    lib.show_header("Climtas effect in %d (%f reported)" % (year, outputs[year]['climtas_effect']))
-    coeffs = [csvv['gamma'][ii] for ii in range(len(csvv['gamma'])) if csvv['covarnames'][ii] == 'climtas']
-    lines = ["tas = [%s]" % ','.join(["%.12g" % weday for weday in weather[year]]),
-             "unclipped = [%s]" % ','.join(map(lambda x: '1' if x else '0', curve(weather[year]) > curve(lib.excind(mintemps, 2009, 'analytic')))),
-             "(" + ' + '.join(["%s * sum((tas.^%d - %.12f^%d) .* unclipped)" % (coeffs[kk], kk+1, lib.excind(mintemps, 2009, 'analytic'), kk+1) for kk in range(5)]) + ") / 365"]
-    lib.show_julia(lines, clipto=320)
+lib.show_header("Climtas effect in %d (%f reported)" % (2050, outputs[2050]['climtas_effect']))
+coeffs = [csvv['gamma'][ii] for ii in range(len(csvv['gamma'])) if csvv['covarnames'][ii] == 'climtas']
+lines = ["weather_%d = [%s]" % (2050, ','.join(["%.12g" % weday for weday in weather[2050]])),
+         "bl1(weather) = ([%s]' * weather) / 100000" % ', '.join(["%.12g" % lib.excind(calcs, 2050, coeff) for coeff in coefflist]), # NOTE: coeffs from 2050, ot 2049
+         "bl2(weather) = bl1(exp((1:%d) * transpose(log(weather)))) - bl1(%.12g .^ (1:%d))[1]" % (polypower, lib.excind(mintemps, 2009, 'analytic'), polypower),
+         "unclipped = bl2(weather_%d) .> 0" % 2050,
+         "(" + ' + '.join(["%s * sum((weather_%d.^%d - %.12f^%d) .* unclipped')" % (coeffs[kk], 2050, kk+1, lib.excind(mintemps, 2009, 'analytic'), kk+1) for kk in range(5)]) + ")"]
+lib.show_julia(lines, clipto=400)
 
