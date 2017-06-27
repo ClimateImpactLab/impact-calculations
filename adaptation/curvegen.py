@@ -69,7 +69,7 @@ class FarmerCurveGenerator(DelayedCurveGenerator):
 
     def get_next_curve(self, region, year, *args, **kwargs):
         if year < 2015:
-            if self.last_curve is None:
+            if region not in self.last_curves:
                 covariates = self.covariator.get_current(region)
                 curve = self.curvegen.get_curve(region, year, covariates)
 
@@ -78,13 +78,13 @@ class FarmerCurveGenerator(DelayedCurveGenerator):
 
                 return curve
 
-            return self.last_curve
+            return self.last_curves[region]
 
         if self.farmer == 'full':
             covariates = self.covariator.get_update(region, year, kwargs['weather'])
             curve = self.curvegen.get_curve(region, year, covariates)
         elif self.farmer == 'coma':
-            curve = self.last_curve
+            curve = self.last_curves[region]
         elif self.farmer == 'dumb':
             covariates = self.covariator.get_update(region, year, None)
             curve = self.curvegen.get_curve(region, year, covariates)

@@ -11,7 +11,7 @@ def show_julia(command, clipto=160):
         print "# " + subprocess.check_output(["julia", "-e", "println(" + command + ")"])
     else:
         for line in command:
-            if len(line) > clipto:
+            if clipto is not None and len(line) > clipto:
                 print line[:(clipto-3)] + '...'
             else:
                 print line
@@ -137,3 +137,18 @@ def get_weather(weathertemplate, years, shapenum):
         weather[year] = data
 
     return weather
+
+def get_outputs(outputpath, years, shapenum):
+    rootgrp = Dataset(outputpath, 'r', format='NETCDF4')
+    outyears = list(rootgrp.variables['year'])
+    outvars = [var for var in rootgrp.variables if len(rootgrp.variables[var].shape) == 2]
+    print 'year,' + ','.join(outvars)
+    
+    outputs = {}
+    for year in years:
+        data = {var: rootgrp.variables[var][outyears.index(year), shapenum] for var in outvars}
+        outputs[year] = data
+        
+        print ','.join([str(year)] + [str(data[var]) for var in outvars])
+
+    return outputs

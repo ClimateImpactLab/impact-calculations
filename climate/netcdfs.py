@@ -52,6 +52,20 @@ def readncdf_single(filepath, variable):
 
     return data
 
+def readncdf_multiple(filepath, variables):
+    """
+    Return yyyyddd, weather
+    """
+    rootgrp = Dataset(filepath, 'r', format='NETCDF4')
+    yyyyddd = rootgrp.variables['time'][:]
+    hierid = rootgrp.variables['hierid'][:]
+    weather = np.empty(len(yyyyddd), len(hierid), len(variables))
+    for ii in range(len(variables)):
+        weather[:, :, ii] = rootgrp.variables[variables[ii]][:,:]
+    rootgrp.close()
+
+    return yyyyddd, weather
+
 def readncdf_binned(filepath, variable):
     """
     Return month, perbin [12 x BINS x REGIONS]
