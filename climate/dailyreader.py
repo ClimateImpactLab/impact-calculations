@@ -33,6 +33,22 @@ class DailyWeatherReader(YearlySplitWeatherReader):
         yyyyddd, weather = netcdfs.readncdf(self.file_for_year(year), self.variable)
         return DailyWeatherSlice(yyyyddd, weather)
 
+class DailyMultipleWeatherReader(DailyWeatherReader):
+    """Exposes several variables within a daily weather data file, split into yearly files."""
+
+    def get_dimension(self):
+        return self.variable
+
+    def read_iterator(self):
+        # Yield data in yearly chunks
+        for filename in self.file_iterator():
+            yyyyddd, weather = netcdfs.readncdf_multiple(filename, self.variable)
+            yield DailyWeatherSlice(yyyyddd, weather)
+
+    def read_year(self, year):
+        yyyyddd, weather = netcdfs.readncdf_multiple(self.file_for_year(year), self.variable)
+        return DailyWeatherSlice(yyyyddd, weather)
+    
 class MonthlyBinnedWeatherReader(YearlySplitWeatherReader):
     """Exposes binned weather data, accumulated into months and split into yearly file."""
 

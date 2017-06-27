@@ -28,9 +28,13 @@ class YearlySplitWeatherReader(WeatherReader):
     """Exposes weather data, split into yearly files."""
 
     def __init__(self, template, year1, variable):
-        version, units = netcdfs.readmeta(template % (year1), variable)
+        if isinstance(variable, list):
+            version, units = netcdfs.readmeta(template % (year1), variable[0])
+        else:
+            version, units = netcdfs.readmeta(template % (year1), variable)
+            
         super(YearlySplitWeatherReader, self).__init__(version, units, 'year')
-
+            
         self.template = template
         self.year1 = year1
         self.variable = variable

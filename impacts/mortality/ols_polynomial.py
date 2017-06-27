@@ -26,6 +26,8 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
 
     def transform(region, curve):
         fulladapt_curve = ShiftedCurve(curve, -curve(baselinemins[region]))
+        #return ClippedCurve(fulladapt_curve) # XXX: Turn off Goodmoney
+        
         noincadapt_curve = ShiftedCurve(baselinecurves[region], -baselinecurves[region](baselinemins[region]))
 
         goodmoney_curve = MinimumCurve(fulladapt_curve, noincadapt_curve)
@@ -35,19 +37,23 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
     farm_curvegen = curvegen.FarmerCurveGenerator(clip_curvegen, covariator, farmer)
 
     # Generate the marginal income curve
-    income_effect_curve = ZeroInterceptPolynomialCurve([-np.inf, np.inf], [csvvfile.get_gamma(csvv, tasvar, 'loggdppc') for tasvar in ['tas', 'tas2', 'tas3', 'tas4']])
+    climtas_effect_curve = ZeroInterceptPolynomialCurve([-np.inf, np.inf], 365 * [csvvfile.get_gamma(csvv, tasvar, 'climtas') for tasvar in ['tas', 'tas2', 'tas3', 'tas4', 'tas5'][:order]]) # x 365, to undo / 365 later
 
-    def transform_income_effect(region, curve):
+    def transform_climtas_effect(region, curve):
         assert isinstance(curve, ClippedCurve)
-        return SelectiveZeroCurve(income_effect_curve, curve.last_clipped)
+        shifted_curve = ShiftedCurve(climtas_effect_curve, -climtas_effect_curve(baselinemins[region]))
+        if region == 'IND.10.121.371':
+            print np.mean(curve.last_clipped) if curve.last_clipped is not None else "Pre-clipping."
+            print curve.last_clipped
+        return SelectiveZeroCurve(shifted_curve, curve.last_clipped)
 
-    income_effect_curvegen = curvegen.TransformCurveGenerator(farm_curvegen, transform_income_effect)
+    climtas_effect_curvegen = curvegen.TransformCurveGenerator(farm_curvegen, transform_climtas_effect)
 
     # Produce the final calculation
     calculation = Transform(AuxillaryResult(YearlyAverageDay('100,000 * death/population', farm_curvegen,
                                                              "the mortality response curve"),
-                                            YearlyAverageDay('100,000 * death/population', income_effect_curvegen,
-                                                             "income effect after clipping"), 'income_effect'),
+                                            YearlyAverageDay('100,000 * death/population', climtas_effect_curvegen,
+                                                             "climtas effect after clipping", norecord=True), 'climtas_effect'),
                             '100,000 * death/population', 'deaths/person/year', lambda x: 365 * x / 1e5,
                             'convert to deaths/person/year', "Divide by 100000 to convert to deaths/person/year.")
 

@@ -10,12 +10,12 @@ from adaptation import curvegen
 from impactlab_tools.utils import files, paralog
 import cProfile, pstats, StringIO, metacsv
 
-config = files.get_argv_config()
+config = files.get_allargv_config()
 
 CLAIM_TIMEOUT = 12*60*60
 do_single = False
 
-singledir = 'single'
+singledir = config.get('singledir', 'single')
 
 statman = paralog.StatusManager('generate', "generate.generate " + sys.argv[1], 'logs', CLAIM_TIMEOUT)
 

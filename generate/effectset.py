@@ -52,13 +52,17 @@ def generate(targetdir, basename, weatherbundle, calculation, get_apply_args, de
     return write_ncdf(targetdir, basename, weatherbundle, calculation, get_apply_args, description, calculation_dependencies, filter_region=filter_region, result_callback=result_callback, push_callback=push_callback, subset=subset, suffix=suffix, diagnosefile=diagnosefile)
 
 def write_ncdf(targetdir, basename, weatherbundle, calculation, get_apply_args, description, calculation_dependencies, filter_region=None, result_callback=None, push_callback=None, subset=None, suffix='', diagnosefile=False):
-    if filter_region is None:
+    if config.get('filter_region', filter_region) is None:
         my_regions = weatherbundle.regions
     else:
         my_regions = []
         for ii in range(len(weatherbundle.regions)):
-            if filter_region(weatherbundle.regions[ii]):
-                my_regions.append(weatherbundle.regions[ii])
+            if isinstance(filter_region, str):
+                if weatherbundle.regions[ii] in filter_region:
+                    my_regions.append(weatherbundle.regions[ii])
+            else:
+                if filter_region(weatherbundle.regions[ii]):
+                    my_regions.append(weatherbundle.regions[ii])
 
     rootgrp = Dataset(get_ncdf_path(targetdir, basename, suffix), 'w', format='NETCDF4')
     rootgrp.description = description
