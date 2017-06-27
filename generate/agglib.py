@@ -114,6 +114,8 @@ def combine_results(targetdir, basename, sub_basenames, get_stweights, descripti
         for ii in range(len(regions)):
             for kk in range(len(readers)):
                 weights = stweights[kk].get_time(regions[ii])
+                if len(years) == len(weights) - 1:
+                    weights = weights[:-1]
                 dstnumers[:, ii] += srcvalueses[kk][:, ii] * weights
                 dstdenoms[:, ii] += weights
 

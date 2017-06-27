@@ -127,6 +127,14 @@ nc.imp <- nc_open(impactspath)
 impacts.climtaseff <- ncvar_get(nc.imp, 'climtas_effect') # Sum of adaptive investments at daily level
 rm(nc.imp)
 
+if (length(dim(impacts.climtaseff)) == 1) {
+    extended <- matrix(0, 1, length(impacts.climtaseff))
+    extended[1,] <- impacts.climtaseff
+    impacts.climtaseff <- extended
+    temps.avg <- temps.avg[regions == 'IND.33.542.2153',, drop=F]
+    regions <- c('IND.33.542.2153')
+}
+
 print("IMPACTS LOADED")
 
 ##############################################################################################
