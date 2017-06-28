@@ -237,10 +237,16 @@ if __name__ == '__main__':
                             if '-combined' in filename:
                                 # Look for age-specific costs
                                 agegroups = ['young', 'older', 'oldest']
-                                basenames = [filename[:-4].replace('-combined', '-' + agegroup) for agegroup in agegroups]
-                                get_stweights = [lambda year0, year1: halfweight.load_population(1981, 2100, econ_model, econ_scenario, 'age0-4'), lambda year0, year1: halfweight.load_population(1981, 2100, econ_model, econ_scenario, 'age5-64'), lambda year0, year1: halfweight.load_population(1981, 2100, econ_model, econ_scenario, 'age65+')]
-                                
-                                agglib.combine_results(targetdir, filename[:-4] + costs_suffix + '.nc4', basenames, get_stweights, "Combined costs across age-groups for " + filename.replace('-combined.nc4', ''))
+                                basenames = [filename[:-4].replace('-combined', '-' + agegroup + '-costs') for agegroup in agegroups]
+                                hasall = True
+                                for basename in basemanes:
+                                    if not os.path.exists(basename + '.nc4'):
+                                        hasall = False
+                                        break
+
+                                if hasall:
+                                    get_stweights = [lambda year0, year1: halfweight.load_population(1981, 2100, econ_model, econ_scenario, 'age0-4'), lambda year0, year1: halfweight.load_population(1981, 2100, econ_model, econ_scenario, 'age5-64'), lambda year0, year1: halfweight.load_population(1981, 2100, econ_model, econ_scenario, 'age65+')]
+                                    agglib.combine_results(targetdir, filename[:-4] + costs_suffix + '.nc4', basenames, get_stweights, "Combined costs across age-groups for " + filename.replace('-combined.nc4', ''))
                             else:
                                 tavgpath = '/shares/gcp/outputs/temps/%s/%s/climtas.nc4' % (clim_scenario, clim_model)
                                 impactspath = os.path.join(targetdir, filename)
