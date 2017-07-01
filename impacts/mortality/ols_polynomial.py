@@ -20,15 +20,26 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
     curr_curvegen = curvegen_known.PolynomialCurveGenerator(['C'] + ['C^%d' % pow for pow in range(2, order+1)],
                                                            '100,000 * death/population', 'tas', order, csvv)
 
+    baselineloggdppcs = {}
+    for region in weatherbundle.regions:
+        baselineloggdppcs[region] = covariator.get_current(region)['loggdppc']
+    
     # Determine minimum value of curve between 10C and 25C
     baselinecurves, baselinemins = constraints.get_curve_minima(weatherbundle, curr_curvegen, covariator, 10, 25,
                                                                 lambda curve: minpoly.findpolymin([0] + curve.ccs, 10, 25))
 
     def transform(region, curve):
         fulladapt_curve = ShiftedCurve(curve, -curve(baselinemins[region]))
-        #return ClippedCurve(fulladapt_curve) # XXX: Turn off Goodmoney
-        
-        noincadapt_curve = ShiftedCurve(baselinecurves[region], -baselinecurves[region](baselinemins[region]))
+        # Alternative: Turn off Goodmoney
+        #return ClippedCurve(fulladapt_curve)
+
+        covariates = covariates.get_current(region)
+        covariates['loggdppc'] = baselineloggdppcs[region]
+        noincadapt_unshifted_curve = curr_curvegen.get_curve(region, None, covariates, recorddiag=False)
+        noincadapt_curve = ShiftedCurve(noincadapt_unshifted_curve, -noincadapt_unshifted_curve(baselinemins[region]))
+
+        # Alternative: allow no anti-adaptation
+        #noincadapt_curve = ShiftedCurve(baselinecurves[region], -baselinecurves[region](baselinemins[region]))
 
         goodmoney_curve = MinimumCurve(fulladapt_curve, noincadapt_curve)
         return ClippedCurve(goodmoney_curve)

@@ -43,9 +43,11 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, result_callb
             basename = os.path.basename(filepath)[:-5]
             print basename
 
-            if 'harvester' in config['outputdir']:
-                if 'POLY' not in basename:
-                    continue
+            if 'CSpline' in basename:
+                numpreds = 5
+                module = 'impacts.mortality.ols_cubic_spline'
+                minpath_suffix = '-splinemins'
+            else:
                 if 'POLY-5' in basename:
                     numpreds = 5
                 elif 'POLY-4' in basename:
@@ -54,14 +56,6 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, result_callb
                     ValueError("Unknown number of predictors")
                 module = 'impacts.mortality.ols_polynomial'
                 minpath_suffix = '-polymins'
-            elif 'subterran' in config['outputdir']:
-                if 'CSpline' not in basename:
-                    continue
-                numpreds = 5
-                module = 'impacts.mortality.ols_cubic_spline'
-                minpath_suffix = '-splinemins'
-            else:
-                raise ValueError("Unknown version.")
 
             # Split into age groups and lock in q-draw
             csvv = csvvfile.read(filepath)
@@ -111,7 +105,33 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, result_callb
                 print "TO FIX: Combining failed."
                 print ex
 
+    produce_india(targetdir, weatherbundle, economicmodel, pvals, config, suffix=suffix)
     produce_external(targetdir, weatherbundle, economicmodel, pvals, config, suffix=suffix)
+
+def produce_india(targetdir, weatherbundle, economicmodel, pvals, config, suffix=''):
+    for filepath in glob.glob(files.sharedpath("social/parameters/mortality/INDIA/*.csvv")):
+        basename = os.path.basename(filepath)[:-5]
+        print basename
+
+        if 'CSpline' in basename:
+            numpreds = 5
+            module = 'impacts.mortality.ols_cubic_spline_india'
+            minpath_suffix = '-splinemins'
+        else:
+            if 'POLY-5' in basename:
+                numpreds = 5
+            elif 'POLY-4' in basename:
+                numpreds = 4
+            else:
+                ValueError("Unknown number of predictors")
+            module = 'impacts.mortality.ols_polynomial_india'
+            minpath_suffix = '-polymins'
+
+        if check_doit(targetdir, basename, suffix):
+            print "India result"
+            calculation, dependencies = caller.call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals[basename])
+
+            effectset.generate(targetdir, basename, weatherbundle, calculation, None, "India-model mortality impacts for all ages.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, suffix=suffix, diagnosefile=diagnosefile.replace('.csv', '-' + basename + '.csv') if diagnosefile else False)
 
 def produce_external(targetdir, weatherbundle, economicmodel, pvals, config, suffix=''):
     if config['do_only'] is None or config['do_only'] == 'acp':
