@@ -63,6 +63,10 @@ def call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals, farme
     if isinstance(csvv, str):
         csvv = csvvfile.read(csvv)
 
+    if 'prepare_raw' in dir(mod):
+        calculation, dependencies = mod.prepare_raw(csvv, weatherbundle, economicmodel, pvals)
+        return standardize(calculation), dependencies
+
     if 'prepare_interp_raw' in dir(mod):
         calculation, dependencies, baseline_get_predictors = mod.prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, farmer)
         return standardize(calculation), dependencies, baseline_get_predictors

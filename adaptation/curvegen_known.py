@@ -9,11 +9,11 @@ class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
         prednames = [prefix + str(ii) if ii > 1 else prefix for ii in range(1, order+1)]
         super(PolynomialCurveGenerator, self).__init__(prednames, indepunits * order, depenunit, csvv)
 
-    def get_curve(self, region, year, covariates={}):
+    def get_curve(self, region, year, covariates={}, recorddiag=True):
         coefficients = self.get_coefficients(covariates)
         yy = [coefficients[predname] for predname in self.prednames]
 
-        if diagnostic.is_recording():
+        if recorddiag and diagnostic.is_recording():
             for predname in self.prednames:
                 diagnostic.record(region, covariates.get('year', 2000), predname, coefficients[predname])
 
