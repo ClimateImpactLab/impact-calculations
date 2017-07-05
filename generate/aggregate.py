@@ -239,7 +239,7 @@ if __name__ == '__main__':
                                 agegroups = ['young', 'older', 'oldest']
                                 basenames = [filename[:-4].replace('-combined', '-' + agegroup + '-costs') for agegroup in agegroups]
                                 hasall = True
-                                for basename in basemanes:
+                                for basename in basenames:
                                     if not os.path.exists(basename + '.nc4'):
                                         hasall = False
                                         break
