@@ -1,4 +1,4 @@
-import csv, copy
+import csv, copy, re
 import numpy as np
 import metacsv
 from scipy.stats import multivariate_normal
@@ -7,8 +7,14 @@ import csvvfile_legacy
 def read(filename):
     with open(filename, 'rU') as fp:
         attrs, coords, variables = metacsv.read_header(fp, parse_vars=True)
-        data = {'attrs': attrs, 'variables': variables, 'coords': coords}
 
+        # Clean up variables
+        for variable in variables:
+            if ']' in variable['unit']:
+                variables[variable]['unit'] = variable['unit'][:variable['unit'].index(']')]
+
+        data = {'attrs': attrs, 'variables': variables, 'coords': coords}
+        
         if 'csvv-version' in attrs:
             if attrs['csvv-version'] == 'girdin-2017-01-10':
                 return read_girdin(data, fp)
@@ -25,6 +31,7 @@ def read_girdin(data, fp):
     for row in reader:
         if len(row) == 0 or (len(row) == 1 and len(row[0].strip()) == 0):
             continue
+        row[0] = row[0].strip()
 
         if row[0] in ['observations', 'prednames', 'covarnames', 'gamma', 'gammavcv', 'residvcv']:
             data[row[0]] = []
@@ -34,6 +41,8 @@ def read_girdin(data, fp):
                 print "No variable queued."
                 print row
             assert variable_reading is not None
+            if len(row) == 1:
+                row = re.split(r'\s', row[0])
             data[variable_reading].append(map(lambda x: x.strip(), row))
 
     data['observations'] = float(data['observations'][0][0])

@@ -126,14 +126,17 @@ def get_regionindex(region):
             if row[0] == region:
                 return int(row[6]) - 1
 
-def get_weather(weathertemplate, years, shapenum):
+def get_weather(weathertemplate, years, shapenum, show_all_years=[]):
     weather = {}
     for year in years:
         rootgrp = Dataset(weathertemplate.format('historical' if year < 2006 else 'rcp85', year), 'r', format='NETCDF4')
         data = rootgrp.variables['tas'][:, shapenum]
         rootgrp.close()
 
-        print str(year) + ': ' + ','.join(map(str, data[:10])) +  ' ...'
+        if year in show_all_years:
+            print str(year) + ': ' + ','.join(map(str, data))
+        else:
+            print str(year) + ': ' + ','.join(map(str, data[:10])) + '...'
         weather[year] = data
 
     return weather
