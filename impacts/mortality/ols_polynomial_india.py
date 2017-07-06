@@ -6,9 +6,9 @@ from impactcommon.math import minpoly
 def prepare_raw(csvv, weatherbundle, economicmodel, qvals):
     csvvfile.collapse_bang(csvv, qvals.get_seed())
 
-    order = len(csvv['gamma']) / 3
+    order = len(csvv['gamma'])
     poly_curvegen = curvegen_known.PolynomialCurveGenerator(['C'] + ['C^%d' % pow for pow in range(2, order+1)],
-                                                            '100,000 * death/population', 'tas', order, csvv)
+                                                            '100000 * death/population', 'tas', order, csvv)
     curve = poly_curvegen.get_curve('global', 2000, {})
 
     # Determine minimum value of curve between 10C and 25C
@@ -20,9 +20,9 @@ def prepare_raw(csvv, weatherbundle, economicmodel, qvals):
     clip_curvegen = curvegen.ConstantCurveGenerator(poly_curvegen.indepunits, poly_curvegen.depenunit, clipped_curve)
     
     # Produce the final calculation
-    calculation = Transform(YearlyAverageDay('100,000 * death/population', clip_curvegen,
+    calculation = Transform(YearlyAverageDay('100000 * death/population', clip_curvegen,
                                              "the mortality response curve"),
-                            '100,000 * death/population', 'deaths/person/year', lambda x: 365 * x / 1e5,
+                            '100000 * death/population', 'deaths/person/year', lambda x: 365 * x / 1e5,
                             'convert to deaths/person/year', "Divide by 100000 to convert to deaths/person/year.")
 
     return calculation, []

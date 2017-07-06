@@ -21,14 +21,15 @@ class CSVVCurveGenerator(CurveGenerator):
         self.predcovars = {} # {predname: [covarname]}
         self.predgammas = {} # {predname: np.array}
         for predname in set(prednames):
-            self.constant[predname] = 0
+            self.constant[predname] = np.nan
             self.predcovars[predname] = []
             self.predgammas[predname] = []
 
             indices = [ii for ii, xx in enumerate(csvv['prednames']) if xx == predname]
             for index in indices:
                 if csvv['covarnames'][index] == '1':
-                    self.constant[predname] += csvv['gamma'][index]
+                    assert np.isnan(self.constant[predname])
+                    self.constant[predname] = csvv['gamma'][index]
                 else:
                     self.predcovars[predname].append(csvv['covarnames'][index])
                     self.predgammas[predname].append(csvv['gamma'][index])
@@ -39,7 +40,7 @@ class CSVVCurveGenerator(CurveGenerator):
         coefficients = {} # {predname: sum}
         for predname in set(self.prednames):
             if len(self.predgammas[predname]) == 0:
-                coefficients[predname] = np.nan
+                coefficients[predname] = self.constant[predname]
             else:
                 try:
                     coefficients[predname] = self.constant[predname] + np.sum(self.predgammas[predname] * np.array([covariates[covar] for covar in self.predcovars[predname]]))
