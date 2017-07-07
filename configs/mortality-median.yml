@@ -1,0 +1,6 @@
+module: mortality
+mode: median
+outputdir: outputs/mortality/impacts-crypto
+do_only: interpolation
+do_farmers: true
+

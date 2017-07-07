@@ -18,7 +18,7 @@ def prepare_raw(csvv, weatherbundle, economicmodel, qvals):
     curvemin = minspline.findsplinemin(knots, curve.coeffs, 10, 25)
 
     shifted_curve = ShiftedCurve(curve, -curve(curvemin))
-    clipped_curve = ClippedCurve(goodmoney_curve)
+    clipped_curve = ClippedCurve(shifted_curve)
 
     clip_curvegen = curvegen.ConstantCurveGenerator(orig_curvegen.indepunits, orig_curvegen.depenunit, clipped_curve)
 
