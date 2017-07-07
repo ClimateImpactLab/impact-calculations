@@ -6,7 +6,7 @@ from climate.yearlyreader import RandomYearlyAccess, RandomRegionAccess
 from impactcommon.math import averages
 
 ## Class constructor with arguments (initial values, running length)
-standard_running_mean_init = averages.Bartlett
+standard_running_mean_init = averages.BartlettAverager
 
 class Covariator(object):
     """

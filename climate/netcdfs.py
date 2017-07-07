@@ -26,7 +26,11 @@ def readmeta(filepath, variable):
 
     rootgrp = Dataset(filepath, 'r', format='NETCDF4')
     version = rootgrp.version
-    units = rootgrp.variables[variable].units
+    if hasattr(rootgrp.variables[variable], 'units'):
+        units = rootgrp.variables[variable].units
+    else:
+        units = rootgrp.variables[variable].unit
+        
     rootgrp.close()
 
     return version, units
@@ -37,7 +41,10 @@ def readncdf(filepath, variable):
     """
     rootgrp = Dataset(filepath, 'r', format='NETCDF4')
     weather = rootgrp.variables[variable][:,:]
-    yyyyddd = rootgrp.variables['time'][:]
+    if 'time' in rootgrp.variables:
+        yyyyddd = rootgrp.variables['time'][:]
+    else:
+        yyyyddd = rootgrp.variables['day'][:]
     rootgrp.close()
 
     return yyyyddd, weather
@@ -57,7 +64,11 @@ def readncdf_multiple(filepath, variables):
     Return yyyyddd, weather
     """
     rootgrp = Dataset(filepath, 'r', format='NETCDF4')
-    yyyyddd = rootgrp.variables['time'][:]
+    if 'time' in rootgrp.variables:
+        yyyyddd = rootgrp.variables['time'][:]
+    else:
+        yyyyddd = rootgrp.variables['day'][:]
+        
     hierid = rootgrp.variables['hierid'][:]
     weather = np.empty(len(yyyyddd), len(hierid), len(variables))
     for ii in range(len(variables)):

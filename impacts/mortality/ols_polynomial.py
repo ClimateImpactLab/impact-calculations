@@ -54,10 +54,10 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
     climtas_effect_curvegen = curvegen.TransformCurveGenerator(farm_curvegen, transform_climtas_effect)
 
     # Produce the final calculation
-    calculation = Transform(AuxillaryResult(YearlyCoefficients('100,000 * death/population', farm_curvegen,
-                                                               "the mortality response curve"),
-                                            YearlyCoefficients('100,000 * death/population', climtas_effect_curvegen,
-                                                               "climtas effect after clipping", norecord=True), 'climtas_effect'),
+    calculation = Transform(AuxillaryResult(YearlyAverageDay('100,000 * death/population', farm_curvegen,
+                                                             "the mortality response curve"),
+                                            YearlyAverageDay('100,000 * death/population', climtas_effect_curvegen,
+                                                             "climtas effect after clipping", norecord=True), 'climtas_effect'),
                             '100,000 * death/population', 'deaths/person/year', lambda x: 365 * x / 1e5,
                             'convert to deaths/person/year', "Divide by 100000 to convert to deaths/person/year.")
 
