@@ -4,7 +4,7 @@ from impactlab_tools.utils import files
 from adaptation import csvvfile
 from generate import weather, server, effectset, caller, checks, agglib
 from openest.generate.weatherslice import YearlyWeatherSlice
-from climate.discover import discover_variable, discover_derived_variable, discover_convert
+from climate.discover import discover_vesioned
 from datastore import agecohorts
 
 def preload():
@@ -15,7 +15,11 @@ rcp_only = 'rcp85'
 
 def get_bundle_iterator(config):
     climdir = files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level')
-    return weather.iterate_bundles(discover_variable(climdir, 'tas', withyear=True, rcp_only='rcp85'))
+    return weather.iterate_combined_bundles(discover_vesioned("/shares/gcp/climate/BCSD/Mortality/polynomial-fix/hierid/popwt/daily/tas", 'tas', '1.1'),
+                                            discover_vesioned("/shares/gcp/climate/BCSD/Mortality/polynomial-fix/hierid/popwt/daily/tas-poly-2", 'tas-poly-2', '1.1'),
+                                            discover_vesioned("/shares/gcp/climate/BCSD/Mortality/polynomial-fix/hierid/popwt/daily/tas-poly-3", 'tas-poly-3', '1.1'),
+                                            discover_vesioned("/shares/gcp/climate/BCSD/Mortality/polynomial-fix/hierid/popwt/daily/tas-poly-4", 'tas-poly-4', '1.1'),
+                                            discover_vesioned("/shares/gcp/climate/BCSD/Mortality/polynomial-fix/hierid/popwt/daily/tas-poly-5", 'tas-poly-5', '1.1'))
 
 def check_doit(targetdir, basename, suffix):
     filepath = effectset.get_ncdf_path(targetdir, basename, suffix)
