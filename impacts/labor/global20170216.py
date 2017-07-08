@@ -23,12 +23,12 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
                                                                                 weatherbundle.is_historical()),
                                              covariates.YearlyWeatherCovariator(reader_hotdd, weatherbundle.regions, 2015, 15,
                                                                                 weatherbundle.is_historical()),
-                                             covariates.EconomicCovariator(economicmodel, 3, 2015)])
+                                             covariates.EconomicCovariator(economicmodel, 1, 2015)])
     predgen2 = covariates.CombinedCovariator([covariates.YearlyWeatherCovariator(reader_coldd, weatherbundle.regions, 2015, 15,
                                                                                  weatherbundle.is_historical()),
                                               covariates.YearlyWeatherCovariator(reader_hotdd, weatherbundle.regions, 2015, 15,
                                                                                  weatherbundle.is_historical()),
-                                              covariates.EconomicCovariator(economicmodel, 3, 2015)])
+                                              covariates.EconomicCovariator(economicmodel, 1, 2015)])
 
     csvvfile.collapse_bang(csvv, qvals.get_seed())
 

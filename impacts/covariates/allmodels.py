@@ -19,7 +19,7 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, result_callb
                                              covariates.SeasonalWeatherCovariator(weatherbundle.get_subset(0), 15, 2015, 180, 270, 0),
                                              covariates.SeasonalWeatherCovariator(weatherbundle.get_subset(1), 15, 2015, 0, 90, 0),
                                              covariates.SeasonalWeatherCovariator(weatherbundle.get_subset(1), 15, 2015, 180, 270, 0),
-                                             covariates.EconomicCovariator(economicmodel, 3, 2015)])
+                                             covariates.EconomicCovariator(economicmodel, 1, 2015)]) # NOTE: recent change (files not refreshed)
     covars = ['tas', 'tasmu0-90', 'tassigma0-90', 'tasmu180-270', 'tassigma180-270', 'prmu0-90', 'prsigma0-90',
               'prmu180-270', 'prsigma180-270', 'loggdppc', 'logpopop']
 
