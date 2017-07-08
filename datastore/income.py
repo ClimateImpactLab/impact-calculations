@@ -5,6 +5,7 @@ from helpers import header
 import population
 
 gdppc_filepath = 'social/baselines/gdppc-merged.csv'
+gdppc_baseline_filepath = 'social/baselines/gdppc-merged-baseline.csv' # only baseline values from gdppc_filepath
 
 def baseline_future_collate(iter, endbaseline):
     baseline_values = {} # {region: [values]}
@@ -22,8 +23,10 @@ def baseline_future_collate(iter, endbaseline):
 
     return baseline_values, future_years
 
-def each_gdppc_fromfile(model, scenario, dependencies):
-    with open(files.sharedpath(gdppc_filepath), 'r') as fp:
+def each_gdppc_fromfile(model, scenario, dependencies, filepath=None):
+    if filepath is None:
+        filepath = gdppc_filepath
+    with open(files.sharedpath(filepath), 'r') as fp:
         reader = csv.reader(header.deparse(fp, dependencies))
         headrow = reader.next()
 
@@ -40,7 +43,7 @@ def each_gdppc_fromfile(model, scenario, dependencies):
 def baseline_future_fromfile(model, scenario, endbaseline, dependencies):
     return baseline_future_collate(each_gdppc_fromfile(model, scenario, dependencies), endbaseline)
 
-def each_gdppc_nightlight(model, scenario, dependencies):
+def each_gdppc_nightlight(model, scenario, dependencies, filepath=None):
     # Load all gdppc weights
     weights = {} # {hierid: weight}
     with open(files.sharedpath('social/baselines/nightlight_weight.csv'), 'r') as fp:
@@ -63,7 +66,7 @@ def each_gdppc_nightlight(model, scenario, dependencies):
             if weights[hierid] == 'low':
                 weights[hierid] = minover0
 
-    for region, year, value in each_gdppc_fromfile(model, scenario, dependencies):
+    for region, year, value in each_gdppc_fromfile(model, scenario, dependencies, filepath=filepath):
         yield region, year, value * weights.get(region, 1)
 
 def baseline_future_gdppc_nightlight(model, scenario, endbaseline, dependencies):
