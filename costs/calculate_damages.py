@@ -22,16 +22,12 @@ def calculate_damages(rcp, ssp):
     
     moddict = {'high' : 'OECD Env-Growth', 'low' : 'IIASA GDP'}
     
-    path_data = os.path.expanduser('~/Dropbox/Work/GCP_Reanalysis/RA_Files/Theo/mortality/damage_function/data')
-    path_results = os.path.join(path_data, 'results/levels_values')
+    path_data = '/shares/gcp/social/processed/vsl'
     path_regions = '/shares/gcp/regions'
     path_climate = '/shares/gcp/climate/global_tas'
-#    path_climate = os.path.join(path_data, 'global_tas')
     
     file_vsletc = os.path.join(path_data, 'impactregion_pop_share_gdp_vsl.csv')
-    file_results_blank = os.path.join(path_results, '{}-{}_{}.csv')
     file_regions = os.path.join(path_regions, 'region-attributes.csv')
-    file_regions = os.path.join(path_data, 'region-attributes.csv')
     
     ages = ['young', 'older', 'oldest']
     
