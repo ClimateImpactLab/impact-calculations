@@ -94,19 +94,19 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, result_callb
                         effectset.generate(targetdir, subbasename + "-incadapt", weatherbundle, calculation, None, "Mortality impacts, with interpolation and only environmental adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, subbasename + '-incadapt'), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, subbasename + '-incadapt'), suffix=suffix)
 
             # Combine the ages
-            # try:
-            #     for assumption in ['', '-noadapt', '-incadapt']:
-            #         if assumption != '':
-            #             if config['do_farmers'] and not weatherbundle.is_historical():
-            #                 continue
-            #         halfweight = agecohorts.SpaceTimeBipartiteData(1981, 2100, None)
-            #         basenames = [basename + '-' + agegroup + assumption for agegroup in agegroups]
-            #         get_stweights = [lambda year0, year1: halfweight.load_population(year0, year1, economicmodel.model, economicmodel.scenario, 'age0-4'), lambda year0, year1: halfweight.load_population(year0, year1, economicmodel.model, economicmodel.scenario, 'age5-64'), lambda year0, year1: halfweight.load_population(year0, year1, economicmodel.model, economicmodel.scenario, 'age65+')]
-            #         if check_doit(targetdir, basename + '-combined' + assumption, suffix):
-            #             agglib.combine_results(targetdir, basename + '-combined' + assumption, basenames, get_stweights, "Combined mortality across age-groups for " + basename, suffix=suffix)
-            # except Exception as ex:
-            #     print "TO FIX: Combining failed."
-            #     print ex
+            try:
+                for assumption in ['', '-noadapt', '-incadapt']:
+                    if assumption != '':
+                        if config['do_farmers'] and not weatherbundle.is_historical():
+                            continue
+                    halfweight = agecohorts.SpaceTimeBipartiteData(1981, 2100, None)
+                    basenames = [basename + '-' + agegroup + assumption for agegroup in agegroups]
+                    get_stweights = [lambda year0, year1: halfweight.load_population(year0, year1, economicmodel.model, economicmodel.scenario, 'age0-4'), lambda year0, year1: halfweight.load_population(year0, year1, economicmodel.model, economicmodel.scenario, 'age5-64'), lambda year0, year1: halfweight.load_population(year0, year1, economicmodel.model, economicmodel.scenario, 'age65+')]
+                    if check_doit(targetdir, basename + '-combined' + assumption, suffix):
+                        agglib.combine_results(targetdir, basename + '-combined' + assumption, basenames, get_stweights, "Combined mortality across age-groups for " + basename, suffix=suffix)
+            except Exception as ex:
+                print "TO FIX: Combining failed."
+                print ex
 
     produce_india(targetdir, weatherbundle, economicmodel, pvals, config, suffix=suffix, diagnosefile=diagnosefile)
     produce_external(targetdir, weatherbundle, economicmodel, pvals, config, suffix=suffix)
