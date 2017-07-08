@@ -32,6 +32,8 @@ def standardize(calculation):
         assert False, "Unexpected units " + calculation.unitses[0]
 
 def call_prepare(module, weatherbundle, economicmodel, pvals, getmodel=get_model, getdata=get_data):
+    economicmodel.reset()
+
     if module[0:15] == 'impacts.health.':
         gcpid = module[15:]
     else:
@@ -59,6 +61,8 @@ def call_prepare(module, weatherbundle, economicmodel, pvals, getmodel=get_model
 def call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals, farmer='full'):
     """Create the final calculation for a given model, according to the function that it exposes."""
     
+    economicmodel.reset()
+
     mod = importlib.import_module(module)
     if isinstance(csvv, str):
         csvv = csvvfile.read(csvv)

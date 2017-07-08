@@ -37,16 +37,16 @@ class EconomicCovariator(Covariator):
         econpreds = self.econ_predictors.get(region, None)
 
         if econpreds is None:
-            gdppcs = self.econ_predictors['mean']['gdppcs']
+            gdppc = self.econ_predictors['mean']['gdppc']
         else:
-            gdppcs = econpreds['gdppcs'].get()
+            gdppc = econpreds['gdppc'].get()
 
         if econpreds is None:
             density = self.econ_predictors['mean']['popop']
         else:
             density = econpreds['popop'].get()
 
-        return dict(gdppc=gdppcs, popop=density)
+        return dict(gdppc=gdppc, popop=density)
 
     def get_current(self, region):
         econpreds = self.get_econ_predictors(region)
@@ -59,7 +59,7 @@ class EconomicCovariator(Covariator):
         if region in self.econ_predictors:
             gdppc = self.economicmodel.get_gdppc_year(region, year)
             if gdppc is not None and year > self.startupdateyear:
-                self.econ_predictors[region]['gdppcs'].update(gdppc)
+                self.econ_predictors[region]['gdppc'].update(gdppc)
 
             popop = self.economicmodel.get_popop_year(region, year)
             if popop is not None and year > self.startupdateyear:
