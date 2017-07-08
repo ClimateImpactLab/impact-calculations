@@ -2,13 +2,13 @@ import csv
 import numpy as np
 from impactlab_tools.utils import files
 from helpers import header
-from datastore import population, popdensity, income
+from datastore import population, popdensity, income_smoothed
 
 def iterate_econmodels():
     modelscenarios = set() # keep track of model-scenario pairs
 
     dependencies = []
-    with open(files.sharedpath('social/baselines/gdppc-merged.csv'), 'r') as fp:
+    with open(files.sharedpath('social/baselines/gdppc-merged-baseline.csv'), 'r') as fp:
         reader = csv.reader(header.deparse(fp, dependencies))
         headrow = reader.next()
 
@@ -24,14 +24,18 @@ class SSPEconomicModel(object):
         self.model = model
         self.scenario = scenario
         self.dependencies = dependencies
-        self.gdppc_future_years = {} # {hierid: {year: value}}
+        self.income_model = DynamicIncomeSmoothed(model, scenario, dependencies)
         self.pop_future_years = {} # {hierid: {year: value}}
         self.densities = {}
 
     def baseline_values(self, maxbaseline):
         dependencies = []
 
-        gdppc_baseline, self.gdppc_future_years = income.baseline_future_gdppc_nightlight(self.model, self.scenario, 2010, dependencies)
+        if self.income_model.current_year < maxbaseline:
+            gdppc_baseline = self.income_model.current_income
+        else:
+            print "Warning: re-reading baseline income."
+            gdppc_baseline = self.income_model.get_baseline_income(self.model, self.scenario, self.dependencies)
 
         for region, year, value in population.each_future_population(self.model, self.scenario, dependencies):
             if region not in self.pop_future_years:
@@ -49,6 +53,9 @@ class SSPEconomicModel(object):
                        popop=self.densities.get(region, None))
 
     def baseline_prepared(self, maxbaseline, numeconyears, func):
+        """
+        Return a dictionary {region: {gdppcs: [gdppcs], popop: popop}
+        """
         econ_predictors = {} # {region: {gdppcs: [gdppcs], popop: popop}
         allmeans_gdppcs = []
         allmeans_popop = []
@@ -77,13 +84,7 @@ class SSPEconomicModel(object):
         return econ_predictors
 
     def get_gdppc_year(self, region, year):
-        if region not in self.gdppc_future_years:
-            return None
-
-        if year in self.gdppc_future_years[region]:
-            return self.gdppc_future_years[region][year]
-
-        return None
+        return self.income_model.get_income(region, year)
 
     def get_popop_year(self, region, year):
         if region not in self.pop_future_years:

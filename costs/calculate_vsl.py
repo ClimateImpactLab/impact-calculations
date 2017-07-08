@@ -6,7 +6,7 @@ Created on Tue May  9 19:20:31 2017
 @author: theodorkulczycki
 """
 
-import os
+import os, sys
 import numpy as np
 import pandas as pd
 from joblib import Parallel, delayed
@@ -23,26 +23,14 @@ def calculate_vsl():
     vsl = {'epa' : 7400000., 'ag02' : 2097000., 'ag02_d97' : 1540000.}
     moddict = {'high' : 'OECD Env-Growth', 'low' : 'IIASA GDP'}
     
-    path_data = os.path.expanduser('~/Dropbox/Work/GCP_Reanalysis/RA_Files/Theo/mortality/damage_function/data')
+    path_data = '/shares/gcp/social/processed/vsl'
     path_baselines = '/shares/gcp/social/baselines'
-#    path_baselines = os.path.join(path_data, 'baselines')
     
     file_gdppc = os.path.join(path_baselines, 'gdppc.csv')
     file_ageshare = os.path.join(path_baselines, 'cohort_population_aggr.csv')
     file_population = os.path.join(path_baselines, 'population/future/population-future.csv')
     file_output = os.path.join(path_data, 'impactregion_pop_share_gdp_vsl.csv')
-    file_zeros = os.path.join(path_data, 'zeros-{}.csv')
-    
-    
-    ### Load number of clipped days data
-    dfzsp = pd.read_csv(file_zeros.format('spline'))
-    dfzsp.rename(columns={'zero.young':'zero_spline_young', 'zero.older':'zero_spline_older', 'zero.oldest':'zero_spline_oldest'}, inplace=True)
-    dfzp5 = pd.read_csv(file_zeros.format('poly5'))
-    dfzp5.rename(columns={'zero.young':'zero_poly5_young', 'zero.older':'zero_poly5_older', 'zero.oldest':'zero_poly5_oldest'}, inplace=True)
-    dfzp4 = pd.read_csv(file_zeros.format('poly4'))
-    dfzp4.rename(columns={'zero.young':'zero_poly4_young', 'zero.older':'zero_poly4_older', 'zero.oldest':'zero_poly4_oldest'}, inplace=True)
-    dfz = dfzsp.merge(dfzp5, how='inner', on='year').merge(dfzp4, how='inner', on='year')
-    
+        
     ### Load population data
     dfp = pd.read_csv(file_population, skiprows=13)
     dfp = dfp.loc[dfp.model.apply(lambda x: x in moddict.values()), :]
@@ -115,11 +103,13 @@ def calculate_vsl():
         return tmp
     
     ### Fill data between 5 year intervals
-    with Parallel(n_jobs=18) as parallelize:
-        dflist = parallelize(delayed(fill_years)(year, yeardf.copy()) for year, yeardf in df.groupby('year'))
+    if sys.version_info < (3,):
+        dflist = [fill_years(year, yeardf.copy()) for year, yeardf in df.groupby('year')]
+    else:
+        with Parallel(n_jobs=18) as parallelize:
+            dflist = parallelize(delayed(fill_years)(year, yeardf.copy()) for year, yeardf in df.groupby('year'))
     
     vsldf = pd.concat(dflist, axis=0)
-    vsldf = vsldf.merge(dfz, how='left', on='year')
     vsldf = vsldf.sort_values(['region', 'year']).reset_index(drop=True)
     vsldf.index.name = 'index'
     vsldf.to_csv(file_output)

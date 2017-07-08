@@ -1,6 +1,8 @@
+import numpy as np
 import xarray as xr
 import metacsv
 import income
+from impactlab_tools.utils import files
 
 gdppc_growth_filepath = 'social/baselines/gdppc-growth.csv'
 baseline_end_year = 2010
@@ -12,19 +14,20 @@ class DynamicIncomeSmoothed(object):
         self.current_income = self.get_baseline_income(model, scenario, dependencies)
 
         # Load the growth matrix
-        self.growth_country_by_year = get_growth_country_by_year(model, scenario, dependencies)
+        self.growth_country_by_year = self.get_growth_country_by_year(model, scenario, dependencies)
         
     def get_income(self, region, year):
         if year > self.current_year:
             # Update by one year
-            country_growth = self.get_all_country_growth(self, year - 1) # growth in previous year
-            for region in regions:
-                self.current_income[region] = self.current_income[region] * country_growth.get(region[:3], country_growth['mean'])
+            country_growth = self.get_all_country_growth(year - 1) # growth in previous year
+            for reg in self.current_income:
+                self.current_income[reg] = self.current_income[reg] * country_growth.get(reg[:3], country_growth['mean'])
+            self.current_year = self.current_year + 1
 
             # Recurse, in case there are more years to do
             return self.get_income(region, year)
 
-        assert year == self.current
+        assert year == self.current_year or (self.current_year == baseline_end_year and year < self.current_year)
 
         return self.current_income[region]
 
@@ -40,17 +43,18 @@ class DynamicIncomeSmoothed(object):
         Return an xarray of [countries] rows and [years / 5] colums
         """
         df = metacsv.read_csv(files.sharedpath(gdppc_growth_filepath))
-        subdf = df.loc[(df['model'] == model) && (df['scenario'] == scenario)]
+        subdf = df.loc[(df['model'] == model) & (df['scenario'] == scenario)]
         countries = subdf['iso'].unique()
+        country_indexes = {countries[ii]: ii for ii in range(len(countries))}
 
-        data = xr.DataArray(np.zeros((len(countries), len(subdf['year'].unique()))), coords={'country': countries}, dims=('country', 'year'))
+        data = np.zeros((len(countries), len(subdf['year'].unique())))
         for index, row in subdf.iterrows():
             if row['year'] < baseline_end_year:
                 continue
 
-            data.isel[row['iso'], (row['year'] - baseline_end_year) / 5] = row['growth']
+            data[country_indexes[row['iso']], (row['year'] - baseline_end_year) / 5] = row['growth']
 
-        return data
+        return xr.DataArray(data, coords={'country': countries}, dims=('country', 'year'))
     
     def get_all_country_growth(self, year):
         """
@@ -64,8 +68,8 @@ class DynamicIncomeSmoothed(object):
         growths = self.growth_country_by_year[:, yearindex]
 
         country_growth = {}
-        for country in self.growth_country_by_year.coords['countries']
-            country_growth[country] = growths[country]
+        for country in self.growth_country_by_year.coords['country'].values:
+            country_growth[country] = growths.sel(country=country).values
 
         return country_growth
 
@@ -74,4 +78,4 @@ if __name__ == '__main__':
     income = DynamicIncomeSmoothed('low', 'SSP4', dependencies)
 
     for year in range(2000, 2020):
-        print income.get_income('ARG.22.469', year)
+        print year, income.get_income('ARG.22.469', year)
