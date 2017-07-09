@@ -36,7 +36,7 @@ def make_get_coeff_goodmoney(weatherbundle, covariator, curvegen, baselinemins, 
             return curve_get_coeff(curve)
     return coeff_getter
 
-def get_curve_minima(weatherbundle, curvegen, covariator, mint, maxt, analytic):
+def get_curve_minima(regions, curvegen, covariator, mint, maxt, analytic):
     # Determine minimum value of curve between mint and maxt
     print "Determining minimum temperatures."
     baselinecurves = {}
@@ -44,7 +44,7 @@ def get_curve_minima(weatherbundle, curvegen, covariator, mint, maxt, analytic):
     with open(caller.callinfo['minpath'], 'w') as fp:
         writer = csv.writer(fp)
         writer.writerow(['region', 'brute', 'analytic'])
-        for region in weatherbundle.regions:
+        for region in regions:
             curve = curvegen.get_curve(region, 2005, covariator.get_current(region))
             baselinecurves[region] = curve
             temps = np.arange(mint, maxt+1)
