@@ -1,5 +1,5 @@
 from adaptation import csvvfile, curvegen, curvegen_known
-from openest.models.curve import ZeroInterceptPolynomialCurve, ClippedCurve, ShiftedCurve
+from openest.models.curve import ZeroInterceptPolynomialCurve, ClippedCurve, ShiftedCurve, SelectiveInputCurve
 from openest.generate.stdlib import *
 from impactcommon.math import minspline
 
@@ -17,7 +17,7 @@ def prepare_raw(csvv, weatherbundle, economicmodel, qvals):
     # Determine minimum value of curve between 10C and 25C
     curvemin = minspline.findsplinemin(knots, curve.coeffs, 10, 25)
 
-    shifted_curve = ShiftedCurve(curve, -curve(curvemin))
+    shifted_curve = ShiftedCurve(SelectiveInputCurve(curve, [0]), -curve(curvemin))
     clipped_curve = ClippedCurve(shifted_curve)
 
     clip_curvegen = curvegen.ConstantCurveGenerator(orig_curvegen.indepunits, orig_curvegen.depenunit, clipped_curve)
