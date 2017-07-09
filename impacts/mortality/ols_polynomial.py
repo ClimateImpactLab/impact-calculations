@@ -26,14 +26,17 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
                                                                 lambda curve: minpoly.findpolymin([0] + curve.ccs, 10, 25))
 
     def transform(region, curve):
-        fulladapt_curve = ShiftedCurve(curve, -curve(baselinemins[region]))
+        coeff_curve = SelectiveInputCurve(CoefficientCurve(curve.ccs), range(order))
+
+        fulladapt_curve = ShiftedCurve(coeff_curve, -curve(baselinemins[region]))
         # Alternative: Turn off Goodmoney
         #return ClippedCurve(fulladapt_curve)
 
         covars = covariator.get_current(region)
         covars['loggdppc'] = baselineloggdppcs[region]
         noincadapt_unshifted_curve = curr_curvegen.get_curve(region, None, covars, recorddiag=False)
-        noincadapt_curve = ShiftedCurve(noincadapt_unshifted_curve, -noincadapt_unshifted_curve(baselinemins[region]))
+        coeff_noincadapt_unshifted_curve = SelectiveInputCurve(CoefficientCurve(noincadapt_unshifted_curve.ccs), range(order))
+        noincadapt_curve = ShiftedCurve(coeff_noincadapt_unshifted_curve, -noincadapt_unshifted_curve(baselinemins[region]))
 
         # Alternative: allow no anti-adaptation
         #noincadapt_curve = ShiftedCurve(baselinecurves[region], -baselinecurves[region](baselinemins[region]))
@@ -48,16 +51,17 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
     climtas_effect_curve = ZeroInterceptPolynomialCurve([-np.inf, np.inf], 365 * np.array([csvvfile.get_gamma(csvv, tasvar, 'climtas') for tasvar in ['tas', 'tas2', 'tas3', 'tas4', 'tas5'][:order]])) # x 365, to undo / 365 later
 
     def transform_climtas_effect(region, curve):
-        shifted_curve = ShiftedCurve(climtas_effect_curve, -climtas_effect_curve(baselinemins[region]))
+        climtas_coeff_curve = SelectiveInputCurve(CoefficientCurve(climtas_effect_curve.ccs), range(order))
+        shifted_curve = ShiftedCurve(climtas_coeff_curve, -climtas_effect_curve(baselinemins[region]))
         return OtherClippedCurve(curve, shifted_curve)
 
     climtas_effect_curvegen = curvegen.TransformCurveGenerator(farm_curvegen, transform_climtas_effect)
 
     # Produce the final calculation
-    calculation = Transform(AuxillaryResult(YearlyCoefficients('100,000 * death/population', farm_curvegen,
-                                                               "the mortality response curve"),
-                                            YearlyCoefficients('100,000 * death/population', climtas_effect_curvegen,
-                                                               "climtas effect after clipping", norecord=True), 'climtas_effect'),
+    calculation = Transform(AuxillaryResult(YearlyAverageDay('100,000 * death/population', farm_curvegen,
+                                                             "the mortality response curve"),
+                                            YearlyAverageDay('100,000 * death/population', climtas_effect_curvegen,
+                                                             "climtas effect after clipping", norecord=True), 'climtas_effect'),
                             '100,000 * death/population', 'deaths/person/year', lambda x: 365 * x / 1e5,
                             'convert to deaths/person/year', "Divide by 100000 to convert to deaths/person/year.")
 
