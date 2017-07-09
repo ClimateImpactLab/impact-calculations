@@ -149,7 +149,11 @@ def discover_convert(discover_iterator, time_conversion, weatherslice_conversion
         newfuturereader = ConversionWeatherReader(futurereader, time_conversion, weatherslice_conversion)
         yield scenario, model, newpastreader, newfuturereader
         
-def discover_versioned(basedir, variable, version):
+def discover_versioned(basedir, variable, version=None):
+    """Find the most recent version, if none specified."""
+    if version is None:
+        version = '%v'
+    
     for scenario, model, pastdir, futuredir in discover_models(basedir):
         pasttemplate = os.path.join(pastdir, "%d", version + '.nc4')
         futuretemplate = os.path.join(futuredir, "%d", version + '.nc4')

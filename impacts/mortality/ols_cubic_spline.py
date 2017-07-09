@@ -10,7 +10,7 @@ from impactcommon.math import minspline
 knots = [-10, 0, 10, 20, 28, 33]
 
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full'):
-    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 30, 2015), {'climtas': 'tas'}),
+    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle.get_subset(0), 30, 2015), {'climtas': 'tas'}),
                                                 covariates.EconomicCovariator(economicmodel, 1, 2015)])
 
     # Don't collapse: already collapsed in allmodels
@@ -21,7 +21,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
                                                              knots, csvv)
 
     # Determine minimum value of curve between 10C and 25C
-    baselinecurves, baselinemins = constraints.get_curve_minima(weatherbundle, curr_curvegen, covariator, 10, 25,
+    baselinecurves, baselinemins = constraints.get_curve_minima(weatherbundle.regions, curr_curvegen, covariator, 10, 25,
                                                                 lambda curve: minspline.findsplinemin(knots, curve.coeffs, 10, 25))
 
     def transform(region, curve):

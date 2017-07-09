@@ -7,7 +7,7 @@ from openest.generate import diagnostic
 from impactcommon.math import minpoly
 
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full'):
-    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 30, 2015), {'climtas': 'tas'}),
+    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle.get_subset(0), 30, 2015), {'climtas': 'tas'}),
                                                 covariates.EconomicCovariator(economicmodel, 1, 2015)])
 
     # Don't collapse: already collapsed in allmodels
@@ -22,7 +22,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
         baselineloggdppcs[region] = covariator.get_current(region)['loggdppc']
     
     # Determine minimum value of curve between 10C and 25C
-    baselinecurves, baselinemins = constraints.get_curve_minima(weatherbundle, curr_curvegen, covariator, 10, 25,
+    baselinecurves, baselinemins = constraints.get_curve_minima(weatherbundle.regions, curr_curvegen, covariator, 10, 25,
                                                                 lambda curve: minpoly.findpolymin([0] + curve.ccs, 10, 25))
 
     def transform(region, curve):
@@ -54,10 +54,10 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
     climtas_effect_curvegen = curvegen.TransformCurveGenerator(farm_curvegen, transform_climtas_effect)
 
     # Produce the final calculation
-    calculation = Transform(AuxillaryResult(YearlyAverageDay('100,000 * death/population', farm_curvegen,
-                                                             "the mortality response curve"),
-                                            YearlyAverageDay('100,000 * death/population', climtas_effect_curvegen,
-                                                             "climtas effect after clipping", norecord=True), 'climtas_effect'),
+    calculation = Transform(AuxillaryResult(YearlyCoefficients('100,000 * death/population', farm_curvegen,
+                                                               "the mortality response curve"),
+                                            YearlyCoefficients('100,000 * death/population', climtas_effect_curvegen,
+                                                               "climtas effect after clipping", norecord=True), 'climtas_effect'),
                             '100,000 * death/population', 'deaths/person/year', lambda x: 365 * x / 1e5,
                             'convert to deaths/person/year', "Divide by 100000 to convert to deaths/person/year.")
 
