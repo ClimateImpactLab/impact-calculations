@@ -22,7 +22,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
         baselineloggdppcs[region] = covariator.get_current(region)['loggdppc']
     
     # Determine minimum value of curve between 10C and 25C
-    baselinecurves, baselinemins = constraints.get_curve_minima(weatherbundle, curr_curvegen, covariator, 10, 25,
+    baselinecurves, baselinemins = constraints.get_curve_minima(weatherbundle.regions, curr_curvegen, covariator, 10, 25,
                                                                 lambda curve: minpoly.findpolymin([0] + curve.ccs, 10, 25))
 
     def transform(region, curve):
