@@ -1,5 +1,5 @@
 module: mortality
 mode: profile
-outputdir: /shares/gcp/outputs/mortality/impacts-harvester
+outputdir: /shares/gcp/outputs/mortality/impacts-crypto
 do_only: interpolation
 do_farmers: false

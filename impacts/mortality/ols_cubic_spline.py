@@ -2,7 +2,7 @@ import csv, copy
 import numpy as np
 from adaptation import csvvfile, curvegen, curvegen_known, covariates, constraints
 from generate import caller
-from openest.models.curve import ZeroInterceptPolynomialCurve, ClippedCurve, ShiftedCurve, MinimumCurve
+from openest.models.curve import CubicSplineCurve, ClippedCurve, ShiftedCurve, MinimumCurve, OtherClippedCurve
 from openest.generate.stdlib import *
 from openest.generate import diagnostic
 from impactcommon.math import minspline
@@ -20,13 +20,26 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
                                                              '100,000 * death/population', 'spline_variables-',
                                                              knots, csvv)
 
+    baselineloggdppcs = {}
+    for region in weatherbundle.regions:
+        baselineloggdppcs[region] = covariator.get_current(region)['loggdppc']
+    
     # Determine minimum value of curve between 10C and 25C
-    baselinecurves, baselinemins = constraints.get_curve_minima(weatherbundle, curr_curvegen, covariator, 10, 25,
+    baselinecurves, baselinemins = constraints.get_curve_minima(weatherbundle.regions, curr_curvegen, covariator, 10, 25,
                                                                 lambda curve: minspline.findsplinemin(knots, curve.coeffs, 10, 25))
 
     def transform(region, curve):
         fulladapt_curve = ShiftedCurve(curve, -curve(baselinemins[region]))
-        noincadapt_curve = ShiftedCurve(baselinecurves[region], -baselinecurves[region](baselinemins[region]))
+        # Alternative: Turn off Goodmoney
+        #return ClippedCurve(fulladapt_curve)
+
+        covars = covariator.get_current(region)
+        covars['loggdppc'] = baselineloggdppcs[region]
+        noincadapt_unshifted_curve = curr_curvegen.get_curve(region, None, covars, recorddiag=False)
+        noincadapt_curve = ShiftedCurve(SelectiveInputCurve(noincadapt_unshifted_curve, [0]), -noincadapt_unshifted_curve(baselinemins[region]))
+
+        # Alternative: allow no anti-adaptation
+        #noincadapt_curve = ShiftedCurve(baselinecurves[region], -baselinecurves[region](baselinemins[region]))
 
         goodmoney_curve = MinimumCurve(fulladapt_curve, noincadapt_curve)
         return ClippedCurve(goodmoney_curve)
@@ -34,7 +47,18 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
     clip_curvegen = curvegen.TransformCurveGenerator(curr_curvegen, transform)
     farm_curvegen = curvegen.FarmerCurveGenerator(clip_curvegen, covariator, farmer)
 
-    calculation = Transform(YearlyAverageDay('100,000 * death/population', farm_curvegen, "the mortality response curve"),
+    # Generate the marginal income curve
+    climtas_effect_curve = CubicSplineCurve(knots, 365 * np.array([csvvfile.get_gamma(csvv, tasvar, 'climtas') for tasvar in ['spline_variables-0', 'spline_variables-1', 'spline_variables-2', 'spline_variables-3', 'spline_variables-4']])) # x 365, to undo / 365 later
+
+    def transform_climtas_effect(region, curve):
+        shifted_curve = ShiftedCurve(climtas_effect_curve, -climtas_effect_curve(baselinemins[region]))
+        return OtherClippedCurve(curve, shifted_curve)
+
+    climtas_effect_curvegen = curvegen.TransformCurveGenerator(farm_curvegen, transform_climtas_effect)
+
+    calculation = Transform(AuxillaryResult(YearlyAverageDay('100,000 * death/population', farm_curvegen, "the mortality response curve"),
+                                            YearlyAverageDay('100,000 * death/population', climtas_effect_curvegen,
+                                                             "climtas effect after clipping", norecord=True), 'climtas_effect'),
                             '100,000 * death/population', 'deaths/person/year', lambda x: 365 * x / 1e5,
                             'convert to deaths/person/year', "Divide by 100000 to convert to deaths/person/year.")
 
