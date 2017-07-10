@@ -13,11 +13,11 @@ def preload():
 
 def get_bundle_iterator(config):
     climdir = files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level')
-    return weather.iterate_combined_bundles(discover_versioned("/shares/gcp/climate/BCSD/Mortality/polynomial-fix/hierid/popwt/daily/tas", 'tas'),
-                                            discover_versioned("/shares/gcp/climate/BCSD/Mortality/polynomial-fix/hierid/popwt/daily/tas-poly-2", 'tas-poly-2'),
-                                            discover_versioned("/shares/gcp/climate/BCSD/Mortality/polynomial-fix/hierid/popwt/daily/tas-poly-3", 'tas-poly-3'),
-                                            discover_versioned("/shares/gcp/climate/BCSD/Mortality/polynomial-fix/hierid/popwt/daily/tas-poly-4", 'tas-poly-4'),
-                                            discover_versioned("/shares/gcp/climate/BCSD/Mortality/polynomial-fix/hierid/popwt/daily/tas-poly-5", 'tas-poly-5'))
+    return weather.iterate_combined_bundles(discover_versioned("/shares/gcp/climate/BCSD/hierid/popwt/daily/tas", 'tas'),
+                                            discover_versioned("/shares/gcp/climate/BCSD/hierid/popwt/daily/tas-poly-2", 'tas-poly-2'),
+                                            discover_versioned("/shares/gcp/climate/BCSD/hierid/popwt/daily/tas-poly-3", 'tas-poly-3'),
+                                            discover_versioned("/shares/gcp/climate/BCSD/hierid/popwt/daily/tas-poly-4", 'tas-poly-4'),
+                                            discover_versioned("/shares/gcp/climate/BCSD/hierid/popwt/daily/tas-poly-5", 'tas-poly-5'))
 
 def check_doit(targetdir, basename, suffix):
     filepath = effectset.get_ncdf_path(targetdir, basename, suffix)
@@ -75,6 +75,9 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, result_callb
                     calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(subcsvv, module, weatherbundle, economicmodel, pvals[subbasename])
 
                     effectset.generate(targetdir, subbasename, weatherbundle, calculation, None, "Mortality impacts, with interpolation and adaptation through interpolation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, subbasename), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, subbasename), suffix=suffix, diagnosefile=diagnosefile.replace('.csv', '-' + subbasename + '.csv') if diagnosefile else False)
+
+                    if profile:
+                        return
 
                 if config['do_farmers'] and not weatherbundle.is_historical():
                     # Lock in the values

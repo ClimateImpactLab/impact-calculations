@@ -137,7 +137,9 @@ def small_print(weatherbundle, calculation, get_apply_args, regions=10):
     for ii, year, results in simultaneous_application(weatherbundle, calculation, get_apply_args, regions=regions):
         for col in range(len(results)):
             values[col][year - yeardata[0]] = results[col]
-
+        if year > 2020:
+            break
+        
     return values
 
 def get_model_server(id):
