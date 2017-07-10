@@ -36,7 +36,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
         covars = covariator.get_current(region)
         covars['loggdppc'] = baselineloggdppcs[region]
         noincadapt_unshifted_curve = curr_curvegen.get_curve(region, None, covars, recorddiag=False)
-        noincadapt_curve = ShiftedCurve(SelectiveInputCurve(noincadapt_unshifted_curve, [0]), -noincadapt_unshifted_curve(baselinemins[region]))
+        noincadapt_curve = ShiftedCurve(noincadapt_unshifted_curve, -noincadapt_unshifted_curve(baselinemins[region]))
 
         # Alternative: allow no anti-adaptation
         #noincadapt_curve = ShiftedCurve(baselinecurves[region], -baselinecurves[region](baselinemins[region]))
