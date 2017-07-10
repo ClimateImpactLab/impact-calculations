@@ -1,4 +1,4 @@
-import os
+import os, glob
 import netcdfs
 
 class WeatherReader(object):
@@ -82,9 +82,10 @@ class YearlySplitWeatherReader(WeatherReader):
 
         options = glob.glob(self.template.replace("%v", "*") % (year))
         if len(options) == 0:
-            return template % (year)
+            return self.template.replace("%v", "unknown") % (year)
         
-        options.sort(key=lambda s: map(int, os.path.splitext(s)[0].split('.')))
+        options = map(lambda s: os.path.splitext(os.path.basename(s))[0], options)
+        options.sort(key=lambda s: map(int, s.split('.')))
         return self.template.replace("%v", options[-1]) % (year)
     
 class ConversionWeatherReader(WeatherReader):
