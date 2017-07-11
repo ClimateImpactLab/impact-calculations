@@ -9,7 +9,7 @@ levels_suffix = '-levels'
 suffix = "-aggregated"
 missing_only = True
 
-costs_command = "Rscript generate/cost_curves.R \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\"" # tavgpath rcp gcm impactspath gammapath minpath gammarange
+costs_command = "Rscript generate/cost_curves.R \"%s\" \"%s\" \"%s\" \"%s\"" # tavgpath rcp gcm impactspath
 
 CLAIM_TIMEOUT = 60*60
 
@@ -212,7 +212,7 @@ if __name__ == '__main__':
                 else:
                     variable = 'rebased'
 
-                if config['weighting'] == 'agecohorts':
+                if config['weighting'] == 'agecohorts' and 'IND_' not in filename:
                     get_population = lambda year0, year1: halfweight.load_population(year0, year1, econ_model, econ_scenario, agecohorts.age_from_filename(filename))
                 else:
                     get_population = lambda year0, year1: halfweight.load_population(year0, year1, econ_model, econ_scenario)
@@ -274,8 +274,8 @@ if __name__ == '__main__':
                                 else:
                                     continue # Cannot calculate costs
                                 
-                                print costs_command % (tavgpath, clim_scenario, clim_model, impactspath, gammapath, minpath, gammarange)
-                                os.system(costs_command % (tavgpath, clim_scenario, clim_model, impactspath, gammapath, minpath, gammarange))
+                                print costs_command % (tavgpath, clim_scenario, clim_model, impactspath)
+                                os.system(costs_command % (tavgpath, clim_scenario, clim_model, impactspath))
 
                         # Levels of costs
                         if not missing_only or not os.path.exists(os.path.join(targetdir, filename[:-4] + costs_suffix + levels_suffix + '.nc4')):
