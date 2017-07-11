@@ -18,25 +18,24 @@
 # This simplifies to: sum_k [ T_0^k * gamma_k * (Tbar_0^k - Tbar_1^k)] < COST < sum_k [ T_1^k * gamma_k * (Tbar_0^k - Tbar_1^k)], where "k" indicates each term in the nonlinear response (e.g. if it's a fourth order polynomial, we have k = 1,...,4), and where the Tbar values may vary by climate term (e.g for bins we interact each bin variable by the average number of days in that bin)
 
 ###########################
-# Syntax: cost_curves(tavgpath, rcp, climate_model, impactspath, gammapath, minpath, 'gammarange'), Where:
+# Syntax: cost_curves(tavgpath, rcp, climate_model, impactspath), Where:
 # tavgpath = filepath for long run average climate data by impact region year
 # rcp = which RCP? enter as a string --  'rcp85' or 'rcp45'
 # climate_model = which climate model? enter as a string -- e.g. 'MIROC-ESM'
 # impactspath = filepath for the projected impacts for this model
-# gammapath = filepath for the CSVV of gammas
-# minpath = filepath for the CSV of impact region-specific reference temperatures
-# gammarange = range of numbers indicating which of the gammas you want to pull (e.g. only a subset of them if you want just one age category) -- entered as a string!
 ###########################
 
 ###############################################
 
 rm(list=ls())
 
+library(pracma)
 library(ncdf4)
 library(dplyr)
 library(DataCombine)
 library(zoo)
 library(abind)
+library(rPython)
 source("generate/stochpower.R")
 
 #####################
@@ -51,6 +50,7 @@ gammarange = 25:36 #oldest!
 minpath <- "~/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/poly_dailyclip/global_interaction_Tmean-POLY-4-AgeSpec-oldest-polymins.csv"
 model <- 'poly'
 powers <- 4
+avgmethod = 'bartlett'
 }
 #####################
 
@@ -68,46 +68,9 @@ climmodel = args[3]
 # Filepath for impacts
 impactspath <- args[4] # paste0("outputs/", sector, "/", impactsfolder, "/median-clipped/rcp", rcp, "/", climmodel, "/high/SSP4/moratlity_cubic_splines_2factors_", climdata, "_031617.nc4")
 
-# Filepath for gammas -- where is the CSVV?
-gammapath = args[5] # paste0("social/parameters/", sector, "/", csvname, ".csvv")
-
-# Filepath for spline minimum values -- where is the CSV?
-minpath = args[6] # paste0("social/parameters/mortality/mortality_splines_03162017/splinemins.csv")
-
-# Which gammas do you want to pull?
-gammarange <- unlist(strsplit(args[7], ':'))
-gammarange <- as.numeric(gammarange[1]):as.numeric(gammarange[2])
-
-###############################################
-#  Get Gammas from CSVVs
-###############################################
-
-csvv <- read.csv(gammapath, header=FALSE, skip = 18, strip.white=TRUE)
-
-# Covariate names as listed in the csvv
-row <- which(csvv[,1] == "covarnames")
-covnames <- csvv[row+1,]
-
-# Subset the covnames to only take the values for the subset called by the function (e.g. old age only)
-covnames <- covnames[gammarange]
-
-# Which covariates are climate covariates? (indicate climate covariates with a 1)
-climdummy <- rep(NA, times=length(covnames))
-
-for (i in 1:length(covnames)) {
-  climdummy[i] <- (covnames[i]!='1' & covnames[i]!='logpopop' & covnames[i]!='loggdppc'  & covnames[i]!='lggdppc')
-}
-
-# IMPORTANT: the climate covariates need to be in the same order as the climate variables they get multiplied by
-if (length(climdummy)!=length(covnames)) stop()
-
-row <- which(csvv[,1] == "gamma")
-gammas <- csvv[row+1,gammarange[1]:tail(gammarange,n=1)]
-gammas <- gammas[which(climdummy == T)] # just the climate gammas extracted
-gammas <- sapply(gammas, function(x) as.numeric(as.character(x)))
-
-# How many climate variables interacted with climate covariates in the response function do we have?
-K = length(covnames[covnames=="1"])
+# Averaging method
+#avgmethod = args[5]
+avgmethod = 'bartlett'
 
 ##############################################################################################
 # LOAD realized climate variable from single folder
@@ -146,10 +109,21 @@ movingavg <- array(NA, dim=dim(impacts.climtaseff))
 
 R <- dim(impacts.climtaseff)[1]
 
+if(avgmethod == 'bartlett') {
+# BARTLETT KERNEL
 for(r in 1:R) { #loop over all regions
     if (sum(is.finite(impacts.climtaseff[r,])) > 0)
-      movingavg[r,] <- ave(impacts.climtaseff[r,], FUN=function(x) rollmean(x, k=15, fill="extend"))
+      tempdf <- impacts.climtaseff[r,]
+      movingavg[r,] <- movavg(tempdf,30,'w')
   }
+}
+
+if(avgmethod=='movingavg') {
+  for(r in 1:R) { #loop over all regions
+    if (sum(is.finite(impacts.climtaseff[r,])) > 0)
+    movingavg[r,] <- ave(impacts.climtaseff[r,], FUN=function(x) rollmean(x, k=15, fill="extend"))
+  }
+}
 
 print("MOVING AVERAGE OF ADAPTIVE INVESTMENTS CALCULATED")
 
