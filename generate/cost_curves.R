@@ -29,11 +29,13 @@
 
 rm(list=ls())
 
+library(pracma)
 library(ncdf4)
 library(dplyr)
 library(DataCombine)
 library(zoo)
 library(abind)
+library(rPython)
 source("generate/stochpower.R")
 
 #####################
@@ -48,6 +50,7 @@ gammarange = 25:36 #oldest!
 minpath <- "~/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/poly_dailyclip/global_interaction_Tmean-POLY-4-AgeSpec-oldest-polymins.csv"
 model <- 'poly'
 powers <- 4
+avgmethod = 'bartlett'
 }
 #####################
 
@@ -64,6 +67,10 @@ climmodel = args[3]
 
 # Filepath for impacts
 impactspath <- args[4] # paste0("outputs/", sector, "/", impactsfolder, "/median-clipped/rcp", rcp, "/", climmodel, "/high/SSP4/moratlity_cubic_splines_2factors_", climdata, "_031617.nc4")
+
+# Averaging method
+#avgmethod = args[5]
+avgmethod = 'bartlett'
 
 ##############################################################################################
 # LOAD realized climate variable from single folder
@@ -102,10 +109,21 @@ movingavg <- array(NA, dim=dim(impacts.climtaseff))
 
 R <- dim(impacts.climtaseff)[1]
 
+if(avgmethod == 'bartlett') {
+# BARTLETT KERNEL
 for(r in 1:R) { #loop over all regions
     if (sum(is.finite(impacts.climtaseff[r,])) > 0)
-      movingavg[r,] <- ave(impacts.climtaseff[r,], FUN=function(x) rollmean(x, k=15, fill="extend"))
+      tempdf <- impacts.climtaseff[r,]
+      movingavg[r,] <- movavg(tempdf,30,'w')
   }
+}
+
+if(avgmethod=='movingavg') {
+  for(r in 1:R) { #loop over all regions
+    if (sum(is.finite(impacts.climtaseff[r,])) > 0)
+    movingavg[r,] <- ave(impacts.climtaseff[r,], FUN=function(x) rollmean(x, k=15, fill="extend"))
+  }
+}
 
 print("MOVING AVERAGE OF ADAPTIVE INVESTMENTS CALCULATED")
 
