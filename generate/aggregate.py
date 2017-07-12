@@ -13,7 +13,7 @@ costs_command = "Rscript generate/cost_curves.R \"%s\" \"%s\" \"%s\" \"%s\"" # t
 
 CLAIM_TIMEOUT = 60*60
 
-batchfilter = lambda batch: True #batch == 'median' or 'batch' in batch
+batchfilter = lambda batch: batch == 'median' or 'batch' in batch
 targetdirfilter = lambda targetdir: True #'SSP3' in targetdir and 'Env-Growth' in targetdir
 
 # The full population, if we just read it.  Only 1 at a time (it's big!)
@@ -118,7 +118,7 @@ def make_costs_aggregate(targetdir, filename, get_population):
     # Assume the following IAM and SSP
     econ_model = 'OCED Env-Growth'
     econ_scenario = 'SSP3_v9_130325'
-    dimensions_template = "/shares/gcp/outputs/temps/rcp45/CCSM4/temps.nc4"
+    dimensions_template = "/shares/gcp/outputs/temps/rcp45/CCSM4/climtas.nc4"
     metainfo = dict(description="Upper and lower bounds costs of adaptation calculation.",
                     version="DEADLY-2016-04-22",
                     dependencies="TEMPERATURES, ADAPTATION-ALL-AGES",
@@ -172,7 +172,7 @@ def make_costs_levels(targetdir, filename, get_population):
     # Assume the following IAM and SSP
     econ_model = 'OCED Env-Growth'
     econ_scenario = 'SSP3_v9_130325'
-    dimensions_template = "/shares/gcp/outputs/temps/rcp45/CCSM4/temps.nc4"
+    dimensions_template = "/shares/gcp/outputs/temps/rcp45/CCSM4/climtas.nc4"
     metainfo = dict(description="Upper and lower bounds costs of adaptation calculation.",
                     version="DEADLY-2016-04-22",
                     dependencies="TEMPERATURES, ADAPTATION-ALL-AGES",
@@ -212,8 +212,8 @@ if __name__ == '__main__':
                 else:
                     variable = 'rebased'
 
-                if config['weighting'] == 'agecohorts' and 'IND_' not in filename:
-                    get_population = lambda year0, year1: halfweight.load_population(year0, year1, econ_model, econ_scenario, agecohorts.age_from_filename(filename))
+                if config['weighting'] == 'agecohorts':
+                    get_population = lambda year0, year1: halfweight.load_population(year0, year1, econ_model, econ_scenario, agecohorts.age_from_filename(filename) if 'IND_' not in filename else 'total')
                 else:
                     get_population = lambda year0, year1: halfweight.load_population(year0, year1, econ_model, econ_scenario)
 
@@ -240,7 +240,7 @@ if __name__ == '__main__':
                                 basenames = [filename[:-4].replace('-combined', '-' + agegroup + '-costs') for agegroup in agegroups]
                                 hasall = True
                                 for basename in basenames:
-                                    if not os.path.exists(basename + '.nc4'):
+                                    if not os.path.exists(os.path.join(targetdir, basename + '.nc4')):
                                         hasall = False
                                         break
 

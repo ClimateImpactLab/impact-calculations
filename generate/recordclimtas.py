@@ -6,7 +6,7 @@ from climate.discover import discover_variable
 from impactcommon.math import averages
 
 discoverer = discover_variable('/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level', 'tas')
-outputdir = '/shares/gcp/output/temps'
+outputdir = '/shares/gcp/outputs/temps'
 filename = 'climtas.nc4'
 
 covar_names = ['climtas']
