@@ -3,6 +3,7 @@ import numpy as np
 from netCDF4 import Dataset
 import nc4writer
 from helpers import header
+from datastore import irregions
 
 def copy_timereg_variable(writer, variable, key, dstvalues, suffix, unitchange=lambda x: x, timevar='year'):
     column = writer.createVariable(key, 'f8', (timevar, 'region'))
@@ -83,16 +84,25 @@ def combine_results(targetdir, basename, sub_basenames, get_stweights, descripti
     regions = readers[0].variables['regions'][:].tolist()
     for reader in readers[1:]:
         regions2 = reader.variables['regions'][:].tolist()
-        assert regions == regions2, "Regions do not match."
+        if np.isnan(regions[0]) and np.isnan(regions2[0]) and len(regions) == len(regions2):
+            # Good enough of a check for us
+            dependencies = []
+            regions = irregions.load_regions('hierarchy.csv', dependencies)
+        else:
+            assert regions == regions2, "Regions do not match: %s <> %s" % (str(regions[:4]), str(regions2[:4]))
 
-    writer.description = description
-    writer.version = readers[0].version
-    writer.dependencies = sub_filepaths
-    writer.author = readers[0].author
+    try:
+        writer.description = description
+        writer.version = readers[0].version
+        writer.dependencies = sub_filepaths
+        writer.author = readers[0].author
+    except:
+        pass
 
     years = nc4writer.make_years_variable(writer)
     years[:] = get_years(readers[0])
-    nc4writer.make_regions_variable(writer, regions, 'regions')
+    if not np.isnan(regions[0]):
+        nc4writer.make_regions_variable(writer, regions, 'regions')
 
     stweights = [get_stweight(min(years), max(years)) for get_stweight in get_stweights]
 

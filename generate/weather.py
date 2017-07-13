@@ -5,6 +5,7 @@ from impactlab_tools.utils import files
 import helpers.header as headre
 from openest.generate.weatherslice import DailyWeatherSlice, YearlyWeatherSlice
 from climate import netcdfs
+from datastore import irregions
 
 def iterate_bundles(iterator_readers):
     """
@@ -65,18 +66,7 @@ class WeatherBundle(object):
 
     def load_regions(self):
         """Load the rows of hierarchy.csv associated with all known regions."""
-        mapping = {} # color to hierid
-
-        with open(files.sharedpath("regions/" + self.hierarchy), 'r') as fp:
-            reader = csv.reader(headre.deparse(fp, self.dependencies))
-            header = reader.next()
-            for row in reader:
-                if row[header.index('agglomid')]:
-                    mapping[int(row[header.index('agglomid')])] = row[0]
-
-        self.regions = []
-        for ii in range(len(mapping)):
-            self.regions.append(mapping[ii + 1])
+        self.regions = irregions.load_regions(self.hierarchy, self.dependencies)
 
     def load_readermeta(self, reader):
         self.version = reader.version
