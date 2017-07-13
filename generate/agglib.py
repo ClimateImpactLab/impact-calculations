@@ -4,6 +4,22 @@ from netCDF4 import Dataset
 import nc4writer
 from helpers import header
 
+def iterdir(basedir):
+    for filename in os.listdir(basedir):
+        yield filename, os.path.join(os.path.join(basedir, filename))
+
+def iterresults(outdir):
+    for batch, batchpath in iterdir(outdir):
+        if not batchfilter(batch):
+            continue
+        for clim_scenario, cspath in iterdir(batchpath):
+            for clim_model, cmpath in iterdir(cspath):
+                for econ_model, empath in iterdir(cmpath):
+                    for econ_scenario, espath in iterdir(empath):
+                        if not targetdirfilter(espath):
+                            continue
+                        yield batch, clim_scenario, clim_model, econ_scenario, econ_model, espath
+
 def copy_timereg_variable(writer, variable, key, dstvalues, suffix, unitchange=lambda x: x, timevar='year'):
     column = writer.createVariable(key, 'f8', (timevar, 'region'))
     column.units = unitchange(variable.units)
@@ -57,22 +73,6 @@ def get_aggregated_regions(regions):
             prefixes.append(prefix)
 
     return originals, prefixes, dependencies
-
-def get_years(reader, limityears=None):
-    if 'year' in reader.variables:
-        readeryears = reader.variables['year'][:]
-    elif 'years' in reader.variables:
-        readeryears = reader.variables['years'][:]
-    else:
-        raise RuntimeError("Cannot find years variable")
-
-    if limityears is not None:
-        readeryears = limityears(readeryears)
-
-    if len(readeryears) == 0:
-        raise ValueError("Incomplete!")
-
-    return readeryears
 
 def combine_results(targetdir, basename, sub_basenames, get_stweights, description, suffix=''):
     writer = nc4writer.create(targetdir, basename + suffix)
