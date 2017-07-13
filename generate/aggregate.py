@@ -37,22 +37,6 @@ def get_cached_population(get_population, years):
     cached_population = (get_population, minyear, maxyear, stweight)
     return stweight
 
-def iterdir(basedir):
-    for filename in os.listdir(basedir):
-        yield filename, os.path.join(os.path.join(basedir, filename))
-
-def iterresults(outdir):
-    for batch, batchpath in iterdir(outdir):
-        if not batchfilter(batch):
-            continue
-        for clim_scenario, cspath in iterdir(batchpath):
-            for clim_model, cmpath in iterdir(cspath):
-                for econ_model, empath in iterdir(cmpath):
-                    for econ_scenario, espath in iterdir(empath):
-                        if not targetdirfilter(espath):
-                            continue
-                        yield batch, clim_scenario, clim_model, econ_scenario, econ_model, espath
-
 def make_aggregates(targetdir, filename, get_population, dimensions_template=None, metainfo=None, limityears=None):
     # Find all variables that containing the region dimension
     reader = Dataset(os.path.join(targetdir, filename), 'r', format='NETCDF4')
@@ -61,7 +45,7 @@ def make_aggregates(targetdir, filename, get_population, dimensions_template=Non
     else:
         dimreader = Dataset(dimensions_template, 'r', format='NETCDF4')
 
-    readeryears = agglib.get_years(dimreader, limityears)
+    readeryears = nc4writer.get_years(dimreader, limityears)
 
     writer = nc4writer.create(targetdir, filename[:-4] + suffix)
 
@@ -150,7 +134,7 @@ def make_levels(targetdir, filename, get_population, dimensions_template=None, m
         writer.author = metainfo['author']
 
     years = nc4writer.make_years_variable(writer)
-    years[:] = agglib.get_years(dimreader, limityears)
+    years[:] = nc4writer.get_years(dimreader, limityears)
     nc4writer.make_regions_variable(writer, regions, 'regions')
 
     stweight = get_cached_population(get_population, years)
@@ -194,7 +178,7 @@ if __name__ == '__main__':
     else:
         halfweight = population.SpaceTimeBipartiteData(1981, 2100, None)
 
-    for batch, clim_scenario, clim_model, econ_scenario, econ_model, targetdir in iterresults(config['outputdir']):
+    for batch, clim_scenario, clim_model, econ_scenario, econ_model, targetdir in agglib.iterresults(config['outputdir']):
         print targetdir
         print econ_model, econ_scenario
 
