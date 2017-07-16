@@ -1,4 +1,4 @@
-import os, glob
+import os, glob, traceback
 import numpy as np
 from impactlab_tools.utils import files
 from adaptation import csvvfile
@@ -97,16 +97,16 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, result_callb
             try:
                 for assumption in ['', '-noadapt', '-incadapt']:
                     if assumption != '':
-                        if config['do_farmers'] and not weatherbundle.is_historical():
+                        if config['do_farmers'] and weatherbundle.is_historical():
                             continue
                     halfweight = agecohorts.SpaceTimeBipartiteData(1981, 2100, None)
-                    basenames = [basename + '-' + agegroup + assumption for agegroup in agegroups]
+                    basenames = [basename + '-' + agegroup + assumption + suffix for agegroup in agegroups]
                     get_stweights = [lambda year0, year1: halfweight.load_population(year0, year1, economicmodel.model, economicmodel.scenario, 'age0-4'), lambda year0, year1: halfweight.load_population(year0, year1, economicmodel.model, economicmodel.scenario, 'age5-64'), lambda year0, year1: halfweight.load_population(year0, year1, economicmodel.model, economicmodel.scenario, 'age65+')]
                     if check_doit(targetdir, basename + '-combined' + assumption, suffix):
                         agglib.combine_results(targetdir, basename + '-combined' + assumption, basenames, get_stweights, "Combined mortality across age-groups for " + basename, suffix=suffix)
             except Exception as ex:
                 print "TO FIX: Combining failed."
-                print ex
+                traceback.print_exc()
 
     produce_india(targetdir, weatherbundle, economicmodel, pvals, config, suffix=suffix, diagnosefile=diagnosefile)
     produce_external(targetdir, weatherbundle, economicmodel, pvals, config, suffix=suffix)

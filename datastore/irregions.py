@@ -1,3 +1,7 @@
+import csv
+from impactlab_tools.utils import files
+import helpers.header as headre
+
 def load_regions(hierarchy, dependencies):
     """Load the rows of hierarchy.csv associated with all known regions."""
     mapping = {} # color to hierid

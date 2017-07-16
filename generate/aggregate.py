@@ -14,7 +14,7 @@ costs_command = "Rscript generate/cost_curves.R \"%s\" \"%s\" \"%s\" \"%s\"" # t
 CLAIM_TIMEOUT = 60*60
 
 batchfilter = lambda batch: batch == 'median' or 'batch' in batch
-targetdirfilter = lambda targetdir: 'rcp85' in targetdir #'SSP3' in targetdir and 'Env-Growth' in targetdir
+targetdirfilter = lambda targetdir: True #'rcp85' in targetdir #'SSP3' in targetdir and 'Env-Growth' in targetdir
 
 # The full population, if we just read it.  Only 1 at a time (it's big!)
 # Tuple of (get_population, minyear, maxyear, population)
@@ -169,7 +169,7 @@ if __name__ == '__main__':
     from impactlab_tools.utils import files
     from datastore import population, agecohorts
 
-    config = files.get_argv_config()
+    config = files.get_allargv_config()
 
     statman = paralog.StatusManager('aggregate', "generate.aggregate " + sys.argv[1], 'logs', CLAIM_TIMEOUT)
     
@@ -178,7 +178,11 @@ if __name__ == '__main__':
     else:
         halfweight = population.SpaceTimeBipartiteData(1981, 2100, None)
 
-    for batch, clim_scenario, clim_model, econ_scenario, econ_model, targetdir in agglib.iterresults(config['outputdir']):
+    for batch, clim_scenario, clim_model, econ_scenario, econ_model, targetdir in agglib.iterresults(config['outputdir'], batchfilter, targetdirfilter):
+        if 'targetdir' in config:
+            if targetdir != config['targetdir']:
+                continue
+        
         print targetdir
         print econ_model, econ_scenario
 
@@ -215,7 +219,7 @@ if __name__ == '__main__':
                     if not missing_only or not checks.check_result_100years(os.path.join(targetdir, filename[:-4] + suffix + '.nc4'), variable=variable, regioncount=5665) or not os.path.exists(os.path.join(targetdir, filename[:-4] + suffix + '.nc4')):
                         make_aggregates(targetdir, filename, get_population)
 
-                    if '-noadapt' not in filename and '-incadapt' not in filename and 'histclim' not in filename:
+                    if '-noadapt' not in filename and '-incadapt' not in filename and 'histclim' not in filename and 'indiamerge' not in filename:
                         # Generate costs
                         if not missing_only or not os.path.exists(os.path.join(targetdir, filename[:-4] + costs_suffix + '.nc4')):
                             if '-combined' in filename:
@@ -225,10 +229,12 @@ if __name__ == '__main__':
                                 hasall = True
                                 for basename in basenames:
                                     if not os.path.exists(os.path.join(targetdir, basename + '.nc4')):
+                                        print "Missing " + os.path.join(targetdir, basename + '.nc4')
                                         hasall = False
                                         break
 
                                 if hasall:
+                                    print "Has all component costs"
                                     get_stweights = [lambda year0, year1: halfweight.load_population(1981, 2100, econ_model, econ_scenario, 'age0-4'), lambda year0, year1: halfweight.load_population(1981, 2100, econ_model, econ_scenario, 'age5-64'), lambda year0, year1: halfweight.load_population(1981, 2100, econ_model, econ_scenario, 'age65+')]
                                     agglib.combine_results(targetdir, filename[:-4] + costs_suffix, basenames, get_stweights, "Combined costs across age-groups for " + filename.replace('-combined.nc4', ''))
                             else:
@@ -268,7 +274,17 @@ if __name__ == '__main__':
                         # Aggregate costs
                         if not missing_only or not os.path.exists(os.path.join(targetdir, filename[:-4] + costs_suffix + suffix + '.nc4')):
                             make_costs_aggregate(targetdir, filename[:-4] + costs_suffix + '.nc4', get_population)
+                    elif 'indiamerge' in filename:
+                        # Just aggregate the costs
 
+                        # Levels of costs
+                        if not missing_only or not os.path.exists(os.path.join(targetdir, filename[:-4].replace('combined', 'combined-costs') + costs_suffix + levels_suffix + '.nc4')):
+                            make_costs_levels(targetdir, filename[:-4].replace('combined', 'combined-costs') + '.nc4', get_population)
+
+                        # Aggregate costs
+                        if not missing_only or not os.path.exists(os.path.join(targetdir, filename[:-4].replace('combined', 'combined-costs') + costs_suffix + suffix + '.nc4')):
+                            make_costs_aggregate(targetdir, filename[:-4].replace('combined', 'combined-costs') + '.nc4', get_population)
+                        
                 except Exception as ex:
                     print "Failed."
                     traceback.print_exc()
