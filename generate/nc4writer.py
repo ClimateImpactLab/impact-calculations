@@ -10,7 +10,7 @@ def create(targetdir, basename):
 def create_derivative(targetdir, reader, dstname, description_suffix, extra_dependencies, limityears=None):
     regions = reader.variables['regions'][:].tolist()
 
-    writer = nc4writer.create(targetdir, dstname)
+    writer = create(targetdir, dstname)
 
     try:
         # In order of importance
@@ -22,13 +22,13 @@ def create_derivative(targetdir, reader, dstname, description_suffix, extra_depe
             writer.dependencies = reader.version
             
         writer.author = reader.author
-    except Exception as ex
+    except Exception as ex:
         print str(ex)
         pass
 
     years = make_years_variable(writer)
     years[:] = get_years(reader, limityears)
-    nc4writer.make_regions_variable(writer, regions, 'regions')
+    make_regions_variable(writer, regions, 'regions')
 
     return writer, regions, years
 

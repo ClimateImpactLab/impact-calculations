@@ -9,7 +9,7 @@ def iterdir(basedir):
     for filename in os.listdir(basedir):
         yield filename, os.path.join(os.path.join(basedir, filename))
 
-def iterresults(outdir):
+def iterresults(outdir, batchfilter=lambda batch: True, targetdirfilter=lambda targetdir: True):
     for batch, batchpath in iterdir(outdir):
         if not batchfilter(batch):
             continue
@@ -84,12 +84,15 @@ def combine_results(targetdir, basename, sub_basenames, get_stweights, descripti
     regions = readers[0].variables['regions'][:].tolist()
     for reader in readers[1:]:
         regions2 = reader.variables['regions'][:].tolist()
-        if np.isnan(regions[0]) and np.isnan(regions2[0]) and len(regions) == len(regions2):
+        if isinstance(regions[0], float) and isinstance(regions2[0], float) and np.isnan(regions[0]) and np.isnan(regions2[0]) and len(regions) == len(regions2):
             # Good enough of a check for us
-            dependencies = []
-            regions = irregions.load_regions('hierarchy.csv', dependencies)
+            pass
         else:
             assert regions == regions2, "Regions do not match: %s <> %s" % (str(regions[:4]), str(regions2[:4]))
+
+    if isinstance(regions[0], float) and np.isnan(regions[0]):
+        dependencies = []
+        regions = irregions.load_regions('hierarchy.csv', dependencies)
 
     try:
         writer.description = description
@@ -100,9 +103,8 @@ def combine_results(targetdir, basename, sub_basenames, get_stweights, descripti
         pass
 
     years = nc4writer.make_years_variable(writer)
-    years[:] = get_years(readers[0])
-    if not np.isnan(regions[0]):
-        nc4writer.make_regions_variable(writer, regions, 'regions')
+    years[:] = nc4writer.get_years(readers[0])
+    nc4writer.make_regions_variable(writer, regions, 'regions')
 
     stweights = [get_stweight(min(years), max(years)) for get_stweight in get_stweights]
 
@@ -114,6 +116,8 @@ def combine_results(targetdir, basename, sub_basenames, get_stweights, descripti
             else:
                 all_variables[key].append(variable)
 
+    print {key: len(all_variables[key]) for key in all_variables}
+                
     for key in all_variables:
         if len(all_variables[key]) < len(readers):
             continue
