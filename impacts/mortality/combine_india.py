@@ -54,7 +54,7 @@ for batch, clim_scenario, clim_model, econ_scenario, econ_model, targetdir in ag
                     srcvalues_rich = reader_rich.variables['rebased'][:, :]
                     srcvalues_poor = reader_poor.variables['rebased'][:, :]
                 except Exception as ex:
-                    print str(ex)
+                    print ex
                     continue
                 
                 dstvalues = np.zeros((len(years), len(regions)))
@@ -87,7 +87,7 @@ for batch, clim_scenario, clim_model, econ_scenario, econ_model, targetdir in ag
 
                     writer, regions, years = nc4writer.create_derivative(targetdir, reader_rich_base, filename[:-4] + '-indiamerge', " combined with India", [])
                 except Exception as ex:
-                    print str(ex)
+                    print ex
                     continue
 
                 dstvalues = np.zeros((len(years), len(regions)))

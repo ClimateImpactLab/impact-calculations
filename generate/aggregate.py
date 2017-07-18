@@ -179,6 +179,9 @@ if __name__ == '__main__':
         halfweight = population.SpaceTimeBipartiteData(1981, 2100, None)
 
     for batch, clim_scenario, clim_model, econ_scenario, econ_model, targetdir in agglib.iterresults(config['outputdir'], batchfilter, targetdirfilter):
+        if 'rcp' in config:
+            if clim_scenario != config['rcp']:
+                continue
         if 'targetdir' in config:
             if targetdir != config['targetdir']:
                 continue
