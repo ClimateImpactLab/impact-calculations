@@ -3,7 +3,7 @@ import weather
 from adaptation import covariates
 
 do_econ_model_only = None
-do_econ_scenario_only = ['SSP4', 'SSP5']
+do_econ_scenario_only = ['SSP1', 'SSP4']
 
 single_clim_model = 'CCSM4'
 single_clim_scenario = 'rcp85'
