@@ -7,7 +7,7 @@ futureyear = 2050
 use_mle = False
 use_goodmoney = True
 
-polypower = 5
+polypower = 4
 
 dir = sys.argv[1]
 csvvpath = "/shares/gcp/social/parameters/mortality/Diagnostics_Apr17/global_interaction_Tmean-POLY-%d-AgeSpec.csvv" % polypower
@@ -116,6 +116,6 @@ lines = ["weather_%d = [%s]" % (2050, ','.join(["%.12g" % weday for weday in wea
          "eff0(weather) = ([%s]' * weather) / 100000" % ', '.join(["%.12g" % lib.excind(calcs, 2050, coeff) for coeff in coefflist]), # NOTE: coeffs from 2050, ot 2049
          "effadj(weather) = eff0([%s]) - eff0(%.12g .^ (1:%d))[1]" % ('; '.join(["weather'.^%d" % pow for pow in range(1, polypower+1)]), lib.excind(mintemps, 2009, 'analytic'), polypower),
          "unclipped = effadj(weather_%d) .> 0" % 2050,
-         "(" + ' + '.join(["%s * sum((weather_%d.^%d - %.12f^%d) .* unclipped')" % (coeffs[kk], 2050, kk+1, lib.excind(mintemps, 2009, 'analytic'), kk+1) for kk in range(5)]) + ")"]
+         "(" + ' + '.join(["%s * sum((weather_%d.^%d - %.12f^%d) .* unclipped')" % (coeffs[kk], 2050, kk+1, lib.excind(mintemps, 2009, 'analytic'), kk+1) for kk in range(polypower)]) + ")"]
 lib.show_julia(lines, clipto=400)
 

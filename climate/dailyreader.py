@@ -10,6 +10,7 @@ class DailyWeatherReader(YearlySplitWeatherReader):
     def __init__(self, template, year1, variable):
         super(DailyWeatherReader, self).__init__(template, year1, variable)
         self.time_units = 'yyyyddd'
+        self.regions = netcdfs.readncdf_single(self.find_templated(year1), 'hierid', allow_missing=True)
 
     def get_times(self):
         times = []
@@ -20,6 +21,10 @@ class DailyWeatherReader(YearlySplitWeatherReader):
 
         return times
 
+    def get_regions(self):
+        """Returns a list of all regions available."""
+        return self.regions
+        
     def get_dimension(self):
         return [self.variable]
 

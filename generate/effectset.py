@@ -22,7 +22,7 @@ def simultaneous_application(weatherbundle, calculation, get_apply_args, regions
             print "WARNING: fewer regions in weather than expected; dropping from end."
             applications = applications[:weatherslice.weathers.shape[1]]
 
-        print "Push", weatherslice.times[0]
+        print "Push", weatherslice.get_years()[0]
 
         for ii in range(len(applications)):
             jj = ii if regions == weatherbundle.regions else weatherbundle.regions.index(regions[ii])
@@ -31,7 +31,7 @@ def simultaneous_application(weatherbundle, calculation, get_apply_args, regions
                 yield (ii, yearresult[0], yearresult[1:])
 
             if push_callback is not None:
-                push_callback(regions[ii], weatherslice.times[0], applications[ii])
+                push_callback(regions[ii], weatherslice.get_years()[0], applications[ii])
 
     for ii in range(len(applications)):
         for yearresult in applications[ii].done():

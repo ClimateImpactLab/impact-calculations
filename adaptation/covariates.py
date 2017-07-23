@@ -80,6 +80,7 @@ class MeanWeatherCovariator(Covariator):
         print "Collecting baseline information..."
         temp_predictors = {}
         for region, temps in weatherbundle.baseline_values(maxbaseline): # baseline through maxbaseline
+            print "HERE"
             if varindex is None:
                 assert len(temps.shape) == 1
                 temp_predictors[region] = standard_running_mean_init(temps[-numtempyears:], numtempyears)
