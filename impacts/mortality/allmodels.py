@@ -41,7 +41,12 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, result_callb
         if push_callback is None:
             push_callback = lambda reg, yr, app, predget, mod: None
 
-        for filepath in glob.glob(files.sharedpath("social/parameters/mortality/Diagnostics_Apr17/*.csvv")):
+        if 'csvvfile' in config:
+            csvvfiles = [files.sharedpath(config['csvvfile'])]
+        else:
+            csvvfiles = glob.glob(files.sharedpath("social/parameters/mortality/Diagnostics_Apr17/*.csvv"))
+            
+        for filepath in csvvfiles:
             basename = os.path.basename(filepath)[:-5]
             print basename
 
@@ -110,8 +115,9 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, result_callb
                 print "TO FIX: Combining failed."
                 traceback.print_exc()
 
-    produce_india(targetdir, weatherbundle, economicmodel, pvals, config, suffix=suffix, diagnosefile=diagnosefile)
-    produce_external(targetdir, weatherbundle, economicmodel, pvals, config, suffix=suffix)
+    if 'csvvfile' not in config:
+        produce_india(targetdir, weatherbundle, economicmodel, pvals, config, suffix=suffix, diagnosefile=diagnosefile)
+        produce_external(targetdir, weatherbundle, economicmodel, pvals, config, suffix=suffix)
 
 def produce_india(targetdir, weatherbundle, economicmodel, pvals, config, suffix='', diagnosefile=False):
     for filepath in glob.glob(files.sharedpath("social/parameters/mortality/India/*.csvv")):
