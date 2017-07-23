@@ -83,7 +83,7 @@ def age_from_filename(filename):
     if '-combined' in filename:
         return 'total'
 
-    raise ValueError('Unknown age group')
+    raise ValueError('Unknown age group in %s' % filename)
 
 class SpaceTimeBipartiteData(spacetime.SpaceTimeData):
     def __init__(self, year0, year1, regions):

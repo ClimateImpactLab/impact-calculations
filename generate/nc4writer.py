@@ -7,6 +7,31 @@ def create(targetdir, basename):
         os.remove(os.path.join(targetdir, basename + '.nc4')) # Needs to be deleted
     return Dataset(os.path.join(targetdir, basename + '.nc4'), 'w', format='NETCDF4')
 
+def create_derivative(targetdir, reader, dstname, description_suffix, extra_dependencies, limityears=None):
+    regions = reader.variables['regions'][:].tolist()
+
+    writer = create(targetdir, dstname)
+
+    try:
+        # In order of importance
+        writer.description = reader.description + description_suffix
+        writer.version = reader.version
+        if extra_dependencies:
+            writer.dependencies = reader.version + ', ' + ', '.join(extra_dependencies)
+        else:
+            writer.dependencies = reader.version
+            
+        writer.author = reader.author
+    except Exception as ex:
+        print str(ex)
+        pass
+
+    years = make_years_variable(writer)
+    years[:] = get_years(reader, limityears)
+    make_regions_variable(writer, regions, 'regions')
+
+    return writer, regions, years
+
 def make_years_variable(rootgrp):
     year = rootgrp.createDimension('year', None)
 
@@ -67,3 +92,19 @@ def make_bins_variables(rootgrp):
 
 def make_betas_variables(rootgrp, num):
     betadim = rootgrp.createDimension('betadim', num)
+
+def get_years(reader, limityears=None):
+    if 'year' in reader.variables:
+        readeryears = reader.variables['year'][:]
+    elif 'years' in reader.variables:
+        readeryears = reader.variables['years'][:]
+    else:
+        raise RuntimeError("Cannot find years variable")
+
+    if limityears is not None:
+        readeryears = limityears(readeryears)
+
+    if len(readeryears) == 0:
+        raise ValueError("Incomplete!")
+
+    return readeryears

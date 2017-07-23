@@ -3,6 +3,23 @@ import numpy as np
 from netCDF4 import Dataset
 import nc4writer
 from helpers import header
+from datastore import irregions
+
+def iterdir(basedir):
+    for filename in os.listdir(basedir):
+        yield filename, os.path.join(os.path.join(basedir, filename))
+
+def iterresults(outdir, batchfilter=lambda batch: True, targetdirfilter=lambda targetdir: True):
+    for batch, batchpath in iterdir(outdir):
+        if not batchfilter(batch):
+            continue
+        for clim_scenario, cspath in iterdir(batchpath):
+            for clim_model, cmpath in iterdir(cspath):
+                for econ_model, empath in iterdir(cmpath):
+                    for econ_scenario, espath in iterdir(empath):
+                        if not targetdirfilter(espath):
+                            continue
+                        yield batch, clim_scenario, clim_model, econ_scenario, econ_model, espath
 
 def copy_timereg_variable(writer, variable, key, dstvalues, suffix, unitchange=lambda x: x, timevar='year'):
     column = writer.createVariable(key, 'f8', (timevar, 'region'))
@@ -58,22 +75,6 @@ def get_aggregated_regions(regions):
 
     return originals, prefixes, dependencies
 
-def get_years(reader, limityears=None):
-    if 'year' in reader.variables:
-        readeryears = reader.variables['year'][:]
-    elif 'years' in reader.variables:
-        readeryears = reader.variables['years'][:]
-    else:
-        raise RuntimeError("Cannot find years variable")
-
-    if limityears is not None:
-        readeryears = limityears(readeryears)
-
-    if len(readeryears) == 0:
-        raise ValueError("Incomplete!")
-
-    return readeryears
-
 def combine_results(targetdir, basename, sub_basenames, get_stweights, description, suffix=''):
     writer = nc4writer.create(targetdir, basename + suffix)
 
@@ -83,15 +84,26 @@ def combine_results(targetdir, basename, sub_basenames, get_stweights, descripti
     regions = readers[0].variables['regions'][:].tolist()
     for reader in readers[1:]:
         regions2 = reader.variables['regions'][:].tolist()
-        assert regions == regions2, "Regions do not match."
+        if isinstance(regions[0], float) and isinstance(regions2[0], float) and np.isnan(regions[0]) and np.isnan(regions2[0]) and len(regions) == len(regions2):
+            # Good enough of a check for us
+            pass
+        else:
+            assert regions == regions2, "Regions do not match: %s <> %s" % (str(regions[:4]), str(regions2[:4]))
 
-    writer.description = description
-    writer.version = readers[0].version
-    writer.dependencies = sub_filepaths
-    writer.author = readers[0].author
+    if isinstance(regions[0], float) and np.isnan(regions[0]):
+        dependencies = []
+        regions = irregions.load_regions('hierarchy.csv', dependencies)
+
+    try:
+        writer.description = description
+        writer.version = readers[0].version
+        writer.dependencies = sub_filepaths
+        writer.author = readers[0].author
+    except:
+        pass
 
     years = nc4writer.make_years_variable(writer)
-    years[:] = get_years(readers[0])
+    years[:] = nc4writer.get_years(readers[0])
     nc4writer.make_regions_variable(writer, regions, 'regions')
 
     stweights = [get_stweight(min(years), max(years)) for get_stweight in get_stweights]
@@ -104,6 +116,8 @@ def combine_results(targetdir, basename, sub_basenames, get_stweights, descripti
             else:
                 all_variables[key].append(variable)
 
+    print {key: len(all_variables[key]) for key in all_variables}
+                
     for key in all_variables:
         if len(all_variables[key]) < len(readers):
             continue

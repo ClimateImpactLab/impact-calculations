@@ -111,6 +111,10 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
     if batchdir is not None:
         targetdir = files.configpath(os.path.join(config['outputdir'], batchdir, clim_scenario, clim_model, econ_model, econ_scenario))
 
+        if 'targetdir' in config:
+            if targetdir != config['targetdir']:
+                continue
+    
         if config.get('do_fillin', False) and not os.path.exists(targetdir):
             continue
     else:
