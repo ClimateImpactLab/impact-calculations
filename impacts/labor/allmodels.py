@@ -13,7 +13,7 @@ def get_bundle_iterator():
                                             discover_derived_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tasmax', 'power4'))
 
 def check_doit(targetdir, basename, suffix, deletebad=False):
-    filepath = effectset.get_ncdf_path(targetdir, basename, suffix)
+    filepath = os.path.join(targetdir, basename + suffix + '.nc4')
     if not os.path.exists(filepath):
         print "REDO: Cannot find", filepath
         return True
@@ -45,7 +45,7 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, result_callb
                 print "Smart Farmer"
                 calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.labor.global20170216', weatherbundle, economicmodel, pvals[basename])
 
-                effectset.generate(targetdir, basename, weatherbundle, calculation, None, "Extensive margin labor impacts, with interpolation and adaptation through interpolation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, basename), push_callback=lambda reg, yr, app: push_callback(reg, int(yr) / 1000, app, baseline_get_predictors, basename), do_interpbins=False, suffix=suffix, diagnosefile=diagnosefile.replace('.csv', '-' + basename + '.csv') if diagnosefile else False)
+                effectset.generate(targetdir, basename + suffix, weatherbundle, calculation, None, "Extensive margin labor impacts, with interpolation and adaptation through interpolation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, basename), push_callback=lambda reg, yr, app: push_callback(reg, int(yr) / 1000, app, baseline_get_predictors, basename), do_interpbins=False, diagnosefile=diagnosefile.replace('.csv', '-' + basename + '.csv') if diagnosefile else False)
 
             if config['do_farmers'] and not weatherbundle.is_historical():
                 # Lock in the values
@@ -55,10 +55,10 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, result_callb
                 if check_doit(targetdir, basename + "-comatose", suffix):
                     print "Comatose Farmer"
                     calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.labor.global20170216', weatherbundle, economicmodel, pvals[basename], farmer='coma')
-                    effectset.generate(targetdir, basename + "-comatose", weatherbundle, calculation, None, "Extensive margin labor impacts, with no adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, basename + '-coma'), push_callback=lambda reg, yr, app: push_callback(reg, int(yr) / 1000, app, baseline_get_predictors, basename), do_interpbins=False, suffix=suffix)
+                    effectset.generate(targetdir, basename + "-comatose" + suffix, weatherbundle, calculation, None, "Extensive margin labor impacts, with no adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, basename + '-coma'), push_callback=lambda reg, yr, app: push_callback(reg, int(yr) / 1000, app, baseline_get_predictors, basename), do_interpbins=False)
 
                 # Dumb Farmer
                 if check_doit(targetdir, basename + "-dumb", suffix):
                     print "Dumb Farmer"
                     calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.labor.global20170216', weatherbundle, economicmodel, pvals[basename], farmer='dumb')
-                    effectset.generate(targetdir, basename + "-dumb", weatherbundle, calculation, None, "Extensive margin labor impacts, with interpolation and only environmental adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, basename + '-dumb'), push_callback=lambda reg, yr, app: push_callback(reg, int(yr) / 1000, app, baseline_get_predictors, basename), do_interpbins=False, suffix=suffix)
+                    effectset.generate(targetdir, basename + "-dumb" + suffix, weatherbundle, calculation, None, "Extensive margin labor impacts, with interpolation and only environmental adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, basename + '-dumb'), push_callback=lambda reg, yr, app: push_callback(reg, int(yr) / 1000, app, baseline_get_predictors, basename), do_interpbins=False)

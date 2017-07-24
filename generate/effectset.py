@@ -39,10 +39,7 @@ def simultaneous_application(weatherbundle, calculation, get_apply_args, regions
 
     calculation.cleanup()
 
-def get_ncdf_path(targetdir, basename, suffix=''):
-    return os.path.join(targetdir, basename + suffix + '.nc4')
-
-def generate(targetdir, basename, weatherbundle, calculation, get_apply_args, description, calculation_dependencies, config, filter_region=None, result_callback=None, push_callback=None, subset=None, suffix='', diagnosefile=False):
+def generate(targetdir, basename, weatherbundle, calculation, get_apply_args, description, calculation_dependencies, config, filter_region=None, result_callback=None, push_callback=None, subset=None, diagnosefile=False):
     if config['mode'] == 'profile':
         return small_print(weatherbundle, calculation, get_apply_args, regions=10)
 
@@ -52,9 +49,9 @@ def generate(targetdir, basename, weatherbundle, calculation, get_apply_args, de
     if filter_region is None:
         filter_region = config.get('filter_region', None)
     
-    return write_ncdf(targetdir, basename, weatherbundle, calculation, get_apply_args, description, calculation_dependencies, filter_region=filter_region, result_callback=result_callback, push_callback=push_callback, subset=subset, suffix=suffix, diagnosefile=diagnosefile)
+    return write_ncdf(targetdir, basename, weatherbundle, calculation, get_apply_args, description, calculation_dependencies, filter_region=filter_region, result_callback=result_callback, push_callback=push_callback, subset=subset, diagnosefile=diagnosefile)
 
-def write_ncdf(targetdir, basename, weatherbundle, calculation, get_apply_args, description, calculation_dependencies, filter_region=None, result_callback=None, push_callback=None, subset=None, suffix='', diagnosefile=False):
+def write_ncdf(targetdir, basename, weatherbundle, calculation, get_apply_args, description, calculation_dependencies, filter_region=None, result_callback=None, push_callback=None, subset=None, diagnosefile=False):
     if filter_region is None:
         my_regions = weatherbundle.regions
     else:
@@ -67,7 +64,7 @@ def write_ncdf(targetdir, basename, weatherbundle, calculation, get_apply_args, 
                 if filter_region(weatherbundle.regions[ii]):
                     my_regions.append(weatherbundle.regions[ii])
 
-    rootgrp = Dataset(get_ncdf_path(targetdir, basename, suffix), 'w', format='NETCDF4')
+    rootgrp = Dataset(os.path.join(targetdir, basename + '.nc4'), 'w', format='NETCDF4')
     rootgrp.description = description
     rootgrp.version = headre.dated_version(basename)
     rootgrp.dependencies = ', '.join([weatherbundle.version] + weatherbundle.dependencies + calculation_dependencies)
