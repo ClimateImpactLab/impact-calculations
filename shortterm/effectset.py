@@ -38,7 +38,7 @@ def simultaneous_application(qval, weatherbundle, calculation, get_apply_args, r
 
     calculation.cleanup()
 
-def write_ncdf(qval, targetdir, title, weatherbundle, calculation, get_apply_args, description, calculation_dependencies, suffix=''):
+def write_ncdf(qval, targetdir, title, weatherbundle, calculation, get_apply_args, description, calculation_dependencies):
     my_regions = weatherbundle.regions
 
     rootgrp = Dataset(os.path.join(targetdir, title + suffix + '.nc4'), 'w', format='NETCDF4')
