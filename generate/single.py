@@ -29,7 +29,7 @@ suffix, farmer, weatherbundle = adaptation.interpret(config['adaptation'], weath
 
 calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals[basename])
 
-effectset.generate(targetdir, basename + suffix, weatherbundle, calculation, None, "Singly produced result.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, farmer=farmer)
+effectset.generate(targetdir, basename + suffix, weatherbundle, calculation, "Singly produced result.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, farmer=farmer)
 
 ## CHANGES: Collapse the two suffixes, drop None argument
 
