@@ -8,7 +8,7 @@ from impactcommon.math import minpoly
 
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full'):
     covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 30, 2015, varindex=0), {'climtas': 'tas'}),
-                                                covariates.EconomicCovariator(economicmodel, 1, 2015)])
+                                                covariates.EconomicCovariator(economicmodel, 13, 2015)])
 
     # Don't collapse: already collapsed in allmodels
     #csvvfile.collapse_bang(csvv, qvals.get_seed())
