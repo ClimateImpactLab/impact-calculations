@@ -1,5 +1,5 @@
 from adaptation import csvvfile, curvegen, curvegen_known
-from openest.models.curve import ZeroInterceptPolynomialCurve, ClippedCurve, ShiftedCurve
+from openest.models.curve import ZeroInterceptPolynomialCurve, ClippedCurve, ShiftedCurve, SelectiveInputCurve, CoefficientsCurve
 from openest.generate.stdlib import *
 from impactcommon.math import minpoly
 
@@ -14,7 +14,8 @@ def prepare_raw(csvv, weatherbundle, economicmodel, qvals):
     # Determine minimum value of curve between 10C and 25C
     curvemin = minpoly.findpolymin([0] + curve.ccs, 10, 25)
 
-    shifted_curve = ShiftedCurve(curve, -curve(curvemin))
+    coeff_curve = SelectiveInputCurve(CoefficientsCurve(curve.ccs), range(order))
+    shifted_curve = ShiftedCurve(coeff_curve, -curve(curvemin))
     clipped_curve = ClippedCurve(shifted_curve)
 
     clip_curvegen = curvegen.ConstantCurveGenerator(poly_curvegen.indepunits, poly_curvegen.depenunit, clipped_curve)
