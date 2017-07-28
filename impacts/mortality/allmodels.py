@@ -12,12 +12,11 @@ def preload():
     library.get_data('mortality-deathrates', 'deaths/person')
 
 def get_bundle_iterator(config):
-    climdir = files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level')
-    return weather.iterate_combined_bundles(discover_versioned("/shares/gcp/climate/BCSD/hierid/popwt/daily/tas", 'tas'),
-                                            discover_versioned("/shares/gcp/climate/BCSD/hierid/popwt/daily/tas-poly-2", 'tas-poly-2'),
-                                            discover_versioned("/shares/gcp/climate/BCSD/hierid/popwt/daily/tas-poly-3", 'tas-poly-3'),
-                                            discover_versioned("/shares/gcp/climate/BCSD/hierid/popwt/daily/tas-poly-4", 'tas-poly-4'),
-                                            discover_versioned("/shares/gcp/climate/BCSD/hierid/popwt/daily/tas-poly-5", 'tas-poly-5'))
+    return weather.iterate_combined_bundles(discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas"), 'tas'),
+                                            discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-2"), 'tas-poly-2'),
+                                            discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-3"), 'tas-poly-3'),
+                                            discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-4"), 'tas-poly-4'),
+                                            discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-5"), 'tas-poly-5'))
 
 def check_doit(targetdir, basename, suffix):
     filepath = os.path.join(targetdir, basename + '.nc4')
