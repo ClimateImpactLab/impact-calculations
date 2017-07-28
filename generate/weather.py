@@ -93,7 +93,7 @@ class DailyWeatherBundle(WeatherBundle):
         yyyyddd should be a numpy array of length 365, and integer values
         constructed like 2016001 for the first day of 2016.
 
-        weather should be a numpy array of size REGIONS x 365. <<-- OR 365 x REGIONS?
+        weather should be a numpy array of size 365 x REGIONS
         """
         raise NotImplementedError
 
@@ -138,6 +138,7 @@ class DailyWeatherBundle(WeatherBundle):
             print weatherslice.get_years()[0]
 
             # Stack this year below the previous years
+            print np.mean(weatherslice.weathers, axis=0), weatherslice.weathers[1:10, 0]
             regionvalues = np.vstack((regionvalues, np.expand_dims(np.mean(weatherslice.weathers, axis=0), axis=0)))
 
         # Yield the entire collection of values for each region
@@ -211,7 +212,7 @@ class MultivariatePastFutureWeatherBundle(DailyWeatherBundle):
             if year == maxyear:
                 break
 
-            allweather = None
+            allweather = []
             for pastreader, futurereader in self.pastfuturereaders:
                 try:
                     if year < self.futureyear1:
@@ -226,12 +227,12 @@ class MultivariatePastFutureWeatherBundle(DailyWeatherBundle):
                 if len(weatherslice.weathers.shape) == 2:
                     weatherslice.weathers = np.expand_dims(weatherslice.weathers, axis=2)
 
-                if allweather is None:
-                    allweather = weatherslice
-                else:
-                    allweather.weathers = np.concatenate((allweather.weathers, weatherslice.weathers), axis=2)
+                allweather.append(weatherslice)
 
-            yield allweather
+            if len(allweather) > 1:
+                allweather[0].weathers = np.concatenate(tuple(map(lambda ws: ws.weathers, allweather)), axis=2)
+
+            yield allweather[0]
 
     def get_years(self):
         return np.unique(self.pastfuturereaders[0][0].get_years() + self.pastfuturereaders[0][1].get_years())

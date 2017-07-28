@@ -2,7 +2,7 @@ import csv, copy
 import numpy as np
 from adaptation import csvvfile, curvegen, curvegen_known, covariates, constraints
 from generate import caller
-from openest.models.curve import CubicSplineCurve, ClippedCurve, ShiftedCurve, MinimumCurve, OtherClippedCurve
+from openest.models.curve import CubicSplineCurve, ClippedCurve, ShiftedCurve, MinimumCurve, SelectiveInputCurve, OtherClippedCurve
 from openest.generate.stdlib import *
 from openest.generate import diagnostic
 from impactcommon.math import minspline
@@ -10,8 +10,8 @@ from impactcommon.math import minspline
 knots = [-10, 0, 10, 20, 28, 33]
 
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full'):
-    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 30, 2015), {'climtas': 'tas'}),
-                                                covariates.EconomicCovariator(economicmodel, 1, 2015)])
+    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 30, 2015, varindex=0), {'climtas': 'tas'}),
+                                                covariates.EconomicCovariator(economicmodel, 13, 2015)])
 
     # Don't collapse: already collapsed in allmodels
     #csvvfile.collapse_bang(csvv, qvals.get_seed())
@@ -23,20 +23,20 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
     baselineloggdppcs = {}
     for region in weatherbundle.regions:
         baselineloggdppcs[region] = covariator.get_current(region)['loggdppc']
-    
+
     # Determine minimum value of curve between 10C and 25C
     baselinecurves, baselinemins = constraints.get_curve_minima(weatherbundle.regions, curr_curvegen, covariator, 10, 25,
                                                                 lambda curve: minspline.findsplinemin(knots, curve.coeffs, 10, 25))
 
     def transform(region, curve):
-        fulladapt_curve = ShiftedCurve(curve, -curve(baselinemins[region]))
+        fulladapt_curve = ShiftedCurve(SelectiveInputCurve(curve, [0]), -curve(baselinemins[region]))
         # Alternative: Turn off Goodmoney
         #return ClippedCurve(fulladapt_curve)
 
         covars = covariator.get_current(region)
         covars['loggdppc'] = baselineloggdppcs[region]
         noincadapt_unshifted_curve = curr_curvegen.get_curve(region, None, covars, recorddiag=False)
-        noincadapt_curve = ShiftedCurve(noincadapt_unshifted_curve, -noincadapt_unshifted_curve(baselinemins[region]))
+        noincadapt_curve = ShiftedCurve(SelectiveInputCurve(noincadapt_unshifted_curve, [0]), -noincadapt_unshifted_curve(baselinemins[region]))
 
         # Alternative: allow no anti-adaptation
         #noincadapt_curve = ShiftedCurve(baselinecurves[region], -baselinecurves[region](baselinemins[region]))
@@ -51,7 +51,8 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
     climtas_effect_curve = CubicSplineCurve(knots, 365 * np.array([csvvfile.get_gamma(csvv, tasvar, 'climtas') for tasvar in ['spline_variables-0', 'spline_variables-1', 'spline_variables-2', 'spline_variables-3', 'spline_variables-4']])) # x 365, to undo / 365 later
 
     def transform_climtas_effect(region, curve):
-        shifted_curve = ShiftedCurve(climtas_effect_curve, -climtas_effect_curve(baselinemins[region]))
+        climtas_coeff_curve = SelectiveInputCurve(climtas_effect_curve, [0])
+        shifted_curve = ShiftedCurve(climtas_coeff_curve, -climtas_effect_curve(baselinemins[region]))
         return OtherClippedCurve(curve, shifted_curve)
 
     climtas_effect_curvegen = curvegen.TransformCurveGenerator(farm_curvegen, transform_climtas_effect)

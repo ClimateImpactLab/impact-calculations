@@ -13,12 +13,11 @@ def preload():
 
 def get_bundle_iterator(config):
     climdir = files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level')
-    return weather.iterate_bundles(discover_variable(climdir, 'tas', withyear=True))
-    # return weather.iterate_combined_bundles(discover_versioned("/shares/gcp/climate/BCSD/Mortality/polynomial-fix/hierid/popwt/daily/tas", 'tas', '1.1'),
-    #                                         discover_versioned("/shares/gcp/climate/BCSD/Mortality/polynomial-fix/hierid/popwt/daily/tas-poly-2", 'tas-poly-2', '1.1'),
-    #                                         discover_versioned("/shares/gcp/climate/BCSD/Mortality/polynomial-fix/hierid/popwt/daily/tas-poly-3", 'tas-poly-3', '1.1'),
-    #                                         discover_versioned("/shares/gcp/climate/BCSD/Mortality/polynomial-fix/hierid/popwt/daily/tas-poly-4", 'tas-poly-4', '1.1'),
-    #                                         discover_versioned("/shares/gcp/climate/BCSD/Mortality/polynomial-fix/hierid/popwt/daily/tas-poly-5", 'tas-poly-5', '1.1'))
+    return weather.iterate_combined_bundles(discover_versioned("/shares/gcp/climate/BCSD/hierid/popwt/daily/tas", 'tas'),
+                                            discover_versioned("/shares/gcp/climate/BCSD/hierid/popwt/daily/tas-poly-2", 'tas-poly-2'),
+                                            discover_versioned("/shares/gcp/climate/BCSD/hierid/popwt/daily/tas-poly-3", 'tas-poly-3'),
+                                            discover_versioned("/shares/gcp/climate/BCSD/hierid/popwt/daily/tas-poly-4", 'tas-poly-4'),
+                                            discover_versioned("/shares/gcp/climate/BCSD/hierid/popwt/daily/tas-poly-5", 'tas-poly-5'))
 
 def check_doit(targetdir, basename, suffix):
     filepath = os.path.join(targetdir, basename + '.nc4')
@@ -42,7 +41,12 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, result_callb
         if push_callback is None:
             push_callback = lambda reg, yr, app, predget, mod: None
 
-        for filepath in glob.glob(files.sharedpath("social/parameters/mortality/Diagnostics_Apr17/*.csvv")):
+        if 'csvvfile' in config:
+            csvvfiles = [files.sharedpath(config['csvvfile'])]
+        else:
+            csvvfiles = glob.glob(files.sharedpath("social/parameters/mortality/Diagnostics_Apr17/*.csvv"))
+            
+        for filepath in csvvfiles:
             basename = os.path.basename(filepath)[:-5]
             print basename
 
@@ -77,6 +81,9 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, result_callb
 
                     effectset.generate(targetdir, subbasename + suffix, weatherbundle, calculation, "Mortality impacts, with interpolation and adaptation through interpolation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, subbasename), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, subbasename), diagnosefile=diagnosefile.replace('.csv', '-' + subbasename + '.csv') if diagnosefile else False)
 
+                    if profile:
+                        return
+
                 if config['do_farmers'] and not weatherbundle.is_historical():
                     # Lock in the values
                     pvals[subbasename].lock()
@@ -108,8 +115,9 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, result_callb
                 print "TO FIX: Combining failed."
                 traceback.print_exc()
 
-    produce_india(targetdir, weatherbundle, economicmodel, pvals, config, suffix=suffix, diagnosefile=diagnosefile)
-    produce_external(targetdir, weatherbundle, economicmodel, pvals, config, suffix=suffix)
+    if 'csvvfile' not in config:
+        produce_india(targetdir, weatherbundle, economicmodel, pvals, config, suffix=suffix, diagnosefile=diagnosefile)
+        produce_external(targetdir, weatherbundle, economicmodel, pvals, config, suffix=suffix)
 
 def produce_india(targetdir, weatherbundle, economicmodel, pvals, config, suffix='', diagnosefile=False):
     for filepath in glob.glob(files.sharedpath("social/parameters/mortality/India/*.csvv")):

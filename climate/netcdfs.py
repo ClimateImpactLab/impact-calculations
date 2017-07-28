@@ -49,12 +49,15 @@ def readncdf(filepath, variable):
 
     return yyyyddd, weather
 
-def readncdf_single(filepath, variable):
+def readncdf_single(filepath, variable, allow_missing=False):
     """
     Just return the variable
     """
     rootgrp = Dataset(filepath, 'r', format='NETCDF4')
-    data = np.copy(rootgrp.variables[variable])
+    if allow_missing and variable not in rootgrp.variables:
+        data = None
+    else:
+        data = np.copy(rootgrp.variables[variable])
     rootgrp.close()
 
     return data
