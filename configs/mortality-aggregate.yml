@@ -1,2 +1,2 @@
-outputdir: /shares/gcp/outputs/mortality/impacts-crypto
+outputdir: outputs/mortality/impacts-crypto
 weighting: agecohorts
