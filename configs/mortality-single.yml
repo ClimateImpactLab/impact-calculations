@@ -1,0 +1,12 @@
+module: mortality.ols_polynomial
+targetdir: testing
+pvals: median
+rcp: rcp85
+gcm: CCSM4
+ssp: SSP4
+iam: high
+climate: [tas, tas-poly-2, tas-poly-3, tas-poly-4]
+csvvpath: social/parameters/mortality/Diagnostics_Apr17/testing.csvv
+csvvsubset: 25:36
+weights: age65+
+farming: fulladapt
