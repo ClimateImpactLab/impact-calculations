@@ -3,10 +3,20 @@ Provides iterators of WeatherReaders (typically a historical and a
 future reader).
 """
 import os
+from impactlab_tools.utils import files
 from reader import ConversionWeatherReader, RegionReorderWeatherReader
 from dailyreader import DailyWeatherReader, YearlyBinnedWeatherReader
 from yearlyreader import YearlyWeatherReader, YearlyCollectionWeatherReader, YearlyArrayWeatherReader
 
+def standard_variable(name, timerate):
+    assert timerate in ['day', 'month', 'year']
+
+    if timerate == 'day':
+        if name in ['tas'] + ['tas-poly-' + str(ii) for ii in range(2, 10)]:
+            return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/" + name), name)
+
+    raise ValueError("Unknown variable: " + name)
+        
 def discover_models(basedir):
     """
     basedir points to directory with both 'historical', 'rcp*'
