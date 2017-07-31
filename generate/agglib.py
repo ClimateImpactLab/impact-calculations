@@ -4,13 +4,14 @@ from netCDF4 import Dataset
 import nc4writer
 from helpers import header
 from datastore import irregions
+from impactlab_tools.utils import files
 
 def iterdir(basedir):
     for filename in os.listdir(basedir):
         yield filename, os.path.join(os.path.join(basedir, filename))
 
 def iterresults(outdir, batchfilter=lambda batch: True, targetdirfilter=lambda targetdir: True):
-    for batch, batchpath in iterdir(outdir):
+    for batch, batchpath in iterdir(files.configpath(outdir)):
         if not batchfilter(batch):
             continue
         for clim_scenario, cspath in iterdir(batchpath):
@@ -53,7 +54,7 @@ def get_aggregated_regions(regions):
 
     # Add the FUND regions
     dependencies = []
-    with open('/shares/gcp/regions/macro-regions.csv', 'r') as fp:
+    with open(files.sharedpath('regions/macro-regions.csv'), 'r') as fp:
         aggreader = csv.reader(header.deparse(fp, dependencies))
         headrow = aggreader.next()
         for row in aggreader:
