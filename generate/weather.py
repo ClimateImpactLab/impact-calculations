@@ -138,7 +138,6 @@ class DailyWeatherBundle(WeatherBundle):
             print weatherslice.get_years()[0]
 
             # Stack this year below the previous years
-            print np.mean(weatherslice.weathers, axis=0), weatherslice.weathers[1:10, 0]
             regionvalues = np.vstack((regionvalues, np.expand_dims(np.mean(weatherslice.weathers, axis=0), axis=0)))
 
         # Yield the entire collection of values for each region

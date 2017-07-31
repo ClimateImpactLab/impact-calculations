@@ -104,7 +104,7 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, result_callb
             try:
                 for assumption in ['', '-noadapt', '-incadapt']:
                     if assumption != '':
-                        if config['do_farmers'] and weatherbundle.is_historical():
+                        if not config['do_farmers'] or weatherbundle.is_historical():
                             continue
                     halfweight = agecohorts.SpaceTimeBipartiteData(1981, 2100, None)
                     basenames = [basename + '-' + agegroup + assumption + suffix for agegroup in agegroups]
