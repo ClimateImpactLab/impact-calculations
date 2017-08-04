@@ -1,0 +1,12 @@
+module: mortality.ols_polynomial
+targetdir: testing
+pvals: median
+rcp: rcp85
+gcm: CCSM4
+ssp: SSP4
+iam: high
+climate: [tas, tas-poly-2, tas-poly-3, tas-poly-4]
+csvvpath: social/parameters/mortality/Diagnostics_Apr17/global_interaction_Tmean-POLY-4-AgeSpec.csvv
+csvvsubset: "25:36"
+weighting: age65+
+adaptation: fulladapt

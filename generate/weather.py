@@ -45,6 +45,11 @@ def iterate_amorphous_bundles(iterators_reader_dict):
         weatherbundle = AmorphousWeatherBundle(scenmodels[(scenario, model)], scenario, model)
         yield scenario, model, weatherbundle
 
+def get_weatherbundle(only_scenario, only_model, iterators_readers):
+    for scenario, model, weatherbundle in iterate_combined_bundles(*iterators_readers):
+        if scenario == only_scenario and model == only_model:
+            return weatherbundle
+        
 class WeatherBundle(object):
     """A WeatherBundle object is used to access the values for a single variable
     across years, as provided by a given GCM.

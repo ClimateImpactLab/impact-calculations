@@ -127,7 +127,7 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
         pr = cProfile.Profile()
         pr.enable()
 
-    if not statman.claim(targetdir):
+    if not statman.claim(targetdir) and 'targetdir' not in config:
         continue
 
     print targetdir
