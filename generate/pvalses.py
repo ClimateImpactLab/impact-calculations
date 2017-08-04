@@ -132,7 +132,7 @@ def read_pval_file(path, lock=False):
 
         return load_pvals(pvals, lock=lock)
 
-def load_pvals(pvals):
+def load_pvals(pvals, lock=False):
     if len(pvals) == 1 and 'all' in pvals:
         return ConstantPvals(pvals['all'])
 

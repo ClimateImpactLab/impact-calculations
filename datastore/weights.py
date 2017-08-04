@@ -11,6 +11,6 @@ def interpret(config):
 
     if config['weighting'] in agecohorts.columns:
         halfweight = agecohorts.SpaceTimeBipartiteData(1981, 2100, None)
-        return lambda year0, year1: halfweight.load_population(year0, year1, econ_model, econ_scenario, config['weights'])
+        return lambda year0, year1: halfweight.load_population(year0, year1, econ_model, econ_scenario, config['weighting'])
 
     raise ValueError("Unknown weighting.")
