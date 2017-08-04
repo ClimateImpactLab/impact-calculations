@@ -19,9 +19,9 @@ def get_bundle_iterator(config):
                                             discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-5"), 'tas-poly-5'))
 
 def check_doit(targetdir, basename, suffix):
-    filepath = os.path.join(targetdir, basename + '.nc4')
+    filepath = os.path.join(targetdir, basename + suffix + '.nc4')
     if not os.path.exists(filepath):
-        print "REDO: Cannot find", filepath
+        print "REDO: Cannot find", filepath, suffix
         return True
 
     # Check if has 100 valid years

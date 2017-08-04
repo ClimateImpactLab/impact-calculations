@@ -6,7 +6,7 @@ gcm: CCSM4
 ssp: SSP4
 iam: high
 climate: [tas, tas-poly-2, tas-poly-3, tas-poly-4]
-csvvpath: social/parameters/mortality/Diagnostics_Apr17/testing.csvv
-csvvsubset: 25:36
-weights: age65+
-farming: fulladapt
+csvvpath: social/parameters/mortality/Diagnostics_Apr17/global_interaction_Tmean-POLY-4-AgeSpec.csvv
+csvvsubset: "25:36"
+weighting: age65+
+adaptation: fulladapt

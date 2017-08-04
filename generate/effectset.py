@@ -39,10 +39,10 @@ def simultaneous_application(weatherbundle, calculation, regions=None, push_call
     calculation.cleanup()
 
 def generate(targetdir, basename, weatherbundle, calculation, description, calculation_dependencies, config, filter_region=None, result_callback=None, push_callback=None, subset=None, diagnosefile=False):
-    if config['mode'] == 'profile':
+    if 'mode' in config and config['mode'] == 'profile':
         return small_print(weatherbundle, calculation, regions=10)
 
-    if config['mode'] == 'diagnostic':
+    if 'mode' in config and config['mode'] == 'diagnostic':
         return small_print(weatherbundle, calculation, regions=[config['region']])
 
     if filter_region is None:
@@ -63,7 +63,12 @@ def write_ncdf(targetdir, basename, weatherbundle, calculation, description, cal
                 if filter_region(weatherbundle.regions[ii]):
                     my_regions.append(weatherbundle.regions[ii])
 
-    rootgrp = Dataset(os.path.join(targetdir, basename + '.nc4'), 'w', format='NETCDF4')
+    try:
+        rootgrp = Dataset(os.path.join(targetdir, basename + '.nc4'), 'w', format='NETCDF4')
+    except Exception as ex:
+        print "Failed to open file for writing at " + os.path.join(targetdir, basename + '.nc4')
+        raise ex
+    
     rootgrp.description = description
     rootgrp.version = headre.dated_version(basename)
     rootgrp.dependencies = ', '.join([weatherbundle.version] + weatherbundle.dependencies + calculation_dependencies)
