@@ -12,6 +12,28 @@ stochastic.
 import os, yaml, time
 import numpy as np
 
+def interpret(config):
+    if 'pvals' not in config or config['pvals'] == 'median':
+        return ConstantPvals(.5)
+
+    if config['pvals'] == 'montecarlo':
+        return OnDemandRandomPvals()
+
+    try:
+        pval = float(config['pvals'])
+    except:
+        pval = None
+
+    if pval is not None:
+        assert pval > 0 and pval < 1
+        return ConstantPvals(pval)
+
+    if isinstance(config['vals'], str):
+        return read_pval_file(config['pvals'])
+
+    if isinstance(config['pvals'], dict):
+        return load_pvals(config['pvals'])
+
 class ConstantPvals:
     def __init__(self, value):
         self.value = value
@@ -101,19 +123,25 @@ def make_pval_file(targetdir, pvals):
 def has_pval_file(targetdir):
     return os.path.exists(get_pval_file(targetdir))
 
-def read_pval_file(targetdir, lock=False):
-    with open(get_pval_file(targetdir), 'r') as fp:
+def read_pval_file(path, lock=False):
+    if not os.path.isfile(path):
+        path = get_pval_file(path) # assume it's a directory containing pvals.yml
+        
+    with open(path, 'r') as fp:
         pvals = yaml.load(fp)
 
-        if len(pvals) == 1 and 'all' in pvals:
-            return ConstantPvals(pvals['all'])
+        return load_pvals(pvals, lock=lock)
 
-        odrp = OnDemandRandomPvals()
-        for name in pvals:
-            odrp.dicts[name] = OnDemandRandomDictionary()
-            odrp.dicts[name].values = pvals[name]
+def load_pvals(pvals, lock=False):
+    if len(pvals) == 1 and 'all' in pvals:
+        return ConstantPvals(pvals['all'])
 
-        if lock:
-            odrp.lock()
+    odrp = OnDemandRandomPvals()
+    for name in pvals:
+        odrp.dicts[name] = OnDemandRandomDictionary()
+        odrp.dicts[name].values = pvals[name]
 
-        return odrp
+    if lock:
+        odrp.lock()
+
+    return odrp

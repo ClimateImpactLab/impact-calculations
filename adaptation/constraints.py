@@ -41,19 +41,27 @@ def get_curve_minima(regions, curvegen, covariator, mint, maxt, analytic):
     print "Determining minimum temperatures."
     baselinecurves = {}
     baselinemins = {}
-    with open(caller.callinfo['minpath'], 'w') as fp:
-        writer = csv.writer(fp)
-        writer.writerow(['region', 'brute', 'analytic'])
+
+    if caller.callinfo and 'minpath' in caller.callinfo:
+        with open(caller.callinfo['minpath'], 'w') as fp:
+            writer = csv.writer(fp)
+            writer.writerow(['region', 'brute', 'analytic'])
+            for region in regions:
+                curve = curvegen.get_curve(region, 2005, covariator.get_current(region))
+                baselinecurves[region] = curve
+                temps = np.arange(mint, maxt+1)
+                mintemp = temps[np.argmin(curve(temps))]
+                mintemp2 = analytic(curve)
+                if np.abs(mintemp - mintemp2) > 1:
+                    print "WARNING: %s has unclear mintemp: %f, %f" % (region, mintemp, mintemp2)
+                baselinemins[region] = mintemp2
+                writer.writerow([region, mintemp, mintemp2])
+    else:
         for region in regions:
             curve = curvegen.get_curve(region, 2005, covariator.get_current(region))
             baselinecurves[region] = curve
-            temps = np.arange(mint, maxt+1)
-            mintemp = temps[np.argmin(curve(temps))]
             mintemp2 = analytic(curve)
-            if np.abs(mintemp - mintemp2) > 1:
-                print "WARNING: %s has unclear mintemp: %f, %f" % (region, mintemp, mintemp2)
             baselinemins[region] = mintemp2
-            writer.writerow([region, mintemp, mintemp2])
 
     return baselinecurves, baselinemins
 
