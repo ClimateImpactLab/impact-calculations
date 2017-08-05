@@ -13,7 +13,7 @@ def iterate_bundles(*iterators_readers):
     """
     if len(iterators_readers) == 1:
         for scenario, model, pastreader, futurereader in iterator_readers[0]:
-            weatherbundle = MultivariatePastFutureWeatherBundle([(pastreader, futurereader)], scenario, model)
+            weatherbundle = PastFutureWeatherBundle([(pastreader, futurereader)], scenario, model)
             yield scenario, model, weatherbundle
         return
     
@@ -28,7 +28,7 @@ def iterate_bundles(*iterators_readers):
         if len(scenmodels[(scenario, model)]) < len(iterators_readers):
             continue
 
-        weatherbundle = MultivariatePastFutureWeatherBundle(scenmodels[(scenario, model)], scenario, model)
+        weatherbundle = PastFutureWeatherBundle(scenmodels[(scenario, model)], scenario, model)
         yield scenario, model, weatherbundle
 
 def iterate_amorphous_bundles(iterators_reader_dict):
@@ -161,49 +161,14 @@ class SingleWeatherBundle(ReaderWeatherBundle, DailyWeatherBundle):
     def get_years(self):
         return self.reader.get_years()
 
-class UnivariatePastFutureWeatherBundle(DailyWeatherBundle):
-    def __init__(self, pastreader, futurereader, scenario, model, hierarchy='hierarchy.csv'):
-        super(UnivariatePastFutureWeatherBundle, self).__init__(scenario, model, hierarchy)
-        self.pastreader = pastreader
-        self.futurereader = futurereader
-
-        assert self.pastreader.get_dimension() == self.futurereader.get_dimension()
-
-        self.futureyear1 = min(self.futurereader.get_years())
-
-        self.load_readermeta(futurereader)
-        self.load_regions()
-
-    def is_historical(self):
-        return False
-
-    def yearbundles(self, maxyear=np.inf):
-        for weatherslice in self.pastreader.read_iterator_to(min(self.futureyear1, maxyear)):
-            if len(weatherslice.weathers.shape) == 1:
-                assert weatherslice.weathers.shape[0] == len(self.regions)
-            else:
-                assert weatherslice.weathers.shape[1] == len(self.regions)
-            yield weatherslice
-
-        lastyear = weatherslice.get_years()[-1]
-        if maxyear > self.futureyear1:
-            for weatherslice in self.futurereader.read_iterator_to(maxyear):
-                if weatherslice.get_years()[0] <= lastyear:
-                    continue # allow for overlapping weather
-                assert weatherslice.weathers.shape[1] == len(self.regions)
-                yield weatherslice
-
-    def get_years(self):
-        return np.unique(self.pastreader.get_years() + self.futurereader.get_years())
-
-    def get_dimension(self):
-        return self.pastreader.get_dimension()
-
-class MultivariatePastFutureWeatherBundle(DailyWeatherBundle):
+class PastFutureWeatherBundle(DailyWeatherBundle):
     def __init__(self, pastfuturereaders, scenario, model, hierarchy='hierarchy.csv'):
-        super(MultivariatePastFutureWeatherBundle, self).__init__(scenario, model, hierarchy)
+        super(PastFutureWeatherBundle, self).__init__(scenario, model, hierarchy)
         self.pastfuturereaders = pastfuturereaders
 
+        for pastfuturereader in pastfuturereaders:
+            assert pastfuturereader[0].get_dimension() == pastfuturereader[1].get_dimension()
+        
         onefuturereader = self.pastfuturereaders[0][1]
         self.futureyear1 = min(onefuturereader.get_years())
 
@@ -215,6 +180,19 @@ class MultivariatePastFutureWeatherBundle(DailyWeatherBundle):
 
     def yearbundles(self, maxyear=np.inf):
         """Yields weatherslices for each year up to (but not including) `maxyear`"""
+        if len(self.pastfuturereaders) == 1:
+            for weatherslice in self.pastfuturereaders[0].read_iterator_to(min(self.futureyear1, maxyear)):
+                assert weatherslice.weathers.shape[1] == len(self.regions)
+                yield weatherslice
+
+            lastyear = weatherslice.get_years()[-1]
+            if maxyear > self.futureyear1:
+                for weatherslice in self.pastfuturereaders[1].read_iterator_to(maxyear):
+                    if weatherslice.get_years()[0] <= lastyear:
+                        continue # allow for overlapping weather
+                    assert weatherslice.weathers.shape[1] == len(self.regions)
+                    yield weatherslice
+            return
         
         for year in self.get_years():
             if year == maxyear:
@@ -232,6 +210,7 @@ class MultivariatePastFutureWeatherBundle(DailyWeatherBundle):
                     traceback.print_exc()
                     return # No more!
 
+                assert weatherslice.weathers.shape[1] == len(self.regions)
                 if len(weatherslice.weathers.shape) == 2:
                     weatherslice.weathers = np.expand_dims(weatherslice.weathers, axis=2)
 
@@ -252,9 +231,9 @@ class MultivariatePastFutureWeatherBundle(DailyWeatherBundle):
 
         return alldims
 
-class MultivariateHistoricalWeatherBundle(DailyWeatherBundle):
+class HistoricalWeatherBundle(DailyWeatherBundle):
     def __init__(self, pastreaders, futureyear_end, seed, scenario, model, hierarchy='hierarchy.csv'):
-        super(MultivariateHistoricalWeatherBundle, self).__init__(scenario, model, hierarchy)
+        super(HistoricalWeatherBundle, self).__init__(scenario, model, hierarchy)
         self.pastreaders = pastreaders
 
         onereader = self.pastreaders[0]
@@ -292,6 +271,17 @@ class MultivariateHistoricalWeatherBundle(DailyWeatherBundle):
 
     def yearbundles(self, maxyear=np.inf):
         year = self.pastyear_start
+
+        if len(self.pastreaders) == 1:
+            for pastyear in self.pastyears:
+                weatherslice = self.reader.read_year(pastyear)
+                if weatherslice.times[0] > 10000:
+                    yield DailyWeatherSlice((1000 * year) + (weatherslice.times % 1000), weatherslice.weathers)
+                else:
+                    yield YearlyWeatherSlice([year], weatherslice.weathers)
+                year += 1
+            return
+            
         for pastyear in self.pastyears:
             allweather = None
             for pastreader in self.pastreaders:
@@ -321,68 +311,11 @@ class MultivariateHistoricalWeatherBundle(DailyWeatherBundle):
 
         return alldims
 
-class RepeatedHistoricalWeatherBundle(DailyWeatherBundle):
-    def __init__(self, reader, futureyear_end, seed, scenario, model, hierarchy='hierarchy.csv'):
-        super(RepeatedHistoricalWeatherBundle, self).__init__(scenario, model, hierarchy)
-
-        self.reader = reader
-
-        years = reader.get_years()
-        self.pastyear_start = min(years)
-        self.pastyear_end = max(years)
-        self.futureyear_end = futureyear_end
-
-        # Generate the full list of past years
-        self.pastyears = []
-        if seed is None:
-            # Cycle in year order
-            year = self.pastyear_start
-            pastyear = self.pastyear_start
-            dt = 1
-            while year <= self.futureyear_end:
-                self.pastyears.append(pastyear)
-                year += 1
-                pastyear += dt
-                if pastyear == self.pastyear_end:
-                    dt = -1
-                if pastyear == self.pastyear_start:
-                    dt = 1
-        else:
-            # Randomly choose years with replacement
-            np.random.seed(seed)
-            choices = range(int(self.pastyear_start), int(self.pastyear_end) + 1)
-            self.pastyears = np.random.choice(choices, int(self.futureyear_end - self.pastyear_start + 1))
-
-        self.load_readermeta(reader)
-        self.load_regions()
-
-    def is_historical(self):
-        return True
-
     @staticmethod
     def make_historical(weatherbundle, seed):
         futureyear_end = weatherbundle.get_years()[-1]
-        if isinstance(weatherbundle, MultivariatePastFutureWeatherBundle):
-            pastreaders = [pastreader for pastreader, futurereader in weatherbundle.pastfuturereaders]
-            return MultivariateHistoricalWeatherBundle(pastreaders, futureyear_end, seed, weatherbundle.scenario, weatherbundle.model)
-        else:
-            return RepeatedHistoricalWeatherBundle(weatherbundle.pastreader, futureyear_end, seed, weatherbundle.scenario, weatherbundle.model)
-
-    def yearbundles(self, maxyear=np.inf):
-        year = self.pastyear_start
-        for pastyear in self.pastyears:
-            weatherslice = self.reader.read_year(pastyear)
-            if weatherslice.times[0] > 10000:
-                yield DailyWeatherSlice((1000 * year) + (weatherslice.times % 1000), weatherslice.weathers)
-            else:
-                yield YearlyWeatherSlice([year], weatherslice.weathers)
-            year += 1
-
-    def get_years(self):
-        return range(int(self.pastyear_start), int(self.futureyear_end) + 1)
-
-    def get_dimension(self):
-        return self.reader.get_dimension()
+        pastreaders = [pastreader for pastreader, futurereader in weatherbundle.pastfuturereaders]
+        return HistoricalWeatherBundle(pastreaders, futureyear_end, seed, weatherbundle.scenario, weatherbundle.model)
 
 class AmorphousWeatherBundle(WeatherBundle):
     def __init__(self, pastfuturereader_dict, scenario, model, hierarchy='hierarchy.csv'):
@@ -392,11 +325,11 @@ class AmorphousWeatherBundle(WeatherBundle):
         
     def get_concrete(self, names):
         pastfuturereaders = [self.pastfuturereader_dict[name] for name in names]
-        return MultivariatePastFutureWeatherBundle(pastfuturereaders, self.scenario, self.model)
+        return PastFutureWeatherBundle(pastfuturereaders, self.scenario, self.model)
 
 if __name__ == '__main__':
     template = "/shares/gcp/BCSD/grid2reg/cmip5/historical/CCSM4/{0}/{0}_day_aggregated_historical_r1i1p1_CCSM4_{1}.nc"
-    weatherbundle = MultivariateHistoricalWeatherBundle(template, 1981, 2005, ['pr', 'tas'], 'historical', 'CCSM4')
+    weatherbundle = HistoricalWeatherBundle(template, 1981, 2005, ['pr', 'tas'], 'historical', 'CCSM4')
     weatherslice = weatherbundle.yearbundles().next()
     print len(weatherslice.times), len(weatherslice.weathers), len(weatherslice.weathers[0]) # 365, 2, 365
 

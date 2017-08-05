@@ -52,10 +52,10 @@ if __name__ == '__main__':
     curve = curvegen.get_curve([2])
     print curve(0)
 
-    from impacts.weather import MultivariateHistoricalWeatherBundle
+    from impacts.weather import HistoricalWeatherBundle
     from adaptation.econmodel import iterate_econmodels
 
-    historicalbundle = MultivariateHistoricalWeatherBundle("/shares/gcp/BCSD/grid2reg/cmip5/historical/CCSM4/{0}/{0}_day_aggregated_historical_r1i1p1_CCSM4_{1}.nc", 1991, 2005, ['pr', 'tas'], 'historical', 'CCSM4')
+    historicalbundle = HistoricalWeatherBundle("/shares/gcp/BCSD/grid2reg/cmip5/historical/CCSM4/{0}/{0}_day_aggregated_historical_r1i1p1_CCSM4_{1}.nc", 1991, 2005, ['pr', 'tas'], 'historical', 'CCSM4')
     model, scenario, econmodel = (mse for mse in iterate_econmodels() if mse[0] == 'OECD Env-Growth').next()
 
     predgen = TemperaturePrecipitationPredictorator(historicalbundle, econmodel, 15, 15, 2005)
