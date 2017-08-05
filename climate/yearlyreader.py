@@ -59,14 +59,14 @@ class YearlyCollectionWeatherReader(YearlyWeatherReader):
 
         allvalues = None
         for variable in self.variables:
-            values = netcdfs.readncdf_single(self.filepath, self.variable)
+            values = netcdfs.readncdf_single(self.filepath, variable)
             if allvalues is None:
-                allvalues = np.expand_dims(values)
+                allvalues = np.expand_dims(values, axis=2)
             else:
-                allvalues = np.concatenate((allvalues, values), axis=2)
-
+                allvalues = np.concatenate((allvalues, np.expand_dims(values, axis=2)), axis=2)
+                
         for ii in range(len(years)):
-            yield YearlyWeatherSlice([years[ii]], np.expand_dims(values[ii, :, :], axis=0))
+            yield YearlyWeatherSlice([years[ii]], np.expand_dims(allvalues[ii, :, :], axis=0))
 
 class YearlyArrayWeatherReader(YearlyWeatherReader):
     """Return several variables from a single array from a yearly file."""

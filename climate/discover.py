@@ -113,7 +113,10 @@ def discover_yearly(basedir, vardir, rcp_only=None):
             model = root.split('_')[-1]
             filepath = os.path.join(basedir, scenario, vardir, filename)
             pastpath = filepath.replace(scenario, 'historical')
-    
+
+            if not os.path.exists(pastpath):
+                pastpath = filepath # Both contained in one file
+                
             yield scenario, model, pastpath, filepath
 
 def discover_yearly_variable(basedir, vardir, variable, rcp_only=None):
