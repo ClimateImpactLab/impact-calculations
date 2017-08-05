@@ -9,10 +9,10 @@ def time_convert(times):
     years, indexes = np.unique(allyears, return_index=True)
     return allyears[np.sort(indexes)] # make sure in order
 
-bundle_iterator = weather.iterate_combined_bundles(discover_convert(discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tas', withyear=True, rcp_only='rcp85'),
-                                                                    time_convert, YearlyWeatherSlice.convert),
-                                                   discover_derived_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tas', 'power2', withyear=False, rcp_only='rcp85'),
-                                                   discover_derived_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tas', 'power3', withyear=False, rcp_only='rcp85'))
+bundle_iterator = weather.iterate_bundles(discover_convert(discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tas', withyear=True, rcp_only='rcp85'),
+                                                           time_convert, YearlyWeatherSlice.convert),
+                                          discover_derived_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tas', 'power2', withyear=False, rcp_only='rcp85'),
+                                          discover_derived_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tas', 'power3', withyear=False, rcp_only='rcp85'))
 
 clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel = loadmodels.single(bundle_iterator)
 

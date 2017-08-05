@@ -7,10 +7,10 @@ def preload():
     pass
 
 def get_bundle_iterator():
-    return weather.iterate_combined_bundles(discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tasmax'),
-                                            discover_derived_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tasmax', 'power2'),
-                                            discover_derived_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tasmax', 'power3'),
-                                            discover_derived_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tasmax', 'power4'))
+    return weather.iterate_bundles(discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tasmax'),
+                                   discover_derived_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tasmax', 'power2'),
+                                   discover_derived_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tasmax', 'power3'),
+                                   discover_derived_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tasmax', 'power4'))
 
 def check_doit(targetdir, basename, suffix, deletebad=False):
     filepath = os.path.join(targetdir, basename + suffix + '.nc4')
