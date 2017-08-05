@@ -28,7 +28,7 @@ variable_generators = [discover.standard_variable(name, 'day') for name in confi
 weatherbundle = weather.get_weatherbundle(clim_scenario, clim_model, variable_generators)
 
 if 'historical' in config and config['historical']:
-    weatherbundle = weather.RepeatedHistoricalWeatherBundle.make_historical(weatherbundle, pvals['histclim'].get_seed())
+    weatherbundle = weather.HistoricalWeatherBundle.make_historical(weatherbundle, pvals['histclim'].get_seed())
     pvals.lock()
 
 print "Loading economics..."
