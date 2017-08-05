@@ -14,11 +14,11 @@ def get_bundle_iterator():
                                             discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'pr'))
 
 def produce(targetdir, weatherbundle, economicmodel, pvals, config, result_callback=None, push_callback=None, suffix='', profile=False, diagnosefile=False):
-    predgen = covariates.CombinedCovariator([covariates.MeanWeatherCovariator(weatherbundle.get_subset(0), 15, 2015),
-                                             covariates.SeasonalWeatherCovariator(weatherbundle.get_subset(0), 15, 2015, 0, 90, 0),
-                                             covariates.SeasonalWeatherCovariator(weatherbundle.get_subset(0), 15, 2015, 180, 270, 0),
-                                             covariates.SeasonalWeatherCovariator(weatherbundle.get_subset(1), 15, 2015, 0, 90, 0),
-                                             covariates.SeasonalWeatherCovariator(weatherbundle.get_subset(1), 15, 2015, 180, 270, 0),
+    predgen = covariates.CombinedCovariator([covariates.MeanWeatherCovariator(weatherbundle, 15, 2015, varindex=0),
+                                             covariates.SeasonalWeatherCovariator(weatherbundle, 15, 2015, 0, 90, 0, varindex=0),
+                                             covariates.SeasonalWeatherCovariator(weatherbundle, 15, 2015, 180, 270, 0, varindex=0),
+                                             covariates.SeasonalWeatherCovariator(weatherbundle, 15, 2015, 0, 90, 0, varindex=1),
+                                             covariates.SeasonalWeatherCovariator(weatherbundle, 15, 2015, 180, 270, 0, varindex=1),
                                              covariates.EconomicCovariator(economicmodel, 1, 2015)]) # NOTE: recent change (files not refreshed)
     covars = ['tas', 'tasmu0-90', 'tassigma0-90', 'tasmu180-270', 'tassigma180-270', 'prmu0-90', 'prsigma0-90',
               'prmu180-270', 'prsigma180-270', 'loggdppc', 'logpopop']

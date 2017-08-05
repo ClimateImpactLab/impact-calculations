@@ -7,15 +7,16 @@ from openest.generate.weatherslice import DailyWeatherSlice, YearlyWeatherSlice
 from climate import netcdfs
 from datastore import irregions
 
-def iterate_bundles(iterator_readers):
+def iterate_combined_bundles(*iterators_readers):
     """
     Return bundles for each RCP and model.
     """
-    for scenario, model, pastreader, futurereader in iterator_readers:
-        weatherbundle = UnivariatePastFutureWeatherBundle(pastreader, futurereader, scenario, model)
-        yield scenario, model, weatherbundle
-
-def iterate_combined_bundles(*iterators_readers):
+    if len(iterators_readers) == 1:
+        for scenario, model, pastreader, futurereader in iterator_readers[0]:
+            weatherbundle = MultivariatePastFutureWeatherBundle([(pastreader, futurereader)], scenario, model)
+            yield scenario, model, weatherbundle
+        return
+    
     scenmodels = {} # {(scenario, model): [(pastreader, futurereader), ...]}
     for iterator_readers in iterators_readers:
         for scenario, model, pastreader, futurereader in iterator_readers:
@@ -251,15 +252,10 @@ class MultivariatePastFutureWeatherBundle(DailyWeatherBundle):
 
         return alldims
 
-    def get_subset(self, index):
-        return UnivariatePastFutureWeatherBundle(*self.pastfuturereaders[index], scenario=self.scenario, model=self.model)
-
-class MultivariateHistoricalWeatherBundle2(DailyWeatherBundle):
-    """Quick fix, since MultivariateHistoricalWeatherBundle doesn't work with list."""
+class MultivariateHistoricalWeatherBundle(DailyWeatherBundle):
     def __init__(self, pastreaders, futureyear_end, seed, scenario, model, hierarchy='hierarchy.csv'):
-        super(MultivariateHistoricalWeatherBundle2, self).__init__(scenario, model, hierarchy)
+        super(MultivariateHistoricalWeatherBundle, self).__init__(scenario, model, hierarchy)
         self.pastreaders = pastreaders
-        self.seed = seed # Save for get_subset
 
         onereader = self.pastreaders[0]
         years = onereader.get_years()
@@ -325,9 +321,6 @@ class MultivariateHistoricalWeatherBundle2(DailyWeatherBundle):
 
         return alldims
 
-    def get_subset(self, index):
-        return RepeatedHistoricalWeatherBundle(self.pastreaders[index], self.futureyear_end, self.seed, self.scenario, self.model)
-
 class RepeatedHistoricalWeatherBundle(DailyWeatherBundle):
     def __init__(self, reader, futureyear_end, seed, scenario, model, hierarchy='hierarchy.csv'):
         super(RepeatedHistoricalWeatherBundle, self).__init__(scenario, model, hierarchy)
@@ -371,7 +364,7 @@ class RepeatedHistoricalWeatherBundle(DailyWeatherBundle):
         futureyear_end = weatherbundle.get_years()[-1]
         if isinstance(weatherbundle, MultivariatePastFutureWeatherBundle):
             pastreaders = [pastreader for pastreader, futurereader in weatherbundle.pastfuturereaders]
-            return MultivariateHistoricalWeatherBundle2(pastreaders, futureyear_end, seed, weatherbundle.scenario, weatherbundle.model)
+            return MultivariateHistoricalWeatherBundle(pastreaders, futureyear_end, seed, weatherbundle.scenario, weatherbundle.model)
         else:
             return RepeatedHistoricalWeatherBundle(weatherbundle.pastreader, futureyear_end, seed, weatherbundle.scenario, weatherbundle.model)
 
@@ -391,70 +384,11 @@ class RepeatedHistoricalWeatherBundle(DailyWeatherBundle):
     def get_dimension(self):
         return self.reader.get_dimension()
 
-class MultivariateHistoricalWeatherBundle(DailyWeatherBundle):
-    def __init__(self, template, year_start, year_end, variables, scenario, model,
-                 hierarchy='hierarchy.csv', readncdf=netcdfs.readncdf):
-        super(MultivariateHistoricalWeatherBundle, self).__init__(scenario, model, hierarchy)
-
-        self.template = template
-        self.year_start = year_start
-        self.year_end = year_end
-        self.variables = variables
-        self.readncdf = readncdf
-
-        self.load_regions()
-        self.load_metainfo(self.template.format(variables[0], self.year_start), variables[0])
-
-    def is_historical(self):
-        return True
-
-    def yearbundles(self, maxyear=np.inf):
-        for year in self.get_years():
-            masteryyyyddd = None
-            weathers = []
-            for variable in self.variables:
-                yyyyddd, weather = self.readncdf(self.template.format(variable, year), variable)
-                if masteryyyyddd is None:
-                    masteryyyyddd = yyyyddd
-                else:
-                    assert np.all(masteryyyyddd == yyyyddd)
-
-                weathers.append(weather)
-
-            yield DailyWeatherSlice(masteryyyyddd, weathers)
-
-    def get_years(self):
-        return range(int(self.year_start), int(self.year_end) + 1)
-
-    def baseline_average(self, maxyear):
-        """Yield the average weather value up to `maxyear` for each region."""
-
-        regionsums = None
-        sumcount = 0
-        for weatherslice in self.yearbundles(maxyear):
-            print weatherslice.get_years()[0]
-
-            if regionsums is None:
-                regionsums = [np.mean(weather, axis=0) for weather in weatherslice.weathers]
-            else:
-                for ii in range(len(weatherslice.weathers)):
-                    regionsums[ii] += np.mean(weatherslice.weathers[ii], axis=0)
-
-            sumcount += 1
-
-        region_averages = [regionsum / sumcount for regionsum in regionsums]
-        for ii in range(len(self.regions)):
-            yield self.regions[ii], [region_averages[jj][ii] for jj in range(len(region_averages))]
-
 class AmorphousWeatherBundle(WeatherBundle):
     def __init__(self, pastfuturereader_dict, scenario, model, hierarchy='hierarchy.csv'):
         super(AmorphousWeatherBundle, self).__init__(scenario, model, hierarchy)
 
         self.pastfuturereader_dict = pastfuturereader_dict
-
-    def get_single(self, name):
-        return UnivariatePastFutureWeatherBundle(self.pastfuturereader_dict[name][0], self.pastfuturereader_dict[name][1],
-                                                 self.scenario, self.model)
         
     def get_concrete(self, names):
         pastfuturereaders = [self.pastfuturereader_dict[name] for name in names]
