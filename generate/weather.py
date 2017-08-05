@@ -7,7 +7,7 @@ from openest.generate.weatherslice import DailyWeatherSlice, YearlyWeatherSlice
 from climate import netcdfs
 from datastore import irregions
 
-def iterate_combined_bundles(*iterators_readers):
+def iterate_bundles(*iterators_readers):
     """
     Return bundles for each RCP and model.
     """
@@ -47,7 +47,7 @@ def iterate_amorphous_bundles(iterators_reader_dict):
         yield scenario, model, weatherbundle
 
 def get_weatherbundle(only_scenario, only_model, iterators_readers):
-    for scenario, model, weatherbundle in iterate_combined_bundles(*iterators_readers):
+    for scenario, model, weatherbundle in iterate_bundles(*iterators_readers):
         if scenario == only_scenario and model == only_model:
             return weatherbundle
         

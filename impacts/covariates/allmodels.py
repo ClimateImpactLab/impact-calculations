@@ -10,8 +10,8 @@ def preload():
     pass
 
 def get_bundle_iterator():
-    return weather.iterate_combined_bundles(discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tas'),
-                                            discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'pr'))
+    return weather.iterate_bundles(discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tas'),
+                                   discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'pr'))
 
 def produce(targetdir, weatherbundle, economicmodel, pvals, config, result_callback=None, push_callback=None, suffix='', profile=False, diagnosefile=False):
     predgen = covariates.CombinedCovariator([covariates.MeanWeatherCovariator(weatherbundle, 15, 2015, varindex=0),
