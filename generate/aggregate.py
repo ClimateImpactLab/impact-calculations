@@ -11,7 +11,7 @@ missing_only = True
 
 costs_command = "Rscript generate/cost_curves.R \"%s\" \"%s\" \"%s\" \"%s\"" # tavgpath rcp gcm impactspath
 
-CLAIM_TIMEOUT = 60*60
+CLAIM_TIMEOUT = 24*60*60
 
 batchfilter = lambda batch: batch == 'median' or 'batch' in batch
 targetdirfilter = lambda targetdir: True #'rcp85' in targetdir #'SSP3' in targetdir and 'Env-Growth' in targetdir
