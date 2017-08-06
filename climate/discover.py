@@ -9,6 +9,9 @@ from dailyreader import DailyWeatherReader, YearlyBinnedWeatherReader
 from yearlyreader import YearlyWeatherReader, YearlyCollectionWeatherReader, YearlyArrayWeatherReader
 
 def standard_variable(name, timerate):
+    if '/' in name:
+        return discover_versioned(files.configpath(name), os.path.basename(name))
+    
     assert timerate in ['day', 'month', 'year']
 
     if timerate == 'day':
