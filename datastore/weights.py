@@ -11,7 +11,7 @@ def interpret(config):
         if 'scenario' in df:
             df = df[df.model == config['ssp']]
         regions = df['regions'].unique()
-        return lambda year0, year1: spacetime.SpaceTimeLazyData(year0, year1, regions, lambda region: df[df.region == region]
+        return lambda year0, year1: spacetime.SpaceTimeLazyData(year0, year1, regions, lambda region: df[df.region == region])
 
     econ_model = config['iam']
     econ_scenario = config['ssp']
