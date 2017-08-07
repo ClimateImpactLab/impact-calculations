@@ -16,21 +16,19 @@ def simultaneous_application(weatherbundle, calculation, regions=None, push_call
         applications.append(calculation.apply(region))
 
     print "Processing years..."
-    for weatherslice in weatherbundle.yearbundles():
-        if weatherslice.weathers.shape[1] < len(applications):
+    for ds in weatherbundle.yearbundles():
+        if ds.region.shape[0] < len(applications):
             print "WARNING: fewer regions in weather than expected; dropping from end."
-            applications = applications[:weatherslice.weathers.shape[1]]
+            applications = applications[:ds.region.shape[0]]
 
-        print "Push", weatherslice.get_years()[0]
+        print "Push", ds['time.year'][0]
 
         for ii in range(len(applications)):
-            jj = ii if regions == weatherbundle.regions else weatherbundle.regions.index(regions[ii])
-
-            for yearresult in applications[ii].push(weatherslice.select_region(jj)):
+            for yearresult in applications[ii].push(ds.sel(region=regions[ii])):
                 yield (ii, yearresult[0], yearresult[1:])
 
             if push_callback is not None:
-                push_callback(regions[ii], weatherslice.get_years()[0], applications[ii])
+                push_callback(regions[ii], ds['time.year'][0], applications[ii])
 
     for ii in range(len(applications)):
         for yearresult in applications[ii].done():

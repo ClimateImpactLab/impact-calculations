@@ -10,19 +10,6 @@ prcp_normstddev_path = "/shares/gcp/climate/IRI/prcp_normSTDDEV_aggregated_forec
 temp_climate_path = "/shares/gcp/climate/IRI/tas_aggregated_climatology_1981-2010.nc"
 prcp_climate_path = "/shares/gcp/climate/IRI/prcp_aggregated_climatology_1981-2010.nc"
 
-def readncdf_lastpred(filepath, variable):
-    """
-    Return weather for each region for most recent prediction, of all leads
-    """
-    rootgrp = Dataset(filepath, 'r', format='NETCDF4')
-    weather = rootgrp.variables[variable][-1, :, :]
-    rootgrp.close()
-
-    for ii in range(weather.shape[0]):
-        weather[ii, :] = maskmissing(weather[ii, :])
-
-    return weather
-
 def readncdf_allpred(filepath, variable, lead):
     """
     Yield weather for each region for each forecast month, of the given lead

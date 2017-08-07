@@ -6,7 +6,7 @@ import os
 from impactlab_tools.utils import files
 from reader import ConversionWeatherReader, RegionReorderWeatherReader
 from dailyreader import DailyWeatherReader, YearlyBinnedWeatherReader
-from yearlyreader import YearlyWeatherReader, YearlyCollectionWeatherReader, YearlyArrayWeatherReader
+from yearlyreader import YearlyWeatherReader, YearlyArrayWeatherReader
 
 def standard_variable(name, timerate):
     assert timerate in ['day', 'month', 'year']
@@ -119,7 +119,7 @@ def discover_yearly(basedir, vardir, rcp_only=None):
                 
             yield scenario, model, pastpath, filepath
 
-def discover_yearly_variable(basedir, vardir, variable, rcp_only=None):
+def discover_yearly_variables(basedir, vardir, *variables, rcp_only=None):
     """
     Returns scenario, model, YearlyReader for the given variable
     baseline points to directory with 'rcp*'
@@ -127,24 +127,6 @@ def discover_yearly_variable(basedir, vardir, variable, rcp_only=None):
 
     for scenario, model, pastpath, filepath in discover_yearly(basedir, vardir, rcp_only=rcp_only):
         yield scenario, model, YearlyWeatherReader(pastpath, variable), YearlyWeatherReader(filepath, variable)
-
-def discover_yearly_array(basedir, vardir, variable, labels, rcp_only=None):
-    """
-    Returns scenario, model, YearlyReader for the given variables
-    baseline points to directory with 'rcp*'
-    """
-
-    for scenario, model, pastpath, filepath in discover_yearly(basedir, vardir, rcp_only=rcp_only):
-        yield scenario, model, YearlyArrayWeatherReader(pastpath, variable, labels), YearlyArrayWeatherReader(filepath, variable, labels)
-
-def discover_yearly_collection(basedir, vardir, variables, rcp_only=None):
-    """
-    Returns scenario, model, YearlyReader for the given variables
-    baseline points to directory with 'rcp*'
-    """
-
-    for scenario, model, pastpath, filepath in discover_yearly(basedir, vardir, rcp_only=rcp_only):
-        yield scenario, model, YearlyCollectionWeatherReader(pastpath, variables), YearlyCollectionWeatherReader(filepath, variables)
 
 def discover_yearly_corresponding(basedir, scenario, vardir, model, variable):
     for filename in os.listdir(os.path.join(basedir, scenario, vardir)):
@@ -155,11 +137,11 @@ def discover_yearly_corresponding(basedir, scenario, vardir, model, variable):
             filepath = os.path.join(basedir, scenario, vardir, filename)
             return YearlyWeatherReader(filepath, variable)
 
-def discover_convert(discover_iterator, time_conversion, weatherslice_conversion):
+def discover_convert(discover_iterator, time_conversion, ds_conversion):
     """Convert the readers coming out of a discover iterator."""
     for scenario, model, pastreader, futurereader in discover_iterator:
-        newpastreader = ConversionWeatherReader(pastreader, time_conversion, weatherslice_conversion)
-        newfuturereader = ConversionWeatherReader(futurereader, time_conversion, weatherslice_conversion)
+        newpastreader = ConversionWeatherReader(pastreader, time_conversion, ds_conversion)
+        newfuturereader = ConversionWeatherReader(futurereader, time_conversion, ds_conversion)
         yield scenario, model, newpastreader, newfuturereader
         
 def discover_versioned(basedir, variable, version=None):

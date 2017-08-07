@@ -3,7 +3,7 @@ from reader import WeatherReader
 from scipy.stats import norm
 import netcdfs, forecasts
 import numpy as np
-from openest.generate.weatherslice import ForecastMonthlyWeatherSlice
+import xarray as xr
 
 class MonthlyForecastReader(WeatherReader):
     """
@@ -35,13 +35,13 @@ class MonthlyForecastReader(WeatherReader):
 
     def read_iterator(self):
         months, aheads = self.get_start_ahead_times()
-        valuesgen = forecasts.readncdf_allpred(self.filepath, self.variable, 0)
-        for month in months:
-            yield ForecastMonthlyWeatherSlice(month, aheads[0], valuesgen.next())
 
-        lastvalues = forecasts.readncdf_lastpred(self.filepath, self.variable)
+        ds = xr.open_dataset(self.filepath, decode_times=False)
+        for month in months:
+            yield ds[self.variable].sel(S=month, L=1.5)
+        
         for ii in range(1, len(aheads)):
-            yield ForecastMonthlyWeatherSlice(months[-1], aheads[ii], lastvalues[ii, :])
+            yield ds[self.variable].sel(S=months[-1], L=aheads[ii])
 
 class MonthlyStochasticForecastReader(MonthlyForecastReader):
     """
@@ -59,9 +59,9 @@ class MonthlyStochasticForecastReader(MonthlyForecastReader):
     def read_iterator(self):
         allsdevs = forecasts.readncdf_allmonths(self.filepath, 'stddev')[:, 0, :] # only use 1st look-ahead, since we'll adjust month later
 
-        for weatherslice in super(MonthlyStochasticForecastReader, self).read_iterator():
-            weatherslice.weathers = norm.ppf(self.qval, weatherslice.weathers, allsdevs[int(weatherslice.times[0]) % 12, :])
-            yield weatherslice
+        for ds in super(MonthlyStochasticForecastReader, self).read_iterator():
+            ds['mean'] = norm.ppf(self.qval, ds.mean, allsdevs[int(ds.S[0]) % 12, :])
+            yield ds
 
 class MonthlyZScoreForecastOTFReader(MonthlyStochasticForecastReader):
     """
@@ -81,11 +81,9 @@ class MonthlyZScoreForecastOTFReader(MonthlyStochasticForecastReader):
         means = forecasts.readncdf_allmonths(self.climatepath, 'mean')
         sdevs = forecasts.readncdf_allmonths(self.climatepath, 'stddev')
 
-        for weatherslice in super(MonthlyZScoreForecastOTFReader, self).read_iterator():
-            assert weatherslice.weathers.shape[0] == 1
-            weathers = (weatherslice.weathers[0, :] - means[weatherslice.month % 12, int(weatherslice.ahead - 1.5), :]) / sdevs[weatherslice.month % 12, int(weatherslice.ahead - 1.5), :]
-            weatherslice.weathers = np.expand_dims(weathers, axis=0)
-            yield weatherslice
+        for ds in super(MonthlyZScoreForecastOTFReader, self).read_iterator():
+            ds['mean'] = (ds.mean[0, :] - means[ds.S % 12, int(ds.L - 1.5), :]) / sdevs[ds.S % 12, int(ds.L - 1.5), :]
+            yield ds
 
 class MonthlyZScoreForecastReader(MonthlyForecastReader):
     """
@@ -106,7 +104,7 @@ class MonthlyZScoreForecastReader(MonthlyForecastReader):
     def read_iterator(self):
         allsdevs = forecasts.readncdf_allmonths(self.normstddevpath, "stddev")[:, 0, :]
 
-        for weatherslice in super(MonthlyZScoreForecastReader, self).read_iterator():
+        for ds in super(MonthlyZScoreForecastReader, self).read_iterator():
             # undo adding ahead, since we take out the 1.5 lead for allsdevs
-            weatherslice.weathers = norm.ppf(self.qval, weather, allsdevs[int(weatherslice.times[0] - 1.5) % 12, :])
-            yield weatherslice
+            ds['mean'] = norm.ppf(self.qval, weather, allsdevs[int(ds.S[0] + ds.L[0] - 1.5) % 12, :])
+            yield ds

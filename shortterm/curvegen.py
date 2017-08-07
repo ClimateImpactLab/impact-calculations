@@ -36,8 +36,8 @@ class WeatherPredictorator(object):
 
         print "Collecting baseline information..."
         self.weather_predictors = {}
-        for region, weathers in weatherbundle.baseline_average(maxbaseline): # baseline through maxbaseline
-            self.weather_predictors[region] = weathers
+        for region, weathers in weatherbundle.baseline_values(maxbaseline): # baseline through maxbaseline
+            self.weather_predictors[region] = np.mean(weathers, axis=0)
 
         self.econ_predictors = economicmodel.baseline_prepared(maxbaseline, numeconyears, np.mean)
 

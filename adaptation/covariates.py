@@ -2,7 +2,7 @@ import numpy as np
 import timeit
 from econmodel import *
 from datastore import agecohorts
-from climate.yearlyreader import RandomYearlyAccess, RandomRegionAccess
+from climate.yearlyreader import RandomYearlyAccess
 from impactcommon.math import averages
 
 ## Class constructor with arguments (initial values, running length)
@@ -18,7 +18,7 @@ class Covariator(object):
     def get_current(self, region):
         raise NotImplementedError
 
-    def get_update(self, region, year, weather):
+    def get_update(self, region, year, ds):
         raise NotImplementedError
 
     def get_current_args(self, region):
@@ -53,7 +53,7 @@ class EconomicCovariator(Covariator):
         return dict(loggdppc=np.log(econpreds['gdppc']),
                     logpopop=np.log(econpreds['popop']))
 
-    def get_update(self, region, year, temps):
+    def get_update(self, region, year, ds):
         assert year < 10000
 
         if region in self.econ_predictors:
@@ -71,20 +71,16 @@ class EconomicCovariator(Covariator):
         return dict(loggdppc=np.log(gdppc), logpopop=np.log(popop), year=year)
 
 class MeanWeatherCovariator(Covariator):
-    def __init__(self, weatherbundle, numtempyears, maxbaseline, varindex=None):
+    def __init__(self, weatherbundle, numtempyears, maxbaseline, variable):
         super(MeanWeatherCovariator, self).__init__(maxbaseline)
 
         self.numtempyears = numtempyears
-        self.varindex = varindex
+        self.variable = variable
 
         print "Collecting baseline information..."
         temp_predictors = {}
-        for region, temps in weatherbundle.baseline_values(maxbaseline): # baseline through maxbaseline
-            if varindex is None:
-                assert len(temps.shape) == 1
-                temp_predictors[region] = standard_running_mean_init(temps[-numtempyears:], numtempyears)
-            else:
-                temp_predictors[region] = standard_running_mean_init(temps[-numtempyears:, varindex], numtempyears)
+        for region, ds in weatherbundle.baseline_values(maxbaseline): # baseline through maxbaseline
+            temp_predictors[region] = standard_running_mean_init(ds[variable][-numtempyears:], numtempyears)
 
         self.temp_predictors = temp_predictors
         self.weatherbundle = weatherbundle
@@ -92,38 +88,27 @@ class MeanWeatherCovariator(Covariator):
 
     def get_current(self, region):
         #assert region in self.temp_predictors, "Missing " + region
-        if self.varindex is None:
-            return {self.weatherbundle.get_dimension()[0]: self.temp_predictors[region].get()}
-        else:
-            return {self.weatherbundle.get_dimension()[self.varindex]: self.temp_predictors[region].get()}
+        return {self.variable: self.temp_predictors[region].get()}
 
-    def get_update(self, region, year, temps):
-        """Allow temps = None for dumb farmer who cannot adapt to temperature."""
+    def get_update(self, region, year, ds):
+        """Allow ds = None for dumb farmer who cannot adapt to temperature."""
         assert year < 10000
         # Ensure that we aren't called with a year twice
         assert self.lastyear.get(region, -np.inf) < year, "Called with %d, but previously did %d" % (year, self.lastyear.get(region, -np.inf))
         self.lastyear[region] = year
 
-        if temps is not None and year > self.startupdateyear:
-            if self.varindex is None:
-                self.temp_predictors[region].update(np.mean(temps))
-            elif len(temps.shape) == 1:
-                self.temp_predictors[region].update(np.mean(temps[self.varindex])) # if only yearly values
-            else:
-                self.temp_predictors[region].update(np.mean(temps[:, self.varindex]))
+        if ds is not None and year > self.startupdateyear:
+            self.temp_predictors[region].update(np.mean(ds[self.variable])) # if only yearly values
 
-        if self.varindex is None:
-            return {self.weatherbundle.get_dimension()[0]: self.temp_predictors[region].get()}
-        else:
-            return {self.weatherbundle.get_dimension()[self.varindex]: self.temp_predictors[region].get()}
+        return {self.variable: self.temp_predictors[region].get()}
 
 class SeasonalWeatherCovariator(MeanWeatherCovariator):
-    def __init__(self, weatherbundle, numtempyears, maxbaseline, day_start, day_end, varindex=None):
+    def __init__(self, weatherbundle, numtempyears, maxbaseline, day_start, day_end, variable):
         super(SeasonalWeatherCovariator, self).__init__(weatherbundle, numtempyears, maxbaseline)
         self.maxbaseline = maxbaseline
         self.day_start = day_start
         self.day_end = day_end
-        self.varindex = varindex
+        self.variable = variable
         self.all_values = None
 
         self.mustr = "%smu%d-%d" % (self.weatherbundle.get_dimension()[0], self.day_start, self.day_end)
@@ -134,22 +119,22 @@ class SeasonalWeatherCovariator(MeanWeatherCovariator):
             print "Collecting " + self.mustr
             # Read in all regions
             self.all_values = {}
-            for weatherslice in self.weatherbundle.yearbundles(maxyear=self.maxbaseline):
-                print weatherslice.times[0]
-                for ii in range(len(self.weatherbundle.regions)):
-                    if self.weatherbundle.regions[ii] not in self.all_values:
-                        self.all_values[self.weatherbundle.regions[ii]] = weatherslice.weathers[self.day_start:self.day_end, ii]
+            for ds in self.weatherbundle.yearbundles(maxyear=self.maxbaseline):
+                print ds.time[0]
+                for region in self.weatherbundle.regions:
+                    if region not in self.all_values:
+                        self.all_values[region] = ds[self.variable].sel(region=region).values[self.day_start:self.day_end]
                     else:
-                        self.all_values[self.weatherbundle.regions[ii]] = np.concatenate((self.all_values[self.weatherbundle.regions[ii]], weatherslice.weathers[self.day_start:self.day_end, ii]))
+                        self.all_values[region] = np.concatenate((self.all_values[region], ds[self.variable].sel(region=region).values[self.day_start:self.day_end]))
 
         mu = np.mean(self.all_values[region])
         sigma = np.std(self.all_values[region])
 
         return {self.mustr: mu, self.sigmastr: sigma}
 
-    def get_update(self, region, year, weather):
-        if weather is not None and year > self.startupdateyear:
-            self.all_values[region] = np.concatenate((self.all_values[region][(self.day_end - self.day_start):], weather[self.day_start:self.day_end, self.varindex]))
+    def get_update(self, region, year, ds):
+        if ds is not None and year > self.startupdateyear:
+            self.all_values[region] = np.concatenate((self.all_values[region][(self.day_end - self.day_start):], ds[self.variable][self.day_start:self.day_end]))
 
         mu = np.mean(self.all_values[region])
         sigma = np.std(self.all_values[region])
@@ -179,19 +164,18 @@ class YearlyWeatherCovariator(Covariator):
         self.duration = duration
         self.is_historical = is_historical
 
-        random_year_access = RandomYearlyAccess(yearlyreader)
-        self.random_region_access = RandomRegionAccess(random_year_access.get_year, regions)
+        self.random_year_access = RandomYearlyAccess(yearlyreader)
 
     def get_current(self, region):
         return {self.yearlyreader.get_dimension()[0]: self.predictors[region].get()}
 
-    def get_update(self, region, year, temps):
-        if self.is_historical or temps is None:
+    def get_update(self, region, year, ds):
+        if self.is_historical or ds is None:
             return self.get_current(region)
 
         assert year < 10000
 
-        values = self.random_region_access.get_region_year(region, year)
+        values = self.random_year_access.get_year(year).sel(region=region)
         self.predictors[region].update(values)
 
         return {self.yearlyreader.get_dimension()[0]: self.predictors[region].get()}
@@ -220,10 +204,10 @@ class MeanBinsCovariator(Covariator):
         assert len(self.weatherbundle.get_dimension()) == len(self.temp_predictors[region])
         return {self.weatherbundle.get_dimension()[ii]: self.temp_predictors[region][ii].get() for ii in range(len(self.weatherbundle.get_dimension()))}
 
-    def get_update(self, region, year, temps):
+    def get_update(self, region, year, ds):
         assert year < 10000
 
-        """Allow temps = None for dumb farmer who cannot adapt to temperature."""
+        """Allow ds = None for dumb farmer who cannot adapt to temperature."""
         if temps is not None and year > self.startupdateyear:
             if len(temps.shape) == 1 and len(temps) == len(self.binlimits) - 1:
                 for kk in range(len(self.binlimits) - 1):
@@ -278,7 +262,7 @@ class AgeShareCovariator(Covariator):
 
         return {column: rmdata[column].get() for column in agecohorts.columns}
 
-    def get_update(self, region, year, temps):
+    def get_update(self, region, year, ds):
         region = region[:3] # Just country code
         if region not in self.ageshares:
             region = 'mean' # XXX: This updates for every country!
@@ -307,10 +291,10 @@ class CombinedCovariator(Covariator):
 
         return result
 
-    def get_update(self, region, year, temps):
+    def get_update(self, region, year, ds):
         result = {}
         for covariator in self.covariators:
-            subres = covariator.get_update(region, year, temps)
+            subres = covariator.get_update(region, year, ds)
             for key in subres:
                 result[key] = subres[key]
 
@@ -335,6 +319,6 @@ class TranslateCovariator(Covariator):
         baseline = self.covariator.get_current(region)
         return self.translate(baseline)
 
-    def get_update(self, region, year, temps):
-        update = self.covariator.get_update(region, year, temps)
+    def get_update(self, region, year, ds):
+        update = self.covariator.get_update(region, year, ds)
         return self.translate(update)

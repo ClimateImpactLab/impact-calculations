@@ -1,5 +1,6 @@
 import os, glob
 import numpy as np
+import xarray as xr
 import netcdfs
 from datastore import irregions
 
@@ -26,7 +27,7 @@ class WeatherReader(object):
         raise NotImplementedError
 
     def read_iterator(self):
-        """Yields a WeatherSlice in whatever chunks are convenient.
+        """Yields an xarray Dataset in whatever chunks are convenient.
         """
         raise NotImplementedError
 
@@ -67,9 +68,9 @@ class YearlySplitWeatherReader(WeatherReader):
             year += 1
 
     def read_iterator_to(self, maxyear):
-        for weatherslice in self.read_iterator():
-            yield weatherslice
-            if weatherslice.get_years()[0] >= maxyear:
+        for ds in self.read_iterator():
+            yield ds
+            if ds['time.year'][0] >= maxyear:
                 break
 
     # Random access
@@ -78,7 +79,7 @@ class YearlySplitWeatherReader(WeatherReader):
         return self.find_templated(year)
 
     def read_year(self, year):
-        """Return the WeatherSlice for a given year."""
+        """Return the xarray Dataset for a given year."""
         raise NotImplementedError
 
     # Template handling
@@ -96,13 +97,13 @@ class YearlySplitWeatherReader(WeatherReader):
         return self.template.replace("%v", options[-1]) % (year)
     
 class ConversionWeatherReader(WeatherReader):
-    """Wraps another weather reader, applying conversion to its weatherslices."""
+    """Wraps another weather reader, applying conversion to its weather."""
 
-    def __init__(self, reader, time_conversion, weatherslice_conversion):
+    def __init__(self, reader, time_conversion, ds_conversion):
         super(ConversionWeatherReader, self).__init__(reader.version, reader.units, reader.time_units)
         self.reader = reader
         self.time_conversion = time_conversion
-        self.weatherslice_conversion = weatherslice_conversion
+        self.ds_conversion = ds_conversion
 
     def get_times(self):
         """Returns a list of all times available."""
@@ -118,13 +119,13 @@ class ConversionWeatherReader(WeatherReader):
         return self.reader.get_dimension()
 
     def read_iterator(self):
-        """Yields a WeatherSlice in whatever chunks are convenient.
+        """Yields an xarray Dataset in whatever chunks are convenient.
         """
-        for weatherslice in self.reader.read_iterator():
-            yield self.weatherslice_conversion(weatherslice)
+        for ds in self.reader.read_iterator():
+            yield self.ds_conversion(ds)
 
     def read_year(self, year):
-        return self.weatherslice_conversion(self.reader.read_year(year))
+        return self.ds_conversion(self.reader.read_year(year))
 
 class RegionReorderWeatherReader(WeatherReader):
     """Wraps another weather reader, reordering its regions to IR shapefile order."""
@@ -156,23 +157,19 @@ class RegionReorderWeatherReader(WeatherReader):
         return self.reader.get_dimension()
 
     def read_iterator(self):
-        """Yields a WeatherSlice in whatever chunks are convenient."""
-        for weatherslice in self.reader.read_iterator():
-            self.reorder_inplace(weatherslice)
-            yield weatherslice
+        """Yields an xarray Dataset in whatever chunks are convenient."""
+        for ds in self.reader.read_iterator():
+            yield self.reorder_regions(ds)
 
     def read_year(self, year):
-        weatherslice = self.reader.read_year(year)
-        self.reorder_inplace(weatherslice)
-        return weatherslice
+        ds = self.reader.read_year(year)
+        return self.reorder_regions(ds)
         
-    def reorder_inplace(self, weatherslice):
-        dims = len(weatherslice.weathers.shape)
-        if dims == 1:
-            assert False, "Must have a region dimension."
-        elif dims == 2:
-            weatherslice.weathers = weatherslice.weathers[:, self.reorder]
-        else:
-            weatherslice.weathers = weatherslice.weathers[:, self.reorder, :]
+    def reorder_inplace(self, ds):
+        newds = xr.Dataset({'time': ds.time, 'region': ds.region[self.reorder]})
+        for var in xr:
+            if var in ['time', 'region']:
+                continue
+            newds[var] = ds[var] # Automatically reordered
 
-    
+        return newds
