@@ -11,13 +11,13 @@ filename = 'dd_tasmax.nc4'
 if filename == 'climtas.nc4':
     discoverer = discover.discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tas')
     covar_names = ['climtas']
-    annual_calcs = [lambda temps: np.mean(temps)] # Average within each year
+    annual_calcs = [lambda ds: np.mean(ds['tas'])] # Average within each year
 
 if filename == 'dd_tasmax.nc4':
-    discoverer = discover.discover_yearly_collection(files.sharedpath('climate/BCSD/aggregation/cmip5_new/IR_level'),
-                                                     'Degreedays_tasmax', ['coldd_agg', 'hotdd_agg'])
+    discoverer = discover.discover_yearly_variables(files.sharedpath('climate/BCSD/aggregation/cmip5_new/IR_level'),
+                                                    'Degreedays_tasmax', 'coldd_agg', 'hotdd_agg')
     covar_names = ['climcold-tasmax', 'climhot-tasmax']
-    annual_calcs = [lambda values: values[0, 0], lambda values: values[0, 1]]
+    annual_calcs = [lambda ds: ds.coldd_agg, lambda ds: ds.hotdd_agg]
     
 outputdir = '/shares/gcp/outputs/temps'
 
@@ -65,12 +65,12 @@ for clim_scenario, clim_model, weatherbundle in weather.iterate_bundles(discover
 
     print "Processing years..."
     yy = 0
-    for weatherslice in weatherbundle.yearbundles():
-        print "Push", weatherslice.get_years()[0]
+    for ds in weatherbundle.yearbundles():
+        print "Push", ds['time.year'][0]
 
         for ii in range(len(weatherbundle.regions)):
             for kk in range(len(covar_names)):
-                yearval = annual_calcs[kk](weatherslice.weathers[:, ii])
+                yearval = annual_calcs[kk](ds.isel(region=ii))
                 annualdata[yy, ii, kk] = yearval
                 regiondata[ii][kk].update(yearval)
                 averageddata[yy, ii, kk] = regiondata[ii][kk].get()

@@ -1,14 +1,14 @@
 import os
 import numpy as np
+import xarray as xr
 import netcdfs
-from openest.generate.weatherslice import DailyWeatherSlice, MonthlyWeatherSlice, YearlyWeatherSlice
 from reader import YearlySplitWeatherReader
 
 class DailyWeatherReader(YearlySplitWeatherReader):
     """Exposes daily weather data, split into yearly files."""
 
-    def __init__(self, template, year1, variable):
-        super(DailyWeatherReader, self).__init__(template, year1, variable)
+    def __init__(self, template, year1, *variables):
+        super(DailyWeatherReader, self).__init__(template, year1, variables)
         self.time_units = 'yyyyddd'
         self.regions = netcdfs.readncdf_single(self.find_templated(year1), 'hierid', allow_missing=True)
 
@@ -24,35 +24,17 @@ class DailyWeatherReader(YearlySplitWeatherReader):
     def get_regions(self):
         """Returns a list of all regions available."""
         return self.regions
-        
+
     def get_dimension(self):
-        return [self.variable]
+        return self.variables
 
     def read_iterator(self):
         # Yield data in yearly chunks
         for filename in self.file_iterator():
-            yyyyddd, weather = netcdfs.readncdf(filename, self.variable)
-            yield DailyWeatherSlice(yyyyddd, weather)
+            yield xr.open_dataset(filename)
 
     def read_year(self, year):
-        yyyyddd, weather = netcdfs.readncdf(self.file_for_year(year), self.variable)
-        return DailyWeatherSlice(yyyyddd, weather)
-
-class DailyMultipleWeatherReader(DailyWeatherReader):
-    """Exposes several variables within a daily weather data file, split into yearly files."""
-
-    def get_dimension(self):
-        return self.variable
-
-    def read_iterator(self):
-        # Yield data in yearly chunks
-        for filename in self.file_iterator():
-            yyyyddd, weather = netcdfs.readncdf_multiple(filename, self.variable)
-            yield DailyWeatherSlice(yyyyddd, weather)
-
-    def read_year(self, year):
-        yyyyddd, weather = netcdfs.readncdf_multiple(self.file_for_year(year), self.variable)
-        return DailyWeatherSlice(yyyyddd, weather)
+        return xr.open_dataset(self.file_for_year(year))
     
 class MonthlyBinnedWeatherReader(YearlySplitWeatherReader):
     """Exposes binned weather data, accumulated into months and split into yearly file."""
@@ -77,14 +59,14 @@ class MonthlyBinnedWeatherReader(YearlySplitWeatherReader):
     def read_iterator(self):
         # Yield data in yearly chunks
         for filename in self.file_iterator():
-            times, mmbbrr = netcdfs.readncdf_binned(filename, self.variable)
-            mmrrbb = np.swapaxes(mmbbrr, 1, 2) # Needs to be in T x REGIONS x K
-            yield MonthlyWeatherSlice(times, mmrrbb)
+            ds = xr.open_dataset(filename)
+            ds = ds.transpose('time', 'region', 'bin') # Some old code may depend on T x REGIONS x K
+            yield ds
 
     def read_year(self, year):
-        times, mmbbrr = netcdfs.readncdf_binned(self.file_for_year(year), self.variable)
-        mmrrbb = np.swapaxes(mmbbrr, 1, 2) # Needs to be in T x REGIONS x K
-        return MonthlyWeatherSlice(times, mmrrbb)
+        ds = xr.open_dataset(self.file_for_year(year))
+        ds = ds.transpose('time', 'region', 'bin') # Some old code may depend on T x REGIONS x K
+        return ds
 
 class YearlyBinnedWeatherReader(YearlySplitWeatherReader):
     """Exposes binned weather data, accumulated into years from a month binned file."""
@@ -103,10 +85,12 @@ class YearlyBinnedWeatherReader(YearlySplitWeatherReader):
 
     def read_iterator(self):
         # Yield data summed across years
-        for times, mmrrbb in self.monthlyreader.read_iterator():
-            yield YearlyWeatherSlice([times[0] / 1000], np.expand_dims(np.sum(mmrrbb, axis=0), axis=0))
+        for ds in self.monthlyreader.read_iterator():
+            ds = ds.groupby('time.year').sum()
+            yield ds.rename({'year': 'time'})
 
     def read_year(self, year):
-        times, mmrrbb = self.monthlyreader.read_year(year)
-        return YearlyWeatherSlice([times[0] / 1000], np.expand_dims(np.sum(mmrrbb, axis=0), axis=0))
+        ds = self.monthlyreader.read_year(year)
+        ds = ds.groupby('time.year').sum()
+        return ds.rename({'year': 'time'})
 

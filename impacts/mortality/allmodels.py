@@ -3,7 +3,6 @@ import numpy as np
 from impactlab_tools.utils import files
 from adaptation import csvvfile
 from generate import weather, server, effectset, caller, checks, agglib
-from openest.generate.weatherslice import YearlyWeatherSlice
 from climate.discover import discover_versioned, discover_variable
 from datastore import agecohorts
 
