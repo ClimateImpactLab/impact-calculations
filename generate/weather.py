@@ -274,6 +274,8 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
 
         if len(self.pastreaders) == 1:
             for pastyear in self.pastyears:
+                if year > maxyear:
+                    break
                 weatherslice = self.reader.read_year(pastyear)
                 if weatherslice.times[0] > 10000:
                     yield DailyWeatherSlice((1000 * year) + (weatherslice.times % 1000), weatherslice.weathers)
@@ -283,6 +285,8 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
             return
             
         for pastyear in self.pastyears:
+            if year > maxyear:
+                break
             allweather = None
             for pastreader in self.pastreaders:
                 weatherslice = pastreader.read_year(pastyear)
