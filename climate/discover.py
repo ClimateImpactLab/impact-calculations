@@ -6,7 +6,7 @@ import os
 from impactlab_tools.utils import files
 from reader import ConversionWeatherReader, RegionReorderWeatherReader
 from dailyreader import DailyWeatherReader, YearlyBinnedWeatherReader
-from yearlyreader import YearlyWeatherReader, YearlyArrayWeatherReader
+from yearlyreader import YearlyWeatherReader
 
 def standard_variable(name, timerate):
     assert timerate in ['day', 'month', 'year']
@@ -46,8 +46,8 @@ def discover_tas_binned(basedir):
         pasttemplate = os.path.join(pastdir, 'tas/tas_Bindays_aggregated_historical_r1i1p1_' + model + '_%d.nc')
         futuretemplate = os.path.join(futuredir, 'tas/tas_Bindays_aggregated_' + scenario + '_r1i1p1_' + model + '_%d.nc')
 
-        pastreader = YearlyBinnedWeatherReader(pasttemplate, 1981, 'DayNumber')
-        futurereader = YearlyBinnedWeatherReader(futuretemplate, 2006, 'DayNumber')
+        pastreader = YearlyBinnedWeatherReader(pasttemplate, 1981, 'SHAPENUM', 'DayNumber')
+        futurereader = YearlyBinnedWeatherReader(futuretemplate, 2006, 'SHAPENUM', 'DayNumber')
 
         yield scenario, model, pastreader, futurereader
 
@@ -60,8 +60,8 @@ def discover_variable(basedir, variable, withyear=True, rcp_only=None):
             pasttemplate = os.path.join(pastdir, variable, variable + '_day_aggregated_historical_r1i1p1_' + model + '_%d.nc')
             futuretemplate = os.path.join(futuredir, variable, variable + '_day_aggregated_' + scenario + '_r1i1p1_' + model + '_%d.nc')
 
-            pastreader = DailyWeatherReader(pasttemplate, 1981, variable)
-            futurereader = DailyWeatherReader(futuretemplate, 2006, variable)
+            pastreader = DailyWeatherReader(pasttemplate, 1981, 'SHAPENUM', variable)
+            futurereader = DailyWeatherReader(futuretemplate, 2006, 'SHAPENUM', variable)
 
             yield scenario, model, pastreader, futurereader
         else:
@@ -83,8 +83,8 @@ def discover_derived_variable(basedir, variable, suffix, withyear=True, rcp_only
             futuretemplate = os.path.join(futuredir, variable + '_' + suffix, variable + '_day_aggregated_' + scenario + '_r1i1p1_' + model + '_%d.nc')
 
             if os.path.exists(pasttemplate % (1981)) and os.path.exists(futuretemplate % (2006)):
-                pastreader = DailyWeatherReader(pasttemplate, 1981, variable)
-                futurereader = DailyWeatherReader(futuretemplate, 2006, variable)
+                pastreader = DailyWeatherReader(pasttemplate, 1981, 'SHAPENUM', variable)
+                futurereader = DailyWeatherReader(futuretemplate, 2006, 'SHAPENUM', variable)
 
                 yield scenario, model, pastreader, futurereader
         else:
@@ -119,13 +119,13 @@ def discover_yearly(basedir, vardir, rcp_only=None):
                 
             yield scenario, model, pastpath, filepath
 
-def discover_yearly_variables(basedir, vardir, *variables, rcp_only=None):
+def discover_yearly_variables(basedir, vardir, *variables, **kwargs):
     """
     Returns scenario, model, YearlyReader for the given variable
     baseline points to directory with 'rcp*'
     """
 
-    for scenario, model, pastpath, filepath in discover_yearly(basedir, vardir, rcp_only=rcp_only):
+    for scenario, model, pastpath, filepath in discover_yearly(basedir, vardir, rcp_only=kwargs.get('rcp_only')):
         yield scenario, model, YearlyWeatherReader(pastpath, variable), YearlyWeatherReader(filepath, variable)
 
 def discover_yearly_corresponding(basedir, scenario, vardir, model, variable):
@@ -152,8 +152,8 @@ def discover_versioned(basedir, variable, version=None):
     for scenario, model, pastdir, futuredir in discover_models(basedir):
         pasttemplate = os.path.join(pastdir, "%d", version + '.nc4')
         futuretemplate = os.path.join(futuredir, "%d", version + '.nc4')
-        pastreader = RegionReorderWeatherReader(DailyWeatherReader(pasttemplate, 1981, variable))
-        futurereader = RegionReorderWeatherReader(DailyWeatherReader(futuretemplate, 2006, variable))
+        pastreader = RegionReorderWeatherReader(DailyWeatherReader(pasttemplate, 1981, 'hierid', variable))
+        futurereader = RegionReorderWeatherReader(DailyWeatherReader(futuretemplate, 2006, 'hierid', variable))
 
         yield scenario, model, pastreader, futurereader
 

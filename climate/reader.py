@@ -37,7 +37,7 @@ class YearlySplitWeatherReader(WeatherReader):
     def __init__(self, template, year1, variable):
         self.template = template
 
-        if isinstance(variable, list):
+        if isinstance(variable, list) or isinstance(variable, tuple):
             version, units = netcdfs.readmeta(self.find_templated(year1), variable[0])
         else:
             version, units = netcdfs.readmeta(self.find_templated(year1), variable)
@@ -165,9 +165,9 @@ class RegionReorderWeatherReader(WeatherReader):
         ds = self.reader.read_year(year)
         return self.reorder_regions(ds)
         
-    def reorder_inplace(self, ds):
+    def reorder_regions(self, ds):
         newds = xr.Dataset({'time': ds.time, 'region': ds.region[self.reorder]})
-        for var in xr:
+        for var in ds:
             if var in ['time', 'region']:
                 continue
             newds[var] = ds[var] # Automatically reordered

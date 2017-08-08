@@ -1,5 +1,6 @@
 import os, re, csv, traceback
 import numpy as np
+import xarray as xr
 from netCDF4 import Dataset
 from impactlab_tools.utils import files
 import helpers.header as headre
@@ -105,17 +106,18 @@ class DailyWeatherBundle(WeatherBundle):
         """Return a list of the values for each period x region."""
         raise NotImplementedError
 
-    def baseline_values(self, maxyear, variable):
+    def baseline_values(self, maxyear):
         """Yield the list of all weather values up to `maxyear` for each region."""
 
         # Construct an empty dataset to append to
-        allyears = xr.Dataset({'region': self.region})
+        allds = []
 
         # Append each year
         for ds in self.yearbundles(maxyear):
-            print ds['time.year'][0]
-
-            allyears = xr.merge((allyears, ds.mean('time')))
+            print ds['time.year'].values[0]
+            allds.append(ds.mean('time'))
+            
+        allyears = xr.concat(allds, dim='time')
 
         # Yield the entire collection of values for each region
         for ii in range(len(self.regions)):
@@ -169,7 +171,7 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
             if year == maxyear:
                 break
 
-            allds = xr.Dataset({'region': self.region})
+            allds = xr.Dataset({'region': self.regions})
 
             for pastreader, futurereader in self.pastfuturereaders:
                 try:
@@ -245,7 +247,7 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
             return
             
         for pastyear in self.pastyears:
-            allds = xr.Dataset({'region': self.region})
+            allds = xr.Dataset({'region': self.regions})
             for pastreader in self.pastreaders:
                 ds = pastreader.read_year(pastyear)
                 allds = xr.merge((allds, ds))
