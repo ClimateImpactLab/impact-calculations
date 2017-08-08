@@ -18,9 +18,9 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
     updated twice in the calculation.
     """
 
-    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 15, 2015, varindex=0), {'climtas': 'tas_sum'}, {'climtas': lambda x: x / 365}),
+    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 15, 2015, 'tas'), {'climtas': 'tas_sum'}, {'climtas': lambda x: x / 365}),
                                                 covariates.EconomicCovariator(economicmodel, 1, 2015)])
-    covariator2 = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 15, 2015, varindex=0), {'climtas': 'tas_sum'}, {'climtas': lambda x: x / 365}),
+    covariator2 = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 15, 2015, 'tas'), {'climtas': 'tas_sum'}, {'climtas': lambda x: x / 365}),
                                                  covariates.EconomicCovariator(economicmodel, 1, 2015)])
 
     csvvfile.collapse_bang(csvv, qvals.get_seed())
