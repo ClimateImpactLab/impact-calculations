@@ -66,7 +66,7 @@ for clim_scenario, clim_model, weatherbundle in weather.iterate_bundles(discover
     print "Processing years..."
     yy = 0
     for ds in weatherbundle.yearbundles():
-        print "Push", ds['time.year'][0]
+        print "Push", ds['time.year'].values[0]
 
         for ii in range(len(weatherbundle.regions)):
             for kk in range(len(covar_names)):

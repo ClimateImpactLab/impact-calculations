@@ -166,10 +166,23 @@ class RegionReorderWeatherReader(WeatherReader):
         return self.reorder_regions(ds)
         
     def reorder_regions(self, ds):
-        newds = xr.Dataset({'time': ds.time, 'region': ds.region[self.reorder]})
+        newvars = {}
         for var in ds:
             if var in ['time', 'region']:
                 continue
-            newds[var] = ds[var] # Automatically reordered
+            #newds[var] = ds[var] # Automatically reordered
+            # Don't use automatic reordering: too slow later (XXX: is this true?)
+            if len(ds[var].dims) == 1:
+                if 'region' not in ds[var].dims:
+                    newvars[var] = ds[var]
+                else:
+                    newvars[var] = (['region'], ds[var].values[self.reorder])
+            else:
+                if ds[var].dims.index('time') == 0:
+                    newvars[var] = (['time', 'region'], ds[var].values[:, self.reorder])
+                else:
+                    newvars[var] = (['region', 'time'], ds[var].values[self.reorder, :])
+
+        newds = xr.Dataset(newvars, coords={'time': ds.time, 'region': ds.region[self.reorder]})
 
         return newds

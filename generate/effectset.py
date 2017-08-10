@@ -21,7 +21,7 @@ def simultaneous_application(weatherbundle, calculation, regions=None, push_call
             print "WARNING: fewer regions in weather than expected; dropping from end."
             applications = applications[:ds.region.shape[0]]
 
-        print "Push", ds['time.year'][0]
+        print "Push", ds['time.year'].values[0]
 
         for ii in range(len(applications)):
             for yearresult in applications[ii].push(ds.sel(region=regions[ii])):
