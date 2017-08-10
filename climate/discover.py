@@ -7,6 +7,7 @@ from impactlab_tools.utils import files
 from reader import ConversionWeatherReader, RegionReorderWeatherReader
 from dailyreader import DailyWeatherReader, YearlyBinnedWeatherReader
 from yearlyreader import YearlyWeatherReader, YearlyCollectionWeatherReader, YearlyArrayWeatherReader
+import pattern_matching
 
 def standard_variable(name, timerate):
     if '/' in name:
@@ -38,6 +39,14 @@ def discover_models(basedir):
             if not os.path.exists(futuredir):
                 print "Missing %s %s" % (scenario, model)
                 continue
+
+            if not os.path.exists(pastdir):
+                if model in pattern_matching.rcp_models[scenario]:
+                    pastdir = os.path.join(basedir, 'historical',
+                                           pattern_matching.rcp_models[scenario])
+                    if not os.path.exists(pastdir):
+                        print "Missing pattern-base for %s %s" % (scenario, model)
+                        continue
 
             yield scenario, model, pastdir, futuredir
 
