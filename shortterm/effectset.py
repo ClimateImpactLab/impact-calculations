@@ -20,7 +20,7 @@ def simultaneous_application(qval, weatherbundle, calculation, get_apply_args, r
             print "WARNING: fewer regions in weather than expected (%d < %d); dropping from end." % (ds.regions.shape[0], len(applications))
             applications = applications[:ds.regions.shape[0]]
 
-        print "Push", ds.time[0]
+        print "Push", ds.time.values[0]
 
         for ii in range(len(applications)):
             for monthresult in applications[ii].push(ds.sel(region=regions[ii])):

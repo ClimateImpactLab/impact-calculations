@@ -115,7 +115,20 @@ class DailyWeatherBundle(WeatherBundle):
         # Append each year
         for ds in self.yearbundles(maxyear):
             print ds['time.year'].values[0]
+
+            # This line is too slow, so we do it by hand
             allds.append(ds.mean('time'))
+
+            # newvars = {}
+            # for var in ds:
+            #     if var in ['time', 'region']:
+            #         continue
+
+            #     print var
+            #     newvars[var] = (['region'], ds[var].values.mean(axis=ds[var].dims.index('time')))
+
+            # newds = xr.Dataset(newvars, coords={'region': ds.region})
+            # allds.append(newds)
             
         allyears = xr.concat(allds, dim='time')
 
