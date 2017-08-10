@@ -26,7 +26,7 @@ def discover_models(basedir):
     basedir points to directory with both 'historical', 'rcp*'
     """
     # Collect the entire complement of models
-    models = os.listdir(os.path.join(basedir, 'historical'))
+    models = os.listdir(os.path.join(basedir, 'rcp85'))
 
     for scenario in os.listdir(basedir):
         if scenario[0:3] != 'rcp':
@@ -35,10 +35,6 @@ def discover_models(basedir):
         for model in models:
             pastdir = os.path.join(basedir, 'historical', model)
             futuredir = os.path.join(basedir, scenario, model)
-
-            if not os.path.exists(futuredir):
-                print "Missing %s %s" % (scenario, model)
-                continue
 
             if not os.path.exists(pastdir):
                 if model in pattern_matching.rcp_models[scenario]:
