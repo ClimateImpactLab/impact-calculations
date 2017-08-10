@@ -37,28 +37,29 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, result_callb
         if push_callback is None:
             push_callback = lambda reg, yr, app, predget, mod: None
 
-        for filepath in glob.glob(files.sharedpath("social/parameters/labor/*.csvv")):
-            basename = os.path.basename(filepath)[:-5]
+        for do_clipping in [True, False]:
+            for filepath in glob.glob(files.sharedpath("social/parameters/labor/*.csvv")):
+                basename = os.path.basename(filepath)[:-5]
 
-            # Full Adaptation
-            if check_doit(targetdir, basename, suffix):
-                print "Smart Farmer"
-                calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.labor.global20170216', weatherbundle, economicmodel, pvals[basename])
+                # Full Adaptation
+                if check_doit(targetdir, basename, suffix):
+                    print "Smart Farmer"
+                    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.labor.global20170216', weatherbundle, economicmodel, pvals[basename], do_clipping=do_clipping)
 
-                effectset.generate(targetdir, basename + suffix, weatherbundle, calculation, "Extensive margin labor impacts, with interpolation and adaptation through interpolation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, basename), push_callback=lambda reg, yr, app: push_callback(reg, int(yr) / 1000, app, baseline_get_predictors, basename), do_interpbins=False, diagnosefile=diagnosefile.replace('.csv', '-' + basename + '.csv') if diagnosefile else False)
+                    effectset.generate(targetdir, basename + ('-clipped' if do_clipping else '') + suffix, weatherbundle, calculation, "Extensive margin labor impacts, with interpolation and adaptation through interpolation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, basename), push_callback=lambda reg, yr, app: push_callback(reg, int(yr) / 1000, app, baseline_get_predictors, basename), do_interpbins=False, diagnosefile=diagnosefile.replace('.csv', '-' + basename + '.csv') if diagnosefile else False)
 
-            if config['do_farmers'] and not weatherbundle.is_historical():
-                # Lock in the values
-                pvals[basename].lock()
+                if config['do_farmers'] and not weatherbundle.is_historical():
+                    # Lock in the values
+                    pvals[basename].lock()
 
-                # Comatose Farmer
-                if check_doit(targetdir, basename + "-comatose", suffix):
-                    print "Comatose Farmer"
-                    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.labor.global20170216', weatherbundle, economicmodel, pvals[basename], farmer='coma')
-                    effectset.generate(targetdir, basename + "-comatose" + suffix, weatherbundle, calculation, "Extensive margin labor impacts, with no adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, basename + '-coma'), push_callback=lambda reg, yr, app: push_callback(reg, int(yr) / 1000, app, baseline_get_predictors, basename), do_interpbins=False)
+                    # Comatose Farmer
+                    if check_doit(targetdir, basename + "-comatose" + ('-clipped' if do_clipping else ''), suffix):
+                        print "Comatose Farmer"
+                        calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.labor.global20170216', weatherbundle, economicmodel, pvals[basename], farmer='coma', do_clipping=do_clipping)
+                        effectset.generate(targetdir, basename + "-comatose" + ('-clipped' if do_clipping else '') + suffix, weatherbundle, calculation, "Extensive margin labor impacts, with no adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, basename + '-coma'), push_callback=lambda reg, yr, app: push_callback(reg, int(yr) / 1000, app, baseline_get_predictors, basename), do_interpbins=False)
 
-                # Dumb Farmer
-                if check_doit(targetdir, basename + "-dumb", suffix):
-                    print "Dumb Farmer"
-                    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.labor.global20170216', weatherbundle, economicmodel, pvals[basename], farmer='dumb')
-                    effectset.generate(targetdir, basename + "-dumb" + suffix, weatherbundle, calculation, "Extensive margin labor impacts, with interpolation and only environmental adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, basename + '-dumb'), push_callback=lambda reg, yr, app: push_callback(reg, int(yr) / 1000, app, baseline_get_predictors, basename), do_interpbins=False)
+                    # Dumb Farmer
+                    if check_doit(targetdir, basename + "-dumb" + ('-clipped' if do_clipping else ''), suffix):
+                        print "Dumb Farmer"
+                        calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.labor.global20170216', weatherbundle, economicmodel, pvals[basename], farmer='dumb', do_clipping=do_clipping)
+                        effectset.generate(targetdir, basename + "-dumb" + ('-clipped' if do_clipping else '') + suffix, weatherbundle, calculation, "Extensive margin labor impacts, with interpolation and only environmental adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, basename + '-dumb'), push_callback=lambda reg, yr, app: push_callback(reg, int(yr) / 1000, app, baseline_get_predictors, basename), do_interpbins=False)
