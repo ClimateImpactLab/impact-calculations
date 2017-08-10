@@ -39,7 +39,7 @@ def discover_models(basedir):
             if not os.path.exists(pastdir):
                 if model in pattern_matching.rcp_models[scenario]:
                     pastdir = os.path.join(basedir, 'historical',
-                                           pattern_matching.rcp_models[scenario])
+                                           pattern_matching.rcp_models[scenario][model])
                     if not os.path.exists(pastdir):
                         print "Missing pattern-base for %s %s" % (scenario, model)
                         continue
