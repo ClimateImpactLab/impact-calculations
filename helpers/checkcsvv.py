@@ -5,6 +5,7 @@ from climate import discover
 
 csvvpath = sys.argv[1]
 
+knownpreds = {'belowzero': None}
 knowncovars = {'logpopop': 'log ppl/km^2', 'loggdppc': 'log USD2000', '1': '', 'hotdd_agg': 'C day', 'coldd_agg': 'C day'}
 
 helps = set([])
@@ -18,17 +19,23 @@ except Exception as e:
     exit()
 
 for predname in set(data['prednames']):
-    try:
-        discoverer = discover.standard_variable(predname, 'day')
-    except:
-        print "ERROR: Predictor %s is not a known weather variable." % predname
-        continue
+    if predname not in knownpreds:
+        try:
+            discoverer = discover.standard_variable(predname, 'day')
+        except:
+            print "ERROR: Predictor %s is not a known weather variable." % predname
+            continue
+
+        scenario, model, pastreader, futurereader = discoverer.next()
+        unit = pastreader.units
+    else:
+        unit = knownpreds[predname]
 
     if predname not in data['variables']:
         print "ERROR: Predictor %s is not defined in the header information." % predname
+        continue
 
-    scenario, model, pastreader, futurereader = discoverer.next()
-    if data['variables'][predname]['unit'] != pastreader.units:
+    if unit is not None and data['variables'][predname]['unit'] != unit:
         print "ERROR: Units mismatch for predictor %s: %s <> %s." % (predname, data['variables'][predname]['unit'], pastreader.units)
         continue
 
@@ -52,6 +59,7 @@ for covarname in data['covarnames']:
 
     if covarname not in data['variables']:
         print "ERROR: Covariate %s is not defined in the header information." % covarname
+        continue
 
     if data['variables'][covarname]['unit'] != unit:
         print "ERROR: Units mismatch for covariate %s: %s <> %s." % (covarname, data['variables'][covarname]['unit'], unit)

@@ -16,11 +16,16 @@ def standard_variable(name, timerate):
     assert timerate in ['day', 'month', 'year']
 
     if timerate == 'day':
-        if name in ['tas'] + ['tas-poly-' + str(ii) for ii in range(2, 10)] + ['tas' + str(ii) for ii in range(2, 10)]:
+        if name in ['tas'] + ['tas-poly-' + str(ii) for ii in range(2, 10)]:
             return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/" + name), name)
-        if name in ['tasmax'] + ['tasmax-poly-' + str(ii) for ii in range(2, 10)] + ['tasmax' + str(ii) for ii in range(2, 10)]:
+        if name in ['tas' + str(ii) for ii in range(2, 10)]:
+            return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-" + name[3]), 'tas-poly-' + name[3])
+            
+        if name in ['tasmax'] + ['tasmax-poly-' + str(ii) for ii in range(2, 10)]:
             return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/" + name), name)
-
+        if name in ['tasmax' + str(ii) for ii in range(2, 10)]:
+            return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tasmax-poly-" + name[6]), 'tasmax-poly-' + name[6])
+            
     raise ValueError("Unknown variable: " + name)
         
 def discover_models(basedir):

@@ -43,6 +43,10 @@ def read_girdin(data, fp):
                 print row
             assert variable_reading is not None
             if len(row) == 1:
+                row = row[0].split(',')
+            if len(row) == 1:
+                row = row[0].split('\t')
+            if len(row) == 1:
                 row = re.split(r'\s', row[0])
             data[variable_reading].append(map(lambda x: x.strip(), row))
 
