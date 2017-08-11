@@ -19,19 +19,32 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
                                                           weatherbundle.scenario, 'Degreedays_tasmax',
                                                           weatherbundle.model, 'hotdd_agg')
 
-    predgen = covariates.CombinedCovariator([covariates.YearlyWeatherCovariator(reader_coldd, weatherbundle.regions, 2015, 15,
-                                                                                weatherbundle.is_historical()),
-                                             covariates.YearlyWeatherCovariator(reader_hotdd, weatherbundle.regions, 2015, 15,
-                                                                                weatherbundle.is_historical()),
+    predgen = covariates.CombinedCovariator([TranslateCovariator(
+        covariates.YearlyWeatherCovariator(reader_coldd, weatherbundle.regions, 2015, 15, weatherbundle.is_historical()),
+        {'hotdd_30*(tasmax - 27)*I_{T >= 27}': 'hotdd_agg', 'hotdd_30*(tasmax2 - 27^2)*I_{T >= 27}': 'hotdd_agg'}),
+                                             TranslateCovariator(
+        covariates.YearlyWeatherCovariator(reader_hotdd, weatherbundle.regions, 2015, 15, weatherbundle.is_historical()),
+        {'coldd_30*(tasmax - 27)*I_{T < 27}': 'coldd_agg', 'coldd_30*(tasmax2 - 27^2)*I_{T < 27}': 'coldd_agg'}),
                                              covariates.EconomicCovariator(economicmodel, 1, 2015)])
 
     csvvfile.collapse_bang(csvv, qvals.get_seed())
 
     order = len(set(csvv['prednames'])) - 1 # -1 because of belowzero
-    subcsvv = csvvfile.subset(csvv, ['tasmax'] + ['tasmax%d' % power for power in range(2, order + 1)])
 
-    lt27_curvegen = curvegen_known.PolynomialCurveGenerator('C', 'minutes worked by individual', 'tasmax', 4, csvvfile.drop_covariates(subcsvv, 'hotdd_agg'))
-    gt27_curvegen = curvegen_known.PolynomialCurveGenerator('C', 'minutes worked by individual', 'tasmax', 4, csvvfile.drop_covariates(subcsvv, 'coldd_agg'))
+    # We calculate this by splitting the equation into a straight polynomial, and -gamma_H1 27 H - gamma_H2 27^2 H
+    def shift_curvegen(curvegen, covar1, covar2):
+        def shift_curve(region, curve):
+            shift1 = -csvvfile.get_gamma(csvv, 'tasmax', covar1) * 27 * predgen.get_current(region)[covar1]
+            shift2 = -csvvfile.get_gamma(csvv, 'tasmax', covar2) * 27*27 * predgen.get_current(region)[covar2]
+            return ShiftedCurve(curve, shift1 + shift2)
+
+        return curvegen.TransformCurveGenerator(shift_curve, curvegen)
+    
+    lt27_curvegen = shift_curvegen(curvegen_known.PolynomialCurveGenerator('C', 'minutes worked by individual', 'tasmax', 4,
+                                                                           csvvfile.filter(csvv, lambda pred, covar: pred != 'belowzero' and 'I_{T >= 27}' not in covar)), 'coldd_30*(tasmax - 27)*I_{T < 27}', 'coldd_30*(tasmax2 - 27^2)*I_{T < 27}')
+    gt27_curvegen = shift_curvegen(curvegen_known.PolynomialCurveGenerator('C', 'minutes worked by individual', 'tasmax', 4,
+                                                                           csvvfile.filter(csvv, lambda pred, covar: pred != 'belowzero' and 'I_{T >= 27}' not in covar)), 'hotdd_30*(tasmax - 27)*I_{T >= 27}', 'hotdd_30*(tasmax2 - 27^2)*I_{T >= 27}')
+    
     piece_curvegen = curvegen.TransformCurveGenerator(make_piecewise, lt27_curvegen, gt27_curvegen)
     shift_curven = curvegen.TransformCurveGenerator(shift_piecewise, piece_curvegen, clipping=clipping) # both clip and subtract curve at 27
 
