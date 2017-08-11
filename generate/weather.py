@@ -130,7 +130,7 @@ class DailyWeatherBundle(WeatherBundle):
         for ii in range(len(self.regions)):
             yield self.regions[ii], region_averages[ii]
 
-    def baseline_values(self, maxyear):
+    def baseline_values(self, maxyear, do_mean=True):
         """Yield the list of all weather values up to `maxyear` for each region."""
 
         # Construct an empty matrix to append to
@@ -144,7 +144,10 @@ class DailyWeatherBundle(WeatherBundle):
             print weatherslice.get_years()[0]
 
             # Stack this year below the previous years
-            regionvalues = np.vstack((regionvalues, np.expand_dims(np.mean(weatherslice.weathers, axis=0), axis=0)))
+            if do_mean:
+                regionvalues = np.vstack((regionvalues, np.expand_dims(np.mean(weatherslice.weathers, axis=0), axis=0)))
+            else:
+                regionvalues = np.vstack((regionvalues, weatherslice.weathers))
 
         # Yield the entire collection of values for each region
         for ii in range(len(self.regions)):

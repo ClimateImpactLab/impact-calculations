@@ -29,7 +29,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
 
     csvvfile.collapse_bang(csvv, qvals.get_seed())
 
-    order = len(set(csvv['prednames'])) - 1 # -1 because of belowzero
+    #order = len(set(csvv['prednames'])) - 1 # -1 because of belowzero
 
     # We calculate this by splitting the equation into a straight polynomial, and -gamma_H1 27 H - gamma_H2 27^2 H
     def shift_curvegen(curvegen, covar1, covar2):
@@ -44,11 +44,46 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
                                                                            csvvfile.filter(csvv, lambda pred, covar: pred != 'belowzero' and 'I_{T >= 27}' not in covar)), 'coldd_30*(tasmax - 27)*I_{T < 27}', 'coldd_30*(tasmax2 - 27^2)*I_{T < 27}')
     gt27_curvegen = shift_curvegen(curvegen_known.PolynomialCurveGenerator('C', 'minutes worked by individual', 'tasmax', 4,
                                                                            csvvfile.filter(csvv, lambda pred, covar: pred != 'belowzero' and 'I_{T >= 27}' not in covar)), 'hotdd_30*(tasmax - 27)*I_{T >= 27}', 'hotdd_30*(tasmax2 - 27^2)*I_{T >= 27}')
+
+    def make_piecewise(region, lt27_curve, gt27_curve):
+        return PiecewiseCurve([lt27_curve, gt27_curve], [-np.inf, 27, np.inf])
     
     piece_curvegen = curvegen.TransformCurveGenerator(make_piecewise, lt27_curvegen, gt27_curvegen)
-    shift_curven = curvegen.TransformCurveGenerator(shift_piecewise, piece_curvegen, clipping=clipping) # both clip and subtract curve at 27
 
-    farm_temp_curvegen = curvegen.FarmerCurveGenerator(piece_curvegen, predgen, farmer)
+    def analytic_minimum(region, piecewise_curve):
+        if maxtemp < 27:
+            return minpoly.findpolymin([0] + piecewise_curve.curves[0].css, mintemp, maxtemp)
+        if mintemp > 27:
+            return minpoly.findpolymin([0] + piecewise_curve.curves[1].css, mintemp, maxtemp)
+        
+        minleft = minpoly.findpolymin([0] + piecewise_curve.curves[0].css, mintemp, 27)
+        minright = minpoly.findpolymin([0] + piecewise_curve.curves[1].css, 27, maxtemp)
+        minvalues = piecewise_curve([minleft, minright])
+        if minvalues[0] <= minvalues[1]:
+            return minleft
+        else:
+            return minright
+
+    region_mins = {}
+    region_maxs = {}
+    for region, values in weatherbundle.baseline_values(2015, do_mean=False):
+        region_min[region] = max(5, min(values))
+        region_max[region] = min(30, max(values))
+        
+    baselinecurves, baselinemins = constraints.get_curve_minima(weatherbundle.regions, curr_curvegen, covariator,
+                                                                region_mins, region_maxs, analytic_minimum)
+
+    def shift_piecewise(region, curve):
+        shifted_curve = ShiftedCurve(curve, -curve(27))
+        if clipping:
+            clipped_curve = ShiftedCurve(curve, -curve(baselinemins[region]))
+            return OtherClippedCurve(curve, clipped_curve)
+        else:
+            return shifted_curve
+
+    shift_curvgen = curvegen.TransformCurveGenerator(shift_piecewise, piece_curvegen) # both clip and subtract curve at 27
+
+    farm_temp_curvegen = curvegen.FarmerCurveGenerator(shift_curvegen, predgen, farmer)
     tempeffect = YearlyDividedPolynomialAverageDay('minutes worked by individual', farm_temp_curvegen, 'the temperature effect')
 
     zerocurvegen = ConstantCurveGenerator('C', 'minutes worked by individual', FlatCurve(csvv['gamma'][-1]))
