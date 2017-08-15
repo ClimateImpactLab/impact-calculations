@@ -11,6 +11,9 @@ from datastore import weights
 from adaptation import farming, econmodel, csvvfile
 from helpers import interpret
 import weather, pvalses, caller, effectset, aggregate
+import cProfile, pstats, StringIO
+
+do_profile = True
 
 config = files.get_allargv_config()
 
@@ -56,7 +59,24 @@ calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(
 if not os.path.exists(targetdir):
     os.makedirs(targetdir)
 
+if do_profile:
+    config['mode'] = 'profile'
+
+    pr = cProfile.Profile()
+    pr.enable()
+
 effectset.generate(targetdir, basename + suffix, weatherbundle, calculation, "Singly produced result.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config)
+
+if do_profile:
+    pr.disable()
+
+    s = StringIO.StringIO()
+    sortby = 'cumulative'
+    ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+    ps.print_stats()
+    print s.getvalue()
+    
+    exit()
 
 aggregate.make_levels(targetdir, basename + suffix + '.nc4', get_weight)
 aggregate.make_aggregates(targetdir, basename + suffix + '.nc4', get_weight)

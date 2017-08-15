@@ -2,7 +2,7 @@ import csv, copy
 import numpy as np
 from adaptation import csvvfile, curvegen, curvegen_known, covariates, constraints
 from openest.generate.smart_curve import CoefficientsCurve
-from openest.models.curve import ClippedCurve, ShiftedCurve, MinimumCurve, OtherClippedCurve, SelectiveInputCurve
+from openest.models.curve import ZeroInterceptPolynomialCurve, ClippedCurve, ShiftedCurve, MinimumCurve, OtherClippedCurve, SelectiveInputCurve
 from openest.generate.stdlib import *
 from openest.generate import diagnostic
 from impactcommon.math import minpoly
@@ -17,7 +17,8 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
     order = len(csvv['gamma']) / 3
     curr_curvegen = curvegen_known.PolynomialCurveGenerator(['C'] + ['C^%d' % pow for pow in range(2, order+1)],
                                                            '100,000 * death/population', 'tas', order, csvv)
-
+    weathernames = ['tas', 'tas-poly-2', 'tas-poly-3', 'tas-poly-4', 'tas-poly-5'][:order]
+    
     baselineloggdppcs = {}
     for region in weatherbundle.regions:
         baselineloggdppcs[region] = covariator.get_current(region)['loggdppc']
@@ -27,7 +28,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
                                                                 lambda curve: minpoly.findpolymin([0] + curve.ccs, 10, 25))
 
     def transform(region, curve):
-        coeff_curve = SelectiveInputCurve(CoefficientsCurve(curve.ccs, curr_curvegen.prednames), range(order))
+        coeff_curve = CoefficientsCurve(curve.ccs, weathernames)
 
         fulladapt_curve = ShiftedCurve(coeff_curve, -curve(baselinemins[region]))
         # Alternative: Turn off Goodmoney
@@ -36,7 +37,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
         covars = covariator.get_current(region)
         covars['loggdppc'] = baselineloggdppcs[region]
         noincadapt_unshifted_curve = curr_curvegen.get_curve(region, None, covars, recorddiag=False)
-        coeff_noincadapt_unshifted_curve = SelectiveInputCurve(CoefficientsCurve(noincadapt_unshifted_curve.ccs, curr_curvegen.prednames), range(order))
+        coeff_noincadapt_unshifted_curve = CoefficientsCurve(noincadapt_unshifted_curve.ccs, weathernames)
         noincadapt_curve = ShiftedCurve(coeff_noincadapt_unshifted_curve, -noincadapt_unshifted_curve(baselinemins[region]))
 
         # Alternative: allow no anti-adaptation
@@ -52,7 +53,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
     climtas_effect_curve = ZeroInterceptPolynomialCurve([-np.inf, np.inf], 365 * np.array([csvvfile.get_gamma(csvv, tasvar, 'climtas') for tasvar in ['tas', 'tas2', 'tas3', 'tas4', 'tas5'][:order]])) # x 365, to undo / 365 later
 
     def transform_climtas_effect(region, curve):
-        climtas_coeff_curve = SelectiveInputCurve(CoefficientsCurve(climtas_effect_curve.ccs, curr_curvegen.prednames), range(order))
+        climtas_coeff_curve = CoefficientsCurve(climtas_effect_curve.ccs, weathernames)
         shifted_curve = ShiftedCurve(climtas_coeff_curve, -climtas_effect_curve(baselinemins[region]))
         return OtherClippedCurve(curve, shifted_curve)
 

@@ -4,7 +4,7 @@ future reader).
 """
 import os
 from impactlab_tools.utils import files
-from reader import ConversionWeatherReader, RegionReorderWeatherReader
+from reader import ConversionWeatherReader
 from dailyreader import DailyWeatherReader, YearlyBinnedWeatherReader
 from yearlyreader import YearlyWeatherReader
 
@@ -152,8 +152,8 @@ def discover_versioned(basedir, variable, version=None):
     for scenario, model, pastdir, futuredir in discover_models(basedir):
         pasttemplate = os.path.join(pastdir, "%d", version + '.nc4')
         futuretemplate = os.path.join(futuredir, "%d", version + '.nc4')
-        pastreader = RegionReorderWeatherReader(DailyWeatherReader(pasttemplate, 1981, 'hierid', variable))
-        futurereader = RegionReorderWeatherReader(DailyWeatherReader(futuretemplate, 2006, 'hierid', variable))
+        pastreader = DailyWeatherReader(pasttemplate, 1981, 'hierid', variable)
+        futurereader = DailyWeatherReader(futuretemplate, 2006, 'hierid', variable)
 
         yield scenario, model, pastreader, futurereader
 
