@@ -1,5 +1,6 @@
 import re, yaml, os, time
 import numpy as np
+import xarray as xr
 from netCDF4 import Dataset
 import helpers.header as headre
 from openest.generate import retrieve, diagnostic
@@ -11,34 +12,53 @@ def simultaneous_application(weatherbundle, calculation, regions=None, push_call
         regions = weatherbundle.regions
 
     print "Creating calculations..."
-    applications = []
+    applications = {}
     for region in regions:
-        applications.append(calculation.apply(region))
+        applications[region] = calculation.apply(region)
 
+    region_indices = {region: weatherbundle.regions.index(region) for region in regions}
+    
     print "Processing years..."
-    for ds in weatherbundle.yearbundles():
+    for year, ds in weatherbundle.yearbundles():
         if ds.region.shape[0] < len(applications):
             print "WARNING: fewer regions in weather than expected; dropping from end."
-            applications = applications[:ds.region.shape[0]]
 
-        print "Push", ds['time.year'].values[0]
+        print "Push", year
 
-        for ii in range(len(applications)):
-            for yearresult in applications[ii].push(ds.sel(region=regions[ii])):
-                yield (ii, yearresult[0], yearresult[1:])
+        # for region, subds in ds.groupby('region'): # TOO SLOW
+        #     if region not in applications:
+        #         continue
+
+        timevar = ds.time
+        for ii in range(len(regions)):
+            region = regions[ii]
+            
+            newvars = {}
+            for var in ds:
+                if var in ['time', 'region']:
+                    continue
+                dsdata = ds._variables[var]._data
+                if len(dsdata.shape) < 2:
+                    continue
+                
+                newvars[var] = (['time'], dsdata[:, region_indices[region]])
+            subds = xr.Dataset(newvars, coords={'time': timevar})
+            
+            for yearresult in applications[region].push(subds):
+                yield (region, yearresult[0], yearresult[1:])
 
             if push_callback is not None:
-                push_callback(regions[ii], ds['time.year'][0], applications[ii])
+                push_callback(region, year, applications[region])
 
-    for ii in range(len(applications)):
-        for yearresult in applications[ii].done():
-            yield (ii, yearresult[0], yearresult[1:])
+    for region in applications:
+        for yearresult in applications[region].done():
+            yield (region, yearresult[0], yearresult[1:])
 
     calculation.cleanup()
 
 def generate(targetdir, basename, weatherbundle, calculation, description, calculation_dependencies, config, filter_region=None, result_callback=None, push_callback=None, subset=None, diagnosefile=False):
     if 'mode' in config and config['mode'] == 'profile':
-        return small_print(weatherbundle, calculation, regions=10)
+        return small_print(weatherbundle, calculation, regions=100)
 
     if 'mode' in config and config['mode'] == 'diagnostic':
         return small_print(weatherbundle, calculation, regions=[config['region']])
@@ -105,13 +125,15 @@ def write_ncdf(targetdir, basename, weatherbundle, calculation, description, cal
     if diagnosefile:
         diagnostic.begin(diagnosefile)
 
-    for ii, year, results in simultaneous_application(weatherbundle, calculation, regions=my_regions, push_callback=push_callback):
+    region_indices = {region: my_regions.index(region) for region in my_regions}
+        
+    for region, year, results in simultaneous_application(weatherbundle, calculation, regions=my_regions, push_callback=push_callback):
         if result_callback is not None:
-            result_callback(my_regions[ii], year, results, calculation)
+            result_callback(region, year, results, calculation)
         for col in range(len(results)):
-            columndata[col][year - yeardata[0], ii] = results[col]
+            columndata[col][year - yeardata[0], region_indices[region]] = results[col]
         if diagnosefile:
-            diagnostic.finish(my_regions[ii], year)
+            diagnostic.finish(region, year)
 
     if diagnosefile:
         diagnostic.close()
@@ -129,12 +151,12 @@ def small_print(weatherbundle, calculation, regions=10):
         regions: May be a number (e.g., 10) or a list of region codes
     """
     if isinstance(regions, int):
-        regions = np.random.choice(weatherbundle.regions, regions).tolist()
+        regions = np.random.choice(weatherbundle.regions, regions, replace=False).tolist()
 
     yeardata = weatherbundle.get_years()
     values = [np.zeros((len(yeardata), len(regions))) for ii in range(len(calculation.unitses))]
 
-    for ii, year, results in simultaneous_application(weatherbundle, calculation, regions=regions):
+    for region, year, results in simultaneous_application(weatherbundle, calculation, regions=regions):
         for col in range(len(results)):
             values[col][year - yeardata[0]] = results[col]
         if year > 2020:

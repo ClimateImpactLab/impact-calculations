@@ -119,8 +119,8 @@ class SeasonalWeatherCovariator(MeanWeatherCovariator):
             print "Collecting " + self.mustr
             # Read in all regions
             self.all_values = {}
-            for ds in self.weatherbundle.yearbundles(maxyear=self.maxbaseline):
-                print ds.time[0]
+            for year, ds in self.weatherbundle.yearbundles(maxyear=self.maxbaseline):
+                print year
                 for region in self.weatherbundle.regions:
                     if region not in self.all_values:
                         self.all_values[region] = ds[self.variable].sel(region=region).values[self.day_start:self.day_end]

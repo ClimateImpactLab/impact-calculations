@@ -13,7 +13,7 @@ from helpers import interpret
 import weather, pvalses, caller, effectset, aggregate
 import cProfile, pstats, StringIO
 
-do_profile = True
+do_profile = False
 
 config = files.get_allargv_config()
 
@@ -71,9 +71,9 @@ if do_profile:
     pr.disable()
 
     s = StringIO.StringIO()
-    sortby = 'cumulative'
-    ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-    ps.print_stats()
+    ps = pstats.Stats(pr, stream=s).sort_stats('cumulative')
+    ps.print_stats(.5)
+    #ps.print_callers('__getitem__')
     print s.getvalue()
     
     exit()
