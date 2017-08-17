@@ -43,6 +43,7 @@ class DailyWeatherReader(YearlySplitWeatherReader):
         ds.rename({'time': 'yyyyddd', self.regionvar: 'region'}, inplace=True)
         ds['time'] = (('yyyyddd'), pd.date_range('%d-01-01' % (ds.yyyyddd[0] // 1000), periods=365))
         ds.swap_dims({'yyyyddd': 'time'}, inplace=True)
+        ds.load() # Collect all data now
         return ds
     
 class MonthlyBinnedWeatherReader(YearlySplitWeatherReader):

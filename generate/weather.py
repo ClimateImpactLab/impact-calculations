@@ -93,7 +93,7 @@ class ReaderWeatherBundle(WeatherBundle):
 
 class DailyWeatherBundle(WeatherBundle):
     def yearbundles(self, maxyear=np.inf):
-        """Yields an xarray Dataset for each year up to `maxyear`.
+        """Yields a tuple of (year, xarray Dataset) for each year up to `maxyear`.
         Each yield should should produce all and only data for a single year.
         """
         raise NotImplementedError
@@ -113,22 +113,11 @@ class DailyWeatherBundle(WeatherBundle):
         allds = []
 
         # Append each year
-        for ds in self.yearbundles(maxyear):
-            print ds['time.year'].values[0]
+        for year, ds in self.yearbundles(maxyear):
+            print year
 
             # This line is too slow, so we do it by hand
             allds.append(ds.mean('time'))
-
-            # newvars = {}
-            # for var in ds:
-            #     if var in ['time', 'region']:
-            #         continue
-
-            #     print var
-            #     newvars[var] = (['region'], ds[var].values.mean(axis=ds[var].dims.index('time')))
-
-            # newds = xr.Dataset(newvars, coords={'region': ds.region})
-            # allds.append(newds)
             
         allyears = xr.concat(allds, dim='time')
 
@@ -141,8 +130,8 @@ class SingleWeatherBundle(ReaderWeatherBundle, DailyWeatherBundle):
         return False
 
     def yearbundles(self, maxyear=np.inf):
-        for ds in self.reader.read_iterator_to(maxyear):
-            yield ds
+        for year, ds in self.reader.read_iterator_to(maxyear):
+            yield year, ds
 
     def get_years(self):
         return self.reader.get_years()
@@ -169,15 +158,17 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
         if len(self.pastfuturereaders) == 1:
             for ds in self.pastfuturereaders[0].read_iterator_to(min(self.futureyear1, maxyear)):
                 assert ds.region.shape[0] == len(self.regions)
-                yield ds
+                year = ds['time.year'][0]
+                yield year, ds
 
-            lastyear = ds['time.year'][-1]
+            lastyear = year
             if maxyear > self.futureyear1:
                 for ds in self.pastfuturereaders[1].read_iterator_to(maxyear):
-                    if ds['time.year'][0] <= lastyear:
+                    year = ds['time.year'][0]
+                    if year <= lastyear:
                         continue # allow for overlapping weather
                     assert ds.region.shape[0] == len(self.regions)
-                    yield ds
+                    yield year, ds
             return
         
         for year in self.get_years():
@@ -200,7 +191,7 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
                 assert ds.region.shape[0] == len(self.regions)
                 allds = xr.merge((allds, ds))
 
-            yield allds
+            yield year, allds
 
     def get_years(self):
         return np.unique(self.pastfuturereaders[0][0].get_years() + self.pastfuturereaders[0][1].get_years())
@@ -255,7 +246,7 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
 
         if len(self.pastreaders) == 1:
             for pastyear in self.pastyears:
-                yield self.reader.read_year(pastyear)
+                yield year, self.reader.read_year(pastyear)
                 year += 1
             return
             
@@ -264,6 +255,8 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
             for pastreader in self.pastreaders:
                 ds = pastreader.read_year(pastyear)
                 allds = xr.merge((allds, ds))
+
+            yield year, allds
             year += 1
 
     def get_years(self):

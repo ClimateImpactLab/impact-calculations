@@ -184,5 +184,6 @@ class RegionReorderWeatherReader(WeatherReader):
                     newvars[var] = (['region', 'time'], ds[var].values[self.reorder, :])
 
         newds = xr.Dataset(newvars, coords={'time': ds.time, 'region': ds.region[self.reorder]})
+        newds.load()
 
         return newds
