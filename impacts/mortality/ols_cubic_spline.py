@@ -1,10 +1,7 @@
-import csv, copy
 import numpy as np
 from adaptation import csvvfile, curvegen, curvegen_known, covariates, constraints
-from generate import caller
 from openest.models.curve import CubicSplineCurve, ClippedCurve, ShiftedCurve, MinimumCurve, SelectiveInputCurve, OtherClippedCurve
 from openest.generate.stdlib import *
-from openest.generate import diagnostic
 from impactcommon.math import minspline
 
 knots = [-10, 0, 10, 20, 28, 33]
