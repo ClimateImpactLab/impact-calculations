@@ -4,10 +4,11 @@ from openest.generate import diagnostic
 from openest.models.curve import ZeroInterceptPolynomialCurve, CubicSplineCurve
 
 class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
-    def __init__(self, indepunits, depenunit, prefix, order, csvv):
+    def __init__(self, indepunits, depenunit, prefix, order, csvv, diagsuffix=''):
         self.order = order
         prednames = [prefix + str(ii) if ii > 1 else prefix for ii in range(1, order+1)]
         super(PolynomialCurveGenerator, self).__init__(prednames, indepunits * order, depenunit, csvv)
+        self.diagsuffix = diagsuffix
 
     def get_curve(self, region, year, covariates={}, recorddiag=True):
         coefficients = self.get_coefficients(covariates)
@@ -15,7 +16,7 @@ class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
 
         if recorddiag and diagnostic.is_recording():
             for predname in self.prednames:
-                diagnostic.record(region, covariates.get('year', 2000), predname, coefficients[predname])
+                diagnostic.record(region, covariates.get('year', 2000), self.diagsuffix + predname, coefficients[predname])
 
         return ZeroInterceptPolynomialCurve([-np.inf, np.inf], yy)
 
