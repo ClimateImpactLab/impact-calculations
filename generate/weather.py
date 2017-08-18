@@ -106,7 +106,26 @@ class DailyWeatherBundle(WeatherBundle):
         """Return a list of the values for each period x region."""
         raise NotImplementedError
 
-    def baseline_values(self, maxyear):
+    def baseline_average(self, maxyear):
+        """Yield the average weather value up to `maxyear` for each region."""
+
+        if len(self.get_dimension()) == 1:
+            regionsums = np.zeros(len(self.regions))
+        else:
+            regionsums = np.zeros((len(self.regions), len(self.get_dimension())))
+
+        sumcount = 0
+        for weatherslice in self.yearbundles(maxyear):
+            print weatherslice.get_years()[0]
+
+            regionsums += np.mean(weatherslice.weathers, axis=0)
+            sumcount += 1
+
+        region_averages = regionsums / sumcount
+        for ii in range(len(self.regions)):
+            yield self.regions[ii], region_averages[ii]
+
+    def baseline_values(self, maxyear, do_mean=True):
         """Yield the list of all weather values up to `maxyear` for each region."""
 
         # Construct an empty dataset to append to
@@ -116,8 +135,11 @@ class DailyWeatherBundle(WeatherBundle):
         for year, ds in self.yearbundles(maxyear):
             print year
 
-            # This line is too slow, so we do it by hand
-            allds.append(ds.mean('time'))
+            # Stack this year below the previous years
+            if do_mean:
+                allds.append(ds.mean('time'))
+            else:
+                allds.append(ds)
             
         allyears = xr.concat(allds, dim='time')
 

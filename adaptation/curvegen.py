@@ -9,12 +9,16 @@ class CSVVCurveGenerator(CurveGenerator):
         self.prednames = prednames
 
         for ii, predname in enumerate(prednames):
-            assert predname in csvv['variables'], "Predictor %s not found in CSVV." % predname
-            if predname in csvv['variables']:
+            if predname not in csvv['variables']:
+                print "WARNING: Predictor %s definition not found in CSVV." % predname
+            else:
                 if 'unit' in csvv['variables'][predname]:
                     assert csvv['variables'][predname]['unit'] == indepunits[ii], "Units error for %s: %s <> %s" % (predname, csvv['variables'][predname]['unit'], indepunits[ii])
 
-        assert csvv['variables']['outcome']['unit'] == depenunit, "Dependent units %s does not match %s." % (csvv['variables']['outcome']['unit'], depenunit)
+        if 'outcome' not in csvv['variables']:
+            print "WARNING: Dependent variable definition not in CSVV."
+        else:
+            assert csvv['variables']['outcome']['unit'] == depenunit, "Dependent units %s does not match %s." % (csvv['variables']['outcome']['unit'], depenunit)
 
         # Preprocessing
         self.constant = {} # {predname: constant}

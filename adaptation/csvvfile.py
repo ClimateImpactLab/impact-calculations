@@ -107,7 +107,7 @@ def subset(csvv, toinclude):
 
     return subcsvv
 
-def filter(csvv, func):
+def filtered(csvv, func):
     toinclude = filter(lambda ii: func(csvv['prednames'][ii], csvv['covarnames'][ii]), range(len(csvv['prednames'])))
     return subset(csvv, toinclude)
 
