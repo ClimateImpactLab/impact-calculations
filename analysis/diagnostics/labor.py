@@ -4,8 +4,8 @@ import lib
 dir = sys.argv[1]
 
 weathertemplate = "/shares/gcp/climate/BCSD/hierid/popwt/daily/tasmax/{0}/CCSM4/{1}/1.0.nc4"
-csvvmodel = "labor_global_interaction_2factor_BEST_Poly2_10Aug"
-model = "labor_global_interaction_2factor_BEST_Poly2_10Aug-clipped"
+csvvmodel = "labor_global_interaction_2factor_BEST_Poly2_15Aug"
+model = "labor_global_interaction_2factor_BEST_Poly2_15Aug"
 futureyear = 2050
 region = 'IND.33.542.2153'
 onlyreg = True #False
