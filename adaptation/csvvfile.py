@@ -107,6 +107,10 @@ def subset(csvv, toinclude):
 
     return subcsvv
 
+def filtered(csvv, func):
+    toinclude = filter(lambda ii: func(csvv['prednames'][ii], csvv['covarnames'][ii]), range(len(csvv['prednames'])))
+    return subset(csvv, toinclude)
+
 def get_gamma(csvv, predname, covarname):
     for ii in range(len(csvv['gamma'])):
         if csvv['prednames'][ii] == predname and csvv['covarnames'][ii] == covarname:
