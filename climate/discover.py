@@ -7,14 +7,25 @@ from impactlab_tools.utils import files
 from reader import ConversionWeatherReader
 from dailyreader import DailyWeatherReader, YearlyBinnedWeatherReader
 from yearlyreader import YearlyWeatherReader
+import pattern_matching
 
 def standard_variable(name, timerate):
+    if '/' in name:
+        return discover_versioned(files.configpath(name), os.path.basename(name))
+    
     assert timerate in ['day', 'month', 'year']
 
     if timerate == 'day':
         if name in ['tas'] + ['tas-poly-' + str(ii) for ii in range(2, 10)]:
             return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/" + name), name)
-
+        if name in ['tas' + str(ii) for ii in range(2, 10)]:
+            return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-" + name[3]), 'tas-poly-' + name[3])
+            
+        if name in ['tasmax'] + ['tasmax-poly-' + str(ii) for ii in range(2, 10)]:
+            return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/" + name), name)
+        if name in ['tasmax' + str(ii) for ii in range(2, 10)]:
+            return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tasmax-poly-" + name[6]), 'tasmax-poly-' + name[6])
+            
     raise ValueError("Unknown variable: " + name)
         
 def discover_models(basedir):
@@ -28,13 +39,17 @@ def discover_models(basedir):
         if scenario[0:3] != 'rcp':
             continue
 
-        for model in models:
+        for model in models + pattern_matching.rcp_models[scenario].keys():
             pastdir = os.path.join(basedir, 'historical', model)
             futuredir = os.path.join(basedir, scenario, model)
 
-            if not os.path.exists(futuredir):
-                print "Missing %s %s" % (scenario, model)
-                continue
+            if not os.path.exists(pastdir):
+                if model in pattern_matching.rcp_models[scenario]:
+                    pastdir = os.path.join(basedir, 'historical',
+                                           pattern_matching.rcp_models[scenario][model])
+                    if not os.path.exists(pastdir):
+                        print "Missing pattern-base for %s %s" % (scenario, model)
+                        continue
 
             yield scenario, model, pastdir, futuredir
 
