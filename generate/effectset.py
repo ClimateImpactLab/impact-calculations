@@ -38,7 +38,7 @@ def simultaneous_application(weatherbundle, calculation, regions=None, push_call
 
     calculation.cleanup()
 
-def generate(targetdir, basename, weatherbundle, calculation, description, calculation_dependencies, config, filter_region=None, result_callback=None, push_callback=None, subset=None, diagnosefile=False):
+def generate(targetdir, basename, weatherbundle, calculation, description, calculation_dependencies, config, filter_region=None, push_callback=None, subset=None, diagnosefile=False):
     if 'mode' in config and config['mode'] == 'profile':
         return small_print(weatherbundle, calculation, regions=10)
 
@@ -48,9 +48,9 @@ def generate(targetdir, basename, weatherbundle, calculation, description, calcu
     if filter_region is None:
         filter_region = config.get('filter_region', None)
     
-    return write_ncdf(targetdir, basename, weatherbundle, calculation, description, calculation_dependencies, filter_region=filter_region, result_callback=result_callback, push_callback=push_callback, subset=subset, diagnosefile=diagnosefile)
+    return write_ncdf(targetdir, basename, weatherbundle, calculation, description, calculation_dependencies, filter_region=filter_region, push_callback=push_callback, subset=subset, diagnosefile=diagnosefile)
 
-def write_ncdf(targetdir, basename, weatherbundle, calculation, description, calculation_dependencies, filter_region=None, result_callback=None, push_callback=None, subset=None, diagnosefile=False):
+def write_ncdf(targetdir, basename, weatherbundle, calculation, description, calculation_dependencies, filter_region=None, push_callback=None, subset=None, diagnosefile=False):
     if filter_region is None:
         my_regions = weatherbundle.regions
     else:
@@ -108,8 +108,6 @@ def write_ncdf(targetdir, basename, weatherbundle, calculation, description, cal
         diagnostic.begin(diagnosefile)
 
     for ii, year, results in simultaneous_application(weatherbundle, calculation, regions=my_regions, push_callback=push_callback):
-        if result_callback is not None:
-            result_callback(my_regions[ii], year, results, calculation)
         for col in range(len(results)):
             columndata[col][year - yeardata[0], ii] = results[col]
         if diagnosefile:

@@ -50,7 +50,7 @@ def iterate_single():
     yield singledir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
 
 def splinepush_callback(region, year, application, get_predictors, model):
-    covars = ['climtas', 'loggdppc', 'logpopop']
+    covars = ['loggdppc', 'hotdd_30*(tasmax - 27)*I_{T >= 27}', 'colddd_10*(27 - tasmax)*I_{T < 27}']
 
     filepath = os.path.join(targetdir, config['module'] + "-allpreds.csv")
     if not os.path.exists(filepath):
@@ -65,34 +65,24 @@ def splinepush_callback(region, year, application, get_predictors, model):
 
         writer.writerow([region, year, model] + [predictors[covar] for covar in covars])
 
-def polyresult_callback(region, year, result, calculation, model):
-    filepath = os.path.join(targetdir, config['module'] + "-allcoeffs.csv")
-    if not os.path.exists(filepath):
-        column_info = calculation.column_info()[0]
-        result_description = "%s [%s]" % (column_info['title'], calculation.unitses[0])
-        metacsv.to_header(filepath, attrs=OrderedDict([('oneline', "Beta coefficients and result values by region and year"), ('version', config['module'] + config['outputdir'][config['outputdir'].rindex('-'):]), ('author', "James R."), ('contact', "jrising@berkeley.edu"), ('dependencies', [model + '.nc4'])]), variables=OrderedDict([('region', "Hierarchy region index"), ('year', "Year of the result"), ('model', "Specification (determined by the CSVV)"), ('result', result_description)]))
-        with open(filepath, 'a') as fp:
-            writer = csv.writer(fp)
-            writer.writerow(['region', 'year', 'model', 'result'])
-
-    with open(filepath, 'a') as fp:
-        writer = csv.writer(fp)
-        writer.writerow([region, year, model, result[0]])
-
 def polypush_callback(region, year, application, get_predictors, model):
-    covars = ['climtas', 'loggdppc']
+    covars = ['loggdppc', 'hotdd_30*(tasmax - 27)*I_{T >= 27}', 'colddd_10*(27 - tasmax)*I_{T < 27}']
+    covarnames = ['loggdppc', 'hotdd_30', 'colddd_10']
 
     filepath = os.path.join(targetdir, config['module'] + "-allpreds.csv")
     if not os.path.exists(filepath):
         vardefs = yaml.load(open(files.configpath("social/variables.yml"), 'r'))
         variables = [('region', "Hierarchy region index"), ('year', "Year of the result"), ('model', "Specification (determined by the CSVV)")]
         for covar in covars:
-            variables.append((covar, vardefs[covar]))
+            if covar in vardefs:
+                variables.append((covar, vardefs[covar]))
+            else:
+                variables.append((covar, "Unknown variable; append social/variables.yml"))
 
         metacsv.to_header(filepath, attrs=OrderedDict([('oneline', "Yearly covariates by region and year"), ('version', config['module'] + config['outputdir'][config['outputdir'].rindex('-'):]), ('author', "James R."), ('contact', "jrising@berkeley.edu"), ('dependencies', [model + '.nc4'])]), variables=OrderedDict(variables))
         with open(filepath, 'a') as fp:
             writer = csv.writer(fp)
-            writer.writerow(['region', 'year', 'model'] + covars)
+            writer.writerow(['region', 'year', 'model'] + covarnames)
 
     with open(filepath, 'a') as fp:
         writer = csv.writer(fp)
@@ -140,7 +130,7 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
     if config['mode'] == 'writesplines':
         mod.produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callback=splinepush_callback, diagnosefile=os.path.join(targetdir, config['module'] + "-allcalcs.csv"))
     elif config['mode'] == 'writepolys':
-        mod.produce(targetdir, weatherbundle, economicmodel, pvals, config, result_callback=polyresult_callback, push_callback=polypush_callback, diagnosefile=os.path.join(targetdir, config['module'] + "-allcalcs.csv"))
+        mod.produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callback=polypush_callback, diagnosefile=os.path.join(targetdir, config['module'] + "-allcalcs.csv"))
     elif config['mode'] == 'profile':
         mod.produce(targetdir, weatherbundle, economicmodel, pvals, config, profile=True)
         pr.disable()
