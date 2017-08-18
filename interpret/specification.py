@@ -12,27 +12,29 @@ def user_assert(check, message):
     if not check:
         user_failure(message)
     
-def prepare(specconf, csvv, weatherbundle, economicmodel, qvals):
-    user_assert('covariates' in specconf, "Specification configuration missing 'covariates' list.")
+def prepare(csvv, weatherbundle, economicmodel, qvals, specconf={}, farmer='full'):
     user_assert('depenunit' in specconf, "Specification configuration missing 'depenunit' string.")
     user_assert('functionalform' in specconf, "Specification configuration missing 'functionalform' string.")
     user_assert('description' in specconf, "Specification configuration missing 'description' string.")
     
     csvvfile.collapse_bang(csvv, qvals.get_seed())
 
-    covariators = []
-    for covar in specconf['covariates']:
-        if covar == 'loggdppc':
-            covariators.append(covariates.EconomicCovariator(economicmodel, 13, 2015))
-        elif covar == 'climtas':
-            covariators.append(covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 30, 2015, 'tas'), {'climtas': 'tas'}))
+    if 'covariates' in specconf:
+        covariators = []
+        for covar in specconf['covariates']:
+            if covar == 'loggdppc':
+                covariators.append(covariates.EconomicCovariator(economicmodel, 13, 2015))
+            elif covar == 'climtas':
+                covariators.append(covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 30, 2015, 'tas'), {'climtas': 'tas'}))
+            else:
+                user_failure("Covariate %s is unknown." % covar)
+            
+        if len(covariators) == 1:
+            covariator = covariators[0]
         else:
-            user_failure("Covariate %s is unknown." % covar)
-
-    if len(covariators) == 1:
-        covariator = covariators[0]
+            covariator = covariates.CombinedCovariator(covariators)
     else:
-        covariator = covariates.CombinedCovariator(covariators)
+        covariator = None
     
     depenunit = specconf['depenunit']
     
@@ -73,8 +75,12 @@ def prepare(specconf, csvv, weatherbundle, economicmodel, qvals):
         mintemp = specconf.get('clip-mintemp')
         maxtemp = specconf.get('clip-maxtemp')
         # Determine minimum value of curve between 10C and 25C
-        baselinecurves, baselinemins = constraints.get_curve_minima(weatherbundle.regions, curvegen, covariator, mintemp, maxtemp,
-                                                                    minfinder(mintemp, maxtemp))
+        if covariator:
+            baselinecurves, baselinemins = constraints.get_curve_minima(weatherbundle.regions, curvegen, covariator,
+                                                                        mintemp, maxtemp, minfinder(mintemp, maxtemp))
+        else:
+            curvemin = minfinder(mintemp, maxtemp)(curvegen.get_curve('global', 2000, {}))
+            baselinemins = {region: curvemin for region in weatherbundle.regions}
 
     def transform(region, curve):
         final_curve = CoefficientsCurve(curve.ccs, weathernames)
@@ -91,14 +97,16 @@ def prepare(specconf, csvv, weatherbundle, economicmodel, qvals):
 
             final_curve = MinimumCurve(final_curve, noincadapt_curve)
 
-        if specconf.get('goodmoney', False):
+        if specconf.get('clipping', False):
             return ClippedCurve(final_curve)
         else:
             return final_curve
 
-    clip_curvegen = curvegen.TransformCurveGenerator(curvegen, transform)
-    farm_curvegen = curvegen.FarmerCurveGenerator(clip_curvegen, covariator, farmer)
+    final_curvegen = curvegen.TransformCurveGenerator(curvegen, transform)
 
-    calculation = YearlyAverageDay(depenunit, farm_curvegen, specconf['description']),
+    if covariator:
+        final_curvegen = curvegen.FarmerCurveGenerator(final_curvegen, covariator, farmer)
+
+    calculation = YearlyAverageDay(depenunit, final_curvegen, specconf['description']),
 
     return calculation, [], covariator.get_current

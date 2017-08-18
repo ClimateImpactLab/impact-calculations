@@ -1,0 +1,22 @@
+timerate: day
+climate: tas, tas-poly-2, tas-poly-3, tas-poly-4, tas-poly-5
+models:
+  - csvvs: social/parameters/mortality/India/*poly*.csvv
+    specification:
+      description: Temperature-driven death rate for all-ages in India
+      depenunit: deaths / 1e5 people
+      functionalform: polynomial
+      clipping: true
+      variable: tas
+      indepunit: C
+  - csvvs: social/parameters/mortality/Diagnostics_Apr17/*POLY-4*.csvv
+    subset: 0:12
+    specification:
+      description: Globally heterogeneous temperature-driven death rate for young children
+      depenunit: deaths / 1e5 people
+      covariates: loggdppc, climtas
+      functionalform: polynomial
+      clipping: true
+      goodmoney: true
+      variable: tas
+      indepunit: C
