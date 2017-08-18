@@ -152,10 +152,10 @@ class YearlyWeatherCovariator(Covariator):
 
         predictors = {region: standard_running_mean_init([], duration) for region in regions}
 
-        for years, values in yearlyreader.read_iterator():
-            assert len(values) == 1
+        for weatherslice in yearlyreader.read_iterator():
+            assert len(weatherslice.times) == 1
             for ii in range(len(regions)):
-                predictors[regions[ii]].update(values[0, ii])
+                predictors[regions[ii]].update(weatherslice.weathers[0, ii])
 
         self.predictors = predictors
 

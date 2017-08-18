@@ -2,7 +2,7 @@ import os, glob, traceback
 import numpy as np
 from impactlab_tools.utils import files
 from adaptation import csvvfile
-from generate import weather, server, effectset, caller, checks, agglib
+from generate import weather, effectset, caller, checks, agglib
 from climate.discover import discover_versioned, discover_variable
 from datastore import agecohorts
 
@@ -30,12 +30,10 @@ def check_doit(targetdir, basename, suffix):
 
     return False
 
-def produce(targetdir, weatherbundle, economicmodel, pvals, config, result_callback=None, push_callback=None, suffix='', profile=False, diagnosefile=False):
+def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callback=None, suffix='', profile=False, diagnosefile=False):
     print config['do_only']
 
     if config['do_only'] is None or config['do_only'] == 'interpolation':
-        if result_callback is None:
-            result_callback = lambda reg, yr, res, calc, mod: None
         if push_callback is None:
             push_callback = lambda reg, yr, app, predget, mod: None
 
@@ -77,7 +75,7 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, result_callb
                     print "Smart Farmer"
                     calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(subcsvv, module, weatherbundle, economicmodel, pvals[subbasename])
 
-                    effectset.generate(targetdir, subbasename + suffix, weatherbundle, calculation, "Mortality impacts, with interpolation and adaptation through interpolation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, subbasename), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, subbasename), diagnosefile=diagnosefile.replace('.csv', '-' + subbasename + '.csv') if diagnosefile else False)
+                    effectset.generate(targetdir, subbasename + suffix, weatherbundle, calculation, "Mortality impacts, with interpolation and adaptation through interpolation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, subbasename), diagnosefile=diagnosefile.replace('.csv', '-' + subbasename + '.csv') if diagnosefile else False)
 
                     if profile:
                         return
@@ -90,13 +88,13 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, result_callb
                     if check_doit(targetdir, subbasename + "-noadapt", suffix):
                         calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(subcsvv, module, weatherbundle, economicmodel, pvals[subbasename], farmer='coma')
 
-                        effectset.generate(targetdir, subbasename + "-noadapt" + suffix, weatherbundle, calculation, "Mortality impacts, with interpolation but no adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, subbasename + '-noadapt'), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, subbasename + '-noadapt'))
+                        effectset.generate(targetdir, subbasename + "-noadapt" + suffix, weatherbundle, calculation, "Mortality impacts, with interpolation but no adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, subbasename + '-noadapt'))
 
                     # Dumb Farmer
                     if check_doit(targetdir, subbasename + "-incadapt", suffix):
                         calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(subcsvv, module, weatherbundle, economicmodel, pvals[subbasename], farmer='dumb')
 
-                        effectset.generate(targetdir, subbasename + "-incadapt" + suffix, weatherbundle, calculation, "Mortality impacts, with interpolation and only environmental adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, result_callback=lambda reg, yr, res, calc: result_callback(reg, yr, res, calc, subbasename + '-incadapt'), push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, subbasename + '-incadapt'))
+                        effectset.generate(targetdir, subbasename + "-incadapt" + suffix, weatherbundle, calculation, "Mortality impacts, with interpolation and only environmental adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, subbasename + '-incadapt'))
 
             # Combine the ages
             try:

@@ -25,7 +25,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
     
     # Determine minimum value of curve between 10C and 25C
     baselinecurves, baselinemins = constraints.get_curve_minima(weatherbundle.regions, curr_curvegen, covariator, 10, 25,
-                                                                lambda curve: minpoly.findpolymin([0] + curve.ccs, 10, 25))
+                                                                lambda region, curve: minpoly.findpolymin([0] + curve.ccs, 10, 25))
 
     def transform(region, curve):
         coeff_curve = CoefficientsCurve(curve.ccs, weathernames)
@@ -46,7 +46,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
         goodmoney_curve = MinimumCurve(fulladapt_curve, noincadapt_curve)
         return ClippedCurve(goodmoney_curve)
 
-    clip_curvegen = curvegen.TransformCurveGenerator(curr_curvegen, transform)
+    clip_curvegen = curvegen.TransformCurveGenerator(transform, curr_curvegen)
     farm_curvegen = curvegen.FarmerCurveGenerator(clip_curvegen, covariator, farmer)
 
     # Generate the marginal income curve
@@ -57,7 +57,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
         shifted_curve = ShiftedCurve(climtas_coeff_curve, -climtas_effect_curve(baselinemins[region]))
         return OtherClippedCurve(curve, shifted_curve)
 
-    climtas_effect_curvegen = curvegen.TransformCurveGenerator(farm_curvegen, transform_climtas_effect)
+    climtas_effect_curvegen = curvegen.TransformCurveGenerator(transform_climtas_effect, farm_curvegen)
 
     # Produce the final calculation
     calculation = Transform(AuxillaryResult(YearlyAverageDay('100,000 * death/population', farm_curvegen,
