@@ -1,4 +1,4 @@
-import subprocess, csv
+import subprocess, csv, os
 import numpy as np
 from netCDF4 import Dataset
 
@@ -62,6 +62,13 @@ def get_excerpt(filepath, first_col, regionid, years, hasmodel=True, onlymodel=N
 def excind(data, year, column):
     return data[str(year)][data['header'].index(column)]
 
+def parse_csvv_line(line):
+    line = line.rstrip().split(',')
+    if len(line) == 1:
+        line = line[0].split('\t')
+
+    return line
+
 def get_csvv(filepath, index0=None, indexend=None):
     csvv = {}
     with open(filepath, 'rU') as fp:
@@ -69,9 +76,9 @@ def get_csvv(filepath, index0=None, indexend=None):
         for line in fp:
             if printline is not None:
                 if printline == 'gamma':
-                    csvv['gamma'] = map(float, line.rstrip().split(','))
+                    csvv['gamma'] = map(float, parse_csvv_line(line))
                 else:
-                    csvv[printline] = map(lambda x: x.strip(), line.rstrip().split(','))
+                    csvv[printline] = map(lambda x: x.strip(), parse_csvv_line(line))
 
                 if index0 is not None:
                     csvv[printline] = csvv[printline][index0:indexend]
@@ -83,6 +90,13 @@ def get_csvv(filepath, index0=None, indexend=None):
 
     return csvv
 
+def get_gamma(csvv, predname, covarname):
+    for ii in range(len(csvv['gamma'])):
+        if csvv['prednames'][ii] == predname and csvv['covarnames'][ii] == covarname:
+            return csvv['gamma'][ii]
+
+    return None
+
 def show_coefficient(csvv, preds, year, coefname, covartrans):
     predyear = year - 1 if year > 2015 else year
 
@@ -92,6 +106,8 @@ def show_coefficient(csvv, preds, year, coefname, covartrans):
             if csvv['covarnames'][ii] == '1':
                 terms.append(str(csvv['gamma'][ii]))
             elif csvv['covarnames'][ii] in covartrans:
+                if covartrans[csvv['covarnames'][ii]] is None:
+                    continue # Skip this one
                 terms.append(str(csvv['gamma'][ii]) + " * " + str(excind(preds, predyear, covartrans[csvv['covarnames'][ii]])))
             else:
                 terms.append(str(csvv['gamma'][ii]) + " * " + str(excind(preds, predyear, csvv['covarnames'][ii])))
@@ -126,11 +142,18 @@ def get_regionindex(region):
             if row[0] == region:
                 return int(row[6]) - 1
 
-def get_weather(weathertemplate, years, shapenum, show_all_years=[]):
+def get_weather(weathertemplate, years, shapenum=None, show_all_years=[], variable='tas'):
     weather = {}
     for year in years:
-        rootgrp = Dataset(weathertemplate.format('historical' if year < 2006 else 'rcp85', year), 'r', format='NETCDF4')
-        data = rootgrp.variables['tas'][:, shapenum]
+        filepath = weathertemplate.format('historical' if year < 2006 else 'rcp85', year)
+        assert os.path.exists(filepath), "Cannot find %s" % filepath
+        rootgrp = Dataset(filepath, 'r', format='NETCDF4')
+        if isinstance(shapenum, str):
+            regions = rootgrp.variables['hierid'][:]
+            regions = [''.join([region[ii] for ii in range(len(region)) if region[ii] is not np.ma.masked]) for region in regions]
+            shapenum = regions.index(shapenum)
+            
+        data = rootgrp.variables[variable][:, shapenum]
         rootgrp.close()
 
         if year in show_all_years:
@@ -143,6 +166,10 @@ def get_weather(weathertemplate, years, shapenum, show_all_years=[]):
 
 def get_outputs(outputpath, years, shapenum):
     rootgrp = Dataset(outputpath, 'r', format='NETCDF4')
+    if isinstance(shapenum, str):
+        regions = list(rootgrp.variables['regions'][:])
+        shapenum = regions.index(shapenum)
+
     outyears = list(rootgrp.variables['year'])
     outvars = [var for var in rootgrp.variables if len(rootgrp.variables[var].shape) == 2]
     print 'year,' + ','.join(outvars)
