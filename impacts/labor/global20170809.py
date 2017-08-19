@@ -19,6 +19,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     reader_hotdd = discover.discover_yearly_corresponding(files.sharedpath('climate/BCSD/aggregation/cmip5_new/IR_level'),
                                                           weatherbundle.scenario, 'Degreedays_tasmax',
                                                           weatherbundle.model, 'hotdd_agg')
+    assert reader_hotdd is not None, "Cannot find corresponding weather to %s, %s, %s, %s" % (weatherbundle.scenario, 'Degreedays_tasmax', weatherbundle.model, 'hotdd_agg')
 
     predgen = covariates.CombinedCovariator([covariates.TranslateCovariator(
         covariates.YearlyWeatherCovariator(reader_hotdd, weatherbundle.regions, 2015, 15, weatherbundle.is_historical()),

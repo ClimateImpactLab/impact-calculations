@@ -1,2 +1,0 @@
-#!/bin/bash
-Rscript generate/cost_curves.R /shares/gcp/outputs/temps/rcp85/CCSM4/climtas.nc4 rcp85 CCSM4 /shares/gcp/temp-harvester/single/rcp85/CCSM4/low/SSP4/global_interaction_Tmean-POLY-4-AgeSpec-oldest.nc4 /shares/gcp/social/parameters/mortality/Diagnostics_Apr17/global_interaction_Tmean-POLY-4-AgeSpec.csvv /shares/gcp/temp-harvester/single/rcp85/CCSM4/low/SSP4/global_interaction_Tmean-POLY-4-AgeSpec-oldest-polymins.csv "25:36"
