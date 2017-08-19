@@ -1,0 +1,16 @@
+specification:
+  description: Temperature-driven death rate for all-ages in India
+  depenunit: 100000 * death/population
+  functionalform: polynomial
+  clipping: true
+  variable: tas
+  indepunit: C
+targetdir: testing
+pvals: median
+rcp: rcp85
+gcm: CCSM4
+ssp: SSP4
+iam: high
+climate: [tas, tas-poly-2, tas-poly-3, tas-poly-4]
+csvvpath: social/parameters/mortality/India/IND_moratlity_poly_4_GMFD_062717.csvv
+weighting: population
