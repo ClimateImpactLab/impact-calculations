@@ -1,6 +1,5 @@
 module: labor
 mode: writepolys
-filter_region: IND.33.542.2153
 outputdir: /shares/gcp/outputs/labor/impacts-rasberry
 do_only: interpolation
 do_farmers: false
