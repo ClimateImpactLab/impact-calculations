@@ -10,7 +10,7 @@ class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
         super(PolynomialCurveGenerator, self).__init__(prednames, indepunits * order, depenunit, csvv)
         self.diagsuffix = diagsuffix
 
-    def get_curve(self, region, year, covariates={}, recorddiag=True):
+    def get_curve(self, region, year, covariates={}, recorddiag=True, **kwargs):
         coefficients = self.get_coefficients(covariates)
         yy = [coefficients[predname] for predname in self.prednames]
 
@@ -26,7 +26,7 @@ class CubicSplineCurveGenerator(curvegen.CSVVCurveGenerator):
         prednames = [prefix + str(ii) for ii in range(len(knots)-1)]
         super(CubicSplineCurveGenerator, self).__init__(prednames, indepunits, depenunit, csvv)
 
-    def get_curve(self, region, year, covariates={}, recorddiag=True):
+    def get_curve(self, region, year, covariates={}, recorddiag=True, **kwargs):
         coefficients = self.get_coefficients(covariates)
         yy = [coefficients[predname] for predname in self.prednames]
 
