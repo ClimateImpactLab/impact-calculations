@@ -17,8 +17,6 @@ do_profile = False
 
 config = files.get_allargv_config()
 
-module = "impacts." + config['module']
-
 targetdir = config['targetdir']
 pvals = pvalses.interpret(config) # pvals
 clim_scenario = config['rcp']
@@ -53,11 +51,10 @@ suffix, farmer = farming.interpret(config)
 print "Loading weights..."
 get_weight = weights.interpret(config)
 
-print "Loading calculation..."
-calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals[basename], farmer=farmer)
-
 if not os.path.exists(targetdir):
     os.makedirs(targetdir)
+
+print "Loading calculation..."
 
 if do_profile:
     config['mode'] = 'profile'
@@ -65,6 +62,19 @@ if do_profile:
     pr = cProfile.Profile()
     pr.enable()
 
+if 'module' in config:
+    module = "impacts." + config['module']
+    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals[basename], farmer=farmer)
+
+elif 'specification' in config:
+    from interpret import specification
+    specconf = config['specification']
+    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, 'interpret.specification', weatherbundle, economicmodel, pvals[basename], specconf=specconf)
+
+else:
+    print "ERROR: Unknown model specification method."
+    exit()
+    
 effectset.generate(targetdir, basename + suffix, weatherbundle, calculation, "Singly produced result.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config)
 
 if do_profile:
