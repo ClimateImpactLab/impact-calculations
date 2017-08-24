@@ -43,7 +43,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
         def shift_curve(region, curve):
             shift = -csvvfile.get_gamma(csvv, 'tasmax', covars[0]) * 27 * predgen.get_current(region)[covars[0]]
             for term in range(2, order+1):
-                shift += -csvvfile.get_gamma(csvv, 'tasmax%d' % term, covars[term-1]) * 27*27 * predgen.get_current(region)[covars[term-1]]
+                shift += -csvvfile.get_gamma(csvv, 'tasmax%d' % term, covars[term-1]) * (27**term) * predgen.get_current(region)[covars[term-1]]
             return ShiftedCurve(CoefficientsCurve(curve.ccs, curve, lambda x: x[:, :order]), shift)
 
         return curvegen.TransformCurveGenerator(shift_curve, poly_curvegen)
@@ -75,29 +75,29 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
                                                               get_historical_range, {'min': "Historical minimum temperature",
                                                                                      'max': "Historical maximum temperature"}, {})
 
-    def analytic_minimum(region, piecewise_curve):
+    def analytic_maximum(region, piecewise_curve):
         mintemp = region_mins[region]
         maxtemp = region_maxs[region]
 
         if maxtemp < 27:
-            return minpoly.findpolymin([0] + piecewise_curve.curves[0].curve.coeffs, mintemp, maxtemp)
+            return minpoly.findpolymin([0] + map(lambda x: -x, piecewise_curve.curves[0].curve.coeffs), mintemp, maxtemp)
         if mintemp > 27:
-            return minpoly.findpolymin([0] + piecewise_curve.curves[1].curve.coeffs, mintemp, maxtemp)
+            return minpoly.findpolymin([0] + map(lambda x: -x, piecewise_curve.curves[1].curve.coeffs), mintemp, maxtemp)
         
-        minleft = minpoly.findpolymin([0] + piecewise_curve.curves[0].curve.coeffs, mintemp, 27)
-        minright = minpoly.findpolymin([0] + piecewise_curve.curves[1].curve.coeffs, 27, maxtemp)
-        minvalues = [piecewise_curve(minleft), piecewise_curve(minright)]
-        if minvalues[0] <= minvalues[1]:
-            return minleft
+        maxleft = minpoly.findpolymin([0] + map(lambda x: -x, piecewise_curve.curves[0].curve.coeffs), mintemp, 27)
+        maxright = minpoly.findpolymin([0] + map(lambda x: -x, piecewise_curve.curves[1].curve.coeffs), 27, maxtemp)
+        maxvalues = [piecewise_curve(maxleft), piecewise_curve(maxright)]
+        if maxvalues[0] <= maxvalues[1]:
+            return maxleft
         else:
-            return minright
+            return maxright
 
-    baselinecurves, baselinemins = constraints.get_curve_minima(weatherbundle.regions, piece_curvegen, predgen,
-                                                                region_mins, region_maxs, analytic_minimum)
+    baselinecurves, baselinemaxs = constraints.get_curve_minima(weatherbundle.regions, piece_curvegen, predgen,
+                                                                region_mins, region_maxs, analytic_maximum)
 
     def shift_piecewise(region, curve):
         if clipping:
-            curve = ClippedCurve(ShiftedCurve(curve, -curve(baselinemins[region])))
+            curve = ClippedCurve(ShiftedCurve(curve, -curve(baselinemaxs[region])), cliplow=False)
 
         return ProductCurve(ShiftedCurve(curve, -curve(27)), StepCurve([-np.inf, 0, np.inf], [0, 1], lambda x: x[:, 0]))
 
