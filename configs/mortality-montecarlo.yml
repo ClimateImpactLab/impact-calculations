@@ -3,5 +3,4 @@ mode: montecarlo
 outputdir: outputs/mortality/impacts-crypto
 do_only: interpolation
 do_farmers: true
-do_fillin: true
 only_gcm: MIROC-ESM
