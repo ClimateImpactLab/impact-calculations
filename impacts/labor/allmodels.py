@@ -7,7 +7,7 @@ def preload():
     pass
 
 def get_bundle_iterator(config):
-    reorder = ('filter_region' in config)
+    reorder = True #('filter_region' in config)
     return weather.iterate_bundles(discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tasmax"), 'tasmax', reorder=reorder),
                                    discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tasmax-poly-2"), 'tasmax-poly-2', reorder=reorder),
                                    discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tasmax-poly-3"), 'tasmax-poly-3', reorder=reorder),

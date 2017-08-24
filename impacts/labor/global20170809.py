@@ -70,7 +70,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
             region_maxs[region] = min(30, np.max(values[:, 0]))
 
         return region_mins, region_maxs
-
+    
     region_mins, region_maxs = modelcache.get_cached_byregion("historical-range", weatherbundle.scenario, weatherbundle.model,
                                                               get_historical_range, {'min': "Historical minimum temperature",
                                                                                      'max': "Historical maximum temperature"}, {})
@@ -106,8 +106,8 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     farm_temp_curvegen = curvegen.FarmerCurveGenerator(shifted_curvegen, predgen, farmer)
     tempeffect = YearlyAverageDay('minutes worked by individual', farm_temp_curvegen, 'the temperature effect')
 
-    zerocurvegen = curvegen.ConstantCurveGenerator('C', 'minutes worked by individual', FlatCurve(csvv['gamma'][-1]))
-    zeroeffect = YearlyAverageDay('minutes worked by individual', zerocurvegen, "effect from days less than 0 C", weather_change=lambda region, temps: temps[:, 0] < 0)
+    zerocurvegen = curvegen.ConstantCurveGenerator('C', 'minutes worked by individual', StepCurve([-np.inf, 0, np.inf], [csvv['gamma'][-1], 0], lambda x: x[:, 0]))
+    zeroeffect = YearlyAverageDay('minutes worked by individual', zerocurvegen, "effect from days less than 0 C")
 
     calculation = Sum([tempeffect, zeroeffect])
 
