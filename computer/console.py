@@ -134,3 +134,21 @@ def maketextbox(screen, h,w,y,x,value="",deco=None,textColorpair=0,decoColorpair
     return nw,txtbox
         
 curses.wrapper(Console)
+
+def maintenance():
+    # When is the last time we collected mortality?
+    pass
+
+def read_log():
+    laststatus = {} # {(project, task): (datetime, status)}
+    with open('console.log', 'r') as fp:
+        for line in fp:
+            parts = line.split()
+            datetime = parts[0]
+            project = parts[1]
+            task = parts[2]
+            status = parts[3:].join()
+
+            laststatus[project, task] = (datetime, status)
+
+    return laststatus

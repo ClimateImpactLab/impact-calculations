@@ -6,18 +6,20 @@ from helpers import header
 from datastore import irregions
 from impactlab_tools.utils import files
 
-def iterdir(basedir):
+def iterdir(basedir, dironly=False):
     for filename in os.listdir(basedir):
-        yield filename, os.path.join(os.path.join(basedir, filename))
+        if dironly and not os.path.isdir(os.path.join(basedir, filename)):
+            continue
+        yield filename, os.path.join(basedir, filename)
 
 def iterresults(outdir, batchfilter=lambda batch: True, targetdirfilter=lambda targetdir: True):
-    for batch, batchpath in iterdir(files.configpath(outdir)):
+    for batch, batchpath in iterdir(files.configpath(outdir), True):
         if not batchfilter(batch):
             continue
-        for clim_scenario, cspath in iterdir(batchpath):
-            for clim_model, cmpath in iterdir(cspath):
-                for econ_model, empath in iterdir(cmpath):
-                    for econ_scenario, espath in iterdir(empath):
+        for clim_scenario, cspath in iterdir(batchpath, True):
+            for clim_model, cmpath in iterdir(cspath, True):
+                for econ_model, empath in iterdir(cmpath, True):
+                    for econ_scenario, espath in iterdir(empath, True):
                         if not targetdirfilter(espath):
                             continue
                         yield batch, clim_scenario, clim_model, econ_scenario, econ_model, espath
