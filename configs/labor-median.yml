@@ -1,5 +1,5 @@
 module: labor
 mode: median
-outputdir: /shares/gcp/outputs/labor/impacts-texanus
+outputdir: /shares/gcp/outputs/labor/impacts-plaster
 do_only: interpolation
 do_farmers: true

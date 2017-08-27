@@ -118,12 +118,12 @@ class MeanWeatherCovariator(Covariator):
             return {self.weatherbundle.get_dimension()[self.varindex]: self.temp_predictors[region].get()}
 
 class SeasonalWeatherCovariator(MeanWeatherCovariator):
-    def __init__(self, weatherbundle, numtempyears, maxbaseline, day_start, day_end, weather_index=None):
+    def __init__(self, weatherbundle, numtempyears, maxbaseline, day_start, day_end, varindex=None):
         super(SeasonalWeatherCovariator, self).__init__(weatherbundle, numtempyears, maxbaseline)
         self.maxbaseline = maxbaseline
         self.day_start = day_start
         self.day_end = day_end
-        self.weather_index = weather_index
+        self.varindex = varindex
         self.all_values = None
 
         self.mustr = "%smu%d-%d" % (self.weatherbundle.get_dimension()[0], self.day_start, self.day_end)
@@ -149,7 +149,7 @@ class SeasonalWeatherCovariator(MeanWeatherCovariator):
 
     def get_update(self, region, year, weather):
         if weather is not None and year > self.startupdateyear:
-            self.all_values[region] = np.concatenate((self.all_values[region][(self.day_end - self.day_start):], weather[self.day_start:self.day_end, self.weather_index]))
+            self.all_values[region] = np.concatenate((self.all_values[region][(self.day_end - self.day_start):], weather[self.day_start:self.day_end, self.varindex]))
 
         mu = np.mean(self.all_values[region])
         sigma = np.std(self.all_values[region])
@@ -167,10 +167,12 @@ class YearlyWeatherCovariator(Covariator):
 
         predictors = {region: standard_running_mean_init([], duration) for region in regions}
 
-        for years, values in yearlyreader.read_iterator():
-            assert len(values) == 1
+        for weatherslice in yearlyreader.read_iterator():
+            assert len(weatherslice.times) == 1
             for ii in range(len(regions)):
-                predictors[regions[ii]].update(values[0, ii])
+                predictors[regions[ii]].update(weatherslice.weathers[0, ii])
+            if weatherslice.get_years()[0] == baseline_end:
+                break
 
         self.predictors = predictors
 

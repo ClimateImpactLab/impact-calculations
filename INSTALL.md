@@ -7,9 +7,12 @@ Required internal packages (consider using `python setup.py develop`):
 
 Required external packages (beyond those required by the internal above):
 
+ - numpy
+ - xarray
+ - netCDF4
  - gspread
  - statsmodels
- - xarray
+ - scipy
  - oauth2client==1.5.2
 
 Server Configuration:

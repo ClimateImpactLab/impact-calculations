@@ -19,6 +19,11 @@ def iterate_econmodels():
                 yield model, scenario, SSPEconomicModel(model, scenario, dependencies)
                 modelscenarios.add((model, scenario))
 
+def get_economicmodel(only_scenario, only_model):
+    for model, scenario, economicmodel in iterate_econmodels():
+        if model == only_model and scenario == only_scenario:
+            return economicmodel
+                
 class SSPEconomicModel(object):
     def __init__(self, model, scenario, dependencies):
         self.model = model

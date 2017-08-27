@@ -2,15 +2,24 @@ import sys, os
 import numpy as np
 from netCDF4 import Dataset
 import weather, nc4writer
-from climate.discover import discover_variable
+from climate import discover
+from impactlab_tools.utils import files
 from impactcommon.math import averages
 
-discoverer = discover_variable('/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level', 'tas')
-outputdir = '/shares/gcp/outputs/temps'
-filename = 'climtas.nc4'
+filename = 'dd_tasmax.nc4'
 
-covar_names = ['climtas']
-covar_calcs = [lambda temps: np.mean(temps)] # Average within each year
+if filename == 'climtas.nc4':
+    discoverer = discover.discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tas')
+    covar_names = ['climtas']
+    annual_calcs = [lambda temps: np.mean(temps)] # Average within each year
+
+if filename == 'dd_tasmax.nc4':
+    discoverer = discover.discover_yearly_collection(files.sharedpath('climate/BCSD/aggregation/cmip5_new/IR_level'),
+                                                     'Degreedays_tasmax', ['coldd_agg', 'hotdd_agg'])
+    covar_names = ['climcold-tasmax', 'climhot-tasmax']
+    annual_calcs = [lambda values: values[0, 0], lambda values: values[0, 1]]
+    
+outputdir = '/shares/gcp/outputs/temps'
 
 standard_running_mean_init = averages.BartlettAverager
 numtempyears = 30
@@ -61,7 +70,7 @@ for clim_scenario, clim_model, weatherbundle in weather.iterate_bundles(discover
 
         for ii in range(len(weatherbundle.regions)):
             for kk in range(len(covar_names)):
-                yearval = covar_calcs[kk](weatherslice.weathers[:, ii])
+                yearval = annual_calcs[kk](weatherslice.weathers[:, ii])
                 annualdata[yy, ii, kk] = yearval
                 regiondata[ii][kk].update(yearval)
                 averageddata[yy, ii, kk] = regiondata[ii][kk].get()
