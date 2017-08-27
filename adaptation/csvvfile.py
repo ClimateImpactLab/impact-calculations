@@ -43,6 +43,10 @@ def read_girdin(data, fp):
                 print row
             assert variable_reading is not None
             if len(row) == 1:
+                row = row[0].split(',')
+            if len(row) == 1:
+                row = row[0].split('\t')
+            if len(row) == 1:
                 row = re.split(r'\s', row[0])
             data[variable_reading].append(map(lambda x: x.strip(), row))
 
@@ -102,6 +106,10 @@ def subset(csvv, toinclude):
         subcsvv['gammavcv'] = csvv['gammavcv'][toinclude, toinclude]
 
     return subcsvv
+
+def filtered(csvv, func):
+    toinclude = filter(lambda ii: func(csvv['prednames'][ii], csvv['covarnames'][ii]), range(len(csvv['prednames'])))
+    return subset(csvv, toinclude)
 
 def get_gamma(csvv, predname, covarname):
     for ii in range(len(csvv['gamma'])):

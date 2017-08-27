@@ -3,10 +3,31 @@ Provides iterators of WeatherReaders (typically a historical and a
 future reader).
 """
 import os
+from impactlab_tools.utils import files
 from reader import ConversionWeatherReader, RegionReorderWeatherReader
 from dailyreader import DailyWeatherReader, YearlyBinnedWeatherReader
 from yearlyreader import YearlyWeatherReader, YearlyCollectionWeatherReader, YearlyArrayWeatherReader
+import pattern_matching
 
+def standard_variable(name, timerate):
+    if '/' in name:
+        return discover_versioned(files.configpath(name), os.path.basename(name))
+    
+    assert timerate in ['day', 'month', 'year']
+
+    if timerate == 'day':
+        if name in ['tas'] + ['tas-poly-' + str(ii) for ii in range(2, 10)]:
+            return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/" + name), name)
+        if name in ['tas' + str(ii) for ii in range(2, 10)]:
+            return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-" + name[3]), 'tas-poly-' + name[3])
+            
+        if name in ['tasmax'] + ['tasmax-poly-' + str(ii) for ii in range(2, 10)]:
+            return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/" + name), name)
+        if name in ['tasmax' + str(ii) for ii in range(2, 10)]:
+            return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tasmax-poly-" + name[6]), 'tasmax-poly-' + name[6])
+            
+    raise ValueError("Unknown variable: " + name)
+        
 def discover_models(basedir):
     """
     basedir points to directory with both 'historical', 'rcp*'
@@ -18,13 +39,17 @@ def discover_models(basedir):
         if scenario[0:3] != 'rcp':
             continue
 
-        for model in models:
+        for model in models + pattern_matching.rcp_models[scenario].keys():
             pastdir = os.path.join(basedir, 'historical', model)
             futuredir = os.path.join(basedir, scenario, model)
 
-            if not os.path.exists(futuredir):
-                print "Missing %s %s" % (scenario, model)
-                continue
+            if not os.path.exists(pastdir):
+                if model in pattern_matching.rcp_models[scenario]:
+                    pastdir = os.path.join(basedir, 'historical',
+                                           pattern_matching.rcp_models[scenario][model])
+                    if not os.path.exists(pastdir):
+                        print "Missing pattern-base for %s %s" % (scenario, model)
+                        continue
 
             yield scenario, model, pastdir, futuredir
 
@@ -103,7 +128,10 @@ def discover_yearly(basedir, vardir, rcp_only=None):
             model = root.split('_')[-1]
             filepath = os.path.join(basedir, scenario, vardir, filename)
             pastpath = filepath.replace(scenario, 'historical')
-    
+
+            if not os.path.exists(pastpath):
+                pastpath = filepath # Both contained in one file
+                
             yield scenario, model, pastpath, filepath
 
 def discover_yearly_variable(basedir, vardir, variable, rcp_only=None):
@@ -149,7 +177,7 @@ def discover_convert(discover_iterator, time_conversion, weatherslice_conversion
         newfuturereader = ConversionWeatherReader(futurereader, time_conversion, weatherslice_conversion)
         yield scenario, model, newpastreader, newfuturereader
         
-def discover_versioned(basedir, variable, version=None):
+def discover_versioned(basedir, variable, version=None, reorder=True):
     """Find the most recent version, if none specified."""
     if version is None:
         version = '%v'
@@ -157,8 +185,13 @@ def discover_versioned(basedir, variable, version=None):
     for scenario, model, pastdir, futuredir in discover_models(basedir):
         pasttemplate = os.path.join(pastdir, "%d", version + '.nc4')
         futuretemplate = os.path.join(futuredir, "%d", version + '.nc4')
-        pastreader = RegionReorderWeatherReader(DailyWeatherReader(pasttemplate, 1981, variable))
-        futurereader = RegionReorderWeatherReader(DailyWeatherReader(futuretemplate, 2006, variable))
 
+        if reorder:
+            pastreader = RegionReorderWeatherReader(DailyWeatherReader(pasttemplate, 1981, variable))
+            futurereader = RegionReorderWeatherReader(DailyWeatherReader(futuretemplate, 2006, variable))
+        else:
+            pastreader = DailyWeatherReader(pasttemplate, 1981, variable)
+            futurereader = DailyWeatherReader(futuretemplate, 2006, variable)
+            
         yield scenario, model, pastreader, futurereader
 

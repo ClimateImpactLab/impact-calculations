@@ -20,9 +20,9 @@ def produce(targetdir, weatherbundle, qvals, do_only=None, suffix=''):
     # if do_only is None or do_only == 'acp':
     #     # ACP response
     #     calculation, dependencies = caller.call_prepare('impacts.conflict.ACRA_violentcrime', weatherbundle, qvals['ACRA_violentcrime'])
-    #     effectset.write_ncdf(targetdir, "ViolentCrime", weatherbundle, calculation, None, "Violent crime using the ACP response function.", dependencies + weatherbundle.dependencies, suffix=suffix)
+    #     effectset.write_ncdf(targetdir, "ViolentCrime" + suffix, weatherbundle, calculation, None, "Violent crime using the ACP response function.", dependencies + weatherbundle.dependencies)
     #     calculation, dependencies = caller.call_prepare('impacts.conflict.ACRA_propertycrime', weatherbundle, qvals['ACRA_propertycrime'])
-    #     effectset.write_ncdf(targetdir, "PropertyCrime", weatherbundle, calculation, None, "Property crime using the ACP response function.", dependencies + weatherbundle.dependencies, suffix=suffix)
+    #     effectset.write_ncdf(targetdir, "PropertyCrime" + suffix, weatherbundle, calculation, None, "Property crime using the ACP response function.", dependencies + weatherbundle.dependencies)
 
     if do_only is None or do_only == 'interpolation':
         predgen1 = curvegen.WeatherPredictorator(historicalbundle, econmodel, 15, 3, 2005)
@@ -42,7 +42,7 @@ def produce(targetdir, weatherbundle, qvals, do_only=None, suffix=''):
 
             calculation, dependencies, covarnames = standard.prepare_csvv(filepath, thisqvals, betas_callback)
 
-            columns = effectset.write_ncdf(thisqvals['weather'], targetdir, basename, weatherbundle, calculation, lambda region: (predgen1.get_current(region),), "Interpolated response for " + basename + ".", dependencies + weatherbundle.dependencies, suffix=suffix)
+            columns = effectset.write_ncdf(thisqvals['weather'], targetdir, basename + suffix, weatherbundle, calculation, lambda region: (predgen1.get_current(region),), "Interpolated response for " + basename + ".", dependencies + weatherbundle.dependencies)
 
             with open(os.path.join(targetdir, basename + '-final.csv'), 'w') as fp:
                 writer = csv.writer(fp)
