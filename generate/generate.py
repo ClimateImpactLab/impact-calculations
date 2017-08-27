@@ -112,8 +112,12 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
         targetdir = files.configpath(os.path.join(config['outputdir'], batchdir, clim_scenario, clim_model, econ_model, econ_scenario))
 
         if 'targetdir' in config:
-            if targetdir != config['targetdir']:
-                continue
+            if config['targetdir'][-1] == '/' and targetdir[-1] != '/':
+                if targetdir + '/' != config['targetdir']:
+                    continue
+            else:
+                if targetdir != config['targetdir']:
+                    continue
     
         if config.get('do_fillin', False) and not os.path.exists(targetdir):
             continue
