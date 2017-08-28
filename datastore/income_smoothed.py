@@ -83,6 +83,22 @@ class DynamicIncomeSmoothed(object):
 
         return country_growth
 
+class SpaceTimeBipartiteData(spacetime.SpaceTimeUnipartiteData):
+    def __init__(self, year0, year1, regions):
+        loader = lambda year0, year1, regions, model, scenario: SpaceTimeLoadedData(year0, year1, regions, model, scenario, [])
+        super(SpaceTimeBipartiteData, self).__init__(year0, year1, regions, loader)
+
+class SpaceTimeLoadedData(spacetime.SpaceTimeLoadedData):
+    def __init__(self, year0, year1, model, scenario, dependencies):
+        # Load all data
+        source = DynamicIncomeSmoothed(model, scenario, dependencies)
+        array = np.zeros((year1 - year0 + 1, len(regions)))
+        for ii in range(len(regions)):
+            for year in range(year0, year1 + 1):
+                array[year - year0, ii] = source.get_income(region, year)
+        
+        super(SpaceTimeBipartiteData, self).__init__(year0, year1, regions, array)
+    
 if __name__ == '__main__':
     dependencies = []
     income = DynamicIncomeSmoothed('low', 'SSP4', dependencies)
