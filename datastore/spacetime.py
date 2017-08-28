@@ -22,4 +22,36 @@ class SpaceTimeLazyData(SpaceTimeData):
 
     def get_time(self, region):
         return self.get_time(region)
+
+class SpaceTimeProductData(SpaceTimeData):
+    def __init__(self, year0, year1, regions, spdata, factor):
+        super(SpaceTimeProductData, self).__init__(year0, year1, regions)
+        self.spdata = spdata
+        self.factor = factor
+
+    def get_time(self, region):
+        return self.spdata.get_time(region) * self.factor
+
+class SpaceTimeBipartiteData(SpaceTimeData):
+    """Loads the historical data in __init__, and the future data in load()."""
     
+    def load(self, year0, year1, model, scenario):
+        """Return a SpaceTimeData for the given model and scenario."""
+        raise NotImplementedError
+
+class SpaceTimeProductBipartiteData(SpaceTimeBipartiteData):
+    def __init__(self, year0, year1, regions, spdata, factor):
+        super(SpaceTimeProductData, self).__init__(year0, year1, regions)
+        self.spdata = spdata
+        self.factor = factor
+
+    def load(self, year0, year1, model, scenario):
+        return SpaceTimeProductData(year0, year1, regions, self.spdata.load(year0, year1, model, scenario), self.factor)
+    
+class SpaceTimeUnipartiteData(SpaceTimeBipartiteData):
+    def __init__(self, year0, year1, regions, loader):
+        super(SpaceTimeUnipartiteData, self).__init__(year0, year1, regions)
+        self.loader = loader
+    
+    def load(self, year0, year1, model, scenario):
+        return self.loader(year0, year1, regions, model, scenario)

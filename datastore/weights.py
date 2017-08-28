@@ -2,6 +2,27 @@ import pandas as pd
 from impactlab_tools.utils import files
 import population, agecohorts, spacetime
 
+RE_FLOATING = r"[-+]?[0-9]*\.?[0-9]*"
+RE_NUMBER = RE_FLOATING + r"([eE]" + RE_FLOATING + ")?"
+
+def interpret_halfweight(weighting)
+    match = re.match(r"(\S+?)\s*([*/])\s*(" + RE_NUMBER + r")$", weighting)
+    if match:
+        source = interpret_halfweight(match.group(1))
+        factor = float(match.group(3))
+        if match.group(2) == '/':
+            factor = 1 / factor
+        return spacetime.SpaceTimeProductBipartiteData(source.year0, source.year1, source.regions, source, factor)
+            
+    if weighting == 'population':
+        return population.SpaceTimeBipartiteData(1981, 2100, None)
+    if weighting in ['agecohorts'] + agecohorts.columns:
+        return agecohorts.SpaceTimeBipartiteData(1981, 2100, None)
+    if weighting == 'income':
+        return income_smoothed.SpaceTimeBipartiteData(2000, 2100, None)
+
+    raise ValueError("Unknown weighting.")
+
 def interpret(config):
     assert 'weighting' in config
     if '/' in config['weighting']:

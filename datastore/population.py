@@ -98,7 +98,7 @@ def read_population_allyears(year0, year1, regions, model, scenario, dependencie
 
     return extend_population_future(baselinedata, year0, year1, regions, model, scenario, dependencies)
 
-class SpaceTimeBipartiteData(spacetime.SpaceTimeData):
+class SpaceTimeBipartiteData(spacetime.SpaceTimeBipartiteData):
     def __init__(self, year0, year1, regions):
         self.dependencies = []
 
@@ -110,7 +110,7 @@ class SpaceTimeBipartiteData(spacetime.SpaceTimeData):
 
         super(SpaceTimeBipartiteData, self).__init__(year0, year1, regions)
 
-    def load_population(self, year0, year1, model, scenario):
+    def load(self, year0, year1, model, scenario):
         popout = extend_population_future(self.baselinedata, year0, year1, self.regions,
                                           model, scenario, self.dependencies)
         return spacetime.SpaceTimeLoadedData(self.year0, self.year1, self.regions, popout)

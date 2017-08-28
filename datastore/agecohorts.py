@@ -92,7 +92,8 @@ class SpaceTimeBipartiteData(spacetime.SpaceTimeData):
         self.regions = self.total_population.regions
         
         super(SpaceTimeBipartiteData, self).__init__(year0, year1, self.regions)
-        
+
+    # Keep as load_population, to not conflat with load() which doesn't need age group
     def load_population(self, year0, year1, model, scenario, agegroup):
         stweight = self.total_population.load_population(year0, year1, model, scenario)
 
