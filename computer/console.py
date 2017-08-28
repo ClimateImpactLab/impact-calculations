@@ -14,6 +14,10 @@ class Console(Manager):
     outputLines = []
     screen = None
 
+    COMMAND_ROW = 11
+    RESULTS_ROW = 12
+    RESULTS_LEN = 10
+    
     def __init__(self, screen):
         Manager.__init__(self, False)
         
@@ -24,8 +28,10 @@ class Console(Manager):
         self.highlightLineNum = 0
         self.markedLineNums = []
 
-        self.processes = curses.newwin(10, 80, 1, 1)
-        self.textwin, self.textbox = maketextbox(self.screen, 1, 40, 11, 1, "")
+        self.textwin, self.textbox = maketextbox(self.screen, 1, 80, self.COMMAND_ROW, 1, "")
+        self.results = curses.newwin(self.RESULTS_LEN, 80, self.RESULTS_ROW, 1)
+
+        self.result_lines = []
         
         self.getOutputLines()
         self.run()
@@ -34,10 +40,9 @@ class Console(Manager):
         curses.endwin()
         return True
 
-    def write(self,text) :
+    def write(self, text):
+        self.result_lines.append(text)
         self.textwin.clear()
-        self.textwin.addstr(3,0,text)
-        self.screen.refresh()
 
     def default(self,line) :
 	self.write("Don't understand '" + line + "'")
@@ -55,6 +60,8 @@ class Console(Manager):
                 self.markLine()
             elif c == self.ESC_KEY:
                 exit()
+            elif chr(c) in key_commands:
+                key_commands[chr(c)](self)
             elif c == ord(';'):
                 text = self.textbox.edit()
                 self.onecmd(text)
@@ -96,8 +103,12 @@ class Console(Manager):
                 self.screen.addstr(index, 0, line)
             else:
                 self.screen.addstr(index, 0, line, curses.A_BOLD)
+
         self.screen.refresh()
 
+        self.results.addstr(0, 0, '\n'.join(self.result_lines))
+        self.results.refresh()
+                
     # move highlight up/down one line
     def updown(self, increment):
         nextLineNum = self.highlightLineNum + increment
@@ -115,6 +126,15 @@ class Console(Manager):
             self.highlightLineNum = nextLineNum
         elif increment == self.DOWN and (self.topLineNum+self.highlightLineNum+1) != self.nOutputLines and self.highlightLineNum != curses.LINES:
             self.highlightLineNum = nextLineNum
+
+def generate(console):
+    text = console.textbox.edit()
+    console.write(text)
+
+def aggregate(console):
+    console.write("This is a test.")
+
+key_commands = {'g': generate, 'a': aggregate}
 
 ## From https://gist.github.com/interstar/3005137
 def maketextbox(screen, h,w,y,x,value="",deco=None,textColorpair=0,decoColorpair=0):

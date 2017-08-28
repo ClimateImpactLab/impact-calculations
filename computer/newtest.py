@@ -40,7 +40,7 @@ class Commands(cmd.Cmd):
         return True
 
     def write(self,text) :
-        screen.clear()
+        #screen.clear()
 	textwin.clear()
         screen.addstr(3,0,text)
         screen.refresh()
