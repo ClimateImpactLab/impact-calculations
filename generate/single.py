@@ -27,6 +27,8 @@ print "Loading weather..."
 variable_generators = [discover.standard_variable(name, 'day') for name in config['climate']]
 weatherbundle = weather.get_weatherbundle(clim_scenario, clim_model, variable_generators)
 
+filter_region = config.get('filter-region', None)
+
 if 'historical' in config and config['historical']:
     weatherbundle = weather.HistoricalWeatherBundle.make_historical(weatherbundle, pvals['histclim'].get_seed())
     pvals.lock()
@@ -56,7 +58,7 @@ calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(
 if not os.path.exists(targetdir):
     os.makedirs(targetdir)
 
-effectset.generate(targetdir, basename + suffix, weatherbundle, calculation, "Singly produced result.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config)
+effectset.generate(targetdir, basename + suffix, weatherbundle, calculation, "Singly produced result.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, filter_region=filter_region)
 
 aggregate.make_levels(targetdir, basename + suffix + '.nc4', get_weight)
 aggregate.make_aggregates(targetdir, basename + suffix + '.nc4', get_weight)
