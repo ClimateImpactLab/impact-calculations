@@ -1,11 +1,12 @@
+import re
 import pandas as pd
 from impactlab_tools.utils import files
-import population, agecohorts, spacetime
+import population, agecohorts, income_smoothed, spacetime
 
 RE_FLOATING = r"[-+]?[0-9]*\.?[0-9]*"
 RE_NUMBER = RE_FLOATING + r"([eE]" + RE_FLOATING + ")?"
 
-def interpret_halfweight(weighting)
+def interpret_halfweight(weighting):
     match = re.match(r"(\S+?)\s*([*/])\s*(" + RE_NUMBER + r")$", weighting)
     if match:
         source = interpret_halfweight(match.group(1))

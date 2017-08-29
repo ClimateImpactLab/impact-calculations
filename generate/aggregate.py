@@ -167,7 +167,7 @@ def make_costs_levels(targetdir, filename, outfilename, get_weight):
 
 def fullfile(filename, suffix, config):
     if 'infix' in config:
-        return full_path(filename, '-' + config['infix'] + suffix, {})
+        return fullfile(filename, '-' + config['infix'] + suffix, {})
 
     return filename[:-4] + suffix + '.nc4'
     
