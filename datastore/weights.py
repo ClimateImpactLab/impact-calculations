@@ -7,14 +7,20 @@ RE_FLOATING = r"[-+]?[0-9]*\.?[0-9]*"
 RE_NUMBER = RE_FLOATING + r"([eE]" + RE_FLOATING + ")?"
 
 def interpret_halfweight(weighting):
-    match = re.match(r"(\S+?)\s*([*/])\s*(" + RE_NUMBER + r")$", weighting)
+    parts = re.split(r"\s*([*/])\s*", weighting)
+    if len(parts) > 0:
+        halfweight = interpret_halfweight(parts[0])
+        for part in parts[1:]:
+            factor = interpret_halfweight(part)
+            combiner = lambda x, y: x * y
+            if match.group(2) == '/':
+                combiner = lambda x, y: x / y
+            halfweight = spacetime.SpaceTimeProductBipartiteData(halfweight.year0, halfweight.year1, halfweight.regions, halfweight, factor, combiner=combiner)
+        return halfweight
+
+    match = re.match(r"(" + RE_NUMBER + r")$", weighting)
     if match:
-        source = interpret_halfweight(match.group(1))
-        factor = float(match.group(3))
-        if match.group(2) == '/':
-            factor = 1 / factor
-        return spacetime.SpaceTimeProductBipartiteData(source.year0, source.year1, source.regions, source, factor)
-            
+        return spacetime.SpaceTimeConstantData(float(match.group(1)))
     if weighting == 'population':
         return population.SpaceTimeBipartiteData(1981, 2100, None)
     if weighting in ['agecohorts'] + agecohorts.columns:

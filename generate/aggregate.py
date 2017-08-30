@@ -180,12 +180,18 @@ if __name__ == '__main__':
 
     statman = paralog.StatusManager('aggregate', "generate.aggregate " + sys.argv[1], 'logs', CLAIM_TIMEOUT)
 
-    if 'levels-weighting' in config and 'aggregate-weighting' in config:
-        halfweight_levels = weights.interpret_halfweight(config['levels-weighting'])
-        halfweight_aggregate = weights.interpret_halfweight(config['aggregate-weighting'])
-    else:
+    if 'weighting' in config:
         halfweight_levels = weights.interpret_halfweight(config['weighting'])
         halfweight_aggregate = halfweight_levels
+    else:
+        if 'levels-weighting' in config:
+            halfweight_levels = weights.interpret_halfweight(config['levels-weighting'])
+        else:
+            halfweight_levels = None
+        if 'aggregate-weighting' in config:
+            halfweight_aggregate = weights.interpret_halfweight(config['aggregate-weighting'])
+        else:
+            halfweight_aggregate = None
 
     for batch, clim_scenario, clim_model, econ_scenario, econ_model, targetdir in agglib.iterresults(config['outputdir'], batchfilter, targetdirfilter):
         if 'rcp' in config:
@@ -213,14 +219,20 @@ if __name__ == '__main__':
                     variable = 'rebased'
 
                 if 'weighting' in config and config['weighting'] == 'agecohorts':
-                    get_weight_levels = lambda year0, year1: halfweight.load_population(year0, year1, econ_model, econ_scenario, agecohorts.age_from_filename(filename) if 'IND_' not in filename else 'total')
+                    get_weight_levels = lambda year0, year1: halfweight_levels.load_population(year0, year1, econ_model, econ_scenario, agecohorts.age_from_filename(filename) if 'IND_' not in filename else 'total')
                     get_weight_aggregate = get_weight_levels
                 else:
-                    get_weight_levels = lambda year0, year1: halfweight_levels.load(year0, year1, econ_model, econ_scenario)
-                    if halfweight_levels == halfweight_aggregate:
-                        get_weight_aggregate = get_weight_levels
+                    if halfweight_levels:
+                        get_weight_levels = lambda year0, year1: halfweight_levels.load(year0, year1, econ_model, econ_scenario)
                     else:
-                        get_weight_aggregate = lambda year0, year1: halfweight_aggregate.load(year0, year1, econ_model, econ_scenario)
+                        get_weight_levels = None
+                    if halfweight_aggregate:
+                        if halfweight_levels == halfweight_aggregate:
+                            get_weight_aggregate = get_weight_levels
+                        else:
+                            get_weight_aggregate = lambda year0, year1: halfweight_aggregate.load(year0, year1, econ_model, econ_scenario)
+                    else:
+                        get_weight_aggregate = None
 
                 if not checks.check_result_100years(os.path.join(targetdir, filename), variable=variable):
                     print "Incomplete."
@@ -229,14 +241,16 @@ if __name__ == '__main__':
 
                 try:
                     # Generate total deaths
-                    outfilename = fullfile(filename, levels_suffix, config)
-                    if not missing_only or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable=variable) or not os.path.exists(os.path.join(targetdir, outfilename)):
-                        make_levels(targetdir, filename, outfilename, get_weight_levels)
+                    if get_weight_levels:
+                        outfilename = fullfile(filename, levels_suffix, config)
+                        if not missing_only or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable=variable) or not os.path.exists(os.path.join(targetdir, outfilename)):
+                            make_levels(targetdir, filename, outfilename, get_weight_levels)
 
                     # Aggregate impacts
-                    outfilename = fullfile(filename, suffix, config)
-                    if not missing_only or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable=variable, regioncount=5665) or not os.path.exists(os.path.join(targetdir, outfilename)):
-                        make_aggregates(targetdir, filename, outfilename, get_weight_aggregate)
+                    if get_weight_aggregate:
+                        outfilename = fullfile(filename, suffix, config)
+                        if not missing_only or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable=variable, regioncount=5665) or not os.path.exists(os.path.join(targetdir, outfilename)):
+                            make_aggregates(targetdir, filename, outfilename, get_weight_aggregate)
 
                     if '-noadapt' not in filename and '-incadapt' not in filename and 'histclim' not in filename and 'indiamerge' not in filename:
                         # Generate costs
@@ -254,7 +268,7 @@ if __name__ == '__main__':
 
                                 if hasall:
                                     print "Has all component costs"
-                                    get_stweights = [lambda year0, year1: halfweight.load_population(1981, 2100, econ_model, econ_scenario, 'age0-4'), lambda year0, year1: halfweight.load_population(1981, 2100, econ_model, econ_scenario, 'age5-64'), lambda year0, year1: halfweight.load_population(1981, 2100, econ_model, econ_scenario, 'age65+')]
+                                    get_stweights = [lambda year0, year1: halfweight_levels.load_population(1981, 2100, econ_model, econ_scenario, 'age0-4'), lambda year0, year1: halfweight_levels.load_population(1981, 2100, econ_model, econ_scenario, 'age5-64'), lambda year0, year1: halfweight_levels.load_population(1981, 2100, econ_model, econ_scenario, 'age65+')]
                                     agglib.combine_results(targetdir, filename[:-4] + costs_suffix, basenames, get_stweights, "Combined costs across age-groups for " + filename.replace('-combined.nc4', ''))
                             else:
                                 tavgpath = '/shares/gcp/outputs/temps/%s/%s/climtas.nc4' % (clim_scenario, clim_model)
