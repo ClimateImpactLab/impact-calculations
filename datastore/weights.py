@@ -8,12 +8,12 @@ RE_NUMBER = RE_FLOATING + r"([eE]" + RE_FLOATING + ")?"
 
 def interpret_halfweight(weighting):
     parts = re.split(r"\s*([*/])\s*", weighting)
-    if len(parts) > 0:
+    if len(parts) > 1:
         halfweight = interpret_halfweight(parts[0])
-        for part in parts[1:]:
-            factor = interpret_halfweight(part)
+        for ii in range(2, len(parts), 2):
+            factor = interpret_halfweight(parts[ii])
             combiner = lambda x, y: x * y
-            if match.group(2) == '/':
+            if parts[ii-1] == '/':
                 combiner = lambda x, y: x / y
             halfweight = spacetime.SpaceTimeProductBipartiteData(halfweight.year0, halfweight.year1, halfweight.regions, halfweight, factor, combiner=combiner)
         return halfweight
