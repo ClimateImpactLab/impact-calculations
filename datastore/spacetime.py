@@ -35,13 +35,13 @@ class SpaceTimeLazyData(SpaceTimeData):
         return self.get_time(region)
 
 class SpaceTimeProductData(SpaceTimeData):
-    def __init__(self, year0, year1, regions, spdata, factor):
+    def __init__(self, year0, year1, regions, spdata1, spdata2, combiner=lambda x, y: x * y):
         super(SpaceTimeProductData, self).__init__(year0, year1, regions)
-        self.spdata = spdata
-        self.factor = factor
+        self.spdata1 = spdata1
+        self.spdata2 = spdata2
 
     def get_time(self, region):
-        return self.spdata.get_time(region) * self.factor
+        return self.combiner(self.spdata1.get_time(region), self.spdata2.get_time(region))
 
 class SpaceTimeBipartiteData(SpaceTimeData):
     """Loads the historical data in __init__, and the future data in load()."""
@@ -51,14 +51,15 @@ class SpaceTimeBipartiteData(SpaceTimeData):
         raise NotImplementedError
 
 class SpaceTimeProductBipartiteData(SpaceTimeBipartiteData):
-    def __init__(self, year0, year1, regions, spdata, factor):
+    def __init__(self, year0, year1, regions, spdata1, spdata2, combiner=lambda x, y: x * y):
         super(SpaceTimeProductBipartiteData, self).__init__(year0, year1, regions)
-        self.spdata = spdata
-        self.factor = factor
+        self.spdata1 = spdata1
+        self.spdata2 = spdata2
+        self.combiner = combiner
 
     def load(self, year0, year1, model, scenario):
-        return SpaceTimeProductData(year0, year1, self.regions, self.spdata.load(year0, year1, model, scenario), self.factor)
-    
+        return SpaceTimeProductData(year0, year1, self.regions, self.spdata1.load(year0, year1, model, scenario), self.spdata2.load(year0, year1, model, scenario), self.combiner)
+
 class SpaceTimeUnipartiteData(SpaceTimeBipartiteData):
     def __init__(self, year0, year1, regions, loader):
         super(SpaceTimeUnipartiteData, self).__init__(year0, year1, regions)
@@ -66,3 +67,15 @@ class SpaceTimeUnipartiteData(SpaceTimeBipartiteData):
     
     def load(self, year0, year1, model, scenario):
         return self.loader(year0, year1, self.regions, model, scenario)
+
+class SpaceTimeConstantData(SpaceTimeUnipartiteData):
+    def __init__(self, constant):
+        super(SpaceTimeConstantData, self).__init__(-np.inf, np.inf, None)
+        self.constant = constant
+
+    def get_time(self, region):
+        return self.constant
+
+    def load(self, year0, year1, model, scenario):
+        return self
+    
