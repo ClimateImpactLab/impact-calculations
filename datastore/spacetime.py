@@ -39,6 +39,7 @@ class SpaceTimeProductData(SpaceTimeData):
         super(SpaceTimeProductData, self).__init__(year0, year1, regions)
         self.spdata1 = spdata1
         self.spdata2 = spdata2
+        self.combiner = combiner
 
     def get_time(self, region):
         return self.combiner(self.spdata1.get_time(region), self.spdata2.get_time(region))

@@ -17,25 +17,25 @@ CLAIM_TIMEOUT = 24*60*60
 batchfilter = lambda batch: batch == 'median' or 'batch' in batch
 targetdirfilter = lambda targetdir: True #'rcp85' in targetdir #'SSP3' in targetdir and 'Env-Growth' in targetdir
 
-# The full population, if we just read it.  Only 1 at a time (it's big!)
-# Tuple of (halfweight, weight_args, minyear, maxyear, population)
-cached_population = None
+# The full population, if we just read it.
+# Dictionary of (halfweight, weight_args, minyear, maxyear) => population
+cached_weights = {}
 
 def get_cached_weight(halfweight, weight_args, years):
-    global cached_population
+    global cached_weights
 
     minyear = min(years)
     maxyear = max(years)
 
-    if cached_population is not None:
-        if cached_population[0] == halfweight and cached_population[1] == weight_args and cached_population[2] == minyear and cached_population[3] == maxyear:
-            return cached_population[4]
+    key = (halfweight, weight_args, minyear, maxyear)
+    if key in cached_weights:
+        return cached_weights[key]
 
     print "Loading pop..."
     stweight = halfweight.load(minyear, maxyear, *weight_args)
     print "Loaded."
 
-    cached_population = (halfweight, weight_args, minyear, maxyear, stweight)
+    cached_weights[key] = stweight
     return stweight
 
 def make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, dimensions_template=None, metainfo=None, limityears=None):
