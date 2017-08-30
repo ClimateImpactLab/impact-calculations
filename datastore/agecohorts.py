@@ -95,7 +95,7 @@ class SpaceTimeBipartiteData(spacetime.SpaceTimeData):
 
     # Keep as load_population, to not conflat with load() which doesn't need age group
     def load_population(self, year0, year1, model, scenario, agegroup):
-        stweight = self.total_population.load_population(year0, year1, model, scenario)
+        stweight = self.total_population.load(year0, year1, model, scenario)
 
         if agegroup == 'total':
             return stweight
