@@ -68,7 +68,7 @@ class SpaceTimeUnipartiteData(SpaceTimeBipartiteData):
     def load(self, year0, year1, model, scenario):
         return self.loader(year0, year1, self.regions, model, scenario)
 
-class SpaceTimeConstantData(SpaceTimeUnipartiteData):
+class SpaceTimeConstantData(SpaceTimeBipartiteData):
     def __init__(self, constant):
         super(SpaceTimeConstantData, self).__init__(-np.inf, np.inf, None)
         self.constant = constant
