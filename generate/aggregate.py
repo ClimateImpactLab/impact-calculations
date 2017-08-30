@@ -18,27 +18,27 @@ batchfilter = lambda batch: batch == 'median' or 'batch' in batch
 targetdirfilter = lambda targetdir: True #'rcp85' in targetdir #'SSP3' in targetdir and 'Env-Growth' in targetdir
 
 # The full population, if we just read it.  Only 1 at a time (it's big!)
-# Tuple of (get_weight, minyear, maxyear, population)
+# Tuple of (halfweight, weight_args, minyear, maxyear, population)
 cached_population = None
 
-def get_cached_population(get_weight, years):
+def get_cached_weight(halfweight, weight_args, years):
     global cached_population
 
     minyear = min(years)
     maxyear = max(years)
 
     if cached_population is not None:
-        if cached_population[0] == get_weight and cached_population[1] == minyear and cached_population[2] == maxyear:
-            return cached_population[3]
+        if cached_population[0] == halfweight and cached_population[1] == weight_args and cached_population[2] == minyear and cached_population[3] == maxyear:
+            return cached_population[4]
 
     print "Loading pop..."
-    stweight = get_weight(minyear, maxyear)
+    stweight = halfweight.load(minyear, maxyear, *weight_args)
     print "Loaded."
 
-    cached_population = (get_weight, minyear, maxyear, stweight)
+    cached_population = (halfweight, weight_args, minyear, maxyear, stweight)
     return stweight
 
-def make_aggregates(targetdir, filename, outfilename, get_weight, dimensions_template=None, metainfo=None, limityears=None):
+def make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, dimensions_template=None, metainfo=None, limityears=None):
     # Find all variables that containing the region dimension
     reader = Dataset(os.path.join(targetdir, filename), 'r', format='NETCDF4')
     if dimensions_template is None:
@@ -67,7 +67,7 @@ def make_aggregates(targetdir, filename, outfilename, get_weight, dimensions_tem
     years = nc4writer.make_years_variable(writer)
     years[:] = readeryears
 
-    stweight = get_cached_population(get_weight, years)
+    stweight = get_cached_weight(halfweight, weight_args, years)
 
     nc4writer.make_regions_variable(writer, prefixes, 'aggregated')
 
@@ -99,7 +99,7 @@ def make_aggregates(targetdir, filename, outfilename, get_weight, dimensions_tem
         dimreader.close()
     writer.close()
 
-def make_costs_aggregate(targetdir, filename, outfilename, get_weight):
+def make_costs_aggregate(targetdir, filename, outfilename, halfweight, weight_args):
     # Assume the following IAM and SSP
     econ_model = 'OCED Env-Growth'
     econ_scenario = 'SSP3_v9_130325'
@@ -109,9 +109,9 @@ def make_costs_aggregate(targetdir, filename, outfilename, get_weight):
                     dependencies="TEMPERATURES, ADAPTATION-ALL-AGES",
                     author="Tamma Carleton")
 
-    make_aggregates(targetdir, filename, outfilename, get_weight, dimensions_template=dimensions_template, metainfo=metainfo)
+    make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, dimensions_template=dimensions_template, metainfo=metainfo)
 
-def make_levels(targetdir, filename, outfilename, get_weight, dimensions_template=None, metainfo=None, limityears=None):
+def make_levels(targetdir, filename, outfilename, halfweight, weight_args, dimensions_template=None, metainfo=None, limityears=None):
     # Find all variables that containing the region dimension
     reader = Dataset(os.path.join(targetdir, filename), 'r', format='NETCDF4')
     if dimensions_template is None:
@@ -138,7 +138,7 @@ def make_levels(targetdir, filename, outfilename, get_weight, dimensions_templat
     years[:] = nc4writer.get_years(dimreader, limityears)
     nc4writer.make_regions_variable(writer, regions, 'regions')
 
-    stweight = get_cached_population(get_weight, years)
+    stweight = get_cached_weight(halfweight, weight_args, years)
 
     for key, variable in agglib.iter_timereg_variables(reader):
         dstvalues = np.zeros((len(years), len(regions)))
@@ -153,7 +153,7 @@ def make_levels(targetdir, filename, outfilename, get_weight, dimensions_templat
         dimreader.close()
     writer.close()
 
-def make_costs_levels(targetdir, filename, outfilename, get_weight):
+def make_costs_levels(targetdir, filename, outfilename, halfweight, weight_args):
     # Assume the following IAM and SSP
     econ_model = 'OCED Env-Growth'
     econ_scenario = 'SSP3_v9_130325'
@@ -163,7 +163,7 @@ def make_costs_levels(targetdir, filename, outfilename, get_weight):
                     dependencies="TEMPERATURES, ADAPTATION-ALL-AGES",
                     author="Tamma Carleton")
 
-    make_levels(targetdir, filename, outfilename, get_weight, dimensions_template=dimensions_template, metainfo=metainfo)
+    make_levels(targetdir, filename, outfilename, halfweight, weight_args, dimensions_template=dimensions_template, metainfo=metainfo)
 
 def fullfile(filename, suffix, config):
     if 'infix' in config:
@@ -219,20 +219,11 @@ if __name__ == '__main__':
                     variable = 'rebased'
 
                 if 'weighting' in config and config['weighting'] == 'agecohorts':
-                    get_weight_levels = lambda year0, year1: halfweight_levels.load_population(year0, year1, econ_model, econ_scenario, agecohorts.age_from_filename(filename) if 'IND_' not in filename else 'total')
-                    get_weight_aggregate = get_weight_levels
+                    weight_args_levels = (econ_model, econ_scenario, agecohorts.age_from_filename(filename) if 'IND_' not in filename else 'total')
+                    weight_args_aggregate = weight_args_levels
                 else:
-                    if halfweight_levels:
-                        get_weight_levels = lambda year0, year1: halfweight_levels.load(year0, year1, econ_model, econ_scenario)
-                    else:
-                        get_weight_levels = None
-                    if halfweight_aggregate:
-                        if halfweight_levels == halfweight_aggregate:
-                            get_weight_aggregate = get_weight_levels
-                        else:
-                            get_weight_aggregate = lambda year0, year1: halfweight_aggregate.load(year0, year1, econ_model, econ_scenario)
-                    else:
-                        get_weight_aggregate = None
+                    weight_args_levels = (econ_model, econ_scenario)
+                    weight_args_aggregate = (econ_model, econ_scenario)
 
                 if not checks.check_result_100years(os.path.join(targetdir, filename), variable=variable):
                     print "Incomplete."
@@ -241,16 +232,16 @@ if __name__ == '__main__':
 
                 try:
                     # Generate total deaths
-                    if get_weight_levels:
+                    if halfweight_levels:
                         outfilename = fullfile(filename, levels_suffix, config)
                         if not missing_only or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable=variable) or not os.path.exists(os.path.join(targetdir, outfilename)):
-                            make_levels(targetdir, filename, outfilename, get_weight_levels)
+                            make_levels(targetdir, filename, outfilename, halfweight_levels, weight_args_levels)
 
                     # Aggregate impacts
-                    if get_weight_aggregate:
+                    if halfweight_aggregate:
                         outfilename = fullfile(filename, suffix, config)
                         if not missing_only or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable=variable, regioncount=5665) or not os.path.exists(os.path.join(targetdir, outfilename)):
-                            make_aggregates(targetdir, filename, outfilename, get_weight_aggregate)
+                            make_aggregates(targetdir, filename, outfilename, halfweight_aggregate, weight_args_aggregate)
 
                     if '-noadapt' not in filename and '-incadapt' not in filename and 'histclim' not in filename and 'indiamerge' not in filename:
                         # Generate costs
@@ -303,23 +294,23 @@ if __name__ == '__main__':
                         # Levels of costs
                         outfilename = fullfile(filename, costs_suffix + levels_suffix, config)
                         if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)):
-                            make_costs_levels(targetdir, fullfile(filename, costs_suffix, config), outfilename, get_weight_levels)
+                            make_costs_levels(targetdir, fullfile(filename, costs_suffix, config), outfilename, halfweight_levels, weight_args_levels)
 
                         # Aggregate costs
                         outfilename = fullfile(filename, costs_suffix + suffix, config)
                         if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)):
-                            make_costs_aggregate(targetdir, fullfile(filename, costs_suffix, config), outfilename, get_weight_aggregate)
+                            make_costs_aggregate(targetdir, fullfile(filename, costs_suffix, config), outfilename, halfweight_aggregate, weight_args_aggregate)
                     elif 'indiamerge' in filename:
                         # Just aggregate the costs
 
                         # Levels of costs
                         if not missing_only or not os.path.exists(os.path.join(targetdir, filename[:-4].replace('combined', 'combined-costs') + costs_suffix + levels_suffix + '.nc4')):
-                            make_costs_levels(targetdir, filename[:-4].replace('combined', 'combined-costs') + '.nc4', get_weight_levels)
+                            make_costs_levels(targetdir, filename[:-4].replace('combined', 'combined-costs') + '.nc4', halfweight_levels, weight_args_levels)
 
                         # Aggregate costs
                         outfilename = filename[:-4].replace('combined', 'combined-costs') + costs_suffix + suffix + '.nc4'
                         if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)):
-                            make_costs_aggregate(targetdir, filename[:-4].replace('combined', 'combined-costs') + '.nc4', outfilename, get_weight_aggregate)
+                            make_costs_aggregate(targetdir, filename[:-4].replace('combined', 'combined-costs') + '.nc4', outfilename, halfweight_aggregate, weight_args_aggregate)
                         
                 except Exception as ex:
                     print "Failed."
