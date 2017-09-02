@@ -39,22 +39,39 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
     models = config['models']
     for model in models:
         csvvs = model['csvvs']
-        specconf = model['specification']
-        if isinstance(models, list):
+        if 'module' in model:
+            module = model['module']
+            specconf = dict(description=model['description'])
+        else:
+            module = 'interpret.specification'
+            specconf = model['specification']
+
+        if isinstance(csvvs, list):
             for csvv in csvvs:
                 for filepath in glob.glob(files.sharedpath(csvv)):
-                    produce_csvv(filepath, specconf, targetdir, weatherbundle, economicmodel, pvals, config, push_callback, suffix, profile, diagnosefile)
+                    basename = os.path.basename(filepath)[:-5]
+                    producer(basename, filepath, module, specconf, targetdir, weatherbundle, economicmodel, pvals, config, push_callback, suffix, profile, diagnosefile)
         else:
             for filepath in glob.glob(files.sharedpath(csvvs)):
-                produce_csvv(filepath, specconf, targetdir, weatherbundle, economicmodel, pvals, config, push_callback, suffix, profile, diagnosefile)
+                basename = os.path.basename(filepath)[:-5]
+                producer(basename, filepath, module, specconf, targetdir, weatherbundle, economicmodel, pvals, config, push_callback, suffix, profile, diagnosefile)
 
-def produce_csvv(filepath, specconf, targetdir, weatherbundle, economicmodel, pvals, config, push_callback, suffix, profile, diagnosefile):
-    basename = os.path.basename(filepath)[:-5]
+def produce_csvv(basename, csvv, specconf, targetdir, weatherbundle, economicmodel, pvals, config, push_callback, suffix, profile, diagnosefile):
+    if specconf.get('csvv-organization', 'normal') == 'three-ages':
+        specconf['csvv-organization'] = 'normal'
+        csvv = csvvfile.read(csvv)
+        produce_csvv(basename + '-young', csvvfile.subset(csvv, range(len(csvv['gamma']) / 3)),
+                     targetdir, weatherbundle, economicmodel, pvals, config, push_callback, suffix, profile, diagnosefile)
+        produce_csvv(basename + '-older', csvvfile.subset(csvv, range(len(csvv['gamma']) / 3, 2 * len(csvv['gamma']) / 3)),
+                     targetdir, weatherbundle, economicmodel, pvals, config, push_callback, suffix, profile, diagnosefile)
+        produce_csvv(basename + '-oldest', csvvfile.subset(csvv, range(2 * len(csvv['gamma']) / 3, len(csvv['gamma']))),
+                     targetdir, weatherbundle, economicmodel, pvals, config, push_callback, suffix, profile, diagnosefile)
+        return
 
     # Full Adaptation
     if check_doit(targetdir, basename, suffix):
         print "Full Adaptation"
-        calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'interpret.specification', weatherbundle, economicmodel, pvals[basename], specconf=specconf)
+        calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals[basename], specconf=specconf)
 
         effectset.generate(targetdir, basename + suffix, weatherbundle, calculation, specconf['description'] + ", with interpolation and adaptation through interpolation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, basename), do_interpbins=False, diagnosefile=diagnosefile.replace('.csv', '-' + basename + '.csv') if diagnosefile else False)
 
@@ -64,10 +81,10 @@ def produce_csvv(filepath, specconf, targetdir, weatherbundle, economicmodel, pv
 
                 if check_doit(targetdir, basename + "-noadapt", suffix):
                     print "No adaptation"
-                    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'interpret.specification', weatherbundle, economicmodel, pvals[basename], specconf=specconf, farmer='coma')
+                    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals[basename], specconf=specconf, farmer='coma')
                     effectset.generate(targetdir, basename + "-noadapt" + suffix, weatherbundle, calculation, specconf['description'] + ", with no adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, basename), do_interpbins=False)
 
                 if check_doit(targetdir, basename + "-incadapt", suffix):
                     print "Income-only adaptation"
-                    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'interpret.specification', weatherbundle, economicmodel, pvals[basename], specconf=specconf, farmer='dumb')
+                    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals[basename], specconf=specconf, farmer='dumb')
                     effectset.generate(targetdir, basename + "-incadapt" + suffix, weatherbundle, calculation, specconf['description'] + ", with interpolation and only environmental adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, basename), do_interpbins=False)
