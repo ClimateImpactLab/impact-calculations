@@ -1,0 +1,7 @@
+timerate: day
+climate: [ tas, tas-poly-2, tas-poly-3, tas-poly-4, tas-poly-5 ]
+models:
+  - csvvs: "social/parameters/mortality/India/*poly*.csvv"
+    module: mortality.ols_polynomial_lincom
+    description: Heterogeneous temperature-driven death rates
+    csvv-organization: three-ages

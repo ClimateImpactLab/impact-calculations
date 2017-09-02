@@ -3,7 +3,7 @@ import numpy as np
 import xarray as xr
 from netCDF4 import Dataset
 import helpers.header as headre
-from openest.generate import retrieve, diagnostic
+from openest.generate import retrieve, diagnostic, fast_dataset
 from adaptation import curvegen
 import server, nc4writer
 
@@ -42,7 +42,7 @@ def simultaneous_application(weatherbundle, calculation, regions=None, push_call
                     continue
                 
                 newvars[var] = (['time'], dsdata[:, region_indices[region]])
-            subds = xr.Dataset(newvars, coords={'time': timevar})
+            subds = fast_dataset.FastDataset(newvars, coords={'time': timevar})
             
             for yearresult in applications[region].push(subds):
                 yield (region, yearresult[0], yearresult[1:])

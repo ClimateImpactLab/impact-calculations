@@ -7,6 +7,7 @@ class CSVVCurveGenerator(CurveGenerator):
     def __init__(self, prednames, indepunits, depenunit, csvv):
         super(CSVVCurveGenerator, self).__init__(indepunits, depenunit)
         self.prednames = prednames
+        self.csvv = csvv
 
         for ii, predname in enumerate(prednames):
             if predname not in csvv['variables']:
