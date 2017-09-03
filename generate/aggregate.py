@@ -259,7 +259,7 @@ if __name__ == '__main__':
 
                                 if hasall:
                                     print "Has all component costs"
-                                    get_stweights = [lambda year0, year1: halfweight_levels.load_population(1981, 2100, econ_model, econ_scenario, 'age0-4'), lambda year0, year1: halfweight_levels.load_population(1981, 2100, econ_model, econ_scenario, 'age5-64'), lambda year0, year1: halfweight_levels.load_population(1981, 2100, econ_model, econ_scenario, 'age65+')]
+                                    get_stweights = [lambda year0, year1: halfweight_levels.load(1981, 2100, econ_model, econ_scenario, 'age0-4'), lambda year0, year1: halfweight_levels.load(1981, 2100, econ_model, econ_scenario, 'age5-64'), lambda year0, year1: halfweight_levels.load(1981, 2100, econ_model, econ_scenario, 'age65+')]
                                     agglib.combine_results(targetdir, filename[:-4] + costs_suffix, basenames, get_stweights, "Combined costs across age-groups for " + filename.replace('-combined.nc4', ''))
                             else:
                                 tavgpath = '/shares/gcp/outputs/temps/%s/%s/climtas.nc4' % (clim_scenario, clim_model)

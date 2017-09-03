@@ -85,7 +85,7 @@ def age_from_filename(filename):
 
     raise ValueError('Unknown age group in %s' % filename)
 
-class SpaceTimeBipartiteData(spacetime.SpaceTimeData):
+class SpaceTimeBipartiteData(spacetime.SpaceTimeBipartiteData):
     def __init__(self, year0, year1, regions):
         self.total_population = population.SpaceTimeBipartiteData(year0, year1, regions)
         self.dependencies = self.total_population.dependencies + ['cohort_population_aggr.csv']
@@ -94,7 +94,7 @@ class SpaceTimeBipartiteData(spacetime.SpaceTimeData):
         super(SpaceTimeBipartiteData, self).__init__(year0, year1, self.regions)
 
     # Keep as load_population, to not conflat with load() which doesn't need age group
-    def load_population(self, year0, year1, model, scenario, agegroup):
+    def load(self, year0, year1, model, scenario, agegroup):
         stweight = self.total_population.load(year0, year1, model, scenario)
 
         if agegroup == 'total':
