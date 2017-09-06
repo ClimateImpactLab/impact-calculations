@@ -1,82 +1,98 @@
-OBSOLETE: This has been moved to the impact-calculations wiki.
-
 ## Table of contents:
 
 1. Installation
 2. Preparing input data
 3. Producing results
 4. Analyzing results
-5. Extensions
 
 ## Installation:
 
-If you are on Shackleton, you can skip this step.  However, before
-performing any python steps, activate the DMAS virtual environment:
+If you are working on Sacagawea, you can skip steps -1 and 0.
 
-```source /home/jrising/aggregator/env/bin/activate```
+-1. Choose the root directories for data with > 1 TB space.  Here is how they are organized on existing systems:
 
-You may want to do all of the below within a virtual environment, if
-you do not wish or do not have permissions to modify the global python
-environment.
+   | Server | $DATA |
+   | --- | --- |
+   | Shackleton | /shares/gcp |
+   | BRC | /global/scratch/USERNAME |
+   | OSDC | /mnt/gcp/data |
 
--2. DMAS only needs to be installed at `dmas.berkeley.edu`.  See
-   `http://meta.aggregator.existencia.org/` for these instructions.
+0. Ensure that you have Python 2.7 and the `numpy` and `scipy` libraries installed
+```
+$ python --version
+$ pip install numpy
+$ pip install scipy
+```
 
--1. Choose two root directories for the steps below.  One must have a
-large amount of space, for data (> 1 TB).  The other should be in a
-user directory, and requires little space for code (< 1 GB).  We will
-call them $DATA and $CODE, respectively.  These may be the same
-directory.  Here is how they are organized on existing systems:
-   | =Server=   | =$DATA=         | =$CODE=                              |
-   | Shackleton | /shares/gcp     | /home/jrising/aggregator/ext/gcp/src |
-   | BRC        | /global/scratch | ~/                                   |
-   | OSDC       | /mnt/gcp/data   | ~/                                   |
+1. Clone `open-estimate` to your project directory:
+   ```$ git clone https://github.com/ClimateImpactLab/open-estimate.git```
 
-0. Ensure that you have Python 2.7 installed.
-   ```$ python --version```
+2. Install it: 
+```
+$ cd open-estimate
+$ python setup.py develop --user
+$ cd ..
+```
 
-1. Clone `open-estimate` to $CODE:
-   ```$ git clone https://github.com/jrising/open-estimate.git```
+3. Similarly, install `impactlab-tools` and `impact-common`:
+```
+$ git clone https://github.com/ClimateImpactLab/impactlab-tools.git
+$ cd impactlab-tools
+$ python setup.py develop --user
+$ cd ..
+$ git clone https://github.com/ClimateImpactLab/impact-common.git
+$ cd impact-common
+$ python setup.py develop --user
+$ cd ..
+```
 
-2. Follow the steps in the `open-estimate` README to install it.  See
-   `http://github.com/jrising/open-estimate`.  You can skip `scipy`
-   since we need a specific version of it below.
-
-3. Clone `impact-calculations` to $CODE:
+4. Clone `impact-calculations` to your project directory:
    ```$ git clone git@bitbucket.org:ClimateImpactLab/impact-calculations.git```
 
-4. Install a laundry-list of other packages (now would be a good time
-   to set up your virtual environment).
-   - netcdf: `apt-get install python-netcdf netcdf-bin libnetcdfc++4 libnetcdf-dev`
-     You may need to install
-     `https://github.com/Unidata/netcdf4-python` from the source
-   - libhdf5 and h5py: `apt-get install libhdf5-serial-dev`; `pip install h5py`
-   - cython: `pip install cython`
-   - gspread: `pip install gspread`
-   - oauth2client v. 1.5.2: `pip install oauth2client==1.5.2`
-   - pycrypto: `pip install pycrypto`
-   - libffi-dev: `apt-get install libffi-dev`
-   - statsmodels: `pip install statsmodels`
-   - scipy v. 0.14: `apt-get install libblas-dev liblapack-dev gfortran`; pip install scipy==0.14
+5. Install a laundry-list of other packages, if they aren't already installed (use `--user` for pip commands on a shared computer):
+    - netcdf (if not on Sacagawea): `apt-get install python-netcdf netcdf-bin libnetcdfc++4 libnetcdf-dev`.
+       You may need to install
+       `https://github.com/Unidata/netcdf4-python` from the source
+    - libhdf5 and h5py (if not on Sacagawea): `apt-get install libhdf5-serial-dev`; `pip install h5py`
+    - metacsv: `pip install metacsv`
+    - libffi-dev (if not on Sacagawea): `apt-get install libffi-dev`
+    - statsmodels: `pip install statsmodels`
+    - scipy: `apt-get install libblas-dev liblapack-dev gfortran` (if not on Sacagawea); pip install scipy
 
-5. Copy the main data directory from Norgay or Shackleton into a `$DATA/data` directory:
-   ```$ rsync -avz dmas.berkeley.edu:/shares/gcp/data $DATA/data```
+6. Copy the necessary data from Sacagawea into your `$DATA` directory, if you are not on Sacagawea:
+   ```$ rsync -avz sacagawea.gspp.berkeley.edu:/shares/gcp/social $DATA/social```
+   ```$ rsync -avz sacagawea.gspp.berkeley.edu:/shares/gcp/regions $DATA/regions```
+   ```$ rsync -avz sacagawea.gspp.berkeley.edu:/shares/gcp/climate $DATA/climate```
+   (you probably only want to copy over a subset of the data in `climate`.)
 
-6. Copy the BCSD directory from Norgay or Shackleton into a `$DATA/BCSD` directory:
-   ```$ rsync -avz dmas.berkeley.edu:/shares/gcp/BCSD $DATA/BCSD```
+7. The `impact-calculations` code needs to know where to find the `$DATA` directory and is given this information by placing a file named `server.yml` in the directory that contains `impact-calculations`.  Look at one of the files `impact-calculations/configs/servers-*.yml` and copy it to the directory containing `impact-calculations`, giving it the name `server.yml`.
 
-7. If $CODE and $DATA are not the same directory, create a symbolic
-   link from $DATA/data to $CODE/data:
-   ```$ ln -s $DATA/data $CODE/data```
+## Producing results
 
-## Preparing input data
+Diagnostic, median, and Monte Carlo results are produced by calling `./generate.sh CONFIG.yml`.  The `CONFIG.yml` files are stored in the `configs/` directory.  You may optionally put a number after this command, to spawn that many background processes.  Here are example commands:
 
-* The process for preparing most input data is described elsewhere
-  (see the socioeconomics wiki).  In particular, the following are
-  needed:
-  * Data files, stored in the $DATA directory.
-  * Impact response functions, stored in DMAS.
-  *
+* Generate a diagnostic collection of predictors and outputs for each region and year:
+  ```$ ./generate.sh configs/mortality-diagnostic.yml```
 
+* Generate results for the median quantile of the econometric distributions:
+  ```$ ./generate.sh configs/mortality-median.yml```
 
-See the [Process Document] for a step-by-step process.
+* Generate results performing a Monte Carlo across econometric uncertainty with 10 processes:
+  ```$ ./generate.sh configs/mortality-montecarlo.yml 10```
+
+## Analyzing results
+
+### Timeseries results
+
+* Clone the `prospectus-tools` repository on a machine with results:
+  ```$git clone https://github.com/jrising/prospectus-tools.git tools```
+
+* Make any changes to the `tools/gcp/extract/configs/timeseries.yml` file, following the information in the `README.md` and `config-dogs.md` in `tools/gcp/extract`.
+
+* From the `tools/gcp/extract` directory, extract all timeseries available for each RCP and SSP:
+  ```$ python quantiles.py configs/timeseries.yml RESULT-PREFIX```
+    - `RESULT-PREFIX` is a prefix in the filenames of the `.nc4` result files.  It might be (for example) each of the following:
+        - `interpolated_mortality_all_ages-histclim` or `interpolated_mortality_all_ages-histclim-aggregated`: historical climate impacts, non-aggregated and aggregated.
+        - `interpolated_mortality_all_ages` or `interpolated_mortality_all_ages-aggregated`: normal full-adaptation impacts
+        - `interpolated_mortality_ASSUMPTION_all_ages-aggregated` or `interpolated_mortality_ASSUMPTION_all_ages-aggregated`: partial adaptation, where `ASSUMPTION` is `dumb` or `comatose`.
+        - `interpolated_mortality_all_ages-costs` or `interpolated_mortality_all_ages-costs-aggregated`: cost estimates (combine with `VARIABLE` optional argument).

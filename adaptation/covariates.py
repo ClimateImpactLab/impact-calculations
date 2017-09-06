@@ -156,6 +156,8 @@ class YearlyWeatherCovariator(Covariator):
             assert len(weatherslice.times) == 1
             for ii in range(len(regions)):
                 predictors[regions[ii]].update(weatherslice.weathers[0, ii])
+            if weatherslice.get_years()[0] == baseline_end:
+                break
 
         self.predictors = predictors
 

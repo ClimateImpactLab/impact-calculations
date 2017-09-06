@@ -28,6 +28,8 @@ print "Loading weather..."
 variable_generators = [discover.standard_variable(name, 'day') for name in config['climate']]
 weatherbundle = weather.get_weatherbundle(clim_scenario, clim_model, variable_generators)
 
+filter_region = config.get('filter-region', None)
+
 if 'historical' in config and config['historical']:
     weatherbundle = weather.HistoricalWeatherBundle.make_historical(weatherbundle, pvals['histclim'].get_seed())
     pvals.lock()
@@ -75,7 +77,7 @@ else:
     print "ERROR: Unknown model specification method."
     exit()
     
-effectset.generate(targetdir, basename + suffix, weatherbundle, calculation, "Singly produced result.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config)
+effectset.generate(targetdir, basename + suffix, weatherbundle, calculation, "Singly produced result.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, filter_region=filter_region)
 
 if do_profile:
     pr.disable()
@@ -88,6 +90,7 @@ if do_profile:
     
     exit()
 
-aggregate.make_levels(targetdir, basename + suffix + '.nc4', get_weight)
-aggregate.make_aggregates(targetdir, basename + suffix + '.nc4', get_weight)
+aggregate.make_levels(targetdir, basename + suffix + '.nc4', aggregate.fullfile(basename, aggregate.levels_suffix, config), get_weight)
+aggregate.make_aggregates(targetdir, basename + suffix + '.nc4', aggregate.fullfile(basename, aggregate.suffix, config), get_weight)
+
 

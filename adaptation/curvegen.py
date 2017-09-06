@@ -49,6 +49,8 @@ class CSVVCurveGenerator(CurveGenerator):
             else:
                 try:
                     coefficients[predname] = self.constant[predname] + np.sum(self.predgammas[predname] * np.array([covariates[covar] for covar in self.predcovars[predname]]))
+                    if debug:
+                        print predname, self.constant[predname], self.predgammas[predname], np.array([covariates[covar] for covar in self.predcovars[predname]])
                 except Exception as e:
                     print "Available covariates:"
                     print covariates

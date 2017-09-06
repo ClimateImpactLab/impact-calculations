@@ -10,17 +10,22 @@ with_proxy sudo -E apt-get update
 with_proxy sudo -E apt-get install git
 sudo chown ubuntu:ubuntu /mnt
 mkdir /mnt/gcp
-rsync -avz jrising@dmas.berkeley.edu:/shares/gcp/social /mnt/gcp/social
+cd /mnt/gcp
+rsync -avz jrising@dmas.berkeley.edu:/shares/gcp/social /mnt/gcp/
+rsync -avz jrising@dmas.berkeley.edu:/shares/gcp/regions /mnt/gcp/
 rsync -avz jrising@dmas.berkeley.edu:/shares/gcp/BCSD /mnt/gcp/BCSD
 with_proxy git clone https://jrising@bitbucket.org/ClimateImpactLab/socioeconomics.git
 with_proxy git clone https://github.com/jrising/open-estimate.git
 with_proxy sudo -E apt-get install python-pip
-sudo python setup.py develop
+cd open-estimate; sudo python setup.py develop; cd ..
+with_proxy git clone https://github.com/ClimateImpactLab/metacsv
+cd metacsv; sudo python setup.py develop; cd ..
 with_proxy sudo -E apt-get install python-numpy python-scipy
 with_proxy sudo -E apt-get install python-netcdf
 with_proxy sudo -E pip install cython
 with_proxy sudo -E apt-get install libhdf5-serial-dev
 with_proxy sudo -E pip install h5py
+with_proxy sudo -E pip install xarray
 with_proxy sudo -E apt-get install netcdf-bin
 with_proxy sudo -E apt-get install libnetcdfc++4
 with_proxy sudo -E apt-get install libnetcdf-dev

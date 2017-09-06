@@ -1,0 +1,5 @@
+outputdir: outputs/labor/impacts-plaster
+# Levels are minutes * wage / elasticity; wage = income / (250 days * 6 hours * 60 minutes); elasticity = 1
+levels-weighting: population * income / 90000
+aggregate-weighting: population * income
+infix: wage
