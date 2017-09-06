@@ -5,8 +5,8 @@ from climate import discover
 
 csvvpath = sys.argv[1]
 
-knownpreds = {'belowzero': None}
-knowncovars = {'logpopop': 'log ppl/km^2', 'loggdppc': 'log USD2000', '1': '', 'hotdd_agg': 'C day', 'coldd_agg': 'C day'}
+knownpreds = {'belowzero': None, 'tas': 'C', 'tasmax': 'C', 'tasmin': 'C', 'prm': 'm/year'}
+knowncovars = {'logpopop': 'log ppl/km^2', 'loggdppc': 'log USD2000', '1': '', 'hotdd_agg': 'C day', 'coldd_agg': 'C day', 'climtas': 'C'}
 
 helps = set([])
 
