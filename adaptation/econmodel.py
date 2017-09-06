@@ -15,6 +15,9 @@ def iterate_econmodels():
         for row in reader:
             model = row[headrow.index('model')]
             scenario = row[headrow.index('scenario')]
+            if scenario == 'SSP5':
+                continue # Dropping entire scenario
+            
             if (model, scenario) not in modelscenarios:
                 yield model, scenario, SSPEconomicModel(model, scenario, dependencies)
                 modelscenarios.add((model, scenario))

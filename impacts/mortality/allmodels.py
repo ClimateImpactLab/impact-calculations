@@ -136,9 +136,12 @@ def produce_india(targetdir, weatherbundle, economicmodel, pvals, config, suffix
 
         if check_doit(targetdir, basename, suffix):
             print "India result"
-            calculation, dependencies = caller.call_prepare_interp(filepath, module, weatherbundle, economicmodel, pvals[basename])
+            try:
+                calculation, dependencies = caller.call_prepare_interp(filepath, module, weatherbundle, economicmodel, pvals[basename])
 
-            effectset.generate(targetdir, basename + suffix, weatherbundle, calculation, "India-model mortality impacts for all ages.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, diagnosefile=diagnosefile.replace('.csv', '-' + basename + '.csv') if diagnosefile else False)
+                effectset.generate(targetdir, basename + suffix, weatherbundle, calculation, "India-model mortality impacts for all ages.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, diagnosefile=diagnosefile.replace('.csv', '-' + basename + '.csv') if diagnosefile else False)
+            except Exception as ex:
+                print ex
 
 def produce_external(targetdir, weatherbundle, economicmodel, pvals, config, suffix=''):
     if config['do_only'] is None or config['do_only'] == 'acp':

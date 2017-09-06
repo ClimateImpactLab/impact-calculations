@@ -1,7 +1,7 @@
 import numpy as np
 import xarray as xr
 import metacsv
-import income
+import income, spacetime
 from impactlab_tools.utils import files
 
 gdppc_growth_filepath = 'social/baselines/gdppc-growth.csv'
@@ -83,6 +83,25 @@ class DynamicIncomeSmoothed(object):
 
         return country_growth
 
+class SpaceTimeBipartiteData(spacetime.SpaceTimeUnipartiteData):
+    def __init__(self, year0, year1, regions):
+        loader = lambda year0, year1, regions, model, scenario: SpaceTimeLoadedData(year0, year1, regions, model, scenario, [])
+        super(SpaceTimeBipartiteData, self).__init__(year0, year1, regions, loader)
+
+class SpaceTimeLoadedData(spacetime.SpaceTimeLoadedData):
+    def __init__(self, year0, year1, regions, model, scenario, dependencies):
+        # Load all data
+        source = DynamicIncomeSmoothed(model, scenario, dependencies)
+        if regions is None:
+            regions = source.current_income.keys()
+            
+        array = np.zeros((year1 - year0 + 1, len(regions)))
+        for year in range(year0, year1 + 1):
+            for ii in range(len(regions)):
+                array[year - year0, ii] = source.get_income(regions[ii], year)
+        
+        super(SpaceTimeLoadedData, self).__init__(year0, year1, regions, array, ifmissing='logmean')
+    
 if __name__ == '__main__':
     dependencies = []
     income = DynamicIncomeSmoothed('low', 'SSP4', dependencies)

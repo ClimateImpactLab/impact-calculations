@@ -3,9 +3,11 @@ import numpy as np
 from netCDF4 import Dataset
 
 def create(targetdir, basename):
-    if os.path.exists(os.path.join(targetdir, basename + '.nc4')):
-        os.remove(os.path.join(targetdir, basename + '.nc4')) # Needs to be deleted
-    return Dataset(os.path.join(targetdir, basename + '.nc4'), 'w', format='NETCDF4')
+    if basename[-4:] != '.nc4':
+        basename += '.nc4'
+    if os.path.exists(os.path.join(targetdir, basename)):
+        os.remove(os.path.join(targetdir, basename)) # Needs to be deleted
+    return Dataset(os.path.join(targetdir, basename), 'w', format='NETCDF4')
 
 def create_derivative(targetdir, reader, dstname, description_suffix, extra_dependencies, limityears=None):
     regions = reader.variables['regions'][:].tolist()

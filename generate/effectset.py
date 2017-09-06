@@ -75,7 +75,7 @@ def write_ncdf(targetdir, basename, weatherbundle, calculation, description, cal
         my_regions = []
         for ii in range(len(weatherbundle.regions)):
             if isinstance(filter_region, str):
-                if weatherbundle.regions[ii] in filter_region:
+                if filter_region in weatherbundle.regions[ii]:
                     my_regions.append(weatherbundle.regions[ii])
             else:
                 if filter_region(weatherbundle.regions[ii]):
