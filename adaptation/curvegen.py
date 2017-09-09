@@ -1,5 +1,6 @@
 import numpy as np
 from openest.generate.curvegen import *
+from openest.generate import checks
 
 region_curves = {}
 
@@ -14,12 +15,12 @@ class CSVVCurveGenerator(CurveGenerator):
                 print "WARNING: Predictor %s definition not found in CSVV." % predname
             else:
                 if 'unit' in csvv['variables'][predname]:
-                    assert csvv['variables'][predname]['unit'] == indepunits[ii], "Units error for %s: %s <> %s" % (predname, csvv['variables'][predname]['unit'], indepunits[ii])
+                    assert checks.loosematch(csvv['variables'][predname]['unit'], indepunits[ii]), "Units error for %s: %s <> %s" % (predname, csvv['variables'][predname]['unit'], indepunits[ii])
 
         if 'outcome' not in csvv['variables']:
             print "WARNING: Dependent variable definition not in CSVV."
         else:
-            assert csvv['variables']['outcome']['unit'] == depenunit, "Dependent units %s does not match %s." % (csvv['variables']['outcome']['unit'], depenunit)
+            assert checks.loosematch(csvv['variables']['outcome']['unit'], depenunit), "Dependent units %s does not match %s." % (csvv['variables']['outcome']['unit'], depenunit)
 
         # Preprocessing
         self.constant = {} # {predname: constant}
@@ -103,3 +104,13 @@ class FarmerCurveGenerator(DelayedCurveGenerator):
             region_curves[region] = curve
 
         return curve
+
+    def get_lincom_terms(self, predictors={}, covariates={}):
+        # XXX: Not delayed, and only full-adaptation
+        return self.curvegen.get_lincom_terms(predictors, covariates)
+
+    def get_csvv_coeff(self):
+        return self.curvegen.get_csvv_coeff()
+
+    def get_csvv_vcv(self):
+        return self.curvegen.get_csvv_vcv()

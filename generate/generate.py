@@ -89,11 +89,16 @@ def polypush_callback(region, year, application, get_predictors, model):
         predictors = get_predictors(region)
         writer.writerow([region, year, model] + [predictors[covar] for covar in covars])
 
-mode_iterators = {'median': iterate_median, 'montecarlo': iterate_montecarlo, 'single': iterate_single, 'writesplines': iterate_single, 'writepolys': iterate_single, 'profile': iterate_nosideeffects, 'diagnostic': iterate_nosideeffects}
+mode_iterators = {'median': iterate_median, 'montecarlo': iterate_montecarlo, 'lincom': iterate_median, 'single': iterate_single, 'writesplines': iterate_single, 'writepolys': iterate_single, 'profile': iterate_nosideeffects, 'diagnostic': iterate_nosideeffects}
 
 assert config['mode'] in mode_iterators.keys()
 
-mod = importlib.import_module("impacts." + config['module'] + ".allmodels")
+if config['module'][-4:] == '.yml':
+    mod = importlib.import_module("interpret.container")
+    with open(config['module'], 'r') as fp:
+        config.update(yaml.load(fp))
+else:
+    mod = importlib.import_module("impacts." + config['module'] + ".allmodels")
 
 mod.preload()
 
