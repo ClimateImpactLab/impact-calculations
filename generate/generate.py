@@ -172,5 +172,7 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
 
     statman.release(targetdir, "Generated")
 
+    os.system("chmod g+rw " + os.path.join(targetdir, "*"))
+
     if do_single:
         break
