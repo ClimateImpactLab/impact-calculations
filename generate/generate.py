@@ -50,7 +50,10 @@ def iterate_single():
     yield singledir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
 
 def splinepush_callback(region, year, application, get_predictors, model):
-    covars = ['loggdppc', 'hotdd_30*(tasmax - 27)*I_{T >= 27}', 'colddd_10*(27 - tasmax)*I_{T < 27}']
+    if 'mortality' in config['module']:
+        covars = ['climtas', 'loggdppc', 'logpopop']
+    else:
+        covars = ['loggdppc', 'hotdd_30*(tasmax - 27)*I_{T >= 27}', 'colddd_10*(27 - tasmax)*I_{T < 27}']
 
     filepath = os.path.join(targetdir, config['module'] + "-allpreds.csv")
     if not os.path.exists(filepath):
@@ -66,8 +69,12 @@ def splinepush_callback(region, year, application, get_predictors, model):
         writer.writerow([region, year, model] + [predictors[covar] for covar in covars])
 
 def polypush_callback(region, year, application, get_predictors, model):
-    covars = ['loggdppc', 'hotdd_30*(tasmax - 27)*I_{T >= 27}', 'colddd_10*(27 - tasmax)*I_{T < 27}']
-    covarnames = ['loggdppc', 'hotdd_30', 'colddd_10']
+    if 'mortality' in config['module']:
+        covars = ['climtas', 'loggdppc']
+        covarnames = ['climtas', 'loggdppc']
+    else:
+        covars = ['loggdppc', 'hotdd_30*(tasmax - 27)*I_{T >= 27}', 'colddd_10*(27 - tasmax)*I_{T < 27}']
+        covarnames = ['loggdppc', 'hotdd_30', 'colddd_10']
 
     filepath = os.path.join(targetdir, config['module'] + "-allpreds.csv")
     if not os.path.exists(filepath):

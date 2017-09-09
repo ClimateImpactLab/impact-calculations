@@ -30,7 +30,6 @@ def prepare_csvv(csvvpath, qvals, callback):
     p2effect = SingleWeatherApply('rate', p2curve, 'the quadratic precipitation effect', lambda tp: (365.25 / 30) * (tp[0, 1]**2))
 
     negp2curve = ZeroInterceptPolynomialCurve([-np.inf, np.inf], -pggr)
-    print negp2curve(68.35459792023)
     p2climate = MonthlyClimateApply('rate', negp2curve, 'negative climatic precipitation effect', prcp_climate_mean, regions, lambda p: (365.25 / 30) * (p**2))
 
     return Sum([teffect, p2effect, p2climate]), [data['attrs']['version']], data['covarnames'][0:4]
