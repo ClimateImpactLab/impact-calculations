@@ -42,7 +42,7 @@ def simultaneous_application(weatherbundle, calculation, regions=None, push_call
                     continue
                 
                 newvars[var] = (['time'], dsdata[:, region_indices[region]])
-            subds = fast_dataset.FastDataset(newvars, coords={'time': timevar})
+            subds = fast_dataset.FastDataset(newvars, coords={'time': timevar}, attrs={'year': year})
             
             for yearresult in applications[region].push(subds):
                 yield (region, yearresult[0], yearresult[1:])
