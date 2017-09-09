@@ -4,7 +4,7 @@ from climate.dailyreader import DailyWeatherReader
 from adaptation.econmodel import iterate_econmodels
 from shortterm import weather, curvegen, effectset
 from climate import forecasts, forecastreader
-import standard
+import country
 
 def get_bundle(qvals):
     tbundle = weather.ForecastBundle(forecastreader.MonthlyZScoreForecastOTFReader(forecasts.temp_path, forecasts.temp_climate_path, 'mean', qvals['tmean']))
@@ -28,7 +28,7 @@ def produce(targetdir, weatherbundle, qvals, do_only=None, suffix=''):
         predgen1 = curvegen.WeatherPredictorator(historicalbundle, econmodel, 15, 3, 2005)
 
         ## Full interpolation
-        for filepath in glob.glob("/shares/gcp/social/parameters/conflict/single_stage_03282017/*.csvv"):
+        for filepath in glob.glob("/shares/gcp/social/parameters/conflict/hierarchical_08102017/*.csvv"):
             basename = os.path.basename(filepath)[:-5]
 
             predicted_betas = {}
@@ -40,9 +40,16 @@ def produce(targetdir, weatherbundle, qvals, do_only=None, suffix=''):
 
             thisqvals = qvals[basename]
 
-            calculation, dependencies, covarnames = standard.prepare_csvv(filepath, thisqvals, betas_callback)
-
-            columns = effectset.write_ncdf(thisqvals['weather'], targetdir, basename + suffix, weatherbundle, calculation, lambda region: (predgen1.get_current(region),), "Interpolated response for " + basename + ".", dependencies + weatherbundle.dependencies)
+            if 'adm0' in basename:
+                calculation, dependencies, covarnames = country.prepare_csvv(filepath, thisqvals, betas_callback)
+                ## XXX: Need to average to country-level
+                columns = effectset.write_ncdf(thisqvals['weather'], targetdir, basename + suffix, weatherbundle, calculation, lambda region: (predgen1.get_current(region),), "Interpolated response for " + basename + ".", dependencies + weatherbundle.dependencies)
+            elif 'adm2' in basename:
+                ### XXX: Need to define subcountry
+                calculation, dependencies, covarnames = subcountry.prepare_csvv(filepath, thisqvals, betas_callback)
+                columns = effectset.write_ncdf(thisqvals['weather'], targetdir, basename + suffix, weatherbundle, calculation, lambda region: (predgen1.get_current(region),), "Interpolated response for " + basename + ".", dependencies + weatherbundle.dependencies)
+            else:
+                raise ValueError("Unknown calculation type: " + basename)
 
             with open(os.path.join(targetdir, basename + '-final.csv'), 'w') as fp:
                 writer = csv.writer(fp)

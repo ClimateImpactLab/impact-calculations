@@ -7,18 +7,24 @@ from openest.generate.weatherslice import YearlyWeatherSlice
 class YearlyWeatherReader(WeatherReader):
     """Exposes yearly weather data, with one file per GCM."""
 
-    def __init__(self, filepath, variable):
+    def __init__(self, filepath, variable, timevar='year'):
         self.filepath = filepath
         self.variable = variable
+        self.timevar = timevar
 
         version, units = netcdfs.readmeta(filepath, variable)
+        self.regions = netcdfs.readncdf_single(filepath, 'hierid', allow_missing=True) # Is None if organized by SHAPENUM
         super(YearlyWeatherReader, self).__init__(version, units, 'year')
 
     def get_times(self):
-        return netcdfs.readncdf_single(self.filepath, 'year')
+        return netcdfs.readncdf_single(self.filepath, self.timevar)
 
     def get_years(self):
         return list(self.get_times())
+
+    def get_regions(self):
+        """Returns a list of all regions available."""
+        return self.regions
 
     def get_dimension(self):
         return [self.variable]
