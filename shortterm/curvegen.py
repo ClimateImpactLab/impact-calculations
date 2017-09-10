@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.stats import multivariate_normal
 from openest.generate.curvegen import CurveGenerator
-from openest.models.curve import LinearCurve, PolynomialCurve
+from openest.models.curve import LinearCurve
 
 class CSVVCurveGenerator(CurveGenerator):
     def __init__(self, indepunits, depenunits, covarnames, gamma, residvcv, callback=None):
@@ -27,25 +27,6 @@ class LinearCurveGenerator(CSVVCurveGenerator):
             self.callback(region, predictors, yy)
 
         return LinearCurve(yy)
-
-class WeatherPredictorator(object):
-    def __init__(self, weatherbundle, economicmodel, numtempyears, numeconyears, maxbaseline, polyorder=1):
-        self.numtempyears = numtempyears
-        self.numeconyears = numeconyears
-        self.polyorder = polyorder
-
-        print "Collecting baseline information..."
-        self.weather_predictors = {}
-        for region, weathers in weatherbundle.baseline_average(maxbaseline): # baseline through maxbaseline
-            self.weather_predictors[region] = weathers
-
-        self.econ_predictors = economicmodel.baseline_prepared(maxbaseline, numeconyears, np.mean)
-
-        self.economicmodel = economicmodel
-
-    def get_current(self, region):
-        econpreds = self.econ_predictors.get(region, self.econ_predictors['mean'])
-        return {'climtas': self.weather_predictors[region], 'loggdppc': np.log(econpreds['gdppcs']), 'logpopop': np.log(econpreds['popop'])}
 
 if __name__ == '__main__':
     curvegen = LinearCurveGenerator('X', 'Y', 1234, [1, 1], [[.01, 0], [0, .01]], [0])
