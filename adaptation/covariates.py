@@ -98,7 +98,7 @@ class MeanWeatherCovariator(Covariator):
         self.lastyear[region] = year
 
         if ds is not None and year > self.startupdateyear:
-            self.temp_predictors[region].update(np.mean(ds[self.variable])) # if only yearly values
+            self.temp_predictors[region].update(np.mean(ds[self.variable]._values)) # if only yearly values
 
         return {self.variable: self.temp_predictors[region].get()}
 
