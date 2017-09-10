@@ -324,3 +324,25 @@ class TranslateCovariator(Covariator):
     def get_update(self, region, year, ds):
         update = self.covariator.get_update(region, year, ds)
         return self.translate(update)
+
+class CountryAggregatedCovariator(Covariator):
+    def __init__(self, source, regions):
+        self.source = source
+        bycountry = {}
+        for region in regions:
+            if region[:3] in bycountry:
+                bycountry[region[:3]].append(region)
+            else:
+                bycountry[region[:3]] = [region]
+        self.bycountry = bycountry
+
+    def get_current(self, country):
+        values = [self.source.get_current(region) for region in self.bycountry[country]]
+        return {key: np.mean([value[key] for value in values]) for key in values[0]}
+
+class CountryDeviationCovariator(CountryAggregatedCovariator):
+    def get_current(self, region):
+        countrylevel = super(CountryDeviationCovariator, self).get_current(region[:3])
+        subcountrylevel = self.source.get_current(region)
+
+        return {key: subcountrylevel[key] - countrylevel[key] for key in subcountrylevel}
