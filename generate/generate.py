@@ -5,7 +5,7 @@ Manages rcps and econ and climate models, and generate.effectset.simultaneous_ap
 import sys, os, itertools, importlib, shutil, csv, time, yaml, tempfile
 from collections import OrderedDict
 import loadmodels
-import weather, pvalses
+import weather, pvalses, timing
 from adaptation import curvegen
 from impactlab_tools.utils import files, paralog
 import cProfile, pstats, StringIO, metacsv
@@ -100,6 +100,8 @@ mode_iterators = {'median': iterate_median, 'montecarlo': iterate_montecarlo, 's
 
 assert config['mode'] in mode_iterators.keys()
 
+start = timing.process_time()
+
 mod = importlib.import_module("impacts." + config['module'] + ".allmodels")
 
 mod.preload()
@@ -176,5 +178,7 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
 
     os.system("chmod g+rw " + os.path.join(targetdir, "*"))
 
+    print "Process Time:", timing.process_time() - start
+    
     if do_single:
         break
