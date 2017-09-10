@@ -108,3 +108,67 @@ class MonthlyZScoreForecastReader(MonthlyForecastReader):
             # undo adding ahead, since we take out the 1.5 lead for allsdevs
             ds['mean'] = norm.ppf(self.qval, weather, allsdevs[int(ds.S[0] + ds.L[0] - 1.5) % 12, :])
             yield ds
+
+class CountryDuplicatedReader(MonthlyForecastReader):
+    def __init__(self, source, regions):
+        self.source = source
+        self.regions = regions
+        
+        countryindex = {} # {iso: index}
+        for ii in range(len(self.source.regions)):
+            countryindex[self.source.regions[ii]] = ii
+        self.countryindex = countryindex
+            
+    def read_iterator(self):
+        for weatherslice in self.source.read_iterator():
+            weathers = np.zeros((weatherslice.weathers.shape[0], len(self.regions)))
+            for ii in range(self.regions):
+                weathers[:, ii] = weatherslice.weathers[:, self.countryindex[self.regions[ii][:3]]]
+
+            weatherslice.weathers = weathers
+            yield weatherslice
+
+class CountryAveragedReader(MonthlyForecastReader):
+    def __init__(self, source):
+        self.source = source
+        self.regions = np.unique(map(lambda region: region[:3], source.regions))
+
+    def read_iterator(self):
+        for weatherslice in self.source.read_iterator():
+            bycountry = {} # {iso: [values]}
+            regions = self.regions
+            for ii in range(len(regions)):
+                if regions[ii][:3] in bycountry:
+                    bycountry[regions[ii][:3]].append(weathers[:, ii])
+                else:
+                    bycountry[regions[ii][:3]] = [weathers[:, ii]]
+
+            weathers = np.zeros((weatherslice.weathers.shape[0], len(self.regions)))
+            for ii in range(len(self.regions)):
+                weathers[:, ii] = np.mean(bycountry[country])
+                
+            yield ForecastMonthlyWeatherSlice(weatherslice.month, weatherslice.ahead, weathers)
+
+class CountryDeviationsReader(MonthlyForecastReader):
+    def __init__(self, source):
+        self.source = source
+
+    def read_iterator(self):
+        for weatherslice in self.source.read_iterator():
+            weathers = weatherslice.weathers
+            bycountry = {} # {iso: [values]}
+            regions = self.regions
+            for ii in range(len(regions)):
+                if regions[ii][:3] in bycountry:
+                    bycountry[regions[ii][:3]].append(weathers[:, ii])
+                else:
+                    bycountry[regions[ii][:3]] = [weathers[:, ii]]
+
+            for country in bycountry:
+                bycountry[country] = np.mean(bycountry[country])
+
+            for ii in range(len(regions)):
+                weatherslice.weathers[:, ii] = weatherslice.weathers[:, ii] - bycountry[regions[ii][:3]]
+
+            yield weatherslice
+>>>>>>> master

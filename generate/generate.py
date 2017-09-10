@@ -5,7 +5,7 @@ Manages rcps and econ and climate models, and generate.effectset.simultaneous_ap
 import sys, os, itertools, importlib, shutil, csv, time, yaml, tempfile
 from collections import OrderedDict
 import loadmodels
-import weather, pvalses
+import weather, pvalses, timing
 from adaptation import curvegen
 from impactlab_tools.utils import files, paralog
 import cProfile, pstats, StringIO, metacsv
@@ -50,7 +50,10 @@ def iterate_single():
     yield singledir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
 
 def splinepush_callback(region, year, application, get_predictors, model):
-    covars = ['loggdppc', 'hotdd_30*(tasmax - 27)*I_{T >= 27}', 'colddd_10*(27 - tasmax)*I_{T < 27}']
+    if 'mortality' in config['module']:
+        covars = ['climtas', 'loggdppc', 'logpopop']
+    else:
+        covars = ['loggdppc', 'hotdd_30*(tasmax - 27)*I_{T >= 27}', 'colddd_10*(27 - tasmax)*I_{T < 27}']
 
     filepath = os.path.join(targetdir, config['module'] + "-allpreds.csv")
     if not os.path.exists(filepath):
@@ -66,8 +69,12 @@ def splinepush_callback(region, year, application, get_predictors, model):
         writer.writerow([region, year, model] + [predictors[covar] for covar in covars])
 
 def polypush_callback(region, year, application, get_predictors, model):
-    covars = ['loggdppc', 'hotdd_30*(tasmax - 27)*I_{T >= 27}', 'colddd_10*(27 - tasmax)*I_{T < 27}']
-    covarnames = ['loggdppc', 'hotdd_30', 'colddd_10']
+    if 'mortality' in config['module']:
+        covars = ['climtas', 'loggdppc']
+        covarnames = ['climtas', 'loggdppc']
+    else:
+        covars = ['loggdppc', 'hotdd_30*(tasmax - 27)*I_{T >= 27}', 'colddd_10*(27 - tasmax)*I_{T < 27}']
+        covarnames = ['loggdppc', 'hotdd_30', 'colddd_10']
 
     filepath = os.path.join(targetdir, config['module'] + "-allpreds.csv")
     if not os.path.exists(filepath):
@@ -92,6 +99,8 @@ def polypush_callback(region, year, application, get_predictors, model):
 mode_iterators = {'median': iterate_median, 'montecarlo': iterate_montecarlo, 'lincom': iterate_median, 'single': iterate_single, 'writesplines': iterate_single, 'writepolys': iterate_single, 'profile': iterate_nosideeffects, 'diagnostic': iterate_nosideeffects}
 
 assert config['mode'] in mode_iterators.keys()
+
+start = timing.process_time()
 
 if config['module'][-4:] == '.yml':
     mod = importlib.import_module("interpret.container")
@@ -174,5 +183,7 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
 
     os.system("chmod g+rw " + os.path.join(targetdir, "*"))
 
+    print "Process Time:", timing.process_time() - start
+    
     if do_single:
         break

@@ -25,7 +25,7 @@ def standard_variable(name, timerate):
             return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/" + name), name)
         if name in ['tasmax' + str(ii) for ii in range(2, 10)]:
             return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tasmax-poly-" + name[6]), 'tasmax-poly-' + name[6])
-            
+
     raise ValueError("Unknown variable: " + name)
         
 def discover_models(basedir):
@@ -151,6 +151,16 @@ def discover_yearly_corresponding(basedir, scenario, vardir, model, variable):
         if thismodel == model:
             filepath = os.path.join(basedir, scenario, vardir, filename)
             return YearlyWeatherReader(filepath, variable)
+
+    if 'pattern' in model and os.path.isdir(os.path.join(basedir, scenario, vardir, 'pattern')):
+        for filename in os.listdir(os.path.join(basedir, scenario, vardir, 'pattern')):
+            root, ext = os.path.splitext(filename)
+            thismodel = root.split('_')[-1]
+
+            if thismodel == model:
+                filepath = os.path.join(basedir, scenario, vardir, 'pattern', filename)
+                # Reorder these results, which use hierid, to SHAPENUM order
+                return RegionReorderWeatherReader(YearlyWeatherReader(filepath, variable, timevar='time'))
 
 def discover_convert(discover_iterator, time_conversion, ds_conversion):
     """Convert the readers coming out of a discover iterator."""
