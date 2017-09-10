@@ -105,9 +105,17 @@ class FarmerCurveGenerator(DelayedCurveGenerator):
 
         return curve
 
-    def get_lincom_terms(self, predictors={}, covariates={}):
-        # XXX: Not delayed, and only full-adaptation
-        return self.curvegen.get_lincom_terms(predictors, covariates)
+    def get_lincom_terms(self, region, year, predictors={}):
+        if year < 2015:
+            covariates = self.covariator.get_current(region)
+        elif self.farmer == 'full':
+            covariates = self.covariator.get_update(region, year, predictors)
+        elif self.farmer == 'coma':
+            assert False, "Don't have this set of covariates."
+        elif self.farmer == 'dumb':
+            covariates = self.covariator.get_update(region, year, None)
+            
+        return self.curvegen.get_lincom_terms_simple(predictors, covariates)
 
     def get_csvv_coeff(self):
         return self.curvegen.get_csvv_coeff()

@@ -63,11 +63,11 @@ def produce_csvv(basename, csvv, module, specconf, targetdir, weatherbundle, eco
         specconf_age = copy.copy(specconf)
         specconf_age['csvv-organization'] = 'normal'
         csvv = csvvfile.read(csvv)
-        produce_csvv(basename + '-young', csvvfile.subset(csvv, range(len(csvv['gamma']) / 3)), module, specconf_age,
+        produce_csvv(basename + '-young', csvvfile.subset(csvv, slice(0, len(csvv['gamma']) / 3)), module, specconf_age,
                      targetdir, weatherbundle, economicmodel, pvals, config, push_callback, suffix, profile, diagnosefile)
-        produce_csvv(basename + '-older', csvvfile.subset(csvv, range(len(csvv['gamma']) / 3, 2 * len(csvv['gamma']) / 3)), module, specconf_age,
+        produce_csvv(basename + '-older', csvvfile.subset(csvv, slice(len(csvv['gamma']) / 3, 2 * len(csvv['gamma']) / 3)), module, specconf_age,
                      targetdir, weatherbundle, economicmodel, pvals, config, push_callback, suffix, profile, diagnosefile)
-        produce_csvv(basename + '-oldest', csvvfile.subset(csvv, range(2 * len(csvv['gamma']) / 3, len(csvv['gamma']))), module, specconf_age,
+        produce_csvv(basename + '-oldest', csvvfile.subset(csvv, slice(2 * len(csvv['gamma']) / 3, len(csvv['gamma']))), module, specconf_age,
                      targetdir, weatherbundle, economicmodel, pvals, config, push_callback, suffix, profile, diagnosefile)
         return
 

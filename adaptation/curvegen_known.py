@@ -20,9 +20,7 @@ class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
 
         return ZeroInterceptPolynomialCurve([-np.inf, np.inf], yy)
 
-    def get_lincom_terms(self, predictors={}, covariates={}):
-        print predictors
-        print covariates
+    def get_lincom_terms_simple(self, predictors={}, covariates={}):
         # Return in the order of the CSVV
         terms = []
         for ii in range(len(self.csvv['prednames'])):
@@ -30,7 +28,7 @@ class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
             if predname not in predictors._variables.keys():
                 predname = predname[:-1] + '-poly-' + predname[-1]
                 
-            pred = predictors[predname]
+            pred = predictors[predname]._values
             covar = covariates[self.csvv['covarnames'][ii]] if self.csvv['covarnames'][ii] != '1' else 1
             terms.append(pred * covar)
 
