@@ -19,7 +19,9 @@ content of that batch should only ever hold one file, it will delete
 any pre-existing content in the target directory.
 
 One runs the diagnostic system the same way as a normal result generation:
+
 ```$ ./generate.sh configs/<CONFIG-FILE>.yml```
+
 where `<CONFIG-FILE>.yml` is a configuration file including the
 options below.  The existing collection of diagnostic files are named
 `configs/<sector>-diagnostics.yml`.  Configuration settings can also
