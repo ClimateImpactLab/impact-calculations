@@ -164,7 +164,7 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
     else:
         mod.produce(targetdir, weatherbundle, economicmodel, pvals, config)
 
-    if config['mode'] not in ['writesplines', 'writepolys', 'diagnostic']:
+    if config['mode'] not in ['writesplines', 'writepolys', 'diagnostic'] or config.get('do_historical', False):
         # Generate historical baseline
         print "Historical"
         historybundle = weather.HistoricalWeatherBundle.make_historical(weatherbundle, None if config['mode'] == 'median' else pvals['histclim'].get_seed())

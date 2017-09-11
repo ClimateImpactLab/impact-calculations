@@ -1,5 +1,6 @@
 import sys, os, importlib
 import weather
+from adaptation import econmodel
 from generate import pvalses
 
 do_only = None
@@ -18,6 +19,7 @@ print targetdir
 os.makedirs(targetdir)
 
 weatherbundle = mod.get_bundle(pvals['weather'])
+economicmodel = econmodel.get_economicmodel('SSP2', 'low')
 
-mod.produce(targetdir, weatherbundle, pvals)
+mod.produce(targetdir, weatherbundle, economicmodel, pvals)
 pvalses.make_pval_file(targetdir, pvals)

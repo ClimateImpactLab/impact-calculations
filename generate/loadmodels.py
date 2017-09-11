@@ -7,6 +7,7 @@ do_econ_scenario_only = None #{'rcp45': ['SSP4', 'SSP1'], 'rcp85': ['SSP4', 'SSP
 
 single_clim_model = 'CCSM4'
 single_clim_scenario = 'rcp85'
+single_econ_model = 'high'
 single_econ_scenario = 'SSP3'
 
 def single(bundle_iterator):
@@ -24,7 +25,7 @@ def single(bundle_iterator):
             if clim_scenario != single_clim_scenario or clim_model != single_clim_model:
                 continue
             if single_econ_scenario is not None:
-                if econ_scenario[:4] == single_econ_scenario:
+                if econ_scenario[:4] == single_econ_scenario and econ_model == single_econ_model:
                     return clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
                 continue
             

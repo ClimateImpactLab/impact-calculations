@@ -25,7 +25,8 @@ class CombinedBundle(WeatherBundle):
             self.dependencies.update(bundle.dependencies)
         self.dependencies = list(self.dependencies)
 
-        self.load_regions()
+        self.regions = bundles[0].regions
+        print "HERE", len(self.regions), self.regions[:5]
         self.version = bundles[0].version
         self.units = [bundle.units for bundle in bundles]
 
