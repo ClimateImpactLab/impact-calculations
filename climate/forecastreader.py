@@ -4,6 +4,7 @@ from scipy.stats import norm
 import netcdfs, forecasts
 import numpy as np
 from openest.generate.weatherslice import ForecastMonthlyWeatherSlice
+from datastore import irregions
 
 class MonthlyForecastReader(WeatherReader):
     """
@@ -16,6 +17,7 @@ class MonthlyForecastReader(WeatherReader):
 
         self.filepath = filepath
         self.variable = variable
+        self.regions = irregions.load_regions("hierarchy.csv", [])
 
     def get_start_ahead_times(self):
         """Return list of months"""
@@ -112,9 +114,23 @@ class MonthlyZScoreForecastReader(MonthlyForecastReader):
             weatherslice.weathers = norm.ppf(self.qval, weather, allsdevs[int(weatherslice.times[0] - 1.5) % 12, :])
             yield weatherslice
 
-class CountryDuplicatedReader(MonthlyForecastReader):
-    def __init__(self, source, regions):
+class TransformedReader(WeatherReader):
+    def __init__(self, source):
         self.source = source
+        super(TransformedReader, self).__init__(source.version, source.units, source.time_units)
+
+    def read_iterator(self):
+        raise NotImplementedError()
+
+    def get_times(self):
+        return self.source.get_times()
+
+    def get_dimension(self):
+        return self.source.get_dimension()
+            
+class CountryDuplicatedReader(TransformedReader):
+    def __init__(self, source, regions):
+        super(CountryDuplicatedReader, self).__init__(source)
         self.regions = regions
         
         countryindex = {} # {iso: index}
@@ -131,9 +147,10 @@ class CountryDuplicatedReader(MonthlyForecastReader):
             weatherslice.weathers = weathers
             yield weatherslice
 
-class CountryAveragedReader(MonthlyForecastReader):
+class CountryAveragedReader(TransformedReader):
     def __init__(self, source):
-        self.source = source
+        super(CountryAveragedReader, self).__init__(source)
+
         self.regions = np.unique(map(lambda region: region[:3], source.regions))
 
     def read_iterator(self):
@@ -152,9 +169,9 @@ class CountryAveragedReader(MonthlyForecastReader):
                 
             yield ForecastMonthlyWeatherSlice(weatherslice.month, weatherslice.ahead, weathers)
 
-class CountryDeviationsReader(MonthlyForecastReader):
+class CountryDeviationsReader(TransformedReader):
     def __init__(self, source):
-        self.source = source
+        super(CountryDeviationsReader, self).__init__(source)
 
     def read_iterator(self):
         for weatherslice in self.source.read_iterator():
