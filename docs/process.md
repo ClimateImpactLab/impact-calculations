@@ -57,7 +57,7 @@ $ cd ..
     - metacsv: `pip install metacsv`
     - libffi-dev (if not on Sacagawea): `apt-get install libffi-dev`
     - statsmodels: `pip install statsmodels`
-    - scipy: `apt-get install libblas-dev liblapack-dev gfortran` (if not on Sacagawea); pip install scipy
+    - scipy: `apt-get install libblas-dev liblapack-dev gfortran` (if not on Sacagawea); `pip install scipy`
 
 6. Copy the necessary data from Sacagawea into your `$DATA` directory, if you are not on Sacagawea:
    ```$ rsync -avz sacagawea.gspp.berkeley.edu:/shares/gcp/social $DATA/social```
