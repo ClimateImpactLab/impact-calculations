@@ -340,11 +340,12 @@ if __name__ == '__main__':
                         # Just aggregate the costs
 
                         # Levels of costs
-                        if not missing_only or not os.path.exists(os.path.join(targetdir, filename[:-4].replace('combined', 'combined-costs') + costs_suffix + levels_suffix + '.nc4')):
-                            make_costs_levels(targetdir, filename[:-4].replace('combined', 'combined-costs') + '.nc4', halfweight_levels, weight_args_levels)
+                        outfilename = filename[:-4].replace('combined', 'combined-costs') + levels_suffix + '.nc4'
+                        if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)):
+                            make_costs_levels(targetdir, filename[:-4].replace('combined', 'combined-costs') + '.nc4', outfilename, halfweight_levels, weight_args_levels)
 
                         # Aggregate costs
-                        outfilename = filename[:-4].replace('combined', 'combined-costs') + costs_suffix + suffix + '.nc4'
+                        outfilename = filename[:-4].replace('combined', 'combined-costs') + suffix + '.nc4'
                         if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)):
                             make_costs_aggregate(targetdir, filename[:-4].replace('combined', 'combined-costs') + '.nc4', outfilename, halfweight_aggregate, weight_args_aggregate, halfweight_denom=halfweight_aggregate_denom, weight_args_denom=weight_args_aggregate_denom)
                         
