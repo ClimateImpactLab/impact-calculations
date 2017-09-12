@@ -156,18 +156,18 @@ class CountryAveragedReader(TransformedReader):
     def read_iterator(self):
         for weatherslice in self.source.read_iterator():
             bycountry = {} # {iso: [values]}
-            regions = self.regions
+            regions = self.source.regions # All IR
             for ii in range(len(regions)):
                 if regions[ii][:3] in bycountry:
-                    bycountry[regions[ii][:3]].append(weathers[:, ii])
+                    bycountry[regions[ii][:3]].append(weatherslice.weathers[:, ii])
                 else:
-                    bycountry[regions[ii][:3]] = [weathers[:, ii]]
+                    bycountry[regions[ii][:3]] = [weatherslice.weathers[:, ii]]
 
             weathers = np.zeros((weatherslice.weathers.shape[0], len(self.regions)))
-            for ii in range(len(self.regions)):
-                weathers[:, ii] = np.mean(bycountry[country])
+            for ii in range(len(self.regions)): # Just countries
+                weathers[:, ii] = np.mean(bycountry[self.regions[ii]])
                 
-            yield ForecastMonthlyWeatherSlice(weatherslice.month, weatherslice.ahead, weathers)
+            yield ForecastMonthlyWeatherSlice(weatherslice.month, weatherslice.ahead, weathers, ignore_regionnum=True)
 
 class CountryDeviationsReader(TransformedReader):
     def __init__(self, source):
