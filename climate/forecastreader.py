@@ -141,7 +141,7 @@ class CountryDuplicatedReader(TransformedReader):
     def read_iterator(self):
         for weatherslice in self.source.read_iterator():
             weathers = np.zeros((weatherslice.weathers.shape[0], len(self.regions)))
-            for ii in range(self.regions):
+            for ii in range(len(self.regions)):
                 weathers[:, ii] = weatherslice.weathers[:, self.countryindex[self.regions[ii][:3]]]
 
             weatherslice.weathers = weathers
@@ -177,7 +177,7 @@ class CountryDeviationsReader(TransformedReader):
         for weatherslice in self.source.read_iterator():
             weathers = weatherslice.weathers
             bycountry = {} # {iso: [values]}
-            regions = self.regions
+            regions = self.source.regions
             for ii in range(len(regions)):
                 if regions[ii][:3] in bycountry:
                     bycountry[regions[ii][:3]].append(weathers[:, ii])
