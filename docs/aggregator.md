@@ -35,7 +35,10 @@ Required:
    aggregation (see Weighting Schemes below).  Alternatively, the
    scaling and aggregation can use different weighting schemes using
    the configuration parameters `levels-weighting` and
-   `aggregate-weighting`.
+   `aggregate-weighting`.  Alternatively-alternatively, the
+   aggregation weighting can use different multiplicative factors in
+   its numerator and denominator, with `aggregate-weighting-numerator`
+   and `aggregate-weighting-denominator`.
    
 Optional:
  - `infix`: A label inserted before the term `-levels` and
