@@ -38,7 +38,7 @@ def get_cached_weight(halfweight, weight_args, years):
     cached_weights[key] = stweight
     return stweight
 
-def make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, dimensions_template=None, metainfo=None, limityears=None):
+def make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, dimensions_template=None, metainfo=None, limityears=None, halfweight_denom=None, weight_args_denom=None):
     # Find all variables that containing the region dimension
     reader = Dataset(os.path.join(targetdir, filename), 'r', format='NETCDF4')
     if dimensions_template is None:
@@ -68,6 +68,10 @@ def make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, d
     years[:] = readeryears
 
     stweight = get_cached_weight(halfweight, weight_args, years)
+    if halfweight_denom:
+        stweight_denom = get_cached_weight(halfweight_denom, weight_args_denom, years)
+    else:
+        stweight_denom = None # Just use the same weight
 
     nc4writer.make_regions_variable(writer, prefixes, 'aggregated')
 
@@ -88,7 +92,11 @@ def make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, d
             for original in withinregions:
                 weights = stweight.get_time(original)
                 numers += weights * np.nan_to_num(srcvalues[:, original_indices[original]]) * np.isfinite(srcvalues[:, original_indices[original]])
-                denoms += weights * np.isfinite(srcvalues[:, original_indices[original]])
+                if stweight_denom:
+                    weights_denom = stweight_denom.get_time(original)
+                    denoms += weights_denom * np.isfinite(srcvalues[:, original_indices[original]])
+                else:
+                    denoms += weights * np.isfinite(srcvalues[:, original_indices[original]])
 
             dstvalues[:, ii] = numers / denoms
 
@@ -99,7 +107,7 @@ def make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, d
         dimreader.close()
     writer.close()
 
-def make_costs_aggregate(targetdir, filename, outfilename, halfweight, weight_args):
+def make_costs_aggregate(targetdir, filename, outfilename, halfweight, weight_args, halfweight_denom=None, weight_args_denom=None):
     # Assume the following IAM and SSP
     econ_model = 'OCED Env-Growth'
     econ_scenario = 'SSP3_v9_130325'
@@ -109,7 +117,7 @@ def make_costs_aggregate(targetdir, filename, outfilename, halfweight, weight_ar
                     dependencies="TEMPERATURES, ADAPTATION-ALL-AGES",
                     author="Tamma Carleton")
 
-    make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, dimensions_template=dimensions_template, metainfo=metainfo)
+    make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, dimensions_template=dimensions_template, metainfo=metainfo, halfweight_denom=halfweight_denom, weight_args_denom=weight_args_denom)
 
 def make_levels(targetdir, filename, outfilename, halfweight, weight_args, dimensions_template=None, metainfo=None, limityears=None):
     # Find all variables that containing the region dimension
@@ -181,17 +189,28 @@ if __name__ == '__main__':
     statman = paralog.StatusManager('aggregate', "generate.aggregate " + sys.argv[1], 'logs', CLAIM_TIMEOUT)
 
     if 'weighting' in config:
+        # Same weighting for levels and aggregate
         halfweight_levels = weights.interpret_halfweight(config['weighting'])
         halfweight_aggregate = halfweight_levels
+        halfweight_aggregate_denom = None # Same as numerator
     else:
+        # Levels weighting
         if 'levels-weighting' in config:
             halfweight_levels = weights.interpret_halfweight(config['levels-weighting'])
         else:
             halfweight_levels = None
+
+        # Aggregate weighting
         if 'aggregate-weighting' in config:
             halfweight_aggregate = weights.interpret_halfweight(config['aggregate-weighting'])
+            halfweight_aggregate_denom = None # Same as numerator
         else:
-            halfweight_aggregate = None
+            if 'aggregate-weighting-numerator' in config:
+                halfweight_aggregate = weights.interpret_halfweight(config['aggregate-weighting-numerator'])
+                halfweight_aggregate_denom = weights.interpret_halfweight(config['aggregate-weighting-denominator'])
+            else:
+                halfweight_aggregate = None
+                halfweight_aggregate_denom = None
 
     for batch, clim_scenario, clim_model, econ_scenario, econ_model, targetdir in agglib.iterresults(config['outputdir'], batchfilter, targetdirfilter):
         if 'rcp' in config:
@@ -221,9 +240,26 @@ if __name__ == '__main__':
                 if 'weighting' in config and config['weighting'] == 'agecohorts':
                     weight_args_levels = (econ_model, econ_scenario, agecohorts.age_from_filename(filename) if 'IND_' not in filename else 'total')
                     weight_args_aggregate = weight_args_levels
+                    weight_args_aggregate_denom = None
                 else:
-                    weight_args_levels = (econ_model, econ_scenario)
-                    weight_args_aggregate = (econ_model, econ_scenario)
+                    if 'levels-weighting' in config and config['levels-weighting'] == 'agecohorts':
+                        weight_args_levels = (econ_model, econ_scenario, agecohorts.age_from_filename(filename) if 'IND_' not in filename else 'total')
+                    else:
+                        weight_args_levels = (econ_model, econ_scenario)
+                        
+                    if 'aggregate-weighting' in config and config['aggregate-weighting'] == 'agecohorts':
+                        weight_args_aggregate = (econ_model, econ_scenario, agecohorts.age_from_filename(filename) if 'IND_' not in filename else 'total')
+                        weight_args_aggregate_denom = None
+                    else:
+                        if 'aggregate-weighting-numerator' in config and config['aggregate-weighting-numerator'] == 'agecohorts':
+                            weight_args_aggregate = (econ_model, econ_scenario, agecohorts.age_from_filename(filename) if 'IND_' not in filename else 'total')
+                        else:
+                            weight_args_aggregate = (econ_model, econ_scenario)
+                            
+                        if 'aggregate-weighting-denominator' in config and config['aggregate-weighting-denominator'] == 'agecohorts':
+                            weight_args_aggregate_denom = (econ_model, econ_scenario, agecohorts.age_from_filename(filename) if 'IND_' not in filename else 'total')
+                        else:
+                            weight_args_aggregate_denom = (econ_model, econ_scenario)
 
                 if not checks.check_result_100years(os.path.join(targetdir, filename), variable=variable):
                     print "Incomplete."
@@ -241,7 +277,7 @@ if __name__ == '__main__':
                     if halfweight_aggregate:
                         outfilename = fullfile(filename, suffix, config)
                         if not missing_only or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable=variable, regioncount=5665) or not os.path.exists(os.path.join(targetdir, outfilename)):
-                            make_aggregates(targetdir, filename, outfilename, halfweight_aggregate, weight_args_aggregate)
+                            make_aggregates(targetdir, filename, outfilename, halfweight_aggregate, weight_args_aggregate, halfweight_denom=halfweight_aggregate_denom, weight_args_denom=weight_args_aggregate_denom)
 
                     if '-noadapt' not in filename and '-incadapt' not in filename and 'histclim' not in filename and 'indiamerge' not in filename:
                         # Generate costs
@@ -299,7 +335,7 @@ if __name__ == '__main__':
                         # Aggregate costs
                         outfilename = fullfile(filename, costs_suffix + suffix, config)
                         if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)):
-                            make_costs_aggregate(targetdir, fullfile(filename, costs_suffix, config), outfilename, halfweight_aggregate, weight_args_aggregate)
+                            make_costs_aggregate(targetdir, fullfile(filename, costs_suffix, config), outfilename, halfweight_aggregate, weight_args_aggregate, halfweight_denom=halfweight_aggregate_denom, weight_args_denom=weight_args_aggregate_denom)
                     elif 'indiamerge' in filename:
                         # Just aggregate the costs
 
@@ -310,7 +346,7 @@ if __name__ == '__main__':
                         # Aggregate costs
                         outfilename = filename[:-4].replace('combined', 'combined-costs') + costs_suffix + suffix + '.nc4'
                         if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)):
-                            make_costs_aggregate(targetdir, filename[:-4].replace('combined', 'combined-costs') + '.nc4', outfilename, halfweight_aggregate, weight_args_aggregate)
+                            make_costs_aggregate(targetdir, filename[:-4].replace('combined', 'combined-costs') + '.nc4', outfilename, halfweight_aggregate, weight_args_aggregate, halfweight_denom=halfweight_aggregate_denom, weight_args_denom=weight_args_aggregate_denom)
                         
                 except Exception as ex:
                     print "Failed."
