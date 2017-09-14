@@ -7,10 +7,10 @@ from reader import WeatherReader
 class YearlyWeatherReader(WeatherReader):
     """Exposes yearly weather data, with one file per GCM."""
 
-    def __init__(self, filepath, *variables, timevar='year'):
+    def __init__(self, filepath, *variables, **kwargs):
         self.filepath = filepath
         self.variables = variables
-        self.timevar = timevar
+        self.timevar = kwargs.get('timevar', 'year')
 
         version, units = netcdfs.readmeta(filepath, variables[0])
 
