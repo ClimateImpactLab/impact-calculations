@@ -42,10 +42,10 @@ def produce(targetdir, weatherbundle, economicmodel, qvals, do_only=None, suffix
         thisqvals = qvals[basename]
 
         if 'adm0' in basename:
-            calculation, dependencies, covarnames = standard.prepare_csvv(filepath, thisqvals, betas_callback, tp_index0=0)
+            calculation, dependencies, covarnames = standard.prepare_csvv(filepath, thisqvals, betas_callback, True)
             columns = effectset.write_ncdf(thisqvals['weather'], targetdir, basename + suffix, weatherbundle, calculation, lambda region: (country_covariator.get_current(region[:3]),), "Interpolated response for " + basename + ".", dependencies + weatherbundle.dependencies)
         elif 'adm2' in basename:
-            calculation, dependencies, covarnames = standard.prepare_csvv(filepath, thisqvals, betas_callback, tp_index0=2)
+            calculation, dependencies, covarnames = standard.prepare_csvv(filepath, thisqvals, betas_callback, False)
             columns = effectset.write_ncdf(thisqvals['weather'], targetdir, basename + suffix, weatherbundle, calculation, lambda region: (subcountry_covariator.get_current(region),), "Interpolated response for " + basename + ".", dependencies + weatherbundle.dependencies)
         else:
             raise ValueError("Unknown calculation type: " + basename)
