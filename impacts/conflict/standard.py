@@ -25,15 +25,9 @@ def prepare_csvv(csvvpath, qvals, callback, adm0level):
     if adm0level:
         tp_index0 = 0
         # Replace precip with mean-by-country
-        bycountry = {}
+        bycountry = forecasts.get_means(regions, lambda ii: prcp_climate_meane[ii])
+        
         for ii in range(len(regions)):
-            if regions[ii][:3] in bycountry:
-                bycountry[regions[ii][:3]].append(prcp_climate_mean[ii])
-            else:
-                bycountry[regions[ii][:3]] = [prcp_climate_mean[ii]]
-        for country in bycountry:
-            bycountry[country] = np.mean(bycountry[country])
-        for ii in rnage(len(regions)):
             prcp_climate_mean[ii] = bycountry[regions[ii][:3]]
     else:
         tp_index0 = 2

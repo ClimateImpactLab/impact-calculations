@@ -3,12 +3,10 @@ from netCDF4 import Dataset
 
 temp_path = "/shares/gcp/climate/IRI/final_v2/tas_aggregated_forecast_Feb-Jun2017.nc"
 prcp_path = "/shares/gcp/climate/IRI/final_v2/prcp_aggregated_forecast_Feb-Jun2017.nc"
-temp_climate_path = "/shares/gcp/climate/IRI/tas_aggregated_climatology_1981-2010-new.nc"
-prcp_climate_path = "/shares/gcp/climate/IRI/prcp_aggregated_climatology_1981-2010.nc"
-#temp_zscore_path = "/shares/gcp/climate/IRI/tas_zscores_aggregated_forecast_2012-2017Mar.nc"
-#prcp_zscore_path = "/shares/gcp/climate/IRI/prcp_zscores_aggregated_forecast_2012-2017Mar.nc"
-#temp_normstddev_path = "/shares/gcp/climate/IRI/tas_normSTDDEV_aggregated_forecast.nc"
-#prcp_normstddev_path = "/shares/gcp/climate/IRI/prcp_normSTDDEV_aggregated_forecast.nc"
+temp_mean_climate_path = "/shares/gcp/climate/IRI/final_v2/tas_aggregated_climatology_1982-2010.nc"
+prcp_mean_climate_path = "/shares/gcp/climate/IRI/final_v2/prcp_aggregated_climatology_1982-2010.nc"
+temp_sdev_climate_path = "/shares/gcp/climate/IRI/final_v2/tas_aggregated_historical_std_1982-2010_IR.nc"
+temp_adm0sdev_climate_path = "/shares/gcp/climate/IRI/final_v2/tas_aggregated_historical_std_1982-2010_ISO.nc"
 
 def readncdf_lastpred(filepath, variable):
     """
@@ -47,3 +45,16 @@ def readncdf_allmonths(filepath, variable):
 def maskmissing(weather):
     weather[weather > 1e10] = np.nan
     return weather
+
+def get_means(regions, getvalues):
+    bycountry = {} # {iso: [values]}
+    for ii in range(len(regions)):
+        if regions[ii][:3] in bycountry:
+            bycountry[regions[ii][:3]].append(getvalues(ii))
+        else:
+            bycountry[regions[ii][:3]] = [getvalues(ii)]
+            
+    for country in bycountry:
+        bycountry[country] = np.mean(bycountry[country], axis=0)
+
+    return bycountry
