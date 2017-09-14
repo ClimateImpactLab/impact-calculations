@@ -142,6 +142,17 @@ def get_regionindex(region):
             if row[0] == region:
                 return int(row[6]) - 1
 
+def get_adm0_regionindices(adm0):
+    with open("/shares/gcp/regions/hierarchy.csv", 'r') as fp:
+        for line in fp:
+            if line[0] != '#':
+                break
+
+        reader = csv.reader(fp)
+        for row in reader:
+            if row[0][:3] == adm0 and row[6] != '':
+                yield int(row[6]) - 1
+
 def get_weather(weathertemplate, years, shapenum=None, show_all_years=[], variable='tas'):
     weather = {}
     for year in years:

@@ -59,10 +59,13 @@ class MonthlyStochasticForecastReader(MonthlyForecastReader):
         return [self.dim_variable]
 
     def read_iterator(self):
-        allsdevs = forecasts.readncdf_allmonths(self.filepath, 'stddev')[:, 0, :] # only use 1st look-ahead, since we'll adjust month later
+        allsdevs = forecasts.readncdf_allmonths(self.filepath, 'stddev')
+        allsdevs = np.vstack((allsdevs[:, 0, :], allsdevs[-1, 1:, :]))
 
+        tt = 0
         for weatherslice in super(MonthlyStochasticForecastReader, self).read_iterator():
-            weatherslice.weathers = norm.ppf(self.qval, weatherslice.weathers, allsdevs[int(weatherslice.times[0]) % 12, :])
+            weatherslice.weathers = norm.ppf(self.qval, weatherslice.weathers, allsdevs[tt, :])
+            tt += 1
             yield weatherslice
 
 class MonthlyZScoreForecastOTFReader(MonthlyStochasticForecastReader):
