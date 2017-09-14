@@ -5,6 +5,18 @@ specification:
   clipping: true
   variable: tas
   indepunit: C
+
+calculation:
+  - YearlyAverageDay:
+      output_units: 100,000 * death/population
+      curve_description: the mortality response curve
+  - Transform:
+    - 100,000 * death/population
+    - deaths/person/year
+    - 365 * x / 1e5
+    - convert to deaths/person/year
+    - Divide by 100000 to convert to deaths/person/year.
+
 targetdir: testing
 pvals: median
 rcp: rcp85

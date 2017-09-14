@@ -25,25 +25,7 @@ def simultaneous_application(weatherbundle, calculation, regions=None, push_call
 
         print "Push", year
 
-        # for region, subds in ds.groupby('region'): # TOO SLOW
-        #     if region not in applications:
-        #         continue
-
-        timevar = ds.time
-        for ii in range(len(regions)):
-            region = regions[ii]
-            
-            newvars = {}
-            for var in ds:
-                if var in ['time', 'region']:
-                    continue
-                dsdata = ds._variables[var]._data
-                if len(dsdata.shape) < 2:
-                    continue
-                
-                newvars[var] = (['time'], dsdata[:, region_indices[region]])
-            subds = fast_dataset.FastDataset(newvars, coords={'time': timevar}, attrs={'year': year})
-            
+        for region, subds in fast_dataset.region_groupby(ds, year, regions):            
             for yearresult in applications[region].push(subds):
                 yield (region, yearresult[0], yearresult[1:])
 
