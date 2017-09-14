@@ -78,7 +78,7 @@ def produce_csvv(basename, csvv, module, specconf, targetdir, weatherbundle, eco
 
         effectset.generate(targetdir, basename + suffix, weatherbundle, calculation, specconf['description'] + ", with interpolation and adaptation through interpolation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, basename), diagnosefile=diagnosefile.replace('.csv', '-' + basename + '.csv') if diagnosefile else False)
         
-        if config['do_farmers'] and not weatherbundle.is_historical():
+        if config.get('do_farmers', False) and not weatherbundle.is_historical():
             # Lock in the values
             pvals[basename].lock()
 
