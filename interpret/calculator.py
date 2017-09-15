@@ -1,5 +1,6 @@
 import yaml
 from openest.generate import stdlib
+from generate import caller
 
 def create_calculation(postconf, models):
     if isinstance(postconf, str):
@@ -7,12 +8,25 @@ def create_calculation(postconf, models):
             postconf = yaml.load(fp)
 
     calculation = create_calcstep(postconf[0].keys()[0], postconf[0].values()[0], models, None)
-    for calcstep in postconf[1:]:
-        calculation = create_calcstep(calcstep.keys()[0], calcstep.values()[0], models, calculation)
+    return create_postspecification(postconf[1:], models, calculation)
+
+def create_postspecification(postconf, models, calculation):
+    if isinstance(postconf, str):
+        with open(postconf, 'r') as fp:
+            postconf = yaml.load(fp)
+    
+    for calcstep in postconf:
+        if isinstance(calcstep, str):
+            calculation = create_calcstep(calcstep, {}, models, calculation)
+        else:
+            calculation = create_calcstep(calcstep.keys()[0], calcstep.values()[0], models, calculation)
 
     return calculation
 
 def create_calcstep(name, args, models, subcalc):
+    if name == 'Rebase':
+        return caller.standardize(subcalc)
+
     cls = getattr(stdlib, name)
 
     if isinstance(args, list):
@@ -40,9 +54,3 @@ def sample_sequence(calculation, region):
         for yearresult in application.push(subds):
             print "    ", yearresult
 
-if __name__ == '__main__':
-    from interpret import specification
-    specconf = config['specification']
-    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, 'interpret.specification', weatherbundle, economicmodel, pvals[basename], specconf=specconf)
-
-    create_calculation("../impacts/mortality/ols_polynomial.yml")
