@@ -3,9 +3,9 @@ def interpret(config):
         return '', 'full'
     
     if config['adaptation'] == 'noadapt':
-        return 'noadapt', 'coma'
+        return 'noadapt', 'noadapt'
     
     if config['adaptation'] == 'incadapt':
-        return 'incadapt', 'dumb'
+        return 'incadapt', 'incadapt'
 
     raise ValueError("Unknown adaptation scheme " + config['adaptation'])

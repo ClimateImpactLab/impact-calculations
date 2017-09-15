@@ -28,13 +28,16 @@ def get_model_by_gcpid(gcpid):
 def standardize(calculation):
     return SpanInstabase(calculation, 2001, 2010, func=lambda x, y: x - y)
 
-def call_prepare(module, weatherbundle, economicmodel, pvals, getmodel=get_model, getdata=get_data):
+def call_prepare(module, weatherbundle, economicmodel, pvals, getmodel=get_model, standardize=True, getdata=get_data):
     economicmodel.reset()
 
     if module[0:15] == 'impacts.health.':
         gcpid = module[15:]
     else:
         gcpid = None
+
+    if not standardize:
+        standardize = lambda x: x # Just pass through
 
     mod = importlib.import_module(module)
 
@@ -55,7 +58,7 @@ def call_prepare(module, weatherbundle, economicmodel, pvals, getmodel=get_model
 
     raise ValueError("Could not find known prepare form.")
 
-def call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals, farmer='full', **kwargs):
+def call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals, farmer='full', standardize=True, **kwargs):
     """Create the final calculation for a given model, according to the function that it exposes."""
     
     economicmodel.reset()
@@ -63,6 +66,9 @@ def call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals, farme
     mod = importlib.import_module(module)
     if isinstance(csvv, str):
         csvv = csvvfile.read(csvv)
+
+    if not standardize:
+        standardize = lambda x: x # Just pass through
 
     if 'prepare_raw' in dir(mod):
         calculation, dependencies = mod.prepare_raw(csvv, weatherbundle, economicmodel, pvals, **kwargs)

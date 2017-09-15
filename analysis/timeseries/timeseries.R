@@ -17,14 +17,14 @@ if (do.set == 'global') {
 }
 
 full <- read.csv(paste0(timedatadir, "/rcp85-SSP3-", region, "-interpolated_mortality_all_ages", infix, "-diff.csv"))
-dumb <- read.csv(paste0(timedatadir, "/rcp85-SSP3-", region, "-interpolated_mortality_dumb_all_ages", infix, "-diff.csv"))
-coma <- read.csv(paste0(timedatadir, "/rcp85-SSP3-", region, "-interpolated_mortality_comatose_all_ages", infix, "-diff.csv"))
+incadapt <- read.csv(paste0(timedatadir, "/rcp85-SSP3-", region, "-interpolated_mortality_incadapt_all_ages", infix, "-diff.csv"))
+noadapt <- read.csv(paste0(timedatadir, "/rcp85-SSP3-", region, "-interpolated_mortality_noadapt_all_ages", infix, "-diff.csv"))
 colb <- read.csv(paste0(timedatadir, "/rcp85-SSP3-", region, "-interpolated_mortality_all_ages-costs-aggregated-costs_lb-nodi.csv"))
 coub <- read.csv(paste0(timedatadir, "/rcp85-SSP3-", region, "-interpolated_mortality_all_ages-costs-aggregated-costs_ub-nodi.csv"))
 
 full$median <- full$median * 100000
-dumb$median <- dumb$median * 100000
-coma$median <- coma$median * 100000
+incadapt$median <- incadapt$median * 100000
+noadapt$median <- noadapt$median * 100000
 
 colb$median <- colb$median - colb$median[colb$year == 2015]
 colb$median[colb$year < 2015] <- 0
@@ -39,11 +39,11 @@ fullcoub <- full
 fullcoub$median <- fullcoub$median + c(0, coub$median)
 
 full$model <- "Adapted mortality"
-dumb$model <- "Adjusted for income + urban effects"
-coma$model <- "No adaptation"
+incadapt$model <- "Adjusted for income + urban effects"
+noadapt$model <- "No adaptation"
 midcosts <- data.frame(model="Adapted mortality + adaptation cost", year=fullcoub$year, median=(fullcolb$median + fullcoub$median) / 2)
 
-data1 <- rbind(full, dumb, coma, midcosts)
+data1 <- rbind(full, incadapt, noadapt, midcosts)
 data2 <- data.frame(model="Upper and lower cost bounds", year=fullcolb$year, ymin=fullcolb$median, ymax=fullcoub$median)
 
 library(ggplot2)
