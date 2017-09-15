@@ -92,9 +92,9 @@ class FarmerCurveGenerator(DelayedCurveGenerator):
         if self.farmer == 'full':
             covariates = self.covariator.get_update(region, year, kwargs['weather'])
             curve = self.curvegen.get_curve(region, year, covariates)
-        elif self.farmer == 'coma':
+        elif self.farmer == 'noadapt':
             curve = self.last_curves[region]
-        elif self.farmer == 'dumb':
+        elif self.farmer == 'incadapt':
             covariates = self.covariator.get_update(region, year, None)
             curve = self.curvegen.get_curve(region, year, covariates)
         else:
@@ -110,9 +110,9 @@ class FarmerCurveGenerator(DelayedCurveGenerator):
             covariates = self.covariator.get_current(region)
         elif self.farmer == 'full':
             covariates = self.covariator.get_update(region, year, predictors.transform(lambda x: x / 365)) # because was summed
-        elif self.farmer == 'coma':
+        elif self.farmer == 'noadapt':
             assert False, "Don't have this set of covariates."
-        elif self.farmer == 'dumb':
+        elif self.farmer == 'incadapt':
             covariates = self.covariator.get_update(region, year, None)
             
         return self.curvegen.get_lincom_terms_simple(predictors, covariates)

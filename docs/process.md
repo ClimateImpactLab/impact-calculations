@@ -94,5 +94,5 @@ Diagnostic, median, and Monte Carlo results are produced by calling `./generate.
     - `RESULT-PREFIX` is a prefix in the filenames of the `.nc4` result files.  It might be (for example) each of the following:
         - `interpolated_mortality_all_ages-histclim` or `interpolated_mortality_all_ages-histclim-aggregated`: historical climate impacts, non-aggregated and aggregated.
         - `interpolated_mortality_all_ages` or `interpolated_mortality_all_ages-aggregated`: normal full-adaptation impacts
-        - `interpolated_mortality_ASSUMPTION_all_ages-aggregated` or `interpolated_mortality_ASSUMPTION_all_ages-aggregated`: partial adaptation, where `ASSUMPTION` is `dumb` or `comatose`.
+        - `interpolated_mortality_ASSUMPTION_all_ages-aggregated` or `interpolated_mortality_ASSUMPTION_all_ages-aggregated`: partial adaptation, where `ASSUMPTION` is `incadapt` or `noadapt`.
         - `interpolated_mortality_all_ages-costs` or `interpolated_mortality_all_ages-costs-aggregated`: cost estimates (combine with `VARIABLE` optional argument).
