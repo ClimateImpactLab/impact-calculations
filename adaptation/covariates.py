@@ -91,7 +91,7 @@ class MeanWeatherCovariator(Covariator):
         return {self.variable: self.temp_predictors[region].get()}
 
     def get_update(self, region, year, ds):
-        """Allow ds = None for dumb farmer who cannot adapt to temperature."""
+        """Allow ds = None for incadapt farmer who cannot adapt to temperature."""
         assert year < 10000
         # Ensure that we aren't called with a year twice
         assert self.lastyear.get(region, -np.inf) < year, "Called with %d, but previously did %d" % (year, self.lastyear.get(region, -np.inf))
@@ -209,7 +209,7 @@ class MeanBinsCovariator(Covariator):
     def get_update(self, region, year, ds):
         assert year < 10000
 
-        """Allow ds = None for dumb farmer who cannot adapt to temperature."""
+        """Allow ds = None for incadapt farmer who cannot adapt to temperature."""
         if temps is not None and year > self.startupdateyear:
             if len(temps.shape) == 1 and len(temps) == len(self.binlimits) - 1:
                 for kk in range(len(self.binlimits) - 1):

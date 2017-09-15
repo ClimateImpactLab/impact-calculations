@@ -56,7 +56,7 @@ get_weight = weights.interpret(config)
 if not os.path.exists(targetdir):
     os.makedirs(targetdir)
 
-print "Loading calculation..."
+print "Loading specification..."
 
 if do_profile:
     config['mode'] = 'profile'
@@ -65,17 +65,25 @@ if do_profile:
     pr.enable()
 
 if 'module' in config:
+    print "Loading from module."
     module = "impacts." + config['module']
-    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals[basename], farmer=farmer)
+    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals[basename], farmer=farmer, standardize=False)
 
 elif 'specification' in config:
+    print "Loading from specification configuration."
     from interpret import specification
     specconf = config['specification']
-    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, 'interpret.specification', weatherbundle, economicmodel, pvals[basename], specconf=specconf)
+    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, 'interpret.specification', weatherbundle, economicmodel, pvals[basename], specconf=specconf, standardize=False)
 
 else:
     print "ERROR: Unknown model specification method."
     exit()
+
+print "Loading post-specification..."
+if 'calculation' in config:
+    calculation = calculator.create_postspecification(config['calculation'], {}, calculation)
+else:
+    calculation = caller.standardize(calculation)
     
 effectset.generate(targetdir, basename + suffix, weatherbundle, calculation, "Singly produced result.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, filter_region=filter_region)
 

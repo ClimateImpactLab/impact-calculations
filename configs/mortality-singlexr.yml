@@ -16,6 +16,7 @@ calculation:
     - 365 * x / 1e5
     - convert to deaths/person/year
     - Divide by 100000 to convert to deaths/person/year.
+  - Rebase
 
 targetdir: testing
 pvals: median
