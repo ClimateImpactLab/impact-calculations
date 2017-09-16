@@ -48,13 +48,27 @@ def maskmissing(weather):
 
 def get_means(regions, getvalues):
     bycountry = {} # {iso: [values]}
+    bycountry2 = {} # same, but with every country
     for ii in range(len(regions)):
-        if regions[ii][:3] in bycountry:
-            bycountry[regions[ii][:3]].append(getvalues(ii))
+        values = getvalues(ii)
+        
+        if regions[ii][:3] in bycountry2:
+            bycountry2[regions[ii][:3]].append(values)
         else:
-            bycountry[regions[ii][:3]] = [getvalues(ii)]
-            
-    for country in bycountry:
-        bycountry[country] = np.mean(bycountry[country], axis=0)
+            bycountry2[regions[ii][:3]] = [values]
+
+        if not np.all(np.isfinite(values)):
+            continue
+
+        if regions[ii][:3] in bycountry:
+            bycountry[regions[ii][:3]].append(values)
+        else:
+            bycountry[regions[ii][:3]] = [values]
+
+    for country in bycountry2:
+        if country in bycountry:
+            bycountry[country] = np.mean(bycountry[country], axis=0)
+        else:
+            bycountry[country] = np.mean(bycountry2[country], axis=0)
 
     return bycountry
