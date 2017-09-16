@@ -72,6 +72,8 @@ class TransformedReader(WeatherReader):
     def __init__(self, source):
         self.source = source
         super(TransformedReader, self).__init__(source.version, source.units, source.time_units)
+        if hasattr(source, 'regions'):
+            self.regions = source.regions
 
     def read_iterator(self):
         raise NotImplementedError()
@@ -86,7 +88,7 @@ class MonthlyZScoreForecastReader(TransformedReader):
     """
     Translates into z-scores on-the-fly, using climate data.
     """
-    def __init__(self, reader, meanclimate, sdevclimate, climvar):
+    def __init__(self, source, meanclimate, sdevclimate, climvar):
         super(MonthlyZScoreForecastReader, self).__init__(source)
         version_climate, units_climate = netcdfs.readmeta(sdevclimate, climvar)
         assert self.units == units_climate
@@ -96,27 +98,30 @@ class MonthlyZScoreForecastReader(TransformedReader):
         self.climvar = climvar
 
     def get_dimension(self):
-        return ['Z(' + self.reader.dimension()[0] + ')']
+        return ['Z(' + self.source.dimension()[0] + ')']
 
     def read_iterator(self):
         means = forecasts.readncdf_allmonths(self.meanclimate, self.climvar)
         sdevs = forecasts.readncdf_allmonths(self.sdevclimate, self.climvar)
-        sdevs_regions = netcdfs.readncdf_single(self.sdevclimate, 'ISO')
         
         if means.shape[1] > sdevs.shape[1]:
             # Sdevs is country-level; need to average means and reorder sdevs
-            regions = self.reader.regions
-            bycountry = forecasts.get_means(regions, lambda ii: means[:, ii])
+            bycountry = forecasts.get_means(irregions.load_regions("hierarchy.csv", []), lambda ii: means[:, ii])
+
+            sdevs_regions = list(netcdfs.readncdf_single(self.sdevclimate, 'ISO'))
             ordered_sdevs = np.zeros(sdevs.shape)
-            for ii in range(len(regions)): # Just countries
-                means[:, ii] = bycountry[regions[ii]]
+            country_means = np.zeros(sdevs.shape)
+            regions = self.source.regions # Just countries
+            for ii in range(len(regions)):
+                country_means[:, ii] = bycountry[regions[ii]]
                 ordered_sdevs[:, ii] = sdevs[:, sdevs_regions.index(regions[ii])]
+            means = country_means
             sdevs = ordered_sdevs
 
-        for weatherslice in self.reader.read_iterator():
+        for weatherslice in self.source.read_iterator():
             assert weatherslice.weathers.shape[0] == 1
 
-            weathers = (weatherslice.weathers[0, :] - means[weatherslice.month % 12, :]) / sdevs[weatherslice.month % 12, :]
+            weathers = (weatherslice.weathers[0, :] - means[int(weatherslice.month + weatherslice.ahead) % 12, :]) / sdevs[int(weatherslice.month + weatherslice.ahead) % 12, :]
             weatherslice.weathers = np.expand_dims(weathers, axis=0)
             yield weatherslice
             
@@ -147,7 +152,7 @@ class CountryAveragedReader(TransformedReader):
 
     def read_iterator(self):
         for weatherslice in self.source.read_iterator():
-            bycountry = forecasts.get_means(weatherslice.weathers, lambda ii: weatherslice.weathers[:, ii])
+            bycountry = forecasts.get_means(self.source.regions, lambda ii: weatherslice.weathers[:, ii])
 
             weathers = np.zeros((weatherslice.weathers.shape[0], len(self.regions)))
             for ii in range(len(self.regions)): # Just countries
@@ -162,10 +167,13 @@ class CountryDeviationsReader(TransformedReader):
     def read_iterator(self):
         for weatherslice in self.source.read_iterator():
             weathers = weatherslice.weathers
+            print "DOING IT"
             bycountry = forecasts.get_means(self.source.regions, lambda ii: weathers[:, ii])
 
             regions = self.source.regions
             for ii in range(len(regions)):
+                if regions[ii] == 'IND.33.542.2153':
+                    print weatherslice.weathers[:, ii], bycountry[regions[ii][:3]]
                 weatherslice.weathers[:, ii] = weatherslice.weathers[:, ii] - bycountry[regions[ii][:3]]
 
             yield weatherslice

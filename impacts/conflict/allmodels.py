@@ -8,16 +8,16 @@ from adaptation import covariates
 import standard
 
 def get_bundle(qvals):
-    source_temp_reader = MonthlyStochasticForecastReader(forecasts.temp_path, 'tas', qvals['tmean'])
-    source_prcp_reader = MonthlyStochasticForecastReader(forecasts.temp_path, 'prcp', qvals['pmean'])
-    subcountry_temp_reader = forecastreader.CountryDeviationsReader(forecastreader.MonthlyZScoreForecastReader(source_temp_reader, forecasts.temp_mean_climate_path, forecasts.temp_sdev_climate_path))
+    source_temp_reader = forecastreader.MonthlyStochasticForecastReader(forecasts.temp_path, 'tas', qvals['tmean'])
+    source_prcp_reader = forecastreader.MonthlyStochasticForecastReader(forecasts.prcp_path, 'prcp', qvals['pmean'])
+    subcountry_temp_reader = forecastreader.CountryDeviationsReader(forecastreader.MonthlyZScoreForecastReader(source_temp_reader, forecasts.temp_mean_climate_path, forecasts.temp_sdev_climate_path, 'tas'))
     subcountry_prcp_reader = forecastreader.CountryDeviationsReader(source_prcp_reader)
 
     subcountry_tbundle = weather.ForecastBundle(subcountry_temp_reader)
     subcountry_pbundle = weather.ForecastBundle(subcountry_prcp_reader)
 
-    country_temp_reader = forecastreader.CountryDuplicatedReader(forecastreader.MonthlyZScoreForecastReader(forecastreader.CountryAveragedReader(source_temp_reader), forecasts.temp_mean_climate_path, forecasts.temp_adm0sdev_climate_path), subcountry_tbundle.regions)
-    country_prcp_reader = forecastreader.CountryDuplicatedReader(forecastreader.CountryAveragedReader(forecastreader.MonthlyStochasticForecastReader(forecasts.prcp_path, 'prcp', qvals['pmean'])), subcountry_tbundle.regions)
+    country_temp_reader = forecastreader.CountryDuplicatedReader(forecastreader.MonthlyZScoreForecastReader(forecastreader.CountryAveragedReader(source_temp_reader), forecasts.temp_mean_climate_path, forecasts.temp_adm0sdev_climate_path, 'tas'), subcountry_tbundle.regions)
+    country_prcp_reader = forecastreader.CountryDuplicatedReader(forecastreader.CountryAveragedReader(source_prcp_reader), subcountry_tbundle.regions)
     
     country_tbundle = weather.ForecastBundle(country_temp_reader)
     country_pbundle = weather.ForecastBundle(country_prcp_reader)
@@ -38,6 +38,8 @@ def produce(targetdir, weatherbundle, economicmodel, qvals, do_only=None, suffix
 
     ## Full interpolation
     for filepath in glob.glob("/shares/gcp/social/parameters/conflict/hierarchical_08102017/*.csvv"):
+        if 'adm0' in filepath:
+            continue # Just skip for now, so can complete tests
         basename = os.path.basename(filepath)[:-5]
         print basename
         
