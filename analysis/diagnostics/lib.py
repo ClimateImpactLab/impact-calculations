@@ -175,13 +175,13 @@ def get_weather(weathertemplate, years, shapenum=None, show_all_years=[], variab
 
     return weather
 
-def get_outputs(outputpath, years, shapenum):
+def get_outputs(outputpath, years, shapenum, timevar='year'):
     rootgrp = Dataset(outputpath, 'r', format='NETCDF4')
     if isinstance(shapenum, str):
         regions = list(rootgrp.variables['regions'][:])
         shapenum = regions.index(shapenum)
 
-    outyears = list(rootgrp.variables['year'])
+    outyears = list(rootgrp.variables[timevar])
     outvars = [var for var in rootgrp.variables if len(rootgrp.variables[var].shape) == 2]
     print 'year,' + ','.join(outvars)
     
