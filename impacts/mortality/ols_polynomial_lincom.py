@@ -10,12 +10,17 @@ from impactcommon.math import minpoly
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', **kwargs):
     covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(
         covariates.MeanWeatherCovariator(weatherbundle, 30, 2015, 'tas'), {'climtas': 'tas'}),
-                                                covariates.EconomicCovariator(economicmodel, 13, 2015)])
+                                                covariates.EconomicCovariator(economicmodel, 13, 2015),
+                                                covariates.HistoricalCovariator(covariates.TranslateCovariator(
+                                                    covariates.MeanWeatherCovariator(weatherbundle, 30, 2015, 'tas'), {'climtas': 'tas'})),
+                                                covariates.HistoricalCovariator(covariates.EconomicCovariator(economicmodel, 13, 2015))])
 
     order = len(csvv['gamma']) / 3
     curr_curvegen = curvegen_known.PolynomialCurveGenerator(['C'] + ['C^%d' % pow for pow in range(2, order+1)],
                                                            '100,000 * death/population', 'tas', order, csvv)
-    farm_curvegen = curvegen.FarmerCurveGenerator(curr_curvegen, covariator, farmer)
+    diff_curvegen = DifferenceCurveGenerator(curr_curvegen, curr_curvegen, csvv['prednames'],
+                                             csvv['covarnames'], lambda x: x + '.histclim')
+    farm_curvegen = curvegen.FarmerCurveGenerator(diff_curvegen, covariator, farmer)
 
     # Produce the final calculation
     calculation = Transform(LincomDay2Year('100,000 * death/population', farm_curvegen,

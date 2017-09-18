@@ -346,3 +346,19 @@ class CountryDeviationCovariator(CountryAggregatedCovariator):
         subcountrylevel = self.source.get_current(region)
 
         return {key: subcountrylevel[key] - countrylevel[key] for key in subcountrylevel}
+
+class HistoricalCovariator(Covariator):
+    """Just don't ignore get_update; note that this means that the source
+covariator should not be used elsewhere where it might have get_update
+called.
+    """
+    def __init__(self, source, suffix):
+        self.source = source
+        self.suffix = suffix
+
+    def get_update(self, region, year, ds):
+        pass
+
+    def get_current(self, region):
+        covariates = self.source.get_current(region)
+        return {covar + self.suffix: covariates[covar] for covar in covariates}
