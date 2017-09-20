@@ -1,5 +1,4 @@
 import numpy as np
-import timeit
 from econmodel import *
 from datastore import agecohorts
 from climate.yearlyreader import RandomYearlyAccess, RandomRegionAccess
