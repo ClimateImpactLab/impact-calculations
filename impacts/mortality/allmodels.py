@@ -105,7 +105,7 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
                             continue
                     halfweight = agecohorts.SpaceTimeBipartiteData(1981, 2100, None)
                     basenames = [basename + '-' + agegroup + assumption + suffix for agegroup in agegroups]
-                    get_stweights = [lambda year0, year1: halfweight.load_population(year0, year1, economicmodel.model, economicmodel.scenario, 'age0-4'), lambda year0, year1: halfweight.load_population(year0, year1, economicmodel.model, economicmodel.scenario, 'age5-64'), lambda year0, year1: halfweight.load_population(year0, year1, economicmodel.model, economicmodel.scenario, 'age65+')]
+                    get_stweights = [lambda year0, year1: halfweight.load(year0, year1, economicmodel.model, economicmodel.scenario, 'age0-4'), lambda year0, year1: halfweight.load(year0, year1, economicmodel.model, economicmodel.scenario, 'age5-64'), lambda year0, year1: halfweight.load(year0, year1, economicmodel.model, economicmodel.scenario, 'age65+')]
                     if check_doit(targetdir, basename + '-combined' + assumption, suffix):
                         agglib.combine_results(targetdir, basename + '-combined' + assumption, basenames, get_stweights, "Combined mortality across age-groups for " + basename, suffix=suffix)
             except Exception as ex:
