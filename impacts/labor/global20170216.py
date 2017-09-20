@@ -11,7 +11,7 @@ from adaptation import csvvfile, covariates, curvegen_known, curvegen
 from climate import discover
 from impactlab_tools.utils import files
 
-def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full'):
+def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', config={}):
     reader_coldd = discover.discover_yearly_corresponding(files.sharedpath('climate/BCSD/aggregation/cmip5_new/IR_level'),
                                                           weatherbundle.scenario, 'Degreedays_tasmax',
                                                           weatherbundle.model, 'coldd_agg')
@@ -19,16 +19,16 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
                                                           weatherbundle.scenario, 'Degreedays_tasmax',
                                                           weatherbundle.model, 'hotdd_agg')
 
-    predgen = covariates.CombinedCovariator([covariates.YearlyWeatherCovariator(reader_coldd, weatherbundle.regions, 2015, 15,
-                                                                                weatherbundle.is_historical()),
-                                             covariates.YearlyWeatherCovariator(reader_hotdd, weatherbundle.regions, 2015, 15,
-                                                                                weatherbundle.is_historical()),
-                                             covariates.EconomicCovariator(economicmodel, 1, 2015)])
-    predgen2 = covariates.CombinedCovariator([covariates.YearlyWeatherCovariator(reader_coldd, weatherbundle.regions, 2015, 15,
-                                                                                 weatherbundle.is_historical()),
-                                              covariates.YearlyWeatherCovariator(reader_hotdd, weatherbundle.regions, 2015, 15,
-                                                                                 weatherbundle.is_historical()),
-                                              covariates.EconomicCovariator(economicmodel, 1, 2015)])
+    predgen = covariates.CombinedCovariator([covariates.YearlyWeatherCovariator(reader_coldd, weatherbundle.regions, 2015,
+                                                                                weatherbundle.is_historical(), config=config.get('climcovar', {})),
+                                             covariates.YearlyWeatherCovariator(reader_hotdd, weatherbundle.regions, 2015,
+                                                                                weatherbundle.is_historical(), config=config.get('climcovar', {})),
+                                             covariates.EconomicCovariator(economicmodel, 2015, config=config.get('econcovar', {}))])
+    predgen2 = covariates.CombinedCovariator([covariates.YearlyWeatherCovariator(reader_coldd, weatherbundle.regions, 2015,
+                                                                                 weatherbundle.is_historical(), config=config.get('climcovar', {})),
+                                              covariates.YearlyWeatherCovariator(reader_hotdd, weatherbundle.regions, 2015,
+                                                                                 weatherbundle.is_historical(), config=config.get('climcovar', {})),
+                                              covariates.EconomicCovariator(economicmodel, 2015, config=config.get('econcovar', {}))])
 
     csvvfile.collapse_bang(csvv, qvals.get_seed())
 

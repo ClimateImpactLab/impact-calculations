@@ -5,16 +5,16 @@ from openest.generate.stdlib import *
 
 bin_limits = [-np.inf, -13, -8, -3, 2, 7, 12, 17, 22, 27, 32, np.inf]
 
-def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', ageshare=False):
+def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', ageshare=False, config={}):
     if ageshare:
-        covariator = covariates.CombinedCovariator([covariates.MeanBinsCovariator(weatherbundle, bin_limits, 8, 15, 2015),
-                                                    covariates.EconomicCovariator(economicmodel, 1, 2015),
-                                                    covariates.AgeShareCovariator(economicmodel, 1, 2015)])
+        covariator = covariates.CombinedCovariator([covariates.MeanBinsCovariator(weatherbundle, bin_limits, 8, 2015, config=config.get('climcovar', {})),
+                                                    covariates.EconomicCovariator(economicmodel, 2015, config=config.get('econcovar', {})),
+                                                    covariates.AgeShareCovariator(economicmodel, 2015, config=config.get('econcovar', {}))])
 
         assert len(csvv['covarnames']) == 60
     else:
-        covariator = covariates.CombinedCovariator([covariates.MeanBinsCovariator(weatherbundle, bin_limits, 8, 15, 2015),
-                                                    covariates.EconomicCovariator(economicmodel, 1, 2015)])
+        covariator = covariates.CombinedCovariator([covariates.MeanBinsCovariator(weatherbundle, bin_limits, 8, 2015, config=config.get('climcovar', {})),
+                                                    covariates.EconomicCovariator(economicmodel, 2015, config=config.get('econcovar', {}))])
 
         assert len(csvv['covarnames']) == 40
 

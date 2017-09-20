@@ -23,9 +23,9 @@ def prepare(specconf, csvv, weatherbundle, economicmodel, qvals):
     covariators = []
     for covar in specconf['covariates']:
         if covar == 'loggdppc':
-            covariators.append(covariates.EconomicCovariator(economicmodel, 13, 2015))
+            covariators.append(covariates.EconomicCovariator(economicmodel, 2015))
         elif covar == 'climtas':
-            covariators.append(covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 30, 2015, 'tas'), {'climtas': 'tas'}))
+            covariators.append(covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, 'tas'), {'climtas': 'tas'}))
         else:
             user_failure("Covariate %s is unknown." % covar)
 
