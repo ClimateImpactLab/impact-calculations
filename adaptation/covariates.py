@@ -2,10 +2,11 @@ import numpy as np
 from econmodel import *
 from datastore import agecohorts
 from climate.yearlyreader import RandomYearlyAccess, RandomRegionAccess
-from impactcommon.math import averages
+from interpret import averages
 
 ## Class constructor with arguments (initial values, running length)
-standard_running_mean_init = averages.BartlettAverager
+standard_economic_config = {'class': 'bartlett', 'length': 13}
+standard_climate_config = {'class': 'bartlett', 'length': 30}
 
 class Covariator(object):
     """
@@ -24,12 +25,12 @@ class Covariator(object):
         return (self.get_current(region),)
 
 class EconomicCovariator(Covariator):
-    def __init__(self, economicmodel, numeconyears, maxbaseline):
+    def __init__(self, economicmodel, maxbaseline, config={}):
         super(EconomicCovariator, self).__init__(maxbaseline)
 
-        self.numeconyears = numeconyears
+        self.numeconyears = config.get('length', standard_economic_config['length'])
 
-        self.econ_predictors = economicmodel.baseline_prepared(maxbaseline, numeconyears, lambda values: standard_running_mean_init(values, numeconyears))
+        self.econ_predictors = economicmodel.baseline_prepared(maxbaseline, self.numeconyears, lambda values: averages.interpret(config, standard_economic_config, values))
         self.economicmodel = economicmodel
 
     def get_econ_predictors(self, region):
@@ -70,10 +71,10 @@ class EconomicCovariator(Covariator):
         return dict(loggdppc=np.log(gdppc), logpopop=np.log(popop), year=year)
 
 class MeanWeatherCovariator(Covariator):
-    def __init__(self, weatherbundle, numtempyears, maxbaseline, varindex=None):
+    def __init__(self, weatherbundle, maxbaseline, config={}, varindex=None):
         super(MeanWeatherCovariator, self).__init__(maxbaseline)
 
-        self.numtempyears = numtempyears
+        self.numtempyears = config.get('length', standard_climate_config['length'])
         self.varindex = varindex
 
         print "Collecting baseline information..."
@@ -81,9 +82,9 @@ class MeanWeatherCovariator(Covariator):
         for region, temps in weatherbundle.baseline_values(maxbaseline): # baseline through maxbaseline
             if varindex is None:
                 assert len(temps.shape) == 1
-                temp_predictors[region] = standard_running_mean_init(temps[-numtempyears:], numtempyears)
+                temp_predictors[region] = averages.interpet(config, standard_climate_config, temps[-self.numtempyears:])
             else:
-                temp_predictors[region] = standard_running_mean_init(temps[-numtempyears:, varindex], numtempyears)
+                temp_predictors[region] = averages.interpet(config, standard_climate_config, temps[-self.numtempyears:, varindex])
 
         self.temp_predictors = temp_predictors
         self.weatherbundle = weatherbundle
@@ -117,8 +118,8 @@ class MeanWeatherCovariator(Covariator):
             return {self.weatherbundle.get_dimension()[self.varindex]: self.temp_predictors[region].get()}
 
 class SeasonalWeatherCovariator(MeanWeatherCovariator):
-    def __init__(self, weatherbundle, numtempyears, maxbaseline, day_start, day_end, varindex=None):
-        super(SeasonalWeatherCovariator, self).__init__(weatherbundle, numtempyears, maxbaseline)
+    def __init__(self, weatherbundle, maxbaseline, day_start, day_end, config={}, varindex=None):
+        super(SeasonalWeatherCovariator, self).__init__(weatherbundle, maxbaseline, config=config)
         self.maxbaseline = maxbaseline
         self.day_start = day_start
         self.day_end = day_end
@@ -161,10 +162,10 @@ class YearlyWeatherCovariator(Covariator):
     data from it as needed, rather than depending on the
     weatherbundle.
     """
-    def __init__(self, yearlyreader, regions, baseline_end, duration, is_historical):
+    def __init__(self, yearlyreader, regions, baseline_end, is_historical, config={}):
         super(YearlyWeatherCovariator, self).__init__(baseline_end)
 
-        predictors = {region: standard_running_mean_init([], duration) for region in regions}
+        predictors = {region: averages.interpret(config, standard_climate_config, []) for region in regions}
 
         for weatherslice in yearlyreader.read_iterator():
             assert len(weatherslice.times) == 1
@@ -177,7 +178,6 @@ class YearlyWeatherCovariator(Covariator):
 
         self.yearlyreader = yearlyreader
         self.regions = regions
-        self.duration = duration
         self.is_historical = is_historical
 
         random_year_access = RandomYearlyAccess(yearlyreader)
@@ -198,19 +198,19 @@ class YearlyWeatherCovariator(Covariator):
         return {self.yearlyreader.get_dimension()[0]: self.predictors[region].get()}
 
 class MeanBinsCovariator(Covariator):
-    def __init__(self, weatherbundle, binlimits, dropbin, numtempyears, maxbaseline):
+    def __init__(self, weatherbundle, binlimits, dropbin, maxbaseline, config={}):
         super(MeanBinsCovariator, self).__init__(maxbaseline)
 
         self.binlimits = binlimits
         self.dropbin = dropbin
-        self.numtempyears = numtempyears
+        self.numtempyears = config.get('length', standard_climate_config['length'])
 
         print "Collecting baseline information..."
         temp_predictors = {} # {region: [rm-bin-1, ...]}
         for region, binyears in weatherbundle.baseline_values(maxbaseline): # baseline through maxbaseline
             usedbinyears = []
             for kk in range(binyears.shape[-1]):
-                usedbinyears.append(standard_running_mean_init(binyears[-numtempyears:, kk], numtempyears))
+                usedbinyears.append(averages.interpret(config, standard_climate_config, binyears[-numtempyears:, kk]))
             temp_predictors[region] = usedbinyears
 
         self.temp_predictors = temp_predictors
@@ -247,10 +247,10 @@ class MeanBinsCovariator(Covariator):
         return {self.weatherbundle.get_dimension()[ii]: self.temp_predictors[region][ii].get() for ii in range(len(self.weatherbundle.get_dimension()))}
 
 class AgeShareCovariator(Covariator):
-    def __init__(self, economicmodel, numeconyears, maxbaseline):
+    def __init__(self, economicmodel, maxbaseline, config={}):
         super(AgeShareCovariator, self).__init__(maxbaseline)
 
-        self.numeconyears = numeconyears
+        self.config = config
 
         self.ageshares = agecohorts.load_ageshares(economicmodel.model, economicmodel.scenario)
         self.economicmodel = economicmodel
@@ -273,7 +273,7 @@ class AgeShareCovariator(Covariator):
                     rmdata[agecohorts.columns[cc]].append(self.ageshares[region][year][cc])
 
         for column in rmdata:
-            rmdata[column] = standard_running_mean_init(rmdata[column][-self.numeconyears:], self.numeconyears)
+            rmdata[column] = averages.interpret(config, standard_economic_config, rmdata[column])
 
         self.agerm[region] = rmdata
 

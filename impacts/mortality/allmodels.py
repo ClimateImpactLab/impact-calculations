@@ -74,7 +74,7 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
                 # Full Adaptation
                 if check_doit(targetdir, subbasename, suffix):
                     print "Smart Farmer"
-                    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(subcsvv, module, weatherbundle, economicmodel, pvals[subbasename])
+                    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(subcsvv, module, weatherbundle, economicmodel, pvals[subbasename], config=config)
 
                     effectset.generate(targetdir, subbasename + suffix, weatherbundle, calculation, "Mortality impacts, with interpolation and adaptation through interpolation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, subbasename), diagnosefile=diagnosefile.replace('.csv', '-' + subbasename + '.csv') if diagnosefile else False)
 
@@ -87,13 +87,13 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
 
                     # Comatose Farmer
                     if check_doit(targetdir, subbasename + "-noadapt", suffix):
-                        calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(subcsvv, module, weatherbundle, economicmodel, pvals[subbasename], farmer='coma')
+                        calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(subcsvv, module, weatherbundle, economicmodel, pvals[subbasename], farmer='coma', config=config)
 
                         effectset.generate(targetdir, subbasename + "-noadapt" + suffix, weatherbundle, calculation, "Mortality impacts, with interpolation but no adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, subbasename + '-noadapt'))
 
                     # Dumb Farmer
                     if check_doit(targetdir, subbasename + "-incadapt", suffix):
-                        calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(subcsvv, module, weatherbundle, economicmodel, pvals[subbasename], farmer='dumb')
+                        calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(subcsvv, module, weatherbundle, economicmodel, pvals[subbasename], farmer='dumb', config=config)
 
                         effectset.generate(targetdir, subbasename + "-incadapt" + suffix, weatherbundle, calculation, "Mortality impacts, with interpolation and only environmental adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, subbasename + '-incadapt'))
 
@@ -138,7 +138,7 @@ def produce_india(targetdir, weatherbundle, economicmodel, pvals, config, suffix
         if check_doit(targetdir, basename, suffix):
             print "India result"
             try:
-                calculation, dependencies = caller.call_prepare_interp(filepath, module, weatherbundle, economicmodel, pvals[basename])
+                calculation, dependencies = caller.call_prepare_interp(filepath, module, weatherbundle, economicmodel, pvals[basename], config=config)
 
                 effectset.generate(targetdir, basename + suffix, weatherbundle, calculation, "India-model mortality impacts for all ages.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, diagnosefile=diagnosefile.replace('.csv', '-' + basename + '.csv') if diagnosefile else False)
             except Exception as ex:
@@ -147,7 +147,7 @@ def produce_india(targetdir, weatherbundle, economicmodel, pvals, config, suffix
 def produce_external(targetdir, weatherbundle, economicmodel, pvals, config, suffix=''):
     if config['do_only'] is None or config['do_only'] == 'acp':
         # ACP response
-        calculation, dependencies = caller.call_prepare('impacts.mortality.external.ACRA_mortality_temperature', weatherbundle, economicmodel, pvals['ACRA_mortality_temperature'])
+        calculation, dependencies = caller.call_prepare('impacts.mortality.external.ACRA_mortality_temperature', weatherbundle, economicmodel, pvals['ACRA_mortality_temperature'], config=config)
         effectset.generate(targetdir, "ACPMortality" + suffix, weatherbundle, calculation, "Mortality using the ACP response function.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config)
 
 
@@ -179,5 +179,5 @@ def produce_external(targetdir, weatherbundle, economicmodel, pvals, config, suf
                     assert False, "Unknown filter region."
 
             # Removed DG2011_USA_national_mortality_65plus: Amir considers unreliable
-            calculation, dependencies = caller.call_prepare('impacts.mortality.external.' + gcpid, weatherbundle, economicmodel, pvals[gcpid])
+            calculation, dependencies = caller.call_prepare('impacts.mortality.external.' + gcpid, weatherbundle, economicmodel, pvals[gcpid], config=config)
             effectset.generate(targetdir, gcpid + suffix, weatherbundle, calculation, "See https://bitbucket.org/ClimateImpactLab/socioeconomics/wiki/HealthModels#rst-header-" + gcpid.replace('_', '-').lower() + " for more information.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, filter_region=filter_region, subset=subset)

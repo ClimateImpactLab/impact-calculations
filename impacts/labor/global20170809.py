@@ -12,7 +12,7 @@ from climate import discover
 from impactlab_tools.utils import files
 from impactcommon.math import minpoly
 
-def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', clipping=True, econspan=1):
+def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', clipping=True, config={}):
     reader_coldd = discover.discover_yearly_corresponding(files.sharedpath('climate/BCSD/aggregation/cmip5_new/IR_level'),
                                                           weatherbundle.scenario, 'Degreedays_tasmax',
                                                           weatherbundle.model, 'coldd_agg')
@@ -21,17 +21,17 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
                                                           weatherbundle.model, 'hotdd_agg')
     assert reader_hotdd is not None, "Cannot find corresponding weather to %s, %s, %s, %s" % (weatherbundle.scenario, 'Degreedays_tasmax', weatherbundle.model, 'hotdd_agg')
 
-    predgen = covariates.CombinedCovariator([covariates.TranslateCovariator( # XXX: These should be 30 years
-        covariates.YearlyWeatherCovariator(reader_hotdd, weatherbundle.regions, 2015, 15, weatherbundle.is_historical()),
+    predgen = covariates.CombinedCovariator([covariates.TranslateCovariator(
+        covariates.YearlyWeatherCovariator(reader_hotdd, weatherbundle.regions, 2015, weatherbundle.is_historical(), config=config.get('climcovar', {})),
         {'hotdd_30*(tasmax - 27)*I_{T >= 27}': 'hotdd_agg', 'hotdd_30*(tasmax2 - 27^2)*I_{T >= 27}': 'hotdd_agg',
          'hotdd_30*(tasmax3 - 27^3)*I_{T >= 27}': 'hotdd_agg', 'hotdd_30*(tasmax4 - 27^4)*I_{T >= 27}': 'hotdd_agg'}),
                                              covariates.TranslateCovariator(
-        covariates.YearlyWeatherCovariator(reader_coldd, weatherbundle.regions, 2015, 15, weatherbundle.is_historical()),
+        covariates.YearlyWeatherCovariator(reader_coldd, weatherbundle.regions, 2015, weatherbundle.is_historical(), config=config.get('climcovar', {})),
                                                  {'colddd_10*(27 - tasmax)*I_{T < 27}': 'coldd_agg', 'colddd_10*(27^2 - tasmax2)*I_{T < 27}': 'coldd_agg',
                                                   'colddd_10*(27^3 - tasmax3)*I_{T < 27}': 'coldd_agg', 'colddd_10*(27^4 - tasmax4)*I_{T < 27}': 'coldd_agg'},
                                                  {'colddd_10*(27 - tasmax)*I_{T < 27}': lambda x: -x, 'colddd_10*(27^2 - tasmax2)*I_{T < 27}': lambda x: -x,
                                                   'colddd_10*(27^3 - tasmax3)*I_{T < 27}': lambda x: -x, 'colddd_10*(27^4 - tasmax4)*I_{T < 27}': lambda x: -x}),
-                                             covariates.EconomicCovariator(economicmodel, econspan, 2015)])
+                                             covariates.EconomicCovariator(economicmodel, 2015, config=config.get('econcovar', {}))])
 
     csvvfile.collapse_bang(csvv, qvals.get_seed())
 

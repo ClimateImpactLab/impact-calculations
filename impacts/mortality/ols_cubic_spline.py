@@ -9,9 +9,9 @@ from impactcommon.math import minspline
 
 knots = [-10, 0, 10, 20, 28, 33]
 
-def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full'):
-    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 30, 2015, varindex=0), {'climtas': 'tas'}),
-                                                covariates.EconomicCovariator(economicmodel, 13, 2015)])
+def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', config={}):
+    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, config=config.get('climcovar', {}), varindex=0), {'climtas': 'tas'}),
+                                                covariates.EconomicCovariator(economicmodel, 2015, config=config.get('econcovar', {}))])
 
     # Don't collapse: already collapsed in allmodels
     #csvvfile.collapse_bang(csvv, qvals.get_seed())
