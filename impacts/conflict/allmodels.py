@@ -38,8 +38,6 @@ def produce(targetdir, weatherbundle, economicmodel, qvals, do_only=None, suffix
 
     ## Full interpolation
     for filepath in glob.glob("/shares/gcp/social/parameters/conflict/hierarchical_08102017/*.csvv"):
-        if 'adm0' in filepath:
-            continue # Just skip for now, so can complete tests
         basename = os.path.basename(filepath)[:-5]
         print basename
         
