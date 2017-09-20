@@ -167,13 +167,10 @@ class CountryDeviationsReader(TransformedReader):
     def read_iterator(self):
         for weatherslice in self.source.read_iterator():
             weathers = weatherslice.weathers
-            print "DOING IT"
             bycountry = forecasts.get_means(self.source.regions, lambda ii: weathers[:, ii])
 
             regions = self.source.regions
             for ii in range(len(regions)):
-                if regions[ii] == 'IND.33.542.2153':
-                    print weatherslice.weathers[:, ii], bycountry[regions[ii][:3]]
                 weatherslice.weathers[:, ii] = weatherslice.weathers[:, ii] - bycountry[regions[ii][:3]]
 
             yield weatherslice
