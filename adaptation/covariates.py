@@ -82,9 +82,9 @@ class MeanWeatherCovariator(Covariator):
         for region, temps in weatherbundle.baseline_values(maxbaseline): # baseline through maxbaseline
             if varindex is None:
                 assert len(temps.shape) == 1
-                temp_predictors[region] = averages.interpet(config, standard_climate_config, temps[-self.numtempyears:])
+                temp_predictors[region] = averages.interpret(config, standard_climate_config, temps[-self.numtempyears:])
             else:
-                temp_predictors[region] = averages.interpet(config, standard_climate_config, temps[-self.numtempyears:, varindex])
+                temp_predictors[region] = averages.interpret(config, standard_climate_config, temps[-self.numtempyears:, varindex])
 
         self.temp_predictors = temp_predictors
         self.weatherbundle = weatherbundle

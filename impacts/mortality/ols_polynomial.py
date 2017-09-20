@@ -6,7 +6,7 @@ from openest.generate.stdlib import *
 from openest.generate import diagnostic
 from impactcommon.math import minpoly
 
-def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', specconf={}):
+def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', config={}):
     covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, config=config.get('climcovar', {}), varindex=0), {'climtas': 'tas'}),
                                                 covariates.EconomicCovariator(economicmodel, 2015, config=config.get('econcovar', {}))])
 
