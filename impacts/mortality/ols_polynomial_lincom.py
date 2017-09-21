@@ -12,14 +12,17 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
         covariates.MeanWeatherCovariator(weatherbundle, 30, 2015, 'tas'), {'climtas': 'tas'}),
                                                 covariates.EconomicCovariator(economicmodel, 13, 2015),
                                                 covariates.HistoricalCovariator(covariates.TranslateCovariator(
-                                                    covariates.MeanWeatherCovariator(weatherbundle, 30, 2015, 'tas'), {'climtas': 'tas'})),
-                                                covariates.HistoricalCovariator(covariates.EconomicCovariator(economicmodel, 13, 2015))])
+                                                    covariates.MeanWeatherCovariator(weatherbundle, 30, 2015, 'tas'), {'climtas': 'tas'}),
+                                                                                '.histclim'),
+                                                covariates.HistoricalCovariator(covariates.EconomicCovariator(economicmodel, 13, 2015),
+                                                                                '.histclim')])
 
     order = len(csvv['gamma']) / 3
     curr_curvegen = curvegen_known.PolynomialCurveGenerator(['C'] + ['C^%d' % pow for pow in range(2, order+1)],
                                                            '100,000 * death/population', 'tas', order, csvv)
-    diff_curvegen = DifferenceCurveGenerator(curr_curvegen, curr_curvegen, csvv['prednames'],
-                                             csvv['covarnames'], lambda x: x + '.histclim')
+    diff_curvegen = curvegen.DifferenceCurveGenerator(curr_curvegen, curr_curvegen, csvv['prednames'],
+                                                      csvv['covarnames'], lambda x: x if len(x) != 4 or x[:3] != 'tas' else x[:-1] + '-poly-' + x[-1],
+                                                      lambda x: (x if len(x) != 4 or x[:3] != 'tas' else x[:-1] + '-poly-' + x[-1]) + '.histclim')
     farm_curvegen = curvegen.FarmerCurveGenerator(diff_curvegen, covariator, farmer)
 
     # Produce the final calculation

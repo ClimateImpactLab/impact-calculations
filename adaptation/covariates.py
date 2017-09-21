@@ -353,6 +353,7 @@ covariator should not be used elsewhere where it might have get_update
 called.
     """
     def __init__(self, source, suffix):
+        super(HistoricalCovariator, self).__init__(source.startupdateyear)
         self.source = source
         self.suffix = suffix
 

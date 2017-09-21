@@ -1,6 +1,6 @@
 import numpy as np
 from openest.generate.curvegen import *
-from openest.generate import checks
+from openest.generate import checks, fast_dataset
 
 region_curves = {}
 
@@ -125,24 +125,25 @@ class FarmerCurveGenerator(DelayedCurveGenerator):
 
 class DifferenceCurveGenerator(CurveGenerator):
     """Currently just useful for performing lincom calculations."""
-    def __init__(self, one, two, prednames, covarnames, twofunc):
+    def __init__(self, one, two, prednames, covarnames, onefunc, twofunc):
         assert one.indepunits == two.indepunits
-        assert one.depenunit = two.depenunit
+        assert one.depenunit == two.depenunit
         super(DifferenceCurveGenerator, self).__init__(one.indepunits, one.depenunit)
 
         self.one = one
         self.two = two
         self.prednames = prednames
         self.covarnames = covarnames
+        self.onefunc = onefunc
         self.twofunc = twofunc
 
     def get_lincom_terms_simple(self, predictors, covariates):
-        one_preds = FastDataset.subset(predictors, self.prednames)
-        one_covars = {covar: covariates[covar] for covar in self.covarnames}
+        one_preds = fast_dataset.FastDataset.subset(predictors, map(self.onefunc, self.prednames))
+        one_covars = {covar: covariates[self.onefunc(covar)] if covar != '1' else 1 for covar in self.covarnames}
         one_terms = self.one.get_lincom_terms_simple(one_preds, one_covars)
 
-        two_preds = FastDataset.subset(predictors, map(self.twofunc, self.prednames))
-        two_covars = {covar: covariates[self.twofunc(covar)] for covar in self.covarnames}
+        two_preds = fast_dataset.FastDataset.subset(predictors, map(self.twofunc, self.prednames)).rename({name: self.twofunc(name) for name in set(self.prednames)})
+        two_covars = {covar: covariates[self.twofunc(covar)] if covar != '1' else 1 for covar in self.covarnames}
         two_terms = self.two.get_lincom_terms_simple(two_preds, two_covars)
         
         return one_terms - two_terms
