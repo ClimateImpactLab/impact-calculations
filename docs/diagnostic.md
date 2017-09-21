@@ -92,7 +92,8 @@ climcovar:
 ```
 
 The available classes are `mean` (a running average), `median` (a
-running median), `Bartlett` (a running triangular kernel), and
+running median), `bartlett` (a running triangular kernel), and
 `bucket` (a running Bayesian updating or exponential kernel).  For the
 first three, `length` is the length to the last non-zero term in the
 kernel; for the last, it's the decay-rate of the exponential decay.
+Always use spaces to indent these parameters.
