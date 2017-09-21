@@ -12,14 +12,8 @@ def user_failure(message):
 def user_assert(check, message):
     if not check:
         user_failure(message)
-    
-def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', specconf={}):
-    user_assert('depenunit' in specconf, "Specification configuration missing 'depenunit' string.")
-    user_assert('functionalform' in specconf, "Specification configuration missing 'functionalform' string.")
-    user_assert('description' in specconf, "Specification configuration missing 'description' string.")
-    
-    csvvfile.collapse_bang(csvv, qvals.get_seed())
 
+def create_covariator(specconf, weatherbundle, economicmodel):
     if 'covariates' in specconf:
         covariators = []
         for covar in specconf['covariates']:
@@ -36,8 +30,12 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
             covariator = covariates.CombinedCovariator(covariators)
     else:
         covariator = None
-    
-    depenunit = specconf['depenunit']
+
+    return covariator
+        
+def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
+    user_assert('depenunit' in specconf, "Specification configuration missing 'depenunit' string.")
+    user_assert('functionalform' in specconf, "Specification configuration missing 'functionalform' string.")
     
     if specconf['functionalform'] == 'polynomial':
         variable = specconf['variable']
@@ -72,7 +70,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
 
     if specconf.get('goodmoney', False):
         baselineloggdppcs = {}
-        for region in weatherbundle.regions:
+        for region in regions:
             baselineloggdppcs[region] = covariator.get_current(region)['loggdppc']
 
     if specconf.get('clipping', False):
@@ -80,12 +78,12 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
         maxtemp = specconf.get('clip-maxtemp', 25)
         # Determine minimum value of curve between 10C and 25C
         if covariator:
-            baselinecurves, baselinemins = constraints.get_curve_minima(weatherbundle.regions, curr_curvegen, covariator,
+            baselinecurves, baselinemins = constraints.get_curve_minima(regions, curr_curvegen, covariator,
                                                                         mintemp, maxtemp, minfinder(mintemp, maxtemp))
         else:
             curve = curr_curvegen.get_curve('global', 2000, {})
             curvemin = minfinder(mintemp, maxtemp)(curve)
-            baselinemins = {region: curvemin for region in weatherbundle.regions}
+            baselinemins = {region: curvemin for region in regions}
 
     def transform(region, curve):
         if len(weathernames) > 1:
@@ -118,8 +116,21 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     if covariator:
         final_curvegen = curvegen.FarmerCurveGenerator(final_curvegen, covariator, farmer)
 
-    calculation = YearlyAverageDay(depenunit, final_curvegen, specconf['description'])
+    return final_curvegen
 
+def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', specconf={}):
+    user_assert('depenunit' in specconf, "Specification configuration missing 'depenunit' string.")
+    user_assert('description' in specconf, "Specification configuration missing 'description' string.")
+
+    csvvfile.collapse_bang(csvv, qvals.get_seed())
+    
+    depenunit = specconf['depenunit']
+    
+    covariator = create_covariator(specconf, weatherbundle, economicmodel)
+    final_curvegen = create_curvegen(csvv, covariator, weatherbundle.regions, farmer=farmer, specconf=specconf)
+    
+    calculation = YearlyAverageDay(depenunit, final_curvegen, specconf['description'])
+        
     if covariator is None:
         return calculation, [], lambda: {}
     else:
