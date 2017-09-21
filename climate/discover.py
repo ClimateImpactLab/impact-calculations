@@ -4,7 +4,7 @@ future reader).
 """
 import os
 from impactlab_tools.utils import files
-from reader import ConversionWeatherReader, RegionReorderWeatherReader
+from reader import ConversionWeatherReader, RegionReorderWeatherReader, HistoricalCycleReader, RenameReader
 from dailyreader import DailyWeatherReader, YearlyBinnedWeatherReader
 from yearlyreader import YearlyWeatherReader
 import pattern_matching
@@ -12,6 +12,9 @@ import pattern_matching
 def standard_variable(name, timerate):
     if '/' in name:
         return discover_versioned(files.configpath(name), os.path.basename(name))
+
+    if name[-9:] == '.histclim':
+        return discover_makehist(standard_variable(name[:-9], timerate))
     
     assert timerate in ['day', 'month', 'year']
 
@@ -187,3 +190,7 @@ def discover_versioned(basedir, variable, version=None, reorder=False):
             
         yield scenario, model, pastreader, futurereader
 
+def discover_makehist(discover_iterator):
+    """Mainly used with .histclim for, e.g., lincom (since normal historical is at the bundle level)."""
+    for scenario, model, pastreader, futurereader in discover_iterator:
+        yield scenario, model, RenameReader(pastreader, lambda x: x + '.histclim'), HistoricalCycleReader(pastreader, futurereader)

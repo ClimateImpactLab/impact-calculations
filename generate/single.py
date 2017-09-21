@@ -67,13 +67,13 @@ if do_profile:
 if 'module' in config:
     print "Loading from module."
     module = "impacts." + config['module']
-    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals[basename], farmer=farmer, standardize=False)
+    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals[basename], farmer=farmer, standard=False)
 
 elif 'specification' in config:
     print "Loading from specification configuration."
     from interpret import specification
     specconf = config['specification']
-    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, 'interpret.specification', weatherbundle, economicmodel, pvals[basename], specconf=specconf, standardize=False)
+    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, 'interpret.specification', weatherbundle, economicmodel, pvals[basename], specconf=specconf, standard=False)
 
 else:
     print "ERROR: Unknown model specification method."

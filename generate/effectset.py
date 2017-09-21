@@ -25,7 +25,7 @@ def simultaneous_application(weatherbundle, calculation, regions=None, push_call
 
         print "Push", year
 
-        for region, subds in fast_dataset.region_groupby(ds, year, regions):            
+        for region, subds in fast_dataset.region_groupby(ds, year, regions, region_indices):
             for yearresult in applications[region].push(subds):
                 yield (region, yearresult[0], yearresult[1:])
 
@@ -40,7 +40,7 @@ def simultaneous_application(weatherbundle, calculation, regions=None, push_call
 
 def generate(targetdir, basename, weatherbundle, calculation, description, calculation_dependencies, config, filter_region=None, push_callback=None, subset=None, diagnosefile=False):
     if 'mode' in config and config['mode'] == 'profile':
-        return small_print(weatherbundle, calculation, regions=100)
+        return small_print(weatherbundle, calculation, regions=10000)
 
     if 'mode' in config and config['mode'] == 'diagnostic':
         return small_print(weatherbundle, calculation, regions=[config['region']])

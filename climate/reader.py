@@ -187,3 +187,72 @@ class RegionReorderWeatherReader(WeatherReader):
         newds.load()
 
         return newds
+
+class RenameReader(WeatherReader):
+    """Wraps another weatherReader, renaming all variables."""
+    def __init__(self, reader, renamer):
+        super(RenameReader, self).__init__(reader.version, reader.units, reader.time_units)
+        self.reader = reader
+        self.renamer = renamer
+
+    def get_times(self):
+        """Returns a list of all times available."""
+        return self.reader.get_times()
+
+    def get_years(self):
+        return self.reader.get_years()
+        
+    def get_dimension(self):
+        """Returns a list of length K, describing the number of elements
+        describing the weather in each region and time period.
+        """
+        return map(self.renamer, self.reader.get_dimension())
+
+    def read_iterator(self):
+        """Yields an xarray Dataset in whatever chunks are convenient.
+        """
+        for year in self.get_years():
+            yield self.read_year(year)
+
+    def read_year(self, year):
+        renames = {name: self.renamer(name) for name in self.reader.get_dimension()}
+        
+        return self.reader.read_year(year).rename(renames)
+    
+class HistoricalCycleReader(WeatherReader):
+    """Wraps another weather reader, iterating through history repeatedly, pretending to be a future reader."""
+
+    def __init__(self, reader, futurereader):
+        super(HistoricalCycleReader, self).__init__(reader.version, reader.units, reader.time_units)
+        self.reader = reader
+        self.futurereader = futurereader
+
+    def get_times(self):
+        """Returns a list of all times available."""
+        return self.futurereader.get_times()
+
+    def get_years(self):
+        return self.futurereader.get_years()
+        
+    def get_dimension(self):
+        """Returns a list of length K, describing the number of elements
+        describing the weather in each region and time period.
+        """
+        return map(lambda x: x + '.histclim', self.futurereader.get_dimension())
+
+    def read_iterator(self):
+        """Yields an xarray Dataset in whatever chunks are convenient.
+        """
+        for year in self.get_years():
+            yield self.read_year(year)
+
+    def read_year(self, year):
+        histyears = self.reader.get_years()
+        fromstart = (year - histyears[0]) % (2 * len(histyears) - 1)
+
+        renames = {name: name + '.histclim' for name in self.futurereader.get_dimension()}
+        
+        if fromstart < len(histyears):
+            return self.reader.read_year(histyears[fromstart]).rename(renames)
+        else:
+            return self.reader.read_year(histyears[-(fromstart - len(histyears) + 2)]).rename(renames)
