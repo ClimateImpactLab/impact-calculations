@@ -1,6 +1,6 @@
 import numpy as np
 import csvvfile, curvegen
-from openest.generate import diagnostic
+from openest.generate import diagnostic, formatting
 from openest.models.curve import ZeroInterceptPolynomialCurve, CubicSplineCurve
 
 class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
@@ -39,6 +39,12 @@ class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
 
     def get_csvv_vcv(self):
         return self.csvv['gammavcv']
+
+    def format_call(self, lang, *args):
+        if lang == 'latex':
+            return {'main': formatting.FormatElement(r"\sum_{k=1}^%d \beta_k %s^k" % (self.order, args[0]), self.depenunit, is_primitive=True)}
+        elif lang == 'julia':
+            return {'main': formatting.FormatElement("beta[1] * " + args[0] + ' + ' + ' + '.join(["beta[%d] * %s^%d" % (order, args[0], order) for order in range(2, self.order + 1)]), self.depenunit, is_primitive=True)}
 
 class CubicSplineCurveGenerator(curvegen.CSVVCurveGenerator):
     def __init__(self, indepunits, depenunit, prefix, knots, csvv):

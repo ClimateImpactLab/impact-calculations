@@ -1,6 +1,6 @@
 import numpy as np
 from openest.generate.curvegen import *
-from openest.generate import checks, fast_dataset
+from openest.generate import checks, fast_dataset, formatting
 
 region_curves = {}
 
@@ -142,8 +142,24 @@ class DifferenceCurveGenerator(CurveGenerator):
         one_covars = {covar: covariates[self.onefunc(covar)] if covar != '1' else 1 for covar in self.covarnames}
         one_terms = self.one.get_lincom_terms_simple(one_preds, one_covars)
 
-        two_preds = fast_dataset.FastDataset.subset(predictors, map(self.twofunc, self.prednames)).rename({name: self.twofunc(name) for name in set(self.prednames)})
+        two_preds = fast_dataset.FastDataset.subset(predictors, map(self.twofunc, self.prednames)).rename({self.twofunc(name): name for name in set(self.prednames)})
         two_covars = {covar: covariates[self.twofunc(covar)] if covar != '1' else 1 for covar in self.covarnames}
         two_terms = self.two.get_lincom_terms_simple(two_preds, two_covars)
         
         return one_terms - two_terms
+
+    def get_csvv_coeff(self):
+        return self.one.get_csvv_coeff()
+
+    def get_csvv_vcv(self):
+        return self.one.get_csvv_vcv()
+        
+    def format_call(self, lang, *args):
+        equation_one = self.one.format_call(lang, *args)
+        equation_two = self.two.format_call(lang, *args)
+        
+        result = {}
+        result.update(equation_one)
+        result.update(equation_two)
+        result['main'] = formatting.FormatElement("%s - %s" % (equation_one['main'].repstr, equation_two['main'].repstr), self.one.depenunit, self.one.dependencies + self.two.dependencies)
+        return result

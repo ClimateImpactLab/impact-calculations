@@ -8,13 +8,12 @@ specification:
 
 calculation:
   - YearlyAverageDay:
-      output_units: 100,000 * death/population
+      units: 100,000 * death/population
       curve_description: the mortality response curve
   - Transform:
-    - 100,000 * death/population
-    - deaths/person/year
+    - 100,000 * death/population -> deaths/person/year
     - 365 * x / 1e5
-    - convert to deaths/person/year
+    - Convert to deaths/person/year
     - Divide by 100000 to convert to deaths/person/year.
   - Rebase
 

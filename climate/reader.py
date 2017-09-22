@@ -1,6 +1,7 @@
 import os, glob
 import numpy as np
 import xarray as xr
+import pandas as pd
 import netcdfs
 from datastore import irregions
 
@@ -248,11 +249,18 @@ class HistoricalCycleReader(WeatherReader):
 
     def read_year(self, year):
         histyears = self.reader.get_years()
-        fromstart = (year - histyears[0]) % (2 * len(histyears) - 1)
+        fromstart = (year - histyears[0]) % (2 * len(histyears) - 2)
 
         renames = {name: name + '.histclim' for name in self.futurereader.get_dimension()}
         
         if fromstart < len(histyears):
-            return self.reader.read_year(histyears[fromstart]).rename(renames)
+            if year <= histyears[-1]:
+                return self.reader.read_year(histyears[fromstart]).rename(renames)
+            else:
+                ds = self.reader.read_year(histyears[fromstart]).rename(renames)
         else:
-            return self.reader.read_year(histyears[-(fromstart - len(histyears) + 2)]).rename(renames)
+            ds = self.reader.read_year(histyears[-(fromstart - len(histyears) + 2)]).rename(renames)
+
+        ds['yyyyddd'].values = ds['yyyyddd'].values % 1000 + year * 1000
+        ds['time'].values = pd.date_range('%d-01-01' % year, periods=365)
+        return ds

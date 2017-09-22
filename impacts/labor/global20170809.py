@@ -46,7 +46,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
                 shift += -csvvfile.get_gamma(csvv, 'tasmax%d' % term, covars[term-1]) * (27**term) * predgen.get_current(region)[covars[term-1]]
             return ShiftedCurve(CoefficientsCurve(curve.ccs, curve, lambda x: x[:, :order]), shift)
 
-        return curvegen.TransformCurveGenerator(shift_curve, poly_curvegen)
+        return curvegen.TransformCurveGenerator(shift_curve, "Shift curve by -gamma_H1 27 H - gamma_H2 27^2 H", poly_curvegen)
 
     lt27_covars = ['colddd_10*(27 - tasmax)*I_{T < 27}'] + ['colddd_10*(27^%d - tasmax%d)*I_{T < 27}' % (term, term) for term in range(2, order+1)]
     lt27_curvegen = shift_curvegen(curvegen_known.PolynomialCurveGenerator(['C'] + ['C^%d' % pow for pow in range(2, order+1)],
@@ -60,7 +60,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     def make_piecewise(region, lt27_curve, gt27_curve):
         return PiecewiseCurve([lt27_curve, gt27_curve], [-np.inf, 27, np.inf], lambda x: x[:, 0])
     
-    piece_curvegen = curvegen.TransformCurveGenerator(make_piecewise, lt27_curvegen, gt27_curvegen)
+    piece_curvegen = curvegen.TransformCurveGenerator(make_piecewise, "Piecewise join < 27 and > 27 curves", lt27_curvegen, gt27_curvegen)
 
     def get_historical_range(key, model, scenario):
         region_mins = {}
@@ -101,7 +101,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
 
         return ProductCurve(ShiftedCurve(curve, -curve(27)), StepCurve([-np.inf, 0, np.inf], [0, 1], lambda x: x[:, 0]))
 
-    shifted_curvegen = curvegen.TransformCurveGenerator(shift_piecewise, piece_curvegen) # both clip and subtract curve at 27
+    shifted_curvegen = curvegen.TransformCurveGenerator(shift_piecewise, "Subtract curve at 27 C and clip", piece_curvegen) # both clip and subtract curve at 27
 
     farm_temp_curvegen = curvegen.FarmerCurveGenerator(shifted_curvegen, predgen, farmer)
     tempeffect = YearlyAverageDay('minutes worked by individual', farm_temp_curvegen, 'the temperature effect')
