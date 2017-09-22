@@ -42,7 +42,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
         goodmoney_curve = MinimumCurve(fulladapt_curve, noincadapt_curve)
         return ClippedCurve(goodmoney_curve)
 
-    clip_curvegen = curvegen.TransformCurveGenerator(transform, curr_curvegen)
+    clip_curvegen = curvegen.TransformCurveGenerator(transform, "Clipping and Good Money", curr_curvegen)
     farm_curvegen = curvegen.FarmerCurveGenerator(clip_curvegen, covariator, farmer)
 
     # Generate the marginal income curve
@@ -53,7 +53,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
         shifted_curve = ShiftedCurve(climtas_coeff_curve, -climtas_effect_curve(baselinemins[region]))
         return OtherClippedCurve(curve, shifted_curve)
 
-    climtas_effect_curvegen = curvegen.TransformCurveGenerator(transform_climtas_effect, farm_curvegen)
+    climtas_effect_curvegen = curvegen.TransformCurveGenerator(transform_climtas_effect, "Calculate climtas partial equation", farm_curvegen)
 
     calculation = Transform(AuxillaryResult(YearlyAverageDay('100,000 * death/population', farm_curvegen, "the mortality response curve"),
                                             YearlyAverageDay('100,000 * death/population', climtas_effect_curvegen,

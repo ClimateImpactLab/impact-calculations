@@ -36,7 +36,9 @@ def create_covariator(specconf, weatherbundle, economicmodel):
 def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
     user_assert('depenunit' in specconf, "Specification configuration missing 'depenunit' string.")
     user_assert('functionalform' in specconf, "Specification configuration missing 'functionalform' string.")
-    
+
+    depenunit = specconf['depenunit']
+
     if specconf['functionalform'] == 'polynomial':
         variable = specconf['variable']
         indepunit = specconf['indepunit']
@@ -111,7 +113,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
         else:
             return final_curve
 
-    final_curvegen = curvegen.TransformCurveGenerator(transform, curr_curvegen)
+    final_curvegen = curvegen.TransformCurveGenerator(transform, "Clipping and/or Good Money", curr_curvegen)
 
     if covariator:
         final_curvegen = curvegen.FarmerCurveGenerator(final_curvegen, covariator, farmer)

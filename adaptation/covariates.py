@@ -358,7 +358,7 @@ called.
         self.suffix = suffix
 
     def get_update(self, region, year, ds):
-        pass
+        return self.get_current(region)
 
     def get_current(self, region):
         covariates = self.source.get_current(region)
