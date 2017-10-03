@@ -14,7 +14,7 @@ def get_bundle_iterator(config):
                                    discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tasmax-poly-4"), 'tasmax-poly-4', reorder=reorder))
 
 do_clipping = [True] # [True, False]
-do_csvv_grep = 'Poly2'
+do_csvv_grep = None #'Poly2'
 
 def check_doit(targetdir, basename, suffix, deletebad=False):
     filepath = os.path.join(targetdir, basename + suffix + '.nc4')
