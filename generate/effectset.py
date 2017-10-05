@@ -40,7 +40,7 @@ def simultaneous_application(weatherbundle, calculation, regions=None, push_call
 
 def generate(targetdir, basename, weatherbundle, calculation, description, calculation_dependencies, config, filter_region=None, push_callback=None, subset=None, diagnosefile=False):
     if 'mode' in config and config['mode'] == 'profile':
-        return small_print(weatherbundle, calculation, regions=10)
+        return small_print(weatherbundle, calculation, regions=10000)
 
     if 'mode' in config and config['mode'] == 'diagnostic':
         return small_print(weatherbundle, calculation, regions=[config['region']])
