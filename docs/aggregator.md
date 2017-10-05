@@ -67,3 +67,14 @@ Possible components:
  - Term ` / ` Term: The quotient of two terms (can be chained).  Terms
    are computed sequentially, so *(a b) / (c d)* should be described
    as `a * b / c / d`.
+
+The `datastore.weights` script also allows these weighting schemes to
+be output in CSV format for each region and year.  To do this, run
+```
+python -m datastore.weights <WEIGHTING> <IAM> <SSP>
+```
+where `<WEIGHTING>` is a weighting configuration description as above
+(excluding the `agecohorts` specification, which requires a file to be
+fully specified) and should be in quotes if it contains spaces;
+`<IAM>` is `low` or `high`; and `<SSP>` is `SSP#` where # is a number
+between 1 and 5, inclusive.
