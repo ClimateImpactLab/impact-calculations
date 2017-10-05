@@ -48,7 +48,7 @@ for batch, clim_scenario, clim_model, econ_scenario, econ_model, targetdir in ag
                     reader_poor = Dataset(os.path.join(targetdir, india_basename + '.nc4'), 'r', format='NETCDF4')
                 
                     dependencies = []
-                    covariator = covariates.EconomicCovariator(econmodel.SSPEconomicModel(econ_model, econ_scenario, dependencies), 1, 2015)
+                    covariator = covariates.EconomicCovariator(econmodel.SSPEconomicModel(econ_model, econ_scenario, dependencies), 2015)
                     
                     writer, regions, years = nc4writer.create_derivative(targetdir, reader_rich, filename[:-4] + '-indiamerge', " combined with India", dependencies)
                     srcvalues_rich = reader_rich.variables['rebased'][:, :]
@@ -93,7 +93,7 @@ for batch, clim_scenario, clim_model, econ_scenario, econ_model, targetdir in ag
                 dstvalues = np.zeros((len(years), len(regions)))
                 for key in ['costs_ub', 'costs_lb', 'costs_ub_cum', 'costs_lb_cum']:
                     dependencies = []
-                    covariator = covariates.EconomicCovariator(econmodel.SSPEconomicModel(econ_model, econ_scenario, dependencies), 1, 2015)
+                    covariator = covariates.EconomicCovariator(econmodel.SSPEconomicModel(econ_model, econ_scenario, dependencies), 2015)
 
                     srcvalues_rich = reader_rich.variables[key][:, :]
                     for tt in range(len(years)):

@@ -68,8 +68,32 @@ Optional:
  - `singledir`: The name of the single batch directory; default:
    `single`.
 
+ - `econcovar` and `climcovar`: Covariate averaging specification (see
+   Covariate Averaging below).
+
 Note that there is also a script `diagnostic.sh`, which expects to be
 given a diagnostics configuration file.  The difference between using
 it and using the normal `generate.sh` script is that it will just
 produce a result for a single region, and output the result to a local
 `temp` directory.
+
+## Covariate Averaging
+
+You can specify in a configuration file the averaging scheme for
+climate and economic covariates.  By default, a 13-year Bartlett
+kernel is used for economic covariates and a 30-year Bartlett for
+climate covariates.  To change these, specify the `class` and `length`
+of the new averaging scheme.  For example, to change to a 25-year
+running average, you would say,
+```
+climcovar:
+    class: mean
+    length: 25
+```
+
+The available classes are `mean` (a running average), `median` (a
+running median), `bartlett` (a running triangular kernel), and
+`bucket` (a running Bayesian updating or exponential kernel).  For the
+first three, `length` is the length to the last non-zero term in the
+kernel; for the last, it's the decay-rate of the exponential decay.
+Always use spaces to indent these parameters.
