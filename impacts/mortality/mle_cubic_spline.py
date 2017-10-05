@@ -9,7 +9,7 @@ from impactcommon.math import minspline
 
 knots = [-12, -7, 0, 10, 18, 23, 28, 33]
 
-def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full'):
+def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', config={}):
     """Computes f(x_t | \theta(z_t)) - f(x_0 | \theta(z_t)), where f is
     the adaptation-estimated cubic spline, x_t is the set of weather
     predictors, and \theta(z_t) relates how the set of parameters that
@@ -18,10 +18,10 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full')
     updated twice in the calculation.
     """
 
-    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 15, 2015, varindex=0), {'climtas': 'tas_sum'}, {'climtas': lambda x: x / 365}),
-                                                covariates.EconomicCovariator(economicmodel, 1, 2015)])
-    covariator2 = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 15, 2015, varindex=0), {'climtas': 'tas_sum'}, {'climtas': lambda x: x / 365}),
-                                                 covariates.EconomicCovariator(economicmodel, 1, 2015)])
+    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, config=config.get('climcovar', {}), varindex=0), {'climtas': 'tas_sum'}, {'climtas': lambda x: x / 365}),
+                                                covariates.EconomicCovariator(economicmodel, 2015, config=config.get('econcovar', {}))])
+    covariator2 = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, config=config.get('climcovar', {}), varindex=0), {'climtas': 'tas_sum'}, {'climtas': lambda x: x / 365}),
+                                                 covariates.EconomicCovariator(economicmodel, 2015, config=config.get('econcovar', {}))])
 
     csvvfile.collapse_bang(csvv, qvals.get_seed())
 
