@@ -53,3 +53,21 @@ def interpret(config):
         return lambda year0, year1: halfweight.load_population(year0, year1, econ_model, econ_scenario, config['weighting'])
 
     raise ValueError("Unknown weighting.")
+
+if __name__ == '__main__':
+    import sys, csv
+    import irregions
+
+    dependencies = []
+    regions = irregions.load_regions("hierarchy.csv", dependencies)
+    
+    weighting = sys.argv[1]
+    halfweight = interpret_halfweight(weighting)
+    stweight = halfweight.load(1981, 2100, sys.argv[2], sys.argv[3])
+
+    writer = csv.writer(sys.stdout)
+    writer.writerow(['region', 'year', 'weight'])
+    for region in regions:
+        weights = stweight.get_time(region)
+        for year in range(1981, 2101):
+            writer.writerow([region, year, weights[year - 1981]])
