@@ -4,7 +4,7 @@ from impactlab_tools.utils import files
 from helpers import header
 from datastore import population, popdensity, income_smoothed
 
-def iterate_econmodels():
+def iterate_econmodels(config={}):
     modelscenarios = set() # keep track of model-scenario pairs
 
     dependencies = []
@@ -15,7 +15,7 @@ def iterate_econmodels():
         for row in reader:
             model = row[headrow.index('model')]
             scenario = row[headrow.index('scenario')]
-            if scenario == 'SSP5':
+            if scenario == 'SSP5' and config.get('ssp', None) != 'SSP5':
                 continue # Dropping entire scenario
             
             if (model, scenario) not in modelscenarios:

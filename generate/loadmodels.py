@@ -4,6 +4,7 @@ from adaptation import covariates
 
 do_econ_model_only = None
 do_econ_scenario_only = None #{'rcp45': ['SSP4', 'SSP1'], 'rcp85': ['SSP4', 'SSP3']}
+do_clim_scenario_only = None
 
 single_clim_model = 'CCSM4'
 single_clim_scenario = 'rcp85'
@@ -34,10 +35,19 @@ def single(bundle_iterator):
 
             return clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
 
-def random_order(bundle_iterator):
+def random_order(bundle_iterator, config={}):
+    if 'ssp' in config:
+        mydo_econ_scenario_only = config['ssp']
+    else:
+        mydo_econ_scenario_only = do_econ_scenario_only
+    if 'rcp' in config:
+        mydo_clim_scenario_only = config['rcp']
+    else:
+        mydo_clim_scenario_only = do_clim_scenario_only
+        
     print "Loading models..."
     allecons = []
-    for econ_model, econ_scenario, economicmodel in covariates.iterate_econmodels():
+    for econ_model, econ_scenario, economicmodel in covariates.iterate_econmodels(config):
         allecons.append((econ_scenario, econ_model, economicmodel))
 
     allclims = []
@@ -52,11 +62,12 @@ def random_order(bundle_iterator):
                 continue
             if do_econ_model_only is not None and econ_model not in do_econ_model_only:
                 continue
-            if do_econ_scenario_only is not None and econ_scenario[0:4] not in do_econ_scenario_only[clim_scenario]:
+            if mydo_econ_scenario_only is not None and econ_scenario[0:4] not in mydo_econ_scenario_only[clim_scenario]:
                 continue
             # Drop SSP1 with RCP 8.5
             if econ_scenario[:4] == 'SSP1' and clim_scenario == 'rcp85':
-                continue
+                if mydo_econ_scenario_only != 'SSP1' or mydo_clim_scenario_only != 'rcp85': # Don't stop if requested
+                    continue
 
             allexogen = (clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel)
             allexogenous.append(allexogen)

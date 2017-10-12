@@ -46,7 +46,7 @@ def generate(targetdir, basename, weatherbundle, calculation, description, calcu
         return small_print(weatherbundle, calculation, regions=[config['region']])
 
     if filter_region is None:
-        filter_region = config.get('filter_region', None)
+        filter_region = config.get('filter-region', None)
     
     return write_ncdf(targetdir, basename, weatherbundle, calculation, description, calculation_dependencies, filter_region=filter_region, push_callback=push_callback, subset=subset, diagnosefile=diagnosefile)
 
