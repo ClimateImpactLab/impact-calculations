@@ -45,7 +45,8 @@ Optional:
    `-aggregated`, to distinguish multiple weighting schemes.
  - `rcp`: Only aggregate results from the given RCP.
  - `targetdir`: Only aggregate results in the given leaf output
-   directory.
+   directory.  This should be a full path name (e.g.,
+   `/shares/gcp/.../SSP3`)  Do not include a tailing slash.
    
 = Weighting Schemes =
 
