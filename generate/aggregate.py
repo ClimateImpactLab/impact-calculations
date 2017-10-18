@@ -14,7 +14,7 @@ costs_command = "Rscript generate/cost_curves.R \"%s\" \"%s\" \"%s\" \"%s\"" # t
 
 CLAIM_TIMEOUT = 24*60*60
 
-batchfilter = lambda batch: batch == 'median' or 'batch' in batch
+batchfilter = lambda batch: True #batch == 'median' or 'batch' in batch
 targetdirfilter = lambda targetdir: True #'rcp85' in targetdir #'SSP3' in targetdir and 'Env-Growth' in targetdir
 
 # The full population, if we just read it.
