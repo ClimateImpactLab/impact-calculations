@@ -30,7 +30,7 @@ for clim_scenario, clim_model, weatherbundle in weather.iterate_bundles(discover
 
     print targetdir
     if not os.path.exists(targetdir):
-        os.makedirs(targetdir)
+        os.makedirs(targetdir, 0775)
 
     rootgrp = Dataset(os.path.join(targetdir, filename), 'w', format='NETCDF4')
     rootgrp.description = "Yearly and 30-year Bartlett average temperatures."

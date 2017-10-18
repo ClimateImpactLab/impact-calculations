@@ -14,7 +14,7 @@ for batch1 in range(100):
             continue
 
         print targetdir
-        os.makedirs(targetdir)
+        os.makedirs(targetdir, 0775)
 
         pvals = pvalses.OnDemandRandomPvals()
 

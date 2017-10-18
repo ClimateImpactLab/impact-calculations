@@ -16,7 +16,7 @@ if os.path.exists(targetdir):
     os.system("rm -r " + targetdir)
 
 print targetdir
-os.makedirs(targetdir)
+os.makedirs(targetdir, 0775)
 
 weatherbundle = mod.get_bundle(pvals['weather'])
 economicmodel = econmodel.get_economicmodel('SSP2', 'low')
