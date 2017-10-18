@@ -56,7 +56,7 @@ print "Loading calculation..."
 calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals[basename], farmer=farmer)
 
 if not os.path.exists(targetdir):
-    os.makedirs(targetdir)
+    os.makedirs(targetdir, 0775)
 
 effectset.generate(targetdir, basename + suffix, weatherbundle, calculation, "Singly produced result.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, filter_region=filter_region)
 

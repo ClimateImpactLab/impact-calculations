@@ -6,7 +6,7 @@ from impactlab_tools.utils import files
 def get_cached(key, scenario, model, onmiss):
     path = files.sharedpath('scratch/forecastcache/' + key)
     if not os.path.exists(path):
-        os.makedirs(path)
+        os.makedirs(path, 0775)
 
     filepath = os.path.join(path, scenario + '-' + model + '.csv')
     if os.path.exists(filepath):
@@ -15,6 +15,7 @@ def get_cached(key, scenario, model, onmiss):
     df, attrs, coords, variables = onmiss(key, scenario, model)
     metacsv_df = metacsv.DataFrame(df, attrs=attrs, coords=coords, variables=variables)
     metacsv_df.to_csv(filepath)
+    os.chmod(filepath, 0664) # RW, RW, R
 
     return metacsv_df
 

@@ -119,6 +119,7 @@ def get_pval_file(targetdir):
 def make_pval_file(targetdir, pvals):
     with open(get_pval_file(targetdir), 'w') as fp:
         fp.write(yaml.dump(dict(pvals)))
+    os.chmod(get_pval_file(targetdir), 0664)
 
 def has_pval_file(targetdir):
     return os.path.exists(get_pval_file(targetdir))

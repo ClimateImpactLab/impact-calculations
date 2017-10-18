@@ -83,9 +83,6 @@ if __name__ == '__main__':
         if os.path.exists(os.path.join(targetdir, checkfile)):
             continue
 
-        with open(os.path.join(targetdir, checkfile), 'w') as fp:
-            fp.write("START")
-
         for filename in os.listdir(targetdir):
             if filename[-4:] == '.nc4' and suffix not in filename:
                 print filename
@@ -93,6 +90,4 @@ if __name__ == '__main__':
                 # Aggregate impacts
                 make_aggregates(targetdir, filename, stweight)
 
-        with open(os.path.join(targetdir, checkfile), 'w') as fp:
-            fp.write("END")
 
