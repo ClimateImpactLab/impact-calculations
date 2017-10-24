@@ -1,4 +1,4 @@
-import csv
+import csv, os
 import numpy as np
 from generate import caller
 
@@ -59,6 +59,7 @@ def get_curve_minima(regions, curvegen, covariator, mint, maxt, analytic):
                     print "WARNING: %s has unclear mintemp: %f, %f" % (region, mintemp, mintemp2)
                 baselinemins[region] = mintemp2
                 writer.writerow([region, mintemp, mintemp2])
+        os.chmod(caller.callinfo['minpath'], 0664)
     else:
         for region in regions:
             curve = curvegen.get_curve(region, 2005, covariator.get_current(region))
