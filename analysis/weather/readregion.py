@@ -9,5 +9,5 @@ region = "IND.33.542.2153"
 for scenario, model, bundle in bundle_iterator:
     if scenario == 'rcp85' and model == 'CCSM4':
         rr = bundle.regions.index(region)
-        for times, mmrrbb in bundle.yearbundles():
-            print times[0], np.sum(mmrrbb[:, rr, :], axis=0)
+        for year, ds in bundle.yearbundles():
+            print year, np.sum(ds.variables[0][:, rr, :], axis=0)

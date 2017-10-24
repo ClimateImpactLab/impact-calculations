@@ -1,5 +1,6 @@
 import numpy as np
 from openest.generate.curvegen import *
+from openest.generate import checks, fast_dataset, formatting
 
 region_curves = {}
 
@@ -7,18 +8,19 @@ class CSVVCurveGenerator(CurveGenerator):
     def __init__(self, prednames, indepunits, depenunit, csvv):
         super(CSVVCurveGenerator, self).__init__(indepunits, depenunit)
         self.prednames = prednames
+        self.csvv = csvv
 
         for ii, predname in enumerate(prednames):
             if predname not in csvv['variables']:
                 print "WARNING: Predictor %s definition not found in CSVV." % predname
             else:
                 if 'unit' in csvv['variables'][predname]:
-                    assert csvv['variables'][predname]['unit'] == indepunits[ii], "Units error for %s: %s <> %s" % (predname, csvv['variables'][predname]['unit'], indepunits[ii])
+                    assert checks.loosematch(csvv['variables'][predname]['unit'], indepunits[ii]), "Units error for %s: %s <> %s" % (predname, csvv['variables'][predname]['unit'], indepunits[ii])
 
         if 'outcome' not in csvv['variables']:
             print "WARNING: Dependent variable definition not in CSVV."
         else:
-            assert csvv['variables']['outcome']['unit'] == depenunit, "Dependent units %s does not match %s." % (csvv['variables']['outcome']['unit'], depenunit)
+            assert checks.loosematch(csvv['variables']['outcome']['unit'], depenunit), "Dependent units %s does not match %s." % (csvv['variables']['outcome']['unit'], depenunit)
 
         # Preprocessing
         self.constant = {} # {predname: constant}
@@ -90,9 +92,9 @@ class FarmerCurveGenerator(DelayedCurveGenerator):
         if self.farmer == 'full':
             covariates = self.covariator.get_update(region, year, kwargs['weather'])
             curve = self.curvegen.get_curve(region, year, covariates)
-        elif self.farmer == 'coma':
+        elif self.farmer == 'noadapt':
             curve = self.last_curves[region]
-        elif self.farmer == 'dumb':
+        elif self.farmer == 'incadapt':
             covariates = self.covariator.get_update(region, year, None)
             curve = self.curvegen.get_curve(region, year, covariates)
         else:
@@ -102,3 +104,62 @@ class FarmerCurveGenerator(DelayedCurveGenerator):
             region_curves[region] = curve
 
         return curve
+
+    def get_lincom_terms(self, region, year, predictors={}):
+        if year < 2015:
+            covariates = self.covariator.get_current(region)
+        elif self.farmer == 'full':
+            covariates = self.covariator.get_update(region, year, predictors.transform(lambda x: x / 365)) # because was summed
+        elif self.farmer == 'noadapt':
+            assert False, "Don't have this set of covariates."
+        elif self.farmer == 'incadapt':
+            covariates = self.covariator.get_update(region, year, None)
+            
+        return self.curvegen.get_lincom_terms_simple(predictors, covariates)
+
+    def get_csvv_coeff(self):
+        return self.curvegen.get_csvv_coeff()
+
+    def get_csvv_vcv(self):
+        return self.curvegen.get_csvv_vcv()
+
+class DifferenceCurveGenerator(CurveGenerator):
+    """Currently just useful for performing lincom calculations."""
+    def __init__(self, one, two, prednames, covarnames, onefunc, twofunc):
+        assert one.indepunits == two.indepunits
+        assert one.depenunit == two.depenunit
+        super(DifferenceCurveGenerator, self).__init__(one.indepunits, one.depenunit)
+
+        self.one = one
+        self.two = two
+        self.prednames = prednames
+        self.covarnames = covarnames
+        self.onefunc = onefunc
+        self.twofunc = twofunc
+
+    def get_lincom_terms_simple(self, predictors, covariates):
+        one_preds = fast_dataset.FastDataset.subset(predictors, map(self.onefunc, self.prednames))
+        one_covars = {covar: covariates[self.onefunc(covar)] if covar != '1' else 1 for covar in self.covarnames}
+        one_terms = self.one.get_lincom_terms_simple(one_preds, one_covars)
+
+        two_preds = fast_dataset.FastDataset.subset(predictors, map(self.twofunc, self.prednames)).rename({self.twofunc(name): name for name in set(self.prednames)})
+        two_covars = {covar: covariates[self.twofunc(covar)] if covar != '1' else 1 for covar in self.covarnames}
+        two_terms = self.two.get_lincom_terms_simple(two_preds, two_covars)
+        
+        return one_terms - two_terms
+
+    def get_csvv_coeff(self):
+        return self.one.get_csvv_coeff()
+
+    def get_csvv_vcv(self):
+        return self.one.get_csvv_vcv()
+        
+    def format_call(self, lang, *args):
+        equation_one = self.one.format_call(lang, *args)
+        equation_two = self.two.format_call(lang, *args)
+        
+        result = {}
+        result.update(equation_one)
+        result.update(equation_two)
+        result['main'] = formatting.FormatElement("%s - %s" % (equation_one['main'].repstr, equation_two['main'].repstr), self.one.depenunit, self.one.dependencies + self.two.dependencies)
+        return result

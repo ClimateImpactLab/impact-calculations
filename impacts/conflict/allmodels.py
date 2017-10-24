@@ -28,7 +28,7 @@ def get_bundle(qvals):
     return weatherbundle
 
 def produce(targetdir, weatherbundle, economicmodel, qvals, do_only=None, suffix=''):
-    historicalbundle = SingleWeatherBundle(DailyWeatherReader("/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level/historical/CCSM4/tas/tas_day_aggregated_historical_r1i1p1_CCSM4_%d.nc", 1991, 'tas'), 'historical', 'CCSM4')
+    historicalbundle = SingleWeatherBundle(DailyWeatherReader("/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level/historical/CCSM4/tas/tas_day_aggregated_historical_r1i1p1_CCSM4_%d.nc", 1991, 'SHAPENUM', 'tas'), 'historical', 'CCSM4')
     model, scenario, econmodel = (mse for mse in iterate_econmodels() if mse[0] == 'high').next()
 
     covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(historicalbundle, 2015), {'climtas': 'tas'}),

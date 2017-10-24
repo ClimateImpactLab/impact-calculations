@@ -14,15 +14,23 @@ methods, which need to be written for each subclass:
    is available.  The values returned by `get_times` should correspond
    to the values returned by `read_iterator`, below.
 
+ - `get_regions`: Returns a list all regions for which there is
+   weather.
+
  - `get_dimension`: Returns a list of the weather variables defined in
    the file.  The length of this list defines the dimension `K`, used
    in `read_iterator`, below.
 
- - `read_iterator`: Yields tuples of `(times, weather)`, in whatever
-   chunks are convenient for reading the data.  `times` is a numpy
-   array with values from the list returned by `get_times`.  Let it
-   have a length `T`.  `weather` is a numpy array of size `T` x
-   `REGIONS` or `T` x `REGIONS` x `K` (if `K` > 1).
+ - `read_iterator`: Yields `xarray` Datasets, in whatever chunks are
+   convenient for reading the data.  The `time` coordinate should
+   contain values from the list returned by `get_times`, and the
+   `region` coordinate should contain all the values from
+   `get_regions`.  All variables should have dimensions of `time` x
+   `regions`.
+   
+Furthermore, if the class will support random acess, it should
+implement `read_year`, which returns the `xarray` dataset for a given
+year.
 
 The `__init__` method of all subclasses must also call
 `super(CLASSNAME, self).__init__(version, units)` to report the

@@ -3,7 +3,6 @@ from netCDF4 import Dataset
 from scipy.stats import norm
 from generate.weather import WeatherBundle, ReaderWeatherBundle
 from climate import forecasts, forecastreader
-from openest.generate.weatherslice import TriMonthlyWeatherSlice
 
 class ForecastBundle(ReaderWeatherBundle):
     def __init__(self, reader, hierarchy='hierarchy.csv'):
@@ -13,8 +12,8 @@ class ForecastBundle(ReaderWeatherBundle):
         return self.reader.get_times(), self.reader.time_units
 
     def monthbundles(self, maxyear=np.inf):
-        for weatherslice in self.reader.read_iterator():
-            yield weatherslice
+        for ds in self.reader.read_iterator():
+            yield ds
 
 class CombinedBundle(WeatherBundle):
     def __init__(self, bundles, hierarchy='hierarchy.csv'):
@@ -36,20 +35,16 @@ class CombinedBundle(WeatherBundle):
         months, months_title = self.get_months()
         iterators = [bundle.monthbundles(qval) for bundle in self.bundles]
         for month in months:
-            results = []
-            for iterator in iterators:
-                weatherslice = iterator.next()
-                assert month == weatherslice.times[0]
-                if len(weatherslice.weathers.shape) < 3:
-                    weatherslice.weathers = np.expand_dims(weatherslice.weathers, axis=2)
-                results.append(weatherslice.weathers)
+            allds = Dataset()
 
-            yield TriMonthlyWeatherSlice([month], np.concatenate(results, axis=2))
+            for iterator in iterators:
+                ds = iterator.next()
+                assert month == ds.time[0]
+                allds = xr.merge((allds, ds))
+
+            yield allds
 
 if __name__ == '__main__':
-    print np.mean(forecasts.readncdf_lastpred(forecasts.temp_path, "mean", 0))
-    print np.mean(forecasts.readncdf_lastpred(forecasts.prcp_path, "mean", 0))
-
     bundle = ForecastBundle(forecastreader.MonthlyStochasticForecastReader(forecasts.temp_path, 'temp', 0, .5))
     print np.mean(bundle.monthbundles().next()[1])
 

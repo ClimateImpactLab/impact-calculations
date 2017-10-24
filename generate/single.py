@@ -11,10 +11,11 @@ from datastore import weights
 from adaptation import farming, econmodel, csvvfile
 from helpers import interpret
 import weather, pvalses, caller, effectset, aggregate
+import cProfile, pstats, StringIO
+
+do_profile = False
 
 config = files.get_allargv_config()
-
-module = "impacts." + config['module']
 
 targetdir = config['targetdir']
 pvals = pvalses.interpret(config) # pvals
@@ -52,14 +53,52 @@ suffix, farmer = farming.interpret(config)
 print "Loading weights..."
 get_weight = weights.interpret(config)
 
-print "Loading calculation..."
-calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals[basename], farmer=farmer)
-
 if not os.path.exists(targetdir):
     os.makedirs(targetdir, 0775)
 
+print "Loading specification..."
+
+if do_profile:
+    config['mode'] = 'profile'
+
+    pr = cProfile.Profile()
+    pr.enable()
+
+if 'module' in config:
+    print "Loading from module."
+    module = "impacts." + config['module']
+    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals[basename], farmer=farmer, standard=False)
+
+elif 'specification' in config:
+    print "Loading from specification configuration."
+    from interpret import specification
+    specconf = config['specification']
+    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, 'interpret.specification', weatherbundle, economicmodel, pvals[basename], specconf=specconf, standard=False)
+
+else:
+    print "ERROR: Unknown model specification method."
+    exit()
+
+print "Loading post-specification..."
+if 'calculation' in config:
+    calculation = calculator.create_postspecification(config['calculation'], {}, calculation)
+else:
+    calculation = caller.standardize(calculation)
+    
 effectset.generate(targetdir, basename + suffix, weatherbundle, calculation, "Singly produced result.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, filter_region=filter_region)
+
+if do_profile:
+    pr.disable()
+
+    s = StringIO.StringIO()
+    ps = pstats.Stats(pr, stream=s).sort_stats('cumulative')
+    ps.print_stats(.5)
+    #ps.print_callers('__getitem__')
+    print s.getvalue()
+    
+    exit()
 
 aggregate.make_levels(targetdir, basename + suffix + '.nc4', aggregate.fullfile(basename, aggregate.levels_suffix, config), get_weight)
 aggregate.make_aggregates(targetdir, basename + suffix + '.nc4', aggregate.fullfile(basename, aggregate.suffix, config), get_weight)
+
 

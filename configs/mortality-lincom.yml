@@ -1,0 +1,4 @@
+module: impacts/mortality/lincom.yml
+mode: lincom
+outputdir: outputs/mortality/impacts-crypto-lincom
+

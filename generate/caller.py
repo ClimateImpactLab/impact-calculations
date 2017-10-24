@@ -26,12 +26,10 @@ def get_model_by_gcpid(gcpid):
     return get_model(rowvalues[header.index('DMAS ID')])
 
 def standardize(calculation):
-    if calculation.unitses[0] in ['deaths/person/year'] or calculation.unitses[0][0:7] == 'minutes':
-        return SpanInstabase(calculation, 2001, 2010, func=lambda x, y: x - y)
-    else:
-        assert False, "Unexpected units " + calculation.unitses[0]
+    unit = calculation.unitses[0]
+    return SpanInstabase(calculation, 2001, 2010, func=lambda x, y: x - y, units=unit)
 
-def call_prepare(module, weatherbundle, economicmodel, pvals, getmodel=get_model, getdata=get_data):
+def call_prepare(module, weatherbundle, economicmodel, pvals, getmodel=get_model, standard=True, getdata=get_data):
     economicmodel.reset()
 
     if module[0:15] == 'impacts.health.':
@@ -39,26 +37,31 @@ def call_prepare(module, weatherbundle, economicmodel, pvals, getmodel=get_model
     else:
         gcpid = None
 
+    if not standard:
+        standardfunc = lambda x: x # Just pass through
+    else:
+        standardfunc = standardize
+
     mod = importlib.import_module(module)
 
     if 'prepare_raw' in dir(mod):
         calculation, dependencies = mod.prepare_raw(pvals, getmodel, getdata)
-        return standardize(calculation), dependencies
+        return standardfunc(calculation), dependencies
 
     if 'prepare_interp_raw' in dir(mod):
         calculation, dependencies, curve, baseline_get_predictors = mod.prepare_interp_raw(weatherbundle, economicmodel, pvals, getdata)
-        return standardize(calculation), dependencies, curve, baseline_get_predictors
+        return standardfunc(calculation), dependencies, curve, baseline_get_predictors
 
     if 'prepare_raw_spr' in dir(mod):
         wks, header, ids = server.get_model_info()
         rowvalues = wks.row_values(ids.index(gcpid) + 1)
         spreadrow = {header[ii]: rowvalues[ii] for ii in range(min(len(header), len(rowvalues)))}
         calculation, dependencies = mod.prepare_raw_spr(spreadrow, pvals, getmodel, getdata)
-        return standardize(calculation), dependencies
+        return standardfunc(calculation), dependencies
 
     raise ValueError("Could not find known prepare form.")
 
-def call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals, farmer='full', **kwargs):
+def call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals, farmer='full', standard=True, **kwargs):
     """Create the final calculation for a given model, according to the function that it exposes."""
     
     economicmodel.reset()
@@ -67,12 +70,17 @@ def call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals, farme
     if isinstance(csvv, str):
         csvv = csvvfile.read(csvv)
 
+    if not standard:
+        standardfunc = lambda x: x # Just pass through
+    else:
+        standardfunc = standardize
+
     if 'prepare_raw' in dir(mod):
         calculation, dependencies = mod.prepare_raw(csvv, weatherbundle, economicmodel, pvals, **kwargs)
-        return standardize(calculation), dependencies
+        return standardfunc(calculation), dependencies
 
     if 'prepare_interp_raw' in dir(mod):
         calculation, dependencies, baseline_get_predictors = mod.prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, farmer, **kwargs)
-        return standardize(calculation), dependencies, baseline_get_predictors
+        return standardfunc(calculation), dependencies, baseline_get_predictors
 
     raise ValueError("Could not find known prepare form.")

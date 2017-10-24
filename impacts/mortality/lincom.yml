@@ -1,0 +1,7 @@
+timerate: day
+climate: [ tas, tas-poly-2, tas-poly-3, tas-poly-4, tas-poly-5, tas.histclim, tas-poly-2.histclim, tas-poly-3.histclim, tas-poly-4.histclim, tas-poly-5.histclim ]
+models:
+  - csvvs: "social/parameters/mortality/Diagnostics_Apr17/*POLY-4*.csvv"
+    module: impacts.mortality.ols_polynomial_lincom
+    description: Heterogeneous temperature-driven death rates
+    csvv-organization: three-ages

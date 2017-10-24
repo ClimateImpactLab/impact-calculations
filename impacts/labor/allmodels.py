@@ -63,11 +63,11 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
                         # No Adaptation
                         if check_doit(targetdir, fullbasename + "-noadapt", suffix):
                             print "No Adaptation"
-                            calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.labor.global20170809', weatherbundle, economicmodel, pvals[basename], farmer='coma', clipping=clipping, config={'econcovar': {'length': econspan}})
+                            calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.labor.global20170809', weatherbundle, economicmodel, pvals[basename], farmer='noadapt', clipping=clipping, config={'econcovar': {'length': econspan}})
                             effectset.generate(targetdir, fullbasename + "-noadapt" + suffix, weatherbundle, calculation, "Extensive margin labor impacts, with no adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, fullbasename))
 
                         # Income-only Adaptation
                         if check_doit(targetdir, fullbasename + "-incadapt", suffix):
                             print "Income-only adaptation"
-                            calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.labor.global20170809', weatherbundle, economicmodel, pvals[basename], farmer='dumb', clipping=clipping, config={'econcovar': {'length': econspan}})
+                            calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.labor.global20170809', weatherbundle, economicmodel, pvals[basename], farmer='incadapt', clipping=clipping, config={'econcovar': {'length': econspan}})
                             effectset.generate(targetdir, fullbasename + "-incadapt" + suffix, weatherbundle, calculation, "Extensive margin labor impacts, with interpolation and only environmental adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, fullbasename))
