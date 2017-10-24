@@ -1,13 +1,11 @@
 def interpret(config):
-    assert 'adaptation' in config
-
+    if 'adaptation' not in config or config['adaptation'] == 'fulladapt':
+        return '', 'full'
+    
     if config['adaptation'] == 'noadapt':
-        return 'noadapt', 'coma'
+        return 'noadapt', 'noadapt'
     
     if config['adaptation'] == 'incadapt':
-        return 'incadapt', 'dumb'
+        return 'incadapt', 'incadapt'
 
-    if config['adaptation'] == 'fulladapt':
-        return '', 'full'
-            
-    raise ValueError("Unknown adaptation plan.")
+    raise ValueError("Unknown adaptation scheme " + config['adaptation'])

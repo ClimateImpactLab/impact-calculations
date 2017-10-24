@@ -18,9 +18,9 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     updated twice in the calculation.
     """
 
-    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, config=config.get('climcovar', {}), varindex=0), {'climtas': 'tas_sum'}, {'climtas': lambda x: x / 365}),
+    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, 'tas', config=config.get('climcovar', {})), {'climtas': 'tas_sum'}, {'climtas': lambda x: x / 365}),
                                                 covariates.EconomicCovariator(economicmodel, 2015, config=config.get('econcovar', {}))])
-    covariator2 = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, config=config.get('climcovar', {}), varindex=0), {'climtas': 'tas_sum'}, {'climtas': lambda x: x / 365}),
+    covariator2 = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, 'tas', config=config.get('climcovar', {})), {'climtas': 'tas_sum'}, {'climtas': lambda x: x / 365}),
                                                  covariates.EconomicCovariator(economicmodel, 2015, config=config.get('econcovar', {}))])
 
     csvvfile.collapse_bang(csvv, qvals.get_seed())

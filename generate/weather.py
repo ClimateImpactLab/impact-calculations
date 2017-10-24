@@ -1,9 +1,9 @@
 import os, re, csv, traceback
 import numpy as np
+import xarray as xr
 from netCDF4 import Dataset
 from impactlab_tools.utils import files
 import helpers.header as headre
-from openest.generate.weatherslice import DailyWeatherSlice, YearlyWeatherSlice
 from climate import netcdfs
 from datastore import irregions
 
@@ -93,13 +93,8 @@ class ReaderWeatherBundle(WeatherBundle):
 
 class DailyWeatherBundle(WeatherBundle):
     def yearbundles(self, maxyear=np.inf):
-        """Yields a weatherslice for each year up to `maxyear`.
+        """Yields a tuple of (year, xarray Dataset) for each year up to `maxyear`.
         Each yield should should produce all and only data for a single year.
-
-        yyyyddd should be a numpy array of length 365, and integer values
-        constructed like 2016001 for the first day of 2016.
-
-        weather should be a numpy array of size 365 x REGIONS
         """
         raise NotImplementedError
 
@@ -133,33 +128,32 @@ class DailyWeatherBundle(WeatherBundle):
     def baseline_values(self, maxyear, do_mean=True):
         """Yield the list of all weather values up to `maxyear` for each region."""
 
-        # Construct an empty matrix to append to
-        if len(self.get_dimension()) == 1:
-            regionvalues = np.ndarray((0, len(self.regions)))
-        else:
-            regionvalues = np.ndarray((0, len(self.regions), len(self.get_dimension())))
+        # Construct an empty dataset to append to
+        allds = []
 
         # Append each year
-        for weatherslice in self.yearbundles(maxyear):
-            print weatherslice.get_years()[0]
+        for year, ds in self.yearbundles(maxyear):
+            print year
 
             # Stack this year below the previous years
             if do_mean:
-                regionvalues = np.vstack((regionvalues, np.expand_dims(np.mean(weatherslice.weathers, axis=0), axis=0)))
+                allds.append(ds.mean('time'))
             else:
-                regionvalues = np.vstack((regionvalues, weatherslice.weathers))
+                allds.append(ds)
+            
+        allyears = xr.concat(allds, dim='time')
 
         # Yield the entire collection of values for each region
         for ii in range(len(self.regions)):
-            yield self.regions[ii], regionvalues[:, ii]
+            yield self.regions[ii], allyears.sel(region=self.regions[ii])
 
 class SingleWeatherBundle(ReaderWeatherBundle, DailyWeatherBundle):
     def is_historical(self):
         return False
 
     def yearbundles(self, maxyear=np.inf):
-        for weatherslice in self.reader.read_iterator_to(maxyear):
-            yield weatherslice
+        for year, ds in self.reader.read_iterator_to(maxyear):
+            yield year, ds
 
     def get_years(self):
         return self.reader.get_years()
@@ -182,47 +176,44 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
         return False
 
     def yearbundles(self, maxyear=np.inf):
-        """Yields weatherslices for each year up to (but not including) `maxyear`"""
+        """Yields xarray Datasets for each year up to (but not including) `maxyear`"""
         if len(self.pastfuturereaders) == 1:
-            for weatherslice in self.pastfuturereaders[0].read_iterator_to(min(self.futureyear1, maxyear)):
-                assert weatherslice.weathers.shape[1] == len(self.regions)
-                yield weatherslice
+            for ds in self.pastfuturereaders[0].read_iterator_to(min(self.futureyear1, maxyear)):
+                assert ds.region.shape[0] == len(self.regions)
+                year = ds['time.year'][0]
+                yield year, ds
 
-            lastyear = weatherslice.get_years()[-1]
+            lastyear = year
             if maxyear > self.futureyear1:
-                for weatherslice in self.pastfuturereaders[1].read_iterator_to(maxyear):
-                    if weatherslice.get_years()[0] <= lastyear:
+                for ds in self.pastfuturereaders[1].read_iterator_to(maxyear):
+                    year = ds['time.year'][0]
+                    if year <= lastyear:
                         continue # allow for overlapping weather
-                    assert weatherslice.weathers.shape[1] == len(self.regions)
-                    yield weatherslice
+                    assert ds.region.shape[0] == len(self.regions)
+                    yield year, ds
             return
         
         for year in self.get_years():
             if year == maxyear:
                 break
 
-            allweather = []
+            allds = xr.Dataset({'region': self.regions})
+
             for pastreader, futurereader in self.pastfuturereaders:
                 try:
                     if year < self.futureyear1:
-                        weatherslice = pastreader.read_year(year)
+                        ds = pastreader.read_year(year)
                     else:
-                        weatherslice = futurereader.read_year(year)
+                        ds = futurereader.read_year(year)
                 except:
                     print "Failed to get year", year
                     traceback.print_exc()
                     return # No more!
 
-                assert weatherslice.weathers.shape[1] == len(self.regions)
-                if len(weatherslice.weathers.shape) == 2:
-                    weatherslice.weathers = np.expand_dims(weatherslice.weathers, axis=2)
+                assert ds.region.shape[0] == len(self.regions)
+                allds = xr.merge((allds, ds))
 
-                allweather.append(weatherslice)
-
-            if len(allweather) > 1:
-                allweather[0].weathers = np.concatenate(tuple(map(lambda ws: ws.weathers, allweather)), axis=2)
-
-            yield allweather[0]
+            yield year, allds
 
     def get_years(self):
         return np.unique(self.pastfuturereaders[0][0].get_years() + self.pastfuturereaders[0][1].get_years())
@@ -279,33 +270,19 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
             for pastyear in self.pastyears:
                 if year > maxyear:
                     break
-                weatherslice = self.reader.read_year(pastyear)
-                if weatherslice.times[0] > 10000:
-                    yield DailyWeatherSlice((1000 * year) + (weatherslice.times % 1000), weatherslice.weathers)
-                else:
-                    yield YearlyWeatherSlice([year], weatherslice.weathers)
+                yield year, self.reader.read_year(pastyear)
                 year += 1
             return
             
         for pastyear in self.pastyears:
             if year > maxyear:
                 break
-            allweather = None
+            allds = xr.Dataset({'region': self.regions})
             for pastreader in self.pastreaders:
-                weatherslice = pastreader.read_year(pastyear)
+                ds = pastreader.read_year(pastyear)
+                allds = xr.merge((allds, ds))
 
-                if len(weatherslice.weathers.shape) == 2:
-                    weatherslice.weathers = np.expand_dims(weatherslice.weathers, axis=2)
-
-                if allweather is None:
-                    allweather = weatherslice
-                else:
-                    allweather.weathers = np.concatenate((allweather.weathers, weatherslice.weathers), axis=2)
-
-            if allweather.times[0] > 10000:
-                yield DailyWeatherSlice((1000 * year) + (allweather.times % 1000), allweather.weathers)
-            else:
-                yield YearlyWeatherSlice([year], allweather.weathers)
+            yield year, allds
             year += 1
 
     def get_years(self):
@@ -333,13 +310,3 @@ class AmorphousWeatherBundle(WeatherBundle):
     def get_concrete(self, names):
         pastfuturereaders = [self.pastfuturereader_dict[name] for name in names]
         return PastFutureWeatherBundle(pastfuturereaders, self.scenario, self.model)
-
-if __name__ == '__main__':
-    template = "/shares/gcp/BCSD/grid2reg/cmip5/historical/CCSM4/{0}/{0}_day_aggregated_historical_r1i1p1_CCSM4_{1}.nc"
-    weatherbundle = HistoricalWeatherBundle(template, 1981, 2005, ['pr', 'tas'], 'historical', 'CCSM4')
-    weatherslice = weatherbundle.yearbundles().next()
-    print len(weatherslice.times), len(weatherslice.weathers), len(weatherslice.weathers[0]) # 365, 2, 365
-
-    for region, weathers in weatherbundle.baseline_average(2005):
-        print region, weathers
-        exit()

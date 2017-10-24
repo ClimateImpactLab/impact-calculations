@@ -1,8 +1,9 @@
 import re, yaml, os, time
 import numpy as np
+import xarray as xr
 from netCDF4 import Dataset
 import helpers.header as headre
-from openest.generate import retrieve, diagnostic
+from openest.generate import retrieve, diagnostic, fast_dataset
 from adaptation import curvegen
 import server, nc4writer
 
@@ -11,30 +12,29 @@ def simultaneous_application(weatherbundle, calculation, regions=None, push_call
         regions = weatherbundle.regions
 
     print "Creating calculations..."
-    applications = []
+    applications = {}
     for region in regions:
-        applications.append(calculation.apply(region))
+        applications[region] = calculation.apply(region)
 
+    region_indices = {region: weatherbundle.regions.index(region) for region in regions}
+    
     print "Processing years..."
-    for weatherslice in weatherbundle.yearbundles():
-        if weatherslice.weathers.shape[1] < len(applications):
+    for year, ds in weatherbundle.yearbundles():
+        if ds.region.shape[0] < len(applications):
             print "WARNING: fewer regions in weather than expected; dropping from end."
-            applications = applications[:weatherslice.weathers.shape[1]]
 
-        print "Push", weatherslice.get_years()[0]
+        print "Push", year
 
-        for ii in range(len(applications)):
-            jj = ii if regions == weatherbundle.regions else weatherbundle.regions.index(regions[ii])
-
-            for yearresult in applications[ii].push(weatherslice.select_region(jj)):
-                yield (ii, yearresult[0], yearresult[1:])
+        for region, subds in fast_dataset.region_groupby(ds, year, regions, region_indices):
+            for yearresult in applications[region].push(subds):
+                yield (region, yearresult[0], yearresult[1:])
 
             if push_callback is not None:
-                push_callback(regions[ii], weatherslice.get_years()[0], applications[ii])
+                push_callback(region, year, applications[region])
 
-    for ii in range(len(applications)):
-        for yearresult in applications[ii].done():
-            yield (ii, yearresult[0], yearresult[1:])
+    for region in applications:
+        for yearresult in applications[region].done():
+            yield (region, yearresult[0], yearresult[1:])
 
     calculation.cleanup()
 
@@ -107,11 +107,13 @@ def write_ncdf(targetdir, basename, weatherbundle, calculation, description, cal
     if diagnosefile:
         diagnostic.begin(diagnosefile)
 
-    for ii, year, results in simultaneous_application(weatherbundle, calculation, regions=my_regions, push_callback=push_callback):
+    region_indices = {region: my_regions.index(region) for region in my_regions}
+        
+    for region, year, results in simultaneous_application(weatherbundle, calculation, regions=my_regions, push_callback=push_callback):
         for col in range(len(results)):
-            columndata[col][year - yeardata[0], ii] = results[col]
+            columndata[col][year - yeardata[0], region_indices[region]] = results[col]
         if diagnosefile:
-            diagnostic.finish(my_regions[ii], year)
+            diagnostic.finish(region, year)
 
     if diagnosefile:
         diagnostic.close()
@@ -129,16 +131,17 @@ def small_print(weatherbundle, calculation, regions=10):
         regions: May be a number (e.g., 10) or a list of region codes
     """
     if isinstance(regions, int):
-        regions = np.random.choice(weatherbundle.regions, regions).tolist()
+        regions = np.random.choice(weatherbundle.regions, regions, replace=False).tolist()
 
     yeardata = weatherbundle.get_years()
     values = [np.zeros((len(yeardata), len(regions))) for ii in range(len(calculation.unitses))]
-    for ii, year, results in simultaneous_application(weatherbundle, calculation, regions=regions):
+
+    for region, year, results in simultaneous_application(weatherbundle, calculation, regions=regions):
         for col in range(len(results)):
             values[col][year - yeardata[0]] = results[col]
         if year > 2020:
             break
-        
+
     return values
 
 def get_model_server(id):

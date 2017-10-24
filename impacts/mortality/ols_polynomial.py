@@ -1,13 +1,14 @@
 import csv, copy
 import numpy as np
 from adaptation import csvvfile, curvegen, curvegen_known, covariates, constraints
-from openest.models.curve import ZeroInterceptPolynomialCurve, ClippedCurve, ShiftedCurve, MinimumCurve, OtherClippedCurve, SelectiveInputCurve, CoefficientsCurve
+from openest.generate.smart_curve import CoefficientsCurve
+from openest.models.curve import ZeroInterceptPolynomialCurve, ClippedCurve, ShiftedCurve, MinimumCurve, OtherClippedCurve, SelectiveInputCurve
 from openest.generate.stdlib import *
 from openest.generate import diagnostic
 from impactcommon.math import minpoly
 
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', config={}):
-    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, config=config.get('climcovar', {}), varindex=0), {'climtas': 'tas'}),
+    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, 'tas', config=config.get('climcovar', {})), {'climtas': 'tas'}),
                                                 covariates.EconomicCovariator(economicmodel, 2015, config=config.get('econcovar', {}))])
 
     # Don't collapse: already collapsed in allmodels
@@ -16,7 +17,8 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     order = len(csvv['gamma']) / 3
     curr_curvegen = curvegen_known.PolynomialCurveGenerator(['C'] + ['C^%d' % pow for pow in range(2, order+1)],
                                                            '100,000 * death/population', 'tas', order, csvv)
-
+    weathernames = ['tas', 'tas-poly-2', 'tas-poly-3', 'tas-poly-4', 'tas-poly-5'][:order]
+    
     baselineloggdppcs = {}
     for region in weatherbundle.regions:
         baselineloggdppcs[region] = covariator.get_current(region)['loggdppc']
@@ -26,7 +28,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
                                                                 lambda region, curve: minpoly.findpolymin([0] + curve.ccs, 10, 25))
 
     def transform(region, curve):
-        coeff_curve = SelectiveInputCurve(CoefficientsCurve(curve.ccs, curve, lambda x: x[:, :order]), range(order))
+        coeff_curve = CoefficientsCurve(curve.ccs, weathernames)
 
         fulladapt_curve = ShiftedCurve(coeff_curve, -curve(baselinemins[region]))
         # Alternative: Turn off Goodmoney
@@ -35,7 +37,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
         covars = covariator.get_current(region)
         covars['loggdppc'] = baselineloggdppcs[region]
         noincadapt_unshifted_curve = curr_curvegen.get_curve(region, None, covars, recorddiag=False)
-        coeff_noincadapt_unshifted_curve = SelectiveInputCurve(CoefficientsCurve(noincadapt_unshifted_curve.ccs, noincadapt_unshifted_curve, lambda x: x[:, :order]), range(order))
+        coeff_noincadapt_unshifted_curve = CoefficientsCurve(noincadapt_unshifted_curve.ccs, weathernames)
         noincadapt_curve = ShiftedCurve(coeff_noincadapt_unshifted_curve, -noincadapt_unshifted_curve(baselinemins[region]))
 
         # Alternative: allow no anti-adaptation
@@ -44,18 +46,18 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
         goodmoney_curve = MinimumCurve(fulladapt_curve, noincadapt_curve)
         return ClippedCurve(goodmoney_curve)
 
-    clip_curvegen = curvegen.TransformCurveGenerator(transform, curr_curvegen)
+    clip_curvegen = curvegen.TransformCurveGenerator(transform, "Clipping and Good Money", curr_curvegen)
     farm_curvegen = curvegen.FarmerCurveGenerator(clip_curvegen, covariator, farmer)
 
     # Generate the marginal income curve
     climtas_effect_curve = ZeroInterceptPolynomialCurve([-np.inf, np.inf], 365 * np.array([csvvfile.get_gamma(csvv, tasvar, 'climtas') for tasvar in ['tas', 'tas2', 'tas3', 'tas4', 'tas5'][:order]])) # x 365, to undo / 365 later
 
     def transform_climtas_effect(region, curve):
-        climtas_coeff_curve = SelectiveInputCurve(CoefficientsCurve(climtas_effect_curve.ccs, climtas_effect_curve, lambda x: x[:, :order]), range(order))
+        climtas_coeff_curve = CoefficientsCurve(climtas_effect_curve.ccs, weathernames)
         shifted_curve = ShiftedCurve(climtas_coeff_curve, -climtas_effect_curve(baselinemins[region]))
         return OtherClippedCurve(curve, shifted_curve)
 
-    climtas_effect_curvegen = curvegen.TransformCurveGenerator(transform_climtas_effect, farm_curvegen)
+    climtas_effect_curvegen = curvegen.TransformCurveGenerator(transform_climtas_effect, "Calculate climtas partial equation", farm_curvegen)
 
     # Produce the final calculation
     calculation = Transform(AuxillaryResult(YearlyAverageDay('100,000 * death/population', farm_curvegen,

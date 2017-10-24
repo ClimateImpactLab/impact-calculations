@@ -35,20 +35,6 @@ def readmeta(filepath, variable):
 
     return version, units
 
-def readncdf(filepath, variable):
-    """
-    Return yyyyddd, weather
-    """
-    rootgrp = Dataset(filepath, 'r', format='NETCDF4')
-    weather = rootgrp.variables[variable][:,:]
-    if 'time' in rootgrp.variables:
-        yyyyddd = rootgrp.variables['time'][:]
-    else:
-        yyyyddd = rootgrp.variables['day'][:]
-    rootgrp.close()
-
-    return yyyyddd, weather
-
 def readncdf_single(filepath, variable, allow_missing=False):
     """
     Just return the variable
@@ -61,40 +47,6 @@ def readncdf_single(filepath, variable, allow_missing=False):
     rootgrp.close()
 
     return data
-
-def readncdf_multiple(filepath, variables):
-    """
-    Return yyyyddd, weather
-    """
-    rootgrp = Dataset(filepath, 'r', format='NETCDF4')
-    if 'time' in rootgrp.variables:
-        yyyyddd = rootgrp.variables['time'][:]
-    else:
-        yyyyddd = rootgrp.variables['day'][:]
-        
-    hierid = rootgrp.variables['hierid'][:]
-    weather = np.empty(len(yyyyddd), len(hierid), len(variables))
-    for ii in range(len(variables)):
-        weather[:, :, ii] = rootgrp.variables[variables[ii]][:,:]
-    rootgrp.close()
-
-    return yyyyddd, weather
-
-def readncdf_binned(filepath, variable):
-    """
-    Return month, perbin [12 x BINS x REGIONS]
-    """
-
-    rootgrp = Dataset(filepath, 'r', format='NETCDF4')
-    weather = rootgrp.variables[variable][:,:,:]
-    months = rootgrp.variables['month'][:]
-    rootgrp.close()
-
-    m = re.search('\\d{4}', filepath)
-    if m:
-        months = int(m.group(0)) * 1000 + months
-
-    return months, weather
 
 def available_years(template):
     """

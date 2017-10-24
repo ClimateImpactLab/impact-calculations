@@ -15,30 +15,42 @@ weathertemplate = "/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level/{0}/CCSM4
 onlymodel = "global_interaction_Tmean-POLY-%d-AgeSpec-young" % polypower
 csvvargs = (0, 3 * polypower) # (None, None)
 region = 'IND.33.542.2153'
-onlyreg = True #False
+onlyreg = False
+skip_clipping = True #False
+module = 'lincom' #'mortality'
 
 lib.show_header("The Covariates File (allpreds):")
-preds = lib.get_excerpt(os.path.join(dir, "mortality-allpreds.csv"), 3, region, [2001, 2009, futureyear-1, futureyear], onlymodel=onlymodel)
+preds = lib.get_excerpt(os.path.join(dir, module + "-allpreds.csv"), 3, region, [2001, 2009, futureyear-1, futureyear], onlymodel=onlymodel)
 
 lib.show_header("The Result File (allcoeffs):")
-coeffs = lib.get_excerpt(os.path.join(dir, "mortality-allcoeffs.csv"), 3, region, [2009, futureyear-1, futureyear], onlymodel=onlymodel)
+outputs = lib.get_outputs(os.path.join(dir, onlymodel + ".nc4"), [2009, futureyear-1, futureyear], region)
 
 lib.show_header("The Predictors File (allcalcs):")
-calcs = lib.get_excerpt(os.path.join(dir, "mortality-allcalcs-" + onlymodel + ".csv"), 2, region, range(2000, 2011) + [futureyear-1, futureyear], hasmodel=False)
+calcs = lib.get_excerpt(os.path.join(dir, module + "-allcalcs-" + onlymodel + ".csv"), 2, region, range(2000, 2011) + [futureyear-1, futureyear], hasmodel=False)
 
-lib.show_header("The Minimum Temperature Point File:")
-shapenum = 0
-with open(os.path.join(dir, onlymodel + "-polymins.csv"), 'r') as fp:
-    reader = csv.reader(fp)
-    header = reader.next()
-    print ','.join(header)
-    for row in reader:
-        if row[0] == region:
-            print ','.join(row)
-            mintemps = {'header': header[1:], '2009': map(float, row[1:])}
-            break
-        shapenum += 1
-
+if not skip_clipping:
+    lib.show_header("The Minimum Temperature Point File:")
+    shapenum = 0
+    with open(os.path.join(dir, onlymodel + "-polymins.csv"), 'r') as fp:
+        reader = csv.reader(fp)
+        header = reader.next()
+        print ','.join(header)
+        for row in reader:
+            if row[0] == region:
+                print ','.join(row)
+                mintemps = {'header': header[1:], '2009': map(float, row[1:])}
+                break
+            shapenum += 1
+else:
+    shapenum = 0
+    with open(os.path.join("/shares/gcp/regions/hierarchy-flat.csv"), 'r') as fp:
+        reader = csv.reader(fp)
+        header = reader.next()
+        for row in reader:
+            if row[0] == region:
+                shapenum = int(row[header.index('agglomid')]) - 1
+                break
+        
 lib.show_header("CSVV:")
 csvv = lib.get_csvv(csvvpath, *csvvargs)
 
@@ -57,9 +69,10 @@ for year in [2001, futureyear]:
 
 coefflist = ['tas'] + ['tas%d' % ii for ii in range(2, polypower + 1)]
 
-lib.show_header("Calc. of minimum point temperature (%f reported)" % lib.excind(mintemps, 2009, 'analytic'))
-curve = ZeroInterceptPolynomialCurve([-np.inf, np.inf], [lib.excind(calcs, 2000, coeff) for coeff in coefflist])
-print ', '.join(["%f: %f" % (temp, curve(temp)) for temp in np.arange(10, 26)])
+if not skip_clipping:
+    lib.show_header("Calc. of minimum point temperature (%f reported)" % lib.excind(mintemps, 2009, 'analytic'))
+    curve = ZeroInterceptPolynomialCurve([-np.inf, np.inf], [lib.excind(calcs, 2000, coeff) for coeff in coefflist])
+    print ', '.join(["%f: %f" % (temp, curve(temp)) for temp in np.arange(10, 26)])
 
 def get_preds(year):
     nonclipped = curve(weather[year]) > curve(lib.excind(mintemps, 2009, 'analytic'))
@@ -71,28 +84,31 @@ for year in range(2001, 2011):
     lines.append("weather_%d = [%s]" % (year, ','.join(["%.12g" % weday for weday in weather[year]])))
 lines.append("bl1(weather) = sum([%s]' * weather) / 100000" % ', '.join(["%.12g" % lib.excind(calcs, 2000, coeff) for coeff in coefflist]))
 lines.append("bl2(weather) = (bl1([%s]) - 365 * bl1(%.12g .^ (1:%d)))" % ('; '.join(["weather'.^%d" % pow for pow in range(1, polypower+1)]), lib.excind(mintemps, 2009, 'analytic'), polypower))
-lines.append("bl(weather) = bl2(weather) .* (bl2(weather) .> 0)")
+if not skip_clipping:
+    lines.append("bl(weather) = bl2(weather) .* (bl2(weather) .> 0)")
 terms = []
 for year in range(2001, 2011):
     terms.append("bl(weather_%d)" % (year))
 lines.append("(" + ' + '.join(terms) + ") / 10")
 lib.show_julia(lines)
 
-lib.show_header("Calc. of clipped days portion (%f reported)" % lib.excind(calcs, 2050, 'zero'))
-lines = ["weather_%d = [%s]" % (2050, ','.join(["%.12g" % weday for weday in weather[2050]])),
-         "eff0(weather) = ([%s]' * weather) / 100000" % ', '.join(["%.12g" % lib.excind(calcs, 2049, coeff) for coeff in coefflist]),
-         "effadj(weather) = eff0([%s]) - eff0(%.12g .^ (1:%d))[1]" % ('; '.join(["weather'.^%d" % pow for pow in range(1, polypower+1)]), lib.excind(mintemps, 2009, 'analytic'), polypower),
-         "mean(effadj(weather_%d) .<= 0)" % 2050]
-lib.show_julia(lines)
+if not skip_clipping:
+    lib.show_header("Calc. of clipped days portion (%f reported)" % lib.excind(calcs, 2050, 'zero'))
+    lines = ["weather_%d = [%s]" % (2050, ','.join(["%.12g" % weday for weday in weather[2050]])),
+             "eff0(weather) = ([%s]' * weather) / 100000" % ', '.join(["%.12g" % lib.excind(calcs, 2049, coeff) for coeff in coefflist]),
+             "effadj(weather) = eff0([%s]) - eff0(%.12g .^ (1:%d))[1]" % ('; '.join(["weather'.^%d" % pow for pow in range(1, polypower+1)]), lib.excind(mintemps, 2009, 'analytic'), polypower),
+             "mean(effadj(weather_%d) .<= 0)" % 2050]
+    lib.show_julia(lines)
 
-lib.show_header("Calc. of result (%f reported)" % (coeffs[str(futureyear)][0]))
+lib.show_header("Calc. of result (%f reported)" % (outputs[futureyear]['rebased']))
 
 lib.show_header("  Without the goodmoney assumption:")
 lines = ["weather_%d = [%s]" % (futureyear, ','.join(["%.12g" % weday for weday in weather[futureyear]])),
          "eff0(weather) = ([%s]' * weather) / 100000" % ', '.join(["%.12g" % lib.excind(calcs, futureyear, coeff) for coeff in coefflist]),
-         "effadj(weather) = eff0([%s]) - eff0(%.12g .^ (1:%d))[1]" % ('; '.join(["weather'.^%d" % pow for pow in range(1, polypower+1)]), lib.excind(mintemps, 2009, 'analytic'), polypower),
-         "efffin(weather) = sum(effadj(weather) .* (effadj(weather) .> 0))",
-         "efffin(weather_%d) - %.12g" % (futureyear, lib.excind(calcs, 2000, 'baseline'))]
+         "effadj(weather) = eff0([%s]) - eff0(%.12g .^ (1:%d))[1]" % ('; '.join(["weather'.^%d" % pow for pow in range(1, polypower+1)]), lib.excind(mintemps, 2009, 'analytic'), polypower)]
+if not skip_clipping:
+    lines.append("efffin(weather) = sum(effadj(weather) .* (effadj(weather) .> 0))")
+lines.append("efffin(weather_%d) - %.12g" % (futureyear, lib.excind(calcs, 2000, 'baseline')))
 lib.show_julia(lines)
 
 lib.show_header("  Using the no-anti-adaptation assumption")
