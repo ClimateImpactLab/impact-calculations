@@ -47,13 +47,11 @@ def create_calcstep(name, args, models, subcalc):
         else:
             try:
                 arg = get_argument(argtype.name)
-                print "A"
                 if argtype.name in ['input_unit', 'output_unit'] and ' -> ' in arg:
                     input_unit, output_unit = tuple(arg.split(' -> '))
                     print input_unit, output_unit
                     kwargs['input_unit'] = input_unit
                     kwargs['output_unit'] = output_unit
-                    print "C"
                     arglist.append(kwargs[argtype.name])
                     continue
             except:

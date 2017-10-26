@@ -1,3 +1,5 @@
+## Equivalent to `allmodels.py` for imperics .yml specifications.
+
 import os, glob, copy
 from impactlab_tools.utils import files
 from generate import weather, server, effectset, caller, checks
