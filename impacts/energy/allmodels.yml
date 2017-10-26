@@ -6,14 +6,8 @@ models:
       functionalform: polynomial
       variable: tas
       covariates:
-        - incbin: XXX
+        - incbin: [ -inf, 7.427, 7.941, 8.355, 8.706, 9.015, 9.309, 9.634, 9.993, 10.390, inf ]
         - climtas
       clipping: false
     processing:
-      - YearlyAverageDay
-      - Transform:
-          - kWh/pc
-          - kWh/pc
-          - 365 * x
-          - Convert to cumulative effect
-          - Multiply yearly average by 365.
+      - YearlySumDay
