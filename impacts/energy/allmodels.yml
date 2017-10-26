@@ -1,0 +1,19 @@
+timerate: day
+climate: [ tas, tas-poly-2, tas-poly-3, tas-poly-4 ]
+models:
+  - csvvs: "social/parameters/energy/projection1/*.csvv"
+    specification:
+      functionalform: polynomial
+      variable: tas
+      covariates:
+        - incbin: XXX
+        - climtas
+      clipping: false
+    processing:
+      - YearlyAverageDay
+      - Transform:
+          - kWh/pc
+          - kWh/pc
+          - 365 * x
+          - Convert to cumulative effect
+          - Multiply yearly average by 365.
