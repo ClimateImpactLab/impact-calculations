@@ -2,7 +2,7 @@ import numpy as np
 from econmodel import *
 from datastore import agecohorts
 from climate.yearlyreader import RandomYearlyAccess
-from impactcommon.math import averages
+from interpret import averages
 
 ## Class constructor with arguments (initial values, running length)
 standard_economic_config = {'class': 'bartlett', 'length': 13}
@@ -70,6 +70,25 @@ class EconomicCovariator(Covariator):
 
         return dict(loggdppc=np.log(gdppc), logpopop=np.log(popop), year=year)
 
+class BinnedEconomicCovariator(EconomicCovariator):
+    def __init__(self, economicmodel, maxbaseline, limits, config={}):
+        super(BinnedEconomicCovariator, self).__init__(economicmodel, maxbaseline, config=config)
+        self.limits = limits
+
+    def add_bins(self, covars):
+        incbin = np.digitize(covars['loggdppc'], self.limits) # starts at 1
+        for ii in range(1, len(self.limits)):
+            covars['incbin' + str(ii)] = (incbin == ii)
+        return covars
+        
+    def get_current(self, region):
+        covars = super(BinnedEconomicCovariator, self).get_current(region)
+        return self.add_bins(covars)
+
+    def get_update(self, region, year, ds):
+        covars = super(BinnedEconomicCovariator, self).get_update(region)
+        return self.add_bins(covars)
+    
 class MeanWeatherCovariator(Covariator):
     def __init__(self, weatherbundle, maxbaseline, variable, config={}):
         super(MeanWeatherCovariator, self).__init__(maxbaseline)
@@ -141,6 +160,15 @@ class SeasonalWeatherCovariator(MeanWeatherCovariator):
 
         return {self.mustr: mu, self.sigmastr: sigma}
 
+def get_single_value(numpylike):
+    dims = np.sum(np.array(numpylike).shape)
+    if dims == 0:
+        return numpylike
+    elif dims == 1:
+        return numpylike[0]
+    else:
+        assert dims <= 1, "Must be a single value."
+    
 class YearlyWeatherCovariator(Covariator):
     """
     YearlyWeatherCovariator takes a YearlyWeatherReader and collects
@@ -152,11 +180,11 @@ class YearlyWeatherCovariator(Covariator):
 
         predictors = {region: averages.interpret(config, standard_climate_config, []) for region in regions}
 
-        for weatherslice in yearlyreader.read_iterator():
-            assert len(weatherslice.times) == 1
+        for ds in yearlyreader.read_iterator():
+            year = get_single_value(ds[yearlyreader.timevar])
             for ii in range(len(regions)):
-                predictors[regions[ii]].update(weatherslice.weathers[0, ii])
-            if weatherslice.get_years()[0] == baseline_end:
+                predictors[regions[ii]].update(ds[yearlyreader.variables[0]][ii])
+            if year == baseline_end:
                 break
 
         self.predictors = predictors

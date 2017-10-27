@@ -17,8 +17,10 @@ def create_covariator(specconf, weatherbundle, economicmodel, config={}):
     if 'covariates' in specconf:
         covariators = []
         for covar in specconf['covariates']:
-            if covar == 'loggdppc':
+            if covar in ['loggdppc', 'logpopop']:
                 covariators.append(covariates.EconomicCovariator(economicmodel, 2015, config=config))
+            elif covar == 'incbin':
+                covariators.append(covariates.BinnedEconomicCovariator(economicmodel, 2015, specconf['covariates'][covar], config=config))
             elif covar == 'climtas':
                 covariators.append(covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, 'tas', config=config), {'climtas': 'tas'}))
             else:
