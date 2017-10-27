@@ -1,7 +1,7 @@
 import numpy as np
 from econmodel import *
 from datastore import agecohorts
-from climate.yearlyreader import RandomYearlyAccess, RandomRegionAccess
+from climate.yearlyreader import RandomYearlyAccess
 from impactcommon.math import averages
 
 ## Class constructor with arguments (initial values, running length)
