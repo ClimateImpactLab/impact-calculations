@@ -2,7 +2,7 @@ import numpy as np
 from econmodel import *
 from datastore import agecohorts
 from climate.yearlyreader import RandomYearlyAccess, RandomRegionAccess
-from impactcommon.math import averages
+from interpret import averages
 
 ## Class constructor with arguments (initial values, running length)
 standard_economic_config = {'class': 'bartlett', 'length': 13}
@@ -70,6 +70,25 @@ class EconomicCovariator(Covariator):
 
         return dict(loggdppc=np.log(gdppc), logpopop=np.log(popop), year=year)
 
+class BinnedEconomicCovariator(EconomicCovariator):
+    def __init__(self, economicmodel, maxbaseline, limits, config={}):
+        super(BinnedEconomicCovariator, self).__init__(economicmodel, maxbaseline, config=config)
+        self.limits = limits
+
+    def add_bins(self, covars):
+        incbin = np.digitize(covars['loggdppc'], self.limits) # starts at 1
+        for ii in range(1, len(self.limits)):
+            covars['incbin' + str(ii)] = (incbin == ii)
+        return covars
+        
+    def get_current(self, region):
+        covars = super(BinnedEconomicCovariator, self).get_current(region)
+        return self.add_bins(covars)
+
+    def get_update(self, region, year, ds):
+        covars = super(BinnedEconomicCovariator, self).get_update(region)
+        return self.add_bins(covars)
+    
 class MeanWeatherCovariator(Covariator):
     def __init__(self, weatherbundle, maxbaseline, variable, config={}):
         super(MeanWeatherCovariator, self).__init__(maxbaseline)
