@@ -122,7 +122,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
 
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', specconf={}, config={}):
     user_assert('depenunit' in specconf, "Specification configuration missing 'depenunit' string.")
-    user_assert('description' in specconf, "Specification configuration missing 'description' string.")
+    user_assert('calculation' in specconf, "Specification configuration missing 'calculation' list.")
 
     csvvfile.collapse_bang(csvv, qvals.get_seed())
     
@@ -130,8 +130,8 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     
     covariator = create_covariator(specconf, weatherbundle, economicmodel, config)
     final_curvegen = create_curvegen(csvv, covariator, weatherbundle.regions, farmer=farmer, specconf=specconf)
-    
-    calculation = YearlyAverageDay(depenunit, final_curvegen, specconf['description'])
+
+    calculation = calculator.create_postspecification(specconf['calculation'], {'default': final_curvegen}, None)
         
     if covariator is None:
         return calculation, [], lambda: {}
