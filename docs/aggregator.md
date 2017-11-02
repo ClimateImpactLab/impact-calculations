@@ -48,7 +48,7 @@ Optional:
    directory.  This should be a full path name (e.g.,
    `/shares/gcp/.../SSP3`)  Do not include a tailing slash.
    
-= Weighting Schemes =
+## Weighting Schemes
 
 A weighting schemes consists of an expression that can consist of a
 known time-varying scaling term, a constant, or products or quotients
