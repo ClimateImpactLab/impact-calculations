@@ -62,7 +62,9 @@ def random_order(bundle_iterator, config={}):
                 continue
             if do_econ_model_only is not None and econ_model not in do_econ_model_only:
                 continue
-            if mydo_econ_scenario_only is not None and econ_scenario[0:4] not in mydo_econ_scenario_only[clim_scenario]:
+            if mydo_econ_scenario_only is not None and econ_scenario[0:4] not in mydo_econ_scenario_only:
+                continue
+            if mydo_clim_scenario_only is not None and clim_scenario not in mydo_clim_scenario_only:
                 continue
             # Drop SSP1 with RCP 8.5
             if econ_scenario[:4] == 'SSP1' and clim_scenario == 'rcp85':
