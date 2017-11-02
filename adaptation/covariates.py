@@ -1,3 +1,4 @@
+import itertools
 import numpy as np
 from econmodel import *
 from datastore import agecohorts
@@ -86,7 +87,7 @@ class BinnedEconomicCovariator(EconomicCovariator):
         return self.add_bins(covars)
 
     def get_update(self, region, year, ds):
-        covars = super(BinnedEconomicCovariator, self).get_update(region)
+        covars = super(BinnedEconomicCovariator, self).get_update(region, year, ds)
         return self.add_bins(covars)
     
 class MeanWeatherCovariator(Covariator):
@@ -99,7 +100,7 @@ class MeanWeatherCovariator(Covariator):
         print "Collecting baseline information..."
         temp_predictors = {}
         for region, ds in weatherbundle.baseline_values(maxbaseline): # baseline through maxbaseline
-            temp_predictors[region] = averages.interpret(config, standard_climate_config, ds[variable][-numtempyears:])
+            temp_predictors[region] = averages.interpret(config, standard_climate_config, ds[variable][-self.numtempyears:])
 
         self.temp_predictors = temp_predictors
         self.weatherbundle = weatherbundle
@@ -222,7 +223,7 @@ class MeanBinsCovariator(Covariator):
         for region, binyears in weatherbundle.baseline_values(maxbaseline): # baseline through maxbaseline
             usedbinyears = []
             for kk in range(binyears.shape[-1]):
-                usedbinyears.append(averages.interpret(config, standard_climate_config, binyears[-numtempyears:, kk]))
+                usedbinyears.append(averages.interpret(config, standard_climate_config, binyears[-self.numtempyears:, kk]))
             temp_predictors[region] = usedbinyears
 
         self.temp_predictors = temp_predictors
@@ -390,3 +391,25 @@ called.
     def get_current(self, region):
         covariates = self.source.get_current(region)
         return {covar + self.suffix: covariates[covar] for covar in covariates}
+
+class ProductCovariator(Covariator):
+    def __init__(self, source1, source2):
+        assert source1.startupdateyear == source2.startupdateyear
+        super(ProductCovariator, self).__init__(source1.startupdateyear)
+        self.source1 = source1
+        self.source2 = source2
+
+    def make_product(self, covars1, covars2):
+        combos = itertools.product(covars1.keys(), covars2.keys())
+        return {"%s*%s" % (key1, key2): covars1[key1] * covars2[key2] for key1, key2 in combos}
+        
+    def get_update(self, region, year, ds):
+        covars1 = self.source1.get_update(region, year, ds)
+        covars2 = self.source2.get_update(region, year, ds)
+        return self.make_product(covars1, covars2)
+
+    def get_current(self, region):
+        covars1 = self.source1.get_current(region)
+        covars2 = self.source2.get_current(region)
+        return self.make_product(covars1, covars2)
+    

@@ -76,9 +76,12 @@ def polypush_callback(region, year, application, get_predictors, model):
     if 'mortality' in config['module']:
         covars = ['climtas', 'loggdppc']
         covarnames = ['climtas', 'loggdppc']
-    else:
+    elif 'labor' in config['module']:
         covars = ['loggdppc', 'hotdd_30*(tasmax - 27)*I_{T >= 27}', 'colddd_10*(27 - tasmax)*I_{T < 27}']
         covarnames = ['loggdppc', 'hotdd_30', 'colddd_10']
+    elif 'energy' in config['module']:
+        covars = ['climtas', 'loggdppc']
+        covarnames = ['climtas', 'loggdppc']
 
     module = config['module']
     if '.yml' in module:

@@ -10,20 +10,23 @@ def create_calculation(postconf, models):
     calculation = create_calcstep(postconf[0].keys()[0], postconf[0].values()[0], models, None)
     return create_postspecification(postconf[1:], models, calculation)
 
-def create_postspecification(postconf, models, calculation):
+def create_postspecification(postconf, models, calculation, extras={}):
+    print postconf
     if isinstance(postconf, str):
         with open(postconf, 'r') as fp:
             postconf = yaml.load(fp)
     
     for calcstep in postconf:
         if isinstance(calcstep, str):
-            calculation = create_calcstep(calcstep, {}, models, calculation)
+            calculation = create_calcstep(calcstep, {}, models, calculation, extras=extras)
         else:
-            calculation = create_calcstep(calcstep.keys()[0], calcstep.values()[0], models, calculation)
+            calculation = create_calcstep(calcstep.keys()[0], calcstep.values()[0], models, calculation, extras=extras)
 
     return calculation
 
-def create_calcstep(name, args, models, subcalc):
+def create_calcstep(name, args, models, subcalc, extras={}):
+    print name
+    print args
     if name == 'Rebase':
         return caller.standardize(subcalc)
 
@@ -49,13 +52,14 @@ def create_calcstep(name, args, models, subcalc):
                 arg = get_argument(argtype.name)
                 if argtype.name in ['input_unit', 'output_unit'] and ' -> ' in arg:
                     input_unit, output_unit = tuple(arg.split(' -> '))
-                    print input_unit, output_unit
                     kwargs['input_unit'] = input_unit
                     kwargs['output_unit'] = output_unit
                     arglist.append(kwargs[argtype.name])
                     continue
+                else:
+                    arglist.append(arg) # do it, and hope for the best
             except:
-                if getattr(argtype, 'optional', False):
+                if getattr(argtype, 'is_optional', False):
                     continue
                 if argtype.name in ['input_unit', 'output_unit']:
                     try:
@@ -66,10 +70,15 @@ def create_calcstep(name, args, models, subcalc):
                         arglist.append(kwargs[argtype.name])
                         continue
                     except:
-                        raise ValueError("Could not find required argument %s" % argtype.name)
+                        if argtype.name in extras:
+                            arglist.append(extras[argtype.name])
+                        else:
+                            raise ValueError("Could not find required argument %s" % argtype.name)
                 else:
-                    raise ValueError("Could not find required argument %s" % argtype.name)
-            arglist.append(arg)
+                    if argtype.name in extras:
+                        arglist.append(extras[argtype.name])
+                    else:
+                        raise ValueError("Could not find required argument %s" % argtype.name)
 
     try:
         return cls(*tuple(arglist))
