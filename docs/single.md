@@ -12,7 +12,7 @@ an example.  The available options are shown below.
 The following options are available for a configuration file for the
 single (single.py) run:
 
-* Required Configuration Parameters *
+** Required Configuration Parameters **
 
  - `module`: The name of the python module which generates the result.
    This is generally a python file or a specification configuration
@@ -43,7 +43,7 @@ single (single.py) run:
  - `weighting`: Specify the weighting scheme for aggregation.  See
    `aggregator.md` for the available weighting schemes.
 
-* Optional configuration parameters *
+** Optional configuration parameters **
 
  - `csvvsubset`: If the CSVV file contains multiple sets of parameters
    in one file (e.g., as done for age-specific models for mortality),
