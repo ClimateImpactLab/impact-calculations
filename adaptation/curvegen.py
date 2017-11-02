@@ -27,14 +27,13 @@ class CSVVCurveGenerator(CurveGenerator):
         self.predcovars = {} # {predname: [covarname]}
         self.predgammas = {} # {predname: np.array}
         for predname in set(prednames):
-            self.constant[predname] = np.nan
             self.predcovars[predname] = []
             self.predgammas[predname] = []
 
             indices = [ii for ii, xx in enumerate(csvv['prednames']) if xx == predname]
             for index in indices:
                 if csvv['covarnames'][index] == '1':
-                    assert np.isnan(self.constant[predname])
+                    assert predname not in self.constant
                     self.constant[predname] = csvv['gamma'][index]
                 else:
                     self.predcovars[predname].append(csvv['covarnames'][index])
@@ -49,9 +48,9 @@ class CSVVCurveGenerator(CurveGenerator):
                 coefficients[predname] = self.constant[predname]
             else:
                 try:
-                    coefficients[predname] = self.constant[predname] + np.sum(self.predgammas[predname] * np.array([covariates[covar] for covar in self.predcovars[predname]]))
+                    coefficients[predname] = self.constant.get(predname, 0) + np.sum(self.predgammas[predname] * np.array([covariates[covar] for covar in self.predcovars[predname]]))
                     if debug:
-                        print predname, self.constant[predname], self.predgammas[predname], np.array([covariates[covar] for covar in self.predcovars[predname]])
+                        print predname, coefficients[predname], self.constant.get(predname, 0), self.predgammas[predname], np.array([covariates[covar] for covar in self.predcovars[predname]])
                 except Exception as e:
                     print "Available covariates:"
                     print covariates

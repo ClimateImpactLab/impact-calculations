@@ -4,6 +4,7 @@ from openest.generate.smart_curve import CoefficientsCurve
 from openest.models.curve import ShiftedCurve, MinimumCurve, ClippedCurve
 from openest.generate.stdlib import *
 from impactcommon.math import minpoly, minspline
+import calculator
 
 def user_failure(message):
     print "ERROR: " + message
@@ -13,18 +14,26 @@ def user_assert(check, message):
     if not check:
         user_failure(message)
 
+def get_covariator(covar, args, weatherbundle, economicmodel, config={}):
+    if isinstance(covar, dict):
+        return get_covariator(covar.keys()[0], covar.values()[0], weatherbundle, economicmodel, config=config)
+    elif covar in ['loggdppc', 'logpopop']:
+        return covariates.EconomicCovariator(economicmodel, 2015, config=config)
+    elif covar == 'incbin':
+        return covariates.BinnedEconomicCovariator(economicmodel, 2015, args, config=config)
+    elif covar == 'climtas':
+        return covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, 'tas', config=config), {'climtas': 'tas'})
+    elif '*' in covar:
+        sources = map(lambda x: get_covariator(x.strip(), args, weatherbundle, economicmodel, config=config), covar.split('*', 1))
+        return covariates.ProductCovariator(sources[0], sources[1])
+    else:
+        user_failure("Covariate %s is unknown." % covar)
+        
 def create_covariator(specconf, weatherbundle, economicmodel, config={}):
     if 'covariates' in specconf:
         covariators = []
         for covar in specconf['covariates']:
-            if covar in ['loggdppc', 'logpopop']:
-                covariators.append(covariates.EconomicCovariator(economicmodel, 2015, config=config))
-            elif covar == 'incbin':
-                covariators.append(covariates.BinnedEconomicCovariator(economicmodel, 2015, specconf['covariates'][covar], config=config))
-            elif covar == 'climtas':
-                covariators.append(covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, 'tas', config=config), {'climtas': 'tas'}))
-            else:
-                user_failure("Covariate %s is unknown." % covar)
+            covariators.append(get_covariator(covar, None, weatherbundle, economicmodel, config=config))
             
         if len(covariators) == 1:
             covariator = covariators[0]
@@ -37,6 +46,7 @@ def create_covariator(specconf, weatherbundle, economicmodel, config={}):
         
 def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
     user_assert('depenunit' in specconf, "Specification configuration missing 'depenunit' string.")
+    user_assert('indepunit' in specconf, "Specification configuration missing 'indepunit' string.")
     user_assert('functionalform' in specconf, "Specification configuration missing 'functionalform' string.")
 
     depenunit = specconf['depenunit']
@@ -125,6 +135,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', specconf={}, config={}):
     user_assert('depenunit' in specconf, "Specification configuration missing 'depenunit' string.")
     user_assert('calculation' in specconf, "Specification configuration missing 'calculation' list.")
+    user_assert('description' in specconf, "Specification configuration missing 'description' list.")
 
     csvvfile.collapse_bang(csvv, qvals.get_seed())
     
@@ -133,7 +144,8 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     covariator = create_covariator(specconf, weatherbundle, economicmodel, config)
     final_curvegen = create_curvegen(csvv, covariator, weatherbundle.regions, farmer=farmer, specconf=specconf)
 
-    calculation = calculator.create_postspecification(specconf['calculation'], {'default': final_curvegen}, None)
+    extras = dict(output_unit=depenunit, units=depenunit, curve_description=specconf['description'])
+    calculation = calculator.create_postspecification(specconf['calculation'], {'default': final_curvegen}, None, extras=extras)
         
     if covariator is None:
         return calculation, [], lambda: {}

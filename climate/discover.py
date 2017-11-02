@@ -172,7 +172,7 @@ def discover_convert(discover_iterator, time_conversion, ds_conversion):
         newfuturereader = ConversionWeatherReader(futurereader, time_conversion, ds_conversion)
         yield scenario, model, newpastreader, newfuturereader
         
-def discover_versioned(basedir, variable, version=None, reorder=False):
+def discover_versioned(basedir, variable, version=None, reorder=True):
     """Find the most recent version, if none specified."""
     if version is None:
         version = '%v'

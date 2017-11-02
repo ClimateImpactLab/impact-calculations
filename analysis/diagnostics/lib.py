@@ -97,6 +97,14 @@ def get_gamma(csvv, predname, covarname):
 
     return None
 
+def jstr(x):
+    if x == True:
+        return 'true'
+    elif x == False:
+        return 'false'
+    else:
+        return str(x)
+
 def show_coefficient(csvv, preds, year, coefname, covartrans):
     predyear = year - 1 if year > 2015 else year
 
@@ -108,9 +116,12 @@ def show_coefficient(csvv, preds, year, coefname, covartrans):
             elif csvv['covarnames'][ii] in covartrans:
                 if covartrans[csvv['covarnames'][ii]] is None:
                     continue # Skip this one
-                terms.append(str(csvv['gamma'][ii]) + " * " + str(excind(preds, predyear, covartrans[csvv['covarnames'][ii]])))
+                if callable(covartrans[csvv['covarnames'][ii]]):
+                    terms.append(str(csvv['gamma'][ii]) + " * " + jstr(covartrans[csvv['covarnames'][ii]](preds, predyear)))
+                else:
+                    terms.append(str(csvv['gamma'][ii]) + " * " + jstr(excind(preds, predyear, covartrans[csvv['covarnames'][ii]])))
             else:
-                terms.append(str(csvv['gamma'][ii]) + " * " + str(excind(preds, predyear, csvv['covarnames'][ii])))
+                terms.append(str(csvv['gamma'][ii]) + " * " + jstr(excind(preds, predyear, csvv['covarnames'][ii])))
 
     show_julia(' + '.join(terms))
 
