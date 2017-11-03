@@ -50,7 +50,8 @@ if 'csvvsubset' in config:
 suffix, farmer = farming.interpret(config)
 
 print "Loading weights..."
-get_weight = weights.interpret(config)
+halfweight = weights.interpret(config)
+halfweight_args = weights.get_weight_args(config)
 
 print "Loading calculation..."
 calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals[basename], farmer=farmer)
@@ -60,6 +61,6 @@ if not os.path.exists(targetdir):
 
 effectset.generate(targetdir, basename + suffix, weatherbundle, calculation, "Singly produced result.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, filter_region=filter_region)
 
-aggregate.make_levels(targetdir, basename + suffix + '.nc4', aggregate.fullfile(basename, aggregate.levels_suffix, config), get_weight)
-aggregate.make_aggregates(targetdir, basename + suffix + '.nc4', aggregate.fullfile(basename, aggregate.suffix, config), get_weight)
+aggregate.make_levels(targetdir, basename + suffix + '.nc4', aggregate.fullfile(basename, aggregate.levels_suffix, config), halfweight, halfweight_args)
+aggregate.make_aggregates(targetdir, basename + suffix + '.nc4', aggregate.fullfile(basename, aggregate.suffix, config), halfweight, halfweight_args)
 
