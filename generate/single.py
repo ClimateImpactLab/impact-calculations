@@ -51,7 +51,8 @@ if 'csvvsubset' in config:
 suffix, farmer = farming.interpret(config)
 
 print "Loading weights..."
-get_weight = weights.interpret(config)
+halfweight = weights.interpret(config)
+halfweight_args = weights.get_weight_args(config)
 
 if not os.path.exists(targetdir):
     os.makedirs(targetdir, 0775)
@@ -98,7 +99,5 @@ if do_profile:
     
     exit()
 
-aggregate.make_levels(targetdir, basename + suffix + '.nc4', aggregate.fullfile(basename, aggregate.levels_suffix, config), get_weight)
-aggregate.make_aggregates(targetdir, basename + suffix + '.nc4', aggregate.fullfile(basename, aggregate.suffix, config), get_weight)
-
-
+aggregate.make_levels(targetdir, basename + suffix + '.nc4', aggregate.fullfile(basename, aggregate.levels_suffix, config), halfweight, halfweight_args)
+aggregate.make_aggregates(targetdir, basename + suffix + '.nc4', aggregate.fullfile(basename, aggregate.suffix, config), halfweight, halfweight_args)
