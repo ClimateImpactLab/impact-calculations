@@ -99,5 +99,6 @@ if do_profile:
     
     exit()
 
-aggregate.make_levels(targetdir, basename + suffix + '.nc4', aggregate.fullfile(basename, aggregate.levels_suffix, config), halfweight, halfweight_args)
-aggregate.make_aggregates(targetdir, basename + suffix + '.nc4', aggregate.fullfile(basename, aggregate.suffix, config), halfweight, halfweight_args)
+filename = basename + suffix + '.nc4'
+aggregate.make_levels(targetdir, filename, aggregate.fullfile(filename, aggregate.levels_suffix, config), halfweight, halfweight_args)
+aggregate.make_aggregates(targetdir, filename, aggregate.fullfile(filename, aggregate.suffix, config), halfweight, halfweight_args)
