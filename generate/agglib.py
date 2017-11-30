@@ -141,3 +141,39 @@ def combine_results(targetdir, basename, sub_basenames, get_stweights, descripti
     for reader in readers:
         reader.close()
     writer.close()
+
+def make_batchfilter(config):
+    if 'batch' in config:
+        return lambda batch: batch == config['batch']
+    if 'mode' in config:
+        if config['mode'] == 'median':
+            return lambda batch: batch == 'median'
+        elif config['mode'] == 'montecarlo':
+            return lambda batch: batch[:5] == 'batch'
+        elif config['mode'] == 'xsingle':
+            return lambda batch: batch == 'median' or 'batch' in batch
+        else:
+            print "WARNING: Unknown mode %s" % config['mode']
+    return lambda batch: True
+            
+def config_targetdirfilter(clim_scenario, clim_model, econ_scenario, econ_model, targetdir, config):
+    if 'rcp' in config:
+        if clim_scenario != config['rcp']:
+            return False
+    if 'gcm' in config:
+        if clim_model != config['gcm']:
+            return False
+    if 'ssp' in config:
+        if econ_scenario != config['ssp']:
+            return False
+    if 'iam' in config:
+        if econ_model != config['iam']:
+            return False
+    if 'targetdir' in config:
+        if targetdir != config['targetdir']:
+            return False
+
+    return True
+
+
+            
