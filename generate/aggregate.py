@@ -212,13 +212,9 @@ if __name__ == '__main__':
                 halfweight_aggregate = None
                 halfweight_aggregate_denom = None
 
-    for batch, clim_scenario, clim_model, econ_scenario, econ_model, targetdir in agglib.iterresults(config['outputdir'], batchfilter, targetdirfilter):
-        if 'rcp' in config:
-            if clim_scenario != config['rcp']:
-                continue
-        if 'targetdir' in config:
-            if targetdir != config['targetdir']:
-                continue
+    for batch, clim_scenario, clim_model, econ_scenario, econ_model, targetdir in agglib.iterresults(config['outputdir'], agglib.make_batchfilter(config), targetdirfilter):
+        if not agglib.config_targetdirfilter(clim_scenario, clim_model, econ_scenario, econ_model, targetdir, config):
+            continue
         
         print targetdir
         print econ_model, econ_scenario
@@ -230,6 +226,10 @@ if __name__ == '__main__':
 
         for filename in os.listdir(targetdir):
             if filename[-4:] == '.nc4' and suffix not in filename and costs_suffix not in filename and levels_suffix not in filename:
+                if 'basename' in config:
+                    if config['basename'] not in filename[:-4]:
+                        continue
+                    
                 print filename
 
                 if filename == 'covariates.nc4':
