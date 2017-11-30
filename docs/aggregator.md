@@ -28,6 +28,7 @@ The following options are available for a configuration file for the
 aggregation process:
 
 Required:
+
  - `outputdir`: The root directory for searching for files.  This
    should be a version-specific folder, within a sector-specific
    folder.
@@ -41,12 +42,22 @@ Required:
    and `aggregate-weighting-denominator`.
    
 Optional:
+
  - `infix`: A label inserted before the term `-levels` and
    `-aggregated`, to distinguish multiple weighting schemes.
+
+Filtering Targets (also Optional):
+
  - `rcp`: Only aggregate results from the given RCP.
+ - `gcm`: Only aggregate results from the given GCM.
+ - `ssp`: Only aggregate results from the given SSP (e.g., `SSP3`).
+ - `iam`: Only aggregate results from the given IAM (high or low).
+ - `batch`: Only aggregate results from the given batch (e.g., `median` or `batch3`).
+ - `mode`: Only aggregate results produced by the given mode.  Options: `median`, `montecarlo`, or `xsingle` (median and montecarlo, but not diagnostic).
  - `targetdir`: Only aggregate results in the given leaf output
    directory.  This should be a full path name (e.g.,
    `/shares/gcp/.../SSP3`)  Do not include a tailing slash.
+ - `basename`: Only aggregate results for a given basename (the portion of the filename before `.nc4`, typically copied from the name of the CSVV file).
    
 ## Weighting Schemes
 
