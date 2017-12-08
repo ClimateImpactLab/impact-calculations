@@ -107,3 +107,7 @@ class YearlyBinnedWeatherReader(YearlySplitWeatherReader):
         ds = ds.groupby('time.year').sum()
         return ds.rename({'year': 'time'})
 
+class GDDKDDReader(ConversionWeatherReader):
+    def __init__(self, reader, lower, upper):
+        super(GDDKDDReader, self).__init__(reader, lambda x: x, lambda ds: self.convert(ds, lower, upper))
+         
