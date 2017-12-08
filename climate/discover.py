@@ -2,20 +2,28 @@
 Provides iterators of WeatherReaders (typically a historical and a
 future reader).
 """
-import os
+import os, re
 from impactlab_tools.utils import files
 from reader import ConversionWeatherReader, RegionReorderWeatherReader, HistoricalCycleReader, RenameReader
 from dailyreader import DailyWeatherReader, YearlyBinnedWeatherReader
 from yearlyreader import YearlyWeatherReader
 import pattern_matching
 
+re_dotsplit = re.compile("\.(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)")
+
 def standard_variable(name, timerate):
     if '/' in name:
-        return discover_versioned(files.configpath(name), os.path.basename(name))
+        if os.path.exists(files.configpath(name)):
+            return discover_versioned(files.configpath(name), os.path.basename(name))
 
-    if name[-9:] == '.histclim':
-        return discover_makehist(standard_variable(name[:-9], timerate))
-    
+    if '.' in name:
+        chunks = re_dotsplit.split(name)
+        if len(chunks) > 1:
+            var = standard_variable(chunks[0], timerate)
+            for chunk in chunks[2:]:
+                var = interpret_transform(var, chunk)
+            return var
+        
     assert timerate in ['day', 'month', 'year']
 
     if timerate == 'day':
@@ -30,7 +38,17 @@ def standard_variable(name, timerate):
             return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tasmax-poly-" + name[6]), 'tasmax-poly-' + name[6])
 
     raise ValueError("Unknown variable: " + name)
-        
+
+def interpret_transform(var, transform):
+    if transform == 'histclim':
+        return discover_makehist(var)
+
+    if transform[:7] == 'gddkdd(':
+        lower, upper = tuple(map(float, transform[7:-1].split(',')))
+        return discover_makegddkdd(var, lower, upper)
+    
+    assert False, "Cannot interpret transformation %s" % transform
+
 def discover_models(basedir):
     """
     basedir points to directory with both 'historical', 'rcp*'
@@ -194,3 +212,8 @@ def discover_makehist(discover_iterator):
     """Mainly used with .histclim for, e.g., lincom (since normal historical is at the bundle level)."""
     for scenario, model, pastreader, futurereader in discover_iterator:
         yield scenario, model, RenameReader(pastreader, lambda x: x + '.histclim'), HistoricalCycleReader(pastreader, futurereader)
+
+def discover_makegddkdd(discover_iterator, lower, upper):
+    for scenario, model, pastreader, futurereader in discover_iterator:
+        yield scenario, model, GDDKDDReader(pastreader, lower, upper), GDDKDDReader(futurereader, lower, upper)
+
