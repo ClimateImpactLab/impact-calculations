@@ -17,7 +17,7 @@ If you are working on Sacagawea, you can skip steps -1 and 0.
    | BRC | /global/scratch/groups/co_laika/gcp |
    | OSDC | /mnt/gcp/data |
 
-0. Ensure that you have Python 2.7 and the `numpy` and `scipy` libraries installed
+-0. Ensure that you have Python 2.7 and the `numpy` and `scipy` libraries installed
 ```
 $ python --version
 $ pip install numpy
@@ -50,6 +50,8 @@ source env/bin/activate
 
 Now, all of your `pip` commands will add packages just to the environment.  Drop all `--user` arguments from the `pip` commands below.
 You will need to do this last line every time you want to use the system.
+
+POSSIBLE. If someone else has already created a virtual environment with all of the installed packages, you may be able to use theirs.  Try running `source <PATH-TO-THEIR-ENV>/bin/activate` and then skip to trying to the last step (where you create the `server.yml`) file below.
 
 1. Clone `open-estimate` to your project directory:
    ```$ git clone https://github.com/ClimateImpactLab/open-estimate.git```
