@@ -53,6 +53,8 @@ You will need to do this last line every time you want to use the system.
 
 POSSIBLE. If someone else has already created a virtual environment with all of the installed packages, you may be able to use theirs.  Try running `source <PATH-TO-THEIR-ENV>/bin/activate` and then skip to trying to the last step (where you create the `server.yml`) file below.
 
+Remaining instructions:
+
 1. Clone `open-estimate` to your project directory:
    ```$ git clone https://github.com/ClimateImpactLab/open-estimate.git```
 
