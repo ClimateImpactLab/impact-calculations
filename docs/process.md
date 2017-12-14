@@ -14,7 +14,7 @@ If you are working on Sacagawea, you can skip steps -1 and 0.
    | Server | $DATA |
    | --- | --- |
    | Shackleton | /shares/gcp |
-   | BRC | /global/scratch/USERNAME |
+   | BRC | /global/scratch/groups/co_laika/gcp |
    | OSDC | /mnt/gcp/data |
 
 0. Ensure that you have Python 2.7 and the `numpy` and `scipy` libraries installed
@@ -23,6 +23,33 @@ $ python --version
 $ pip install numpy
 $ pip install scipy
 ```
+
+On BRC, these are provided as modules.  Execute,
+```
+module load python/2.7.8
+module load numpy
+module load scipy
+```
+
+OPTIONAL. Use a virtual environment to keep python packages separate across projects; and always use it on BRC.
+
+On BRC, load the `virtualenv` module: `module load virtualenv`.
+Elsewhere, `pip install virtualenv`.
+
+Then make a new virtual environment directory, execuing from your project directory:
+```
+virtualenv env
+```
+
+This will create a directory `env` within the current directory.
+
+Now, activate the virtual environment to "enter" its set of packages:
+```
+source env/bin/activate
+```
+
+Now, all of your `pip` commands will add packages just to the environment.  Drop all `--user` arguments from the `pip` commands below.
+You will need to do this last line every time you want to use the system.
 
 1. Clone `open-estimate` to your project directory:
    ```$ git clone https://github.com/ClimateImpactLab/open-estimate.git```
