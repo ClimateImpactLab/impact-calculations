@@ -161,6 +161,14 @@ class RegionReorderWeatherReader(WeatherReader):
             self.reorder_inplace(weatherslice)
             yield weatherslice
 
+    def read_iterator_to(self, maxyear):
+        """Yields a WeatherSlice in whatever chunks are convenient to the given year."""
+        for weatherslice in self.reader.read_iterator():
+            self.reorder_inplace(weatherslice)
+            yield weatherslice
+            if weatherslice.get_years()[0] >= maxyear:
+                break
+
     def read_year(self, year):
         weatherslice = self.reader.read_year(year)
         self.reorder_inplace(weatherslice)
