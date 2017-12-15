@@ -58,7 +58,19 @@ Filtering Targets (also Optional):
    directory.  This should be a full path name (e.g.,
    `/shares/gcp/.../SSP3`)  Do not include a tailing slash.
  - `basename`: Only aggregate results for a given basename (the portion of the filename before `.nc4`, typically copied from the name of the CSVV file).
-   
+
+## Costs files
+
+For the cost files to be generated, the sector needs to be setup so
+that the normal output files include a `climtas_effect` variable.  If
+this is present, the `generate/cost_curves.R` script will be run to
+generate IR-level cost estimates, and then the aggregate script will
+aggregate these like it does other files.
+
+For the `cost_curves.R` file to be run, the following libraries need
+to be available to the local R program: `pracma`, `ncdf4`, `dplyr`,
+`DataCombine`, `zoo`, `abind`, and `rPython`.
+
 ## Weighting Schemes
 
 A weighting schemes consists of an expression that can consist of a
