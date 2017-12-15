@@ -3,7 +3,9 @@ import numpy as np
 import xarray as xr
 import pandas as pd
 import netcdfs
-from reader import YearlySplitWeatherReader
+from openest.generate.fast_dataset import FastDataset
+from impactcommon.math import gddkdd
+from reader import YearlySplitWeatherReader, ConversionWeatherReader
 
 class DailyWeatherReader(YearlySplitWeatherReader):
     """Exposes daily weather data, split into yearly files."""
@@ -108,6 +110,20 @@ class YearlyBinnedWeatherReader(YearlySplitWeatherReader):
         return ds.rename({'year': 'time'})
 
 class GDDKDDReader(ConversionWeatherReader):
-    def __init__(self, reader, lower, upper):
+    def __init__(self, reader, tminvar, tmaxvar, lower, upper):
+        self.tminvar = tminvar
+        self.tmaxvar = tmaxvar
         super(GDDKDDReader, self).__init__(reader, lambda x: x, lambda ds: self.convert(ds, lower, upper))
          
+    def convert(ds, lower, upper):
+        allgdd = np.zeros((len(ds.time), len(ds.region)))
+        allkdd = np.zeros((len(ds.time), len(ds.region)))
+        for ii in range(len(ds.region)):
+            allgdd[:, ii], allkdd[:, ii] = gddkdd.get_gddkdd(ds[self.tminvar][:, ii],
+                                                             ds[self.tmaxvar][:, ii], lower, upper)
+
+        gddname = 'gdd-%d-%d' % (lower, upper)
+        kddname = 'kdd-%d' % upper
+        return fast_dataset.FastDataset({gddname: (('time', 'region'), allgdd),
+                                         kddname: (('time', 'region'), allkdd)},
+                                        {'time': ds.time, 'region': ds.region}, attrs=ds.attrs)
