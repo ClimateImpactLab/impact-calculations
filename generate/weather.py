@@ -12,7 +12,7 @@ def iterate_bundles(*iterators_readers):
     Return bundles for each RCP and model.
     """
     if len(iterators_readers) == 1:
-        for scenario, model, pastreader, futurereader in iterator_readers[0]:
+        for scenario, model, pastreader, futurereader in iterators_readers[0]:
             weatherbundle = PastFutureWeatherBundle([(pastreader, futurereader)], scenario, model)
             yield scenario, model, weatherbundle
         return
@@ -178,14 +178,14 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
     def yearbundles(self, maxyear=np.inf):
         """Yields xarray Datasets for each year up to (but not including) `maxyear`"""
         if len(self.pastfuturereaders) == 1:
-            for ds in self.pastfuturereaders[0].read_iterator_to(min(self.futureyear1, maxyear)):
+            for ds in self.pastfuturereaders[0][0].read_iterator_to(min(self.futureyear1, maxyear)):
                 assert ds.region.shape[0] == len(self.regions)
                 year = ds['time.year'][0]
                 yield year, ds
 
             lastyear = year
             if maxyear > self.futureyear1:
-                for ds in self.pastfuturereaders[1].read_iterator_to(maxyear):
+                for ds in self.pastfuturereaders[0][1].read_iterator_to(maxyear):
                     year = ds['time.year'][0]
                     if year <= lastyear:
                         continue # allow for overlapping weather

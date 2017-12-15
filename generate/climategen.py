@@ -7,9 +7,10 @@ from impactlab_tools.utils import files
 from impactcommon.math import averages
 
 filename = 'dd_tasmax.nc4'
+only_missing = True
 
 if filename == 'climtas.nc4':
-    discoverer = discover.discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tas')
+    discoverer = discover.discover_versioned(files.sharedpath('climate/BCSD/hierid/popwt/daily/tas'), 'tas')
     covar_names = ['climtas']
     annual_calcs = [lambda ds: np.mean(ds['tas'])] # Average within each year
 
@@ -28,6 +29,9 @@ for clim_scenario, clim_model, weatherbundle in weather.iterate_bundles(discover
     print clim_scenario, clim_model
     targetdir = os.path.join(outputdir, clim_scenario, clim_model)
 
+    if only_missing and os.path.exists(os.path.join(targetdir, filename)):
+        continue
+        
     print targetdir
     if not os.path.exists(targetdir):
         os.makedirs(targetdir, 0775)

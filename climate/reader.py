@@ -162,6 +162,13 @@ class RegionReorderWeatherReader(WeatherReader):
         for ds in self.reader.read_iterator():
             yield self.reorder_regions(ds)
 
+    def read_iterator_to(self, maxyear):
+        """Yields an xarray Dataset in whatever chunks are convenient to a given year."""
+        for ds in self.reader.read_iterator():
+            yield self.reorder_regions(ds)
+            if ds['time.year'][0] >= maxyear:
+                break
+
     def read_year(self, year):
         ds = self.reader.read_year(year)
         return self.reorder_regions(ds)
