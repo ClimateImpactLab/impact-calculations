@@ -5,9 +5,9 @@ $ python -m helpers.getvar ...allmodels.yml <variable> <region>
 The configuration file provides the bundle iterator (top-level climate discovered variables).
 """
 
-import sys
+import sys, importlib, yaml, os
 from impactlab_tools.utils import files
-import loadmodels
+from generate import loadmodels
 
 config = files.get_allargv_config()
 
@@ -22,6 +22,6 @@ else:
     shortmodule = config['module']
 
 variable = sys.argv[1]
-region = sys.argv[2]
+region = 'IND.33.542.2153'
 
 clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel = loadmodels.single(mod.get_bundle_iterator(config))

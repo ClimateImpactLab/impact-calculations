@@ -36,6 +36,8 @@ def standard_variable(name, timerate):
             return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/" + name), name)
         if name in ['tasmax' + str(ii) for ii in range(2, 10)]:
             return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tasmax-poly-" + name[6]), 'tasmax-poly-' + name[6])
+        if name == 'prmm':
+            return discover_variable('/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level', 'pr')
 
     raise ValueError("Unknown variable: " + name)
 
@@ -93,16 +95,26 @@ def discover_variable(basedir, variable, withyear=True, rcp_only=None):
             continue
 
         if withyear:
-            pasttemplate = os.path.join(pastdir, variable, variable + '_day_aggregated_historical_r1i1p1_' + model + '_%d.nc')
+            if model in pattern_matching.rcp_models[scenario]:
+                pasttemplate = os.path.join(pastdir, variable, variable + '_day_aggregated_historical_r1i1p1_' + pattern_matching.rcp_models[scenario][model] + '_%d.nc')
+            else:
+                pasttemplate = os.path.join(pastdir, variable, variable + '_day_aggregated_historical_r1i1p1_' + model + '_%d.nc')
             futuretemplate = os.path.join(futuredir, variable, variable + '_day_aggregated_' + scenario + '_r1i1p1_' + model + '_%d.nc')
+            if not os.path.exists(futuretemplate % 2006):
+                continue
 
             pastreader = DailyWeatherReader(pasttemplate, 1981, 'SHAPENUM', variable)
             futurereader = DailyWeatherReader(futuretemplate, 2006, 'SHAPENUM', variable)
 
             yield scenario, model, pastreader, futurereader
         else:
-            pastpath = os.path.join(pastdir, variable, variable + '_annual_aggregated_historical_r1i1p1_' + model + '.nc')
+            if model in pattern_matching.rcp_models[scenario]:
+                pastpath = os.path.join(pastdir, variable, variable + '_annual_aggregated_historical_r1i1p1_' + pattern_matching.rcp_models[scenario][model] + '.nc')
+            else:
+                pastpath = os.path.join(pastdir, variable, variable + '_annual_aggregated_historical_r1i1p1_' + model + '.nc')
             futurepath = os.path.join(futuredir, variable, variable + '_aggregated_' + scenario + '_r1i1p1_' + model + '.nc')
+            if not os.path.exists(futurepath):
+                continue
 
             pastreader = YearlyWeatherReader(pastpath, variable)
             futurereader = YearlyWeatherReader(futurepath, variable)
