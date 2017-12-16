@@ -1,5 +1,5 @@
-timerate: day
-climate: [ tas, prmm ] # , prmm-poly-2, prmm-poly-3, prmm-poly-4
+timerate: month
+climate: [ edd, prmm ] # , prmm-poly-2, prmm-poly-3, prmm-poly-4
 models:
   - csvvs: "social/parameters/agriculture/soy/*.csvv"
     within-season: "social/baselines/agriculture/world-combo-201710-growing-seasons-soy.csv"
@@ -14,7 +14,7 @@ models:
           description: Temperature-driven yield rate for soybeans
           depenunit: log kg / Ha
           indepunit: C
-          variable: tas.gddkdd(8, 30)
+          variable: edd.gddkdd(8, 30)
           functionalform: coefficients
       - Sum-specification:  
           description: Precipitation-driven yield rate for soybeans
