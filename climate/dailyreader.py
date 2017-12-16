@@ -86,10 +86,11 @@ class MonthlyBinnedWeatherReader(YearlySplitWeatherReader):
 class YearlyBinnedWeatherReader(YearlySplitWeatherReader):
     """Exposes binned weather data, accumulated into years from a month binned file."""
 
-    def __init__(self, template, year1, variable):
+    def __init__(self, template, year1, regionvar, variable):
         super(YearlyBinnedWeatherReader, self).__init__(template, year1, variable)
         self.time_units = 'yyyy000'
-        self.monthlyreader = MonthlyBinnedWeatherReader(template, year1, variable)
+        self.regionvar = regionvar
+        self.monthlyreader = MonthlyBinnedWeatherReader(template, year1, regionvar, variable)
         self.bin_limits = self.monthlyreader.bin_limits
 
     def get_times(self):
@@ -102,11 +103,13 @@ class YearlyBinnedWeatherReader(YearlySplitWeatherReader):
         # Yield data summed across years
         for ds in self.monthlyreader.read_iterator():
             ds = ds.groupby('time.year').sum()
+            ds.rename({self.regionvar: 'region'}, inplace=True)
             yield ds.rename({'year': 'time'})
 
     def read_year(self, year):
         ds = self.monthlyreader.read_year(year)
         ds = ds.groupby('time.year').sum()
+        ds.rename({self.regionvar: 'region'}, inplace=True)
         return ds.rename({'year': 'time'})
 
 class GDDKDDReader(ConversionWeatherReader):

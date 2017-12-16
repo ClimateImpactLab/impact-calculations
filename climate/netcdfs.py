@@ -28,8 +28,11 @@ def readmeta(filepath, variable):
     version = rootgrp.version
     if hasattr(rootgrp.variables[variable], 'units'):
         units = rootgrp.variables[variable].units
-    else:
+    elif hasattr(rootgrp.variables[variable], 'unit'):
         units = rootgrp.variables[variable].unit
+    else:
+        print "Warning: %s in %s has no units." % (variable, filepath)
+        units = None
         
     rootgrp.close()
 
