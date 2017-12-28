@@ -74,13 +74,13 @@ class MonthlyBinnedWeatherReader(YearlySplitWeatherReader):
         for filename in self.file_iterator():
             ds = xr.open_dataset(filename)
             ds.rename({self.regionvar: 'region'}, inplace=True)
-            ds = ds.transpose('time', 'region', 'bin') # Some old code may depend on T x REGIONS x K
+            ds = ds.transpose('month', 'region', 'bin_edges') # Some old code may depend on T x REGIONS x K
             yield ds
 
     def read_year(self, year):
         ds = xr.open_dataset(self.file_for_year(year))
         ds.rename({self.regionvar: 'region'}, inplace=True)
-        ds = ds.transpose('time', 'region', 'bin') # Some old code may depend on T x REGIONS x K
+        ds = ds.transpose('month', 'region', 'bin_edges') # Some old code may depend on T x REGIONS x K
         return ds
 
 class YearlyBinnedWeatherReader(YearlySplitWeatherReader):
