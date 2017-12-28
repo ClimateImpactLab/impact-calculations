@@ -40,8 +40,10 @@ else:
     clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel = loadmodels.single(mod.get_bundle_iterator(config))
     found_bundle = weatherbundle
 
-    ##WHERE TO USE variable = sys.argv[1]
-
-rr = bundle.regions.index(region)
-for year, ds in bundle.yearbundles():
-    print year, np.sum(ds.variables[0][:, rr, :], axis=0)
+if found_bundle is None:
+    print "Cannot find valid weather data."
+    exit(-1)
+    
+rr = found_bundle.regions.index(region)
+for year, ds in found_bundle.yearbundles():
+    print year, np.sum(ds[sys.argv[1]][:, rr, :], axis=0)

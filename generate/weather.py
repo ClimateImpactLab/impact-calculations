@@ -3,6 +3,7 @@ import numpy as np
 import xarray as xr
 from netCDF4 import Dataset
 from impactlab_tools.utils import files
+from openest.generate importt fast_dataset
 import helpers.header as headre
 from climate import netcdfs
 from datastore import irregions
@@ -211,7 +212,7 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
                     return # No more!
 
                 assert ds.region.shape[0] == len(self.regions)
-                allds = xr.merge((allds, ds))
+                allds = fast_dataset.merge((allds, ds)) #xr.merge((allds, ds))
 
             yield year, allds
 
