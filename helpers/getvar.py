@@ -8,6 +8,7 @@ The configuration file provides the bundle iterator (top-level climate discovere
 """
 
 import sys, importlib, yaml, os
+import numpy as np
 from impactlab_tools.utils import files
 from climate import discover
 from generate import weather, loadmodels
@@ -46,4 +47,4 @@ if found_bundle is None:
     
 rr = found_bundle.regions.index(region)
 for year, ds in found_bundle.yearbundles():
-    print year, np.sum(ds[sys.argv[1]][:, rr, :], axis=0)
+    print year, np.sum(ds[sys.argv[2]][:, rr, :], axis=0)

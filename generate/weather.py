@@ -3,7 +3,7 @@ import numpy as np
 import xarray as xr
 from netCDF4 import Dataset
 from impactlab_tools.utils import files
-from openest.generate importt fast_dataset
+from openest.generate import fast_dataset
 import helpers.header as headre
 from climate import netcdfs
 from datastore import irregions
