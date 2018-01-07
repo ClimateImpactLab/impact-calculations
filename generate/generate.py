@@ -146,7 +146,7 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
     else:
         targetdir = tempfile.mkdtemp()
 
-    if 'only_gcm' in config and config['only_gcm'] != clim_model:
+    if 'gcm' in config and config['gcm'] != clim_model:
         continue
 
     print clim_scenario, clim_model
