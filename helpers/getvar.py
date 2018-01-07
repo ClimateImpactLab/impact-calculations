@@ -47,4 +47,5 @@ if found_bundle is None:
     
 rr = found_bundle.regions.index(region)
 for year, ds in found_bundle.yearbundles():
-    print year, np.sum(ds[sys.argv[2]][:, rr, :], axis=0)
+    print ds[sys.argv[2]]
+    exit(0)
