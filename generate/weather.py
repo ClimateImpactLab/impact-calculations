@@ -7,12 +7,14 @@ from openest.generate.weatherslice import DailyWeatherSlice, YearlyWeatherSlice
 from climate import netcdfs
 from datastore import irregions
 
-def iterate_bundles(*iterators_readers):
+def iterate_bundles(*iterators_readers, **config):
     """
     Return bundles for each RCP and model.
     """
     if len(iterators_readers) == 1:
         for scenario, model, pastreader, futurereader in iterators_readers[0]:
+            if 'gcm' in config and config['gcm'] != model:
+                continue
             weatherbundle = PastFutureWeatherBundle([(pastreader, futurereader)], scenario, model)
             yield scenario, model, weatherbundle
         return
@@ -20,6 +22,8 @@ def iterate_bundles(*iterators_readers):
     scenmodels = {} # {(scenario, model): [(pastreader, futurereader), ...]}
     for iterator_readers in iterators_readers:
         for scenario, model, pastreader, futurereader in iterator_readers:
+            if 'gcm' in config and config['gcm'] != model:
+                continue
             if (scenario, model) not in scenmodels:
                 scenmodels[(scenario, model)] = []
             scenmodels[(scenario, model)].append((pastreader, futurereader))
