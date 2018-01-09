@@ -1,5 +1,5 @@
 timerate: month
-climate: [ edd, prmm ] # , prmm-poly-2, prmm-poly-3, prmm-poly-4
+climate: [ tas, edd, prmm ] # , prmm-poly-2, prmm-poly-3, prmm-poly-4
 models:
   - csvvs: "social/parameters/agriculture/soy/*.csvv"
     within-season: "social/baselines/agriculture/world-combo-201710-growing-seasons-soy.csv"
@@ -10,17 +10,20 @@ models:
       - irshare
       - irshare^2
     calculation:
-      - Sum-specification:
-          description: Temperature-driven yield rate for soybeans
-          depenunit: log kg / Ha
-          indepunit: C
-          variable: edd.gddkdd(8, 30)
-          functionalform: coefficients
-      - Sum-specification:  
-          description: Precipitation-driven yield rate for soybeans
-          depenunit: log kg / Ha
-          indepunit: mm
-          variable: prmm
-          functionalform: polynomial
+      - Sum:
+          specification:
+            description: Temperature-driven yield rate for soybeans
+            depenunit: log kg / Ha
+            indepunit: C
+            variables:
+              gdd: edd.bin(8) - edd.bin(30)
+              kdd: edd.bin(30)
+            functionalform: coefficients
+          specification:  
+            description: Precipitation-driven yield rate for soybeans
+            depenunit: log kg / Ha
+            indepunit: mm
+            variable: prmm
+            functionalform: polynomial
       - Rebase
       - Exponentiate

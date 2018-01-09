@@ -1,4 +1,4 @@
 module: impacts/agriculture/allmodels.yml
-mode: diagnostics
+mode: writecalcs
 outputdir: /shares/gcp/outputs/agriculture/impacts-mealy
 do_farmers: false
