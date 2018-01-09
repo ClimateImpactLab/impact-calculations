@@ -11,19 +11,21 @@ models:
       - irshare^2
     calculation:
       - Sum:
-          specification:
-            description: Temperature-driven yield rate for soybeans
-            depenunit: log kg / Ha
-            indepunit: C
-            variables:
-              gdd: edd.bin(8) - edd.bin(30)
-              kdd: edd.bin(30)
-            functionalform: coefficients
-          specification:  
-            description: Precipitation-driven yield rate for soybeans
-            depenunit: log kg / Ha
-            indepunit: mm
-            variable: prmm
-            functionalform: polynomial
+          - YearlySumIrregular:
+              specification:
+                description: Temperature-driven yield rate for soybeans
+                depenunit: log kg / Ha
+                indepunit: C
+                variables:
+                  gdd: edd.bin(8) - edd.bin(30)
+                  kdd: edd.bin(30)
+                functionalform: coefficients
+          - YearlySumIrregular:
+              specification:  
+                description: Precipitation-driven yield rate for soybeans
+                depenunit: log kg / Ha
+                indepunit: mm
+                variable: prmm
+                functionalform: polynomial
       - Rebase
       - Exponentiate
