@@ -1,5 +1,6 @@
 import re
 from adaptation import csvvfile, curvegen, curvegen_known, covariates, constraints
+from datastore import irvalues
 from openest.generate.smart_curve import CoefficientsCurve
 from openest.models.curve import ShiftedCurve, MinimumCurve, ClippedCurve
 from openest.generate.stdlib import *
@@ -23,9 +24,16 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config={}):
         return covariates.BinnedEconomicCovariator(economicmodel, 2015, args, config=config)
     elif covar == 'climtas':
         return covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, 'tas', config=config), {'climtas': 'tas'})
+    elif covar == 'irshare':
+        return covariates.ConstantCovariator('irshare', irvalues.load_irweights("social/baselines/agriculture/world-combo-201710-irrigated-area.csv", 'irrigated_share'))
+    elif covar[:8] == 'seasonal':
+        return covariates.SeasonalWeatherCovariator(weatherbundle, 2015, config['within-season'], covar[8:], config)
     elif '*' in covar:
         sources = map(lambda x: get_covariator(x.strip(), args, weatherbundle, economicmodel, config=config), covar.split('*', 1))
         return covariates.ProductCovariator(sources[0], sources[1])
+    elif '^' in covar:
+        chunks = covar.split('^', 1)
+        return covariates.PowerCovariator(get_covariator(chunks[0].strip(), args, weatherbundle, economicmodel, config=config), float(chunks[1]))
     else:
         user_failure("Covariate %s is unknown." % covar)
         

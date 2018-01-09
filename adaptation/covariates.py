@@ -1,7 +1,8 @@
 import itertools
 import numpy as np
+from openest.generate import fast_dataset
 from econmodel import *
-from datastore import agecohorts
+from datastore import agecohorts, irvalues
 from climate.yearlyreader import RandomYearlyAccess
 from interpret import averages
 
@@ -122,13 +123,12 @@ class MeanWeatherCovariator(Covariator):
 
         return {self.variable: self.temp_predictors[region].get()}
 
-class SeasonalWeatherCovariator(MeanWeatherCovariator):
+class SubspanWeatherCovariator(MeanWeatherCovariator):
     def __init__(self, weatherbundle, maxbaseline, day_start, day_end, variable, config={}):
-        super(SeasonalWeatherCovariator, self).__init__(weatherbundle, maxbaseline, config=config)
+        super(SubspanWeatherCovariator, self).__init__(weatherbundle, maxbaseline, variable, config=config)
         self.maxbaseline = maxbaseline
         self.day_start = day_start
         self.day_end = day_end
-        self.variable = variable
         self.all_values = None
 
         self.mustr = "%smu%d-%d" % (self.weatherbundle.get_dimension()[0], self.day_start, self.day_end)
@@ -160,6 +160,36 @@ class SeasonalWeatherCovariator(MeanWeatherCovariator):
         sigma = np.std(self.all_values[region])
 
         return {self.mustr: mu, self.sigmastr: sigma}
+
+class SeasonalWeatherCovariator(MeanWeatherCovariator):
+    def __init__(self, weatherbundle, maxbaseline, filepath, variable, config={}):
+        super(SeasonalWeatherCovariator, self).__init__(weatherbundle, maxbaseline, variable, config=config)
+        self.maxbaseline = maxbaseline
+        assert config['timerate'] == 'month', "Cannot handle daily seasons."
+        self.culture_periods = irvalues.get_file_cached(filepath, irvalues.load_culture_months)
+
+        # Setup all averages
+        self.byregion = {region: averages.interpret(config, standard_climate_config, []) for region in self.weatherbundle.regions}
+
+        for year, ds in self.weatherbundle.yearbundles(maxyear=self.maxbaseline):
+            regions = np.array(ds.region)
+            for region, subds in fast_dataset.region_groupby(ds, year, regions, {regions[ii]: ii for ii in range(len(regions))}):
+                if region in self.culture_periods:
+                    plantii = int(self.culture_periods[region][0] - 1)
+                    harvestii = int(self.culture_periods[region][1] - 1)
+                    self.byregion[region].update(np.mean(subds[self.variable]._values[plantii:harvestii]))
+
+    def get_current(self, region):
+        return {'seasonal' + self.variable: self.byregion}
+
+    def get_update(self, region, year, ds):
+        if ds is not None and year > self.startupdateyear:
+            if region in self.culture_periods:
+                plantii = int(self.culture_periods[region][0] - 1)
+                harvestii = int(self.culture_periods[region][1] - 1)
+                self.byregion[region].update(ds[self.variable]._values[plantii:harvestii])
+
+        return self.get_current(region)
 
 def get_single_value(numpylike):
     dims = np.sum(np.array(numpylike).shape)
@@ -304,10 +334,27 @@ class AgeShareCovariator(Covariator):
 
         return {column: self.agerm[region][column].get() for column in agecohorts.columns}
 
+class ConstantCovariator(Covariator):
+    def __init__(self, name, irvalues):
+        super(ConstantCovariator, self).__init__(None)
+        self.name = name
+        self.irvalues = irvalues
+
+    def get_current(self, region):
+        return {name: self.irvalues[region]}
+
+    def get_update(self, region, year, ds):
+        return {name: self.irvalues[region]}
+    
 class CombinedCovariator(Covariator):
     def __init__(self, covariators):
-        for covariator in covariators[1:]:
-            assert covariator.startupdateyear == covariators[0].startupdateyear
+        commonstartyear = None
+        for covariator in covariators:
+            if covariator.startupdateyear is not None:
+                if commonstartyear is not None:
+                    assert covariator.startupdateyear == commonstartyear
+                else:
+                    commonstartyear = covariator.startupdateyear
 
         super(CombinedCovariator, self).__init__(covariators[0].startupdateyear)
         self.covariators = covariators
@@ -413,3 +460,19 @@ class ProductCovariator(Covariator):
         covars2 = self.source2.get_current(region)
         return self.make_product(covars1, covars2)
     
+class PowerCovariator(Covariator):
+    def __init__(self, source, power):
+        super(PowerCovariator, self).__init__(source.startupdateyear)
+        self.source = source
+        self.power = power
+
+    def make_power(self, covars):
+        return {"%s^%g" % (key, self.power): covars[key] for key in covars}
+        
+    def get_update(self, region, year, ds):
+        covars = self.source.get_update(region, year, ds)
+        return self.make_product(covars)
+
+    def get_current(self, region):
+        covars = self.source.get_current(region)
+        return self.make_product(covars)

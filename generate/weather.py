@@ -145,8 +145,8 @@ class DailyWeatherBundle(WeatherBundle):
                 allds.append(ds.mean('time'))
             else:
                 allds.append(ds)
-            
-        allyears = xr.concat(allds, dim='time')
+
+        allyears = fast_dataset.concat(allds, dim='time')
 
         # Yield the entire collection of values for each region
         for ii in range(len(self.regions)):

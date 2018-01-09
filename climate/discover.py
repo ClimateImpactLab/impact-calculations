@@ -2,7 +2,7 @@
 Provides iterators of WeatherReaders (typically a historical and a
 future reader).
 """
-import os, re
+import os, re, copy
 import numpy as np
 from impactlab_tools.utils import files
 from openest.generate import fast_dataset
@@ -41,15 +41,19 @@ def standard_variable(name, timerate):
         if name == 'prmm':
             return discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'pr')
     if timerate == 'month':
+        if name == 'tas':
+            return discover_day2month(standard_variable(name, 'day'),  lambda arr, dim: np.sum(arr, axis=dim))
         if name == 'tasbin':
             return discover_binned(files.sharedpath('climate/BCSD/aggregation/cmip5_bins/IR_level'), 'year', # Should this be year?
                                    'tas/tas_Bindays_aggregated_%scenario_r1i1p1_%model_%d.nc', 'SHAPENUM', 'DayNumber')
         if name == 'edd':
-            return discover_binned(files.sharedpath('climate/BCSD/Agriculture/Degree_days/snyder'), 'month',
-                                   'Degreedays_aggregated_%scenario_%model_cropwt_%d.nc', 'SHAPENUM', 'EDD_agg', include_patterns=False)
+            return discover_rename(
+                discover_binned(files.sharedpath('climate/BCSD/Agriculture/Degree_days/snyder'), 'month',
+                                'Degreedays_aggregated_%scenario_%model_cropwt_%d.nc', 'SHAPENUM', 'EDD_agg', include_patterns=False), {'EDD_agg': 'edd'})
         if name == 'prmm':
             discover_iterator = standard_variable(name, 'day')
-            return discover_day2month(discover_iterator, lambda arr, dim: np.sum(arr, axis=dim))
+            return discover_rename(
+                discover_day2month(discover_iterator, lambda arr, dim: np.sum(arr, axis=dim)), {'pr': 'prmm'})
 
     raise ValueError("Unknown variable: " + name)
 
@@ -74,10 +78,10 @@ def discover_models(basedir, include_patterns=True):
         if scenario[0:3] != 'rcp':
             continue
 
-        modelset = models
+        modelset = copy.copy(models)
         if include_patterns:
             modelset += pattern_matching.rcp_models[scenario].keys()
-            
+
         for model in modelset:
             pastdir = os.path.join(basedir, 'historical', model)
             futuredir = os.path.join(basedir, scenario, model)
@@ -250,13 +254,17 @@ def discover_makegddkdd(discover_iterator, lower, upper):
     for scenario, model, pastreader, futurereader in discover_iterator:
         yield scenario, model, GDDKDDReader(pastreader, lower, upper), GDDKDDReader(futurereader, lower, upper)
 
-
+def discover_rename(discover_iterator, name_dict):
+    for scenario, model, pastreader, futurereader in discover_iterator:
+        yield scenario, model, RenameReader(pastreader, name_dict), RenameReader(futurereader, name_dict)
+        
 def discover_day2month(discover_iterator, accumfunc):
     #time_conversion = lambda days: np.unique(np.floor((days % 1000) / 30.4167)) # Should just give 0 - 11
     time_conversion = lambda days: np.arange(12)
     ds_conversion = lambda ds: fast_dataset.FastDataset({name: data_vars_time_conversion(name, ds, 'vars', accumfunc) for name in ds.variables},
                                                         coords={name: data_vars_time_conversion(name, ds, 'coords', accumfunc) for name in ds.coords},
                                                         attrs=ds.attrs)
+    
     return discover_convert(discover_iterator, time_conversion, ds_conversion)
 
 def data_vars_time_conversion(name, ds, varset, accumfunc):

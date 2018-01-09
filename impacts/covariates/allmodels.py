@@ -15,10 +15,10 @@ def get_bundle_iterator():
 
 def produce(targetdir, weatherbundle, economicmodel, pvals, config, result_callback=None, push_callback=None, suffix='', profile=False, diagnosefile=False):
     predgen = covariates.CombinedCovariator([covariates.MeanWeatherCovariator(weatherbundle, 2015, 'tas'),
-                                             covariates.SeasonalWeatherCovariator(weatherbundle, 2015, 0, 90, 0, 'tas'),
-                                             covariates.SeasonalWeatherCovariator(weatherbundle, 2015, 180, 270, 0, 'tas'),
-                                             covariates.SeasonalWeatherCovariator(weatherbundle, 2015, 0, 90, 0, 'pr'),
-                                             covariates.SeasonalWeatherCovariator(weatherbundle, 2015, 180, 270, 0, 'pr'),
+                                             covariates.SubspanWeatherCovariator(weatherbundle, 2015, 0, 90, 0, 'tas'),
+                                             covariates.SubspanWeatherCovariator(weatherbundle, 2015, 180, 270, 0, 'tas'),
+                                             covariates.SubspanWeatherCovariator(weatherbundle, 2015, 0, 90, 0, 'pr'),
+                                             covariates.SubspanWeatherCovariator(weatherbundle, 2015, 180, 270, 0, 'pr'),
                                              covariates.EconomicCovariator(economicmodel, 2015)]) # NOTE: recent change (files not refreshed)
     covars = ['tas', 'tasmu0-90', 'tassigma0-90', 'tasmu180-270', 'tassigma180-270', 'prmu0-90', 'prsigma0-90',
               'prmu180-270', 'prsigma180-270', 'loggdppc', 'logpopop']

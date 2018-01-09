@@ -112,8 +112,9 @@ def polypush_callback(region, year, application, get_predictors, model):
         predictors = get_predictors(region)
         writer.writerow([region, year, model] + [predictors[covar] for covar in covars])
 
-mode_iterators = {'median': iterate_median, 'montecarlo': iterate_montecarlo, 'lincom': iterate_single, 'single': iterate_single, 'writesplines': iterate_single, 'writepolys': iterate_single, 'profile': iterate_nosideeffects, 'diagnostic': iterate_nosideeffects}
+mode_iterators = {'median': iterate_median, 'montecarlo': iterate_montecarlo, 'lincom': iterate_single, 'single': iterate_single, 'writesplines': iterate_single, 'writepolys': iterate_single, 'writecalcs': iterate_single, 'profile': iterate_nosideeffects, 'diagnostic': iterate_nosideeffects}
 
+assert 'mode' in config, "Configuration does not contain 'mode'."
 assert config['mode'] in mode_iterators.keys()
 
 start = timing.process_time()

@@ -12,14 +12,18 @@ import numpy as np
 from impactlab_tools.utils import files
 from climate import discover
 from generate import weather, loadmodels
+from interpret import variable
 
 region = "IND.33.542.2153"
+varname = ' '.join(sys.argv[2:])
 
 found_bundle = None
 if sys.argv[1][-4:] != '.yml':
     # Use <variable> <timerate> syntax
-    bundle_iterator = weather.iterate_bundles(discover.standard_variable(sys.argv[1], sys.argv[2]))
+    bundle_iterator = weather.iterate_bundles(discover.standard_variable(sys.argv[1], varname))
 
+    transform = lambda ds: ds[varname]
+    
     for scenario, model, bundle in bundle_iterator:
         if scenario == 'rcp85' and model == 'CCSM4':
             found_bundle = bundle
@@ -28,6 +32,8 @@ else:
     # Use <config> <variable> syntax
     config = files.get_allargv_config()
 
+    transform = variable.interpret_ds_transform(varname, config)
+    
     ## Note: Copied from generate.py
     if config['module'][-4:] == '.yml':
         mod = importlib.import_module("interpret.container")
@@ -47,5 +53,5 @@ if found_bundle is None:
     
 rr = found_bundle.regions.index(region)
 for year, ds in found_bundle.yearbundles():
-    print ds[sys.argv[2]]
+    print transform(ds)
     exit(0)

@@ -1,6 +1,8 @@
 import yaml
 from openest.generate import stdlib, arguments
 from generate import caller
+from interpret import specification
+from adaptation import csvvfile
 
 def create_calculation(postconf, models):
     if isinstance(postconf, str):
@@ -73,12 +75,12 @@ def create_calcstep(name, args, models, subcalc, extras={}):
                         if argtype.name in extras:
                             arglist.append(extras[argtype.name])
                         else:
-                            raise ValueError("Could not find required argument %s" % argtype.name)
+                            raise ValueError("Could not find required argument %s of %s" % (argtype.name, name))
                 else:
                     if argtype.name in extras:
                         arglist.append(extras[argtype.name])
                     else:
-                        raise ValueError("Could not find required argument %s" % argtype.name)
+                        raise ValueError("Could not find required argument %s of %s" % (argtype.name, name))
 
     try:
         return cls(*tuple(arglist))
@@ -95,3 +97,13 @@ def sample_sequence(calculation, region):
         for yearresult in application.push(subds):
             print "    ", yearresult
 
+def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', specconf={}, config={}):
+    # specconf here is the model containing a 'calculation' key
+    csvvfile.collapse_bang(csvv, qvals.get_seed())
+    covariator = specification.create_covariator(specconf, weatherbundle, economicmodel, config)
+    calculation = create_postspecification(specconf['calculation'], {}, None)
+
+    if covariator is None:
+        return calculation, [], lambda: {}
+    else:
+        return calculation, [], covariator.get_current
