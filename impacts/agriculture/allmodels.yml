@@ -7,25 +7,29 @@ models:
     covariates:
       - loggdppc
       - seasonaltas
-      - irshare
-      - irshare^2
+      - ir-share
+      - ir-share^2
+    description: Yield rate for soybeans
+    specifications:
+      gddkdd:
+        description: Temperature-driven yield rate for soybeans
+        depenunit: log kg / Ha
+        variables:
+          gdd-8-30: edd.bin(8) - edd.bin(30) [C day]
+          kdd-30: edd.bin(30) [C day]
+        functionalform: coefficients
+      precip:
+        description: Precipitation-driven yield rate for soybeans
+        depenunit: log kg / Ha
+        indepunit: mm
+        variable: prmm
+        functionalform: polynomial
+        allow-raising: yes
     calculation:
       - Sum:
-          - YearlySumIrregular:
-              specification:
-                description: Temperature-driven yield rate for soybeans
-                depenunit: log kg / Ha
-                indepunit: C
-                variables:
-                  gdd: edd.bin(8) - edd.bin(30)
-                  kdd: edd.bin(30)
-                functionalform: coefficients
-          - YearlySumIrregular:
-              specification:  
-                description: Precipitation-driven yield rate for soybeans
-                depenunit: log kg / Ha
-                indepunit: mm
-                variable: prmm
-                functionalform: polynomial
+        - YearlySumIrregular:
+            model: gddkdd
+        - YearlySumIrregular:
+            model: precip
       - Rebase
       - Exponentiate

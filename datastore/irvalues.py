@@ -8,7 +8,7 @@ def load_culture_months(filepath):
     culture_months = {}
     for index, row in df.iterrows():
         if not np.isnan(row['plant_month']) and not np.isnan(row['harvest_month']):
-            culture_months[index] = row['plant_month'], row['harvest_month']
+            culture_months[index] = int(row['plant_month']), int(row['harvest_month'])
 
     return culture_months
 

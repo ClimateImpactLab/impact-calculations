@@ -1,6 +1,7 @@
 import re
 import numpy as np
-import irvalues
+from openest.generate import fast_dataset
+from datastore import irvalues
 
 re_dotsplit = re.compile("\.(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)")
 
@@ -15,12 +16,12 @@ def interpret_ds_transform(name, config):
     if '.' in name:
         chunks = re_dotsplit.split(name)
         if len(chunks) > 1:
-            internal = lambda ds: post_process(ds[chunks[0]], ds.region, config)
+            internal = lambda ds: post_process(ds, chunks[0], config)
             for chunk in chunks[1:]:
                 internal = interpret_wrap_transform(chunk, internal)
             return internal
 
-    return lambda ds: post_process(ds[name], ds.region, config)
+    return lambda ds: post_process(ds, name, config)
 
 def interpret_wrap_transform(transform, internal):
     if transform[:4] == 'bin(':
@@ -29,13 +30,16 @@ def interpret_wrap_transform(transform, internal):
 
     assert False, "Unknown transform" + transform
 
-def post_process(data, region, config):
+def post_process(ds, name, config):
+    dataarr = ds[name]
+    
     if 'within-season' in config:
-        culture = irvalues.get_file_cached(config['within-season'])[region]
-        assert len(data) == 12
-        return sum(data[(culture[0]-1):(culture[1]-1)])
+        culture = irvalues.get_file_cached(config['within-season'], irvalues.load_culture_months).get(ds.region, None)
+        if culture is not None:
+            assert len(dataarr) == 12
+            return fast_dataset.FastDataArray(dataarr[(culture[0]-1):(culture[1]-1)], dataarr.original_coords, ds)
 
-    return data
+    return dataarr
 
 def read_range(text):
     items = map(lambda x: x.strip(), text.split(','))

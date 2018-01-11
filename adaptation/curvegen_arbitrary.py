@@ -1,5 +1,6 @@
 import curvegen
 import numpy as np
+from openest.generate.smart_curve import TransformCoefficientsCurve
 
 class CoefficientsCurveGenerator(curvegen.CSVVCurveGenerator):
     def __init__(self, curvefunc, indepunits, depenunit, prefix, order, csvv, zerostart=True):
@@ -11,13 +12,27 @@ class CoefficientsCurveGenerator(curvegen.CSVVCurveGenerator):
 
         super(CoefficientsCurveGenerator, self).__init__(prednames, indepunits, depenunit, csvv)
 
-    def get_curve_parameters(self, region, covariates={}):
+    def get_curve_parameters(self, region, year, covariates={}):
         allcoeffs = self.get_coefficients(covariates)
         return [allcoeffs[predname] for predname in self.prednames]
 
-    def get_curve(self, region, covariates={}):
+    def get_curve(self, region, year, covariates={}):
         mycoeffs = self.get_curve_parameters(region, year, covariates)
         return self.curvefunc(mycoeffs)
+
+class SumCoefficientsCurveGenerator(curvegen.CSVVCurveGenerator):
+    def __init__(self, prednames, ds_transforms, transform_descriptions, indepunits, depenunit, csvv):
+        super(SumCoefficientsCurveGenerator, self).__init__(prednames, indepunits, depenunit, csvv)
+        self.ds_transforms = ds_transforms
+        self.transform_descriptions = transform_descriptions
+    
+    def get_curve_parameters(self, region, year, covariates={}):
+        allcoeffs = self.get_coefficients(covariates)
+        return [allcoeffs[predname] for predname in self.prednames]
+
+    def get_curve(self, region, year, covariates={}):
+        mycoeffs = self.get_curve_parameters(region, year, covariates)
+        return TransformCoefficientsCurve(mycoeffs, [self.ds_transforms[predname] for predname in self.prednames], self.transform_descriptions)
 
 class MLECoefficientsCurveGenerator(CoefficientsCurveGenerator):
     def get_coefficients(self, covariates, debug=False):
