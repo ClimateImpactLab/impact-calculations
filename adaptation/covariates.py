@@ -180,14 +180,17 @@ class SeasonalWeatherCovariator(MeanWeatherCovariator):
                     self.byregion[region].update(np.mean(subds[self.variable]._values[plantii:harvestii]))
 
     def get_current(self, region):
-        return {'seasonal' + self.variable: self.byregion}
+        if region in self.culture_periods:
+            return {'seasonal' + self.variable: self.byregion[region].get()}
+        else:
+            return {'seasonal' + self.variable: np.nan}
 
     def get_update(self, region, year, ds):
         if ds is not None and year > self.startupdateyear:
             if region in self.culture_periods:
                 plantii = int(self.culture_periods[region][0] - 1)
                 harvestii = int(self.culture_periods[region][1] - 1)
-                self.byregion[region].update(ds[self.variable]._values[plantii:harvestii])
+                self.byregion[region].update(np.mean(ds[self.variable]._values[plantii:harvestii]))
 
         return self.get_current(region)
 
@@ -341,10 +344,10 @@ class ConstantCovariator(Covariator):
         self.irvalues = irvalues
 
     def get_current(self, region):
-        return {name: self.irvalues[region]}
+        return {self.name: self.irvalues[region]}
 
     def get_update(self, region, year, ds):
-        return {name: self.irvalues[region]}
+        return {self.name: self.irvalues[region]}
     
 class CombinedCovariator(Covariator):
     def __init__(self, covariators):
@@ -471,8 +474,8 @@ class PowerCovariator(Covariator):
         
     def get_update(self, region, year, ds):
         covars = self.source.get_update(region, year, ds)
-        return self.make_product(covars)
+        return self.make_power(covars)
 
     def get_current(self, region):
         covars = self.source.get_current(region)
-        return self.make_product(covars)
+        return self.make_power(covars)

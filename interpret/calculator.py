@@ -1,16 +1,27 @@
-import yaml
+import yaml, copy
 from openest.generate import stdlib, arguments
 from generate import caller
-from interpret import specification
+from interpret import specification, configs
 from adaptation import csvvfile
 
-def create_calculation(postconf, models):
+def prepare_argument(name, argument, models, argtype, extras={}):
+    if argtype in [arguments.model, arguments.curvegen, arguments.curve_or_curvegen]:
+        assert argument in models, "Unknonwn model %s" % argument
+        return models[argument]
+
+    if argtype == arguments.calculationss:
+        assert isinstance(argument, list)
+        return [create_calcstep(argii.keys()[0], argii.values()[0], models, None, extras=extras) for argii in argument]
+    
+    return argument
+
+def create_calculation(postconf, models, extras={}):
     if isinstance(postconf, str):
         with open(postconf, 'r') as fp:
             postconf = yaml.load(fp)
 
-    calculation = create_calcstep(postconf[0].keys()[0], postconf[0].values()[0], models, None)
-    return create_postspecification(postconf[1:], models, calculation)
+    calculation = create_calcstep(postconf[0].keys()[0], postconf[0].values()[0], models, None, extras=extras)
+    return create_postspecification(postconf[1:], models, calculation, extras=extras)
 
 def create_postspecification(postconf, models, calculation, extras={}):
     print postconf
@@ -39,19 +50,34 @@ def create_calcstep(name, args, models, subcalc, extras={}):
         get_argument = lambda name: generator.next()
     else:
         get_argument = lambda name: args[name]
-
+        if 'model' in args:
+            # Set this up as the default model
+            models = copy.copy(models)
+            models['default'] = models[args['model']]
+            extras = copy.copy(extras)
+            extras.update(extras[args['model']])
+            args = copy.copy(args)
+            del args['model']
+            return create_calcstep(name, args, models, subcalc, extras)
+        
     arglist = []
     kwargs = {}
     for argtype in cls.describe()['arguments']:
         if argtype == arguments.calculation:
             arglist.append(subcalc)
+        elif argtype == arguments.calculationss and len(cls.describe()['arguments']) == 1 and isinstance(args, list):
+            # Special case for list of subcalcs
+            arglist.append(prepare_argument(argtype.name, args, models, argtype, extras=extras))
         elif argtype in [arguments.model, arguments.curvegen, arguments.curve_or_curvegen]:
-            arglist.append(models['default'])
+            if 'default' in models:
+                arglist.append(models['default'])
+            else:
+                arglist.append(prepare_argument(argtype.name, get_argument(argtype.name), models, argtype, extras=extras))
         elif argtype.name in ['input_unit', 'output_unit'] and argtype.name in kwargs:
             arglist.append(kwargs[argtype.name])
         else:
             try:
-                arg = get_argument(argtype.name)
+                arg = prepare_argument(argtype.name, get_argument(argtype.name), models, argtype, extras=extras)
                 if argtype.name in ['input_unit', 'output_unit'] and ' -> ' in arg:
                     input_unit, output_unit = tuple(arg.split(' -> '))
                     kwargs['input_unit'] = input_unit
@@ -98,10 +124,25 @@ def sample_sequence(calculation, region):
             print "    ", yearresult
 
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', specconf={}, config={}):
-    # specconf here is the model containing a 'calculation' key
+    # specconf here is the model containing 'specification' and 'calculation' keys
+    assert 'calculation' in specconf
+    assert 'specifications' in specconf
+    
     csvvfile.collapse_bang(csvv, qvals.get_seed())
     covariator = specification.create_covariator(specconf, weatherbundle, economicmodel, config)
-    calculation = create_postspecification(specconf['calculation'], {}, None)
+
+    models = {}
+    extras = {}
+    for key in specconf['specifications']:
+        modelspecconf = configs.merge(specconf, specconf['specifications'][key])
+        model = specification.create_curvegen(csvv, covariator, weatherbundle.regions,
+                                              farmer=farmer, specconf=modelspecconf)
+        modelextras = dict(output_unit=modelspecconf['depenunit'], units=modelspecconf['depenunit'],
+                           curve_description=modelspecconf['description'])
+        models[key] = model
+        extras[key] = modelextras
+    
+    calculation = create_calculation(specconf['calculation'], models, extras=extras)
 
     if covariator is None:
         return calculation, [], lambda: {}

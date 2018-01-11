@@ -1,11 +1,11 @@
 import re
-from adaptation import csvvfile, curvegen, curvegen_known, covariates, constraints
+from adaptation import csvvfile, curvegen, curvegen_known, curvegen_arbitrary, covariates, constraints
 from datastore import irvalues
-from openest.generate.smart_curve import CoefficientsCurve
-from openest.models.curve import ShiftedCurve, MinimumCurve, ClippedCurve
+from openest.generate import smart_curve
+from openest.models.curve import ShiftedCurve, MinimumCurve, ClippedCurve, ZeroInterceptPolynomialCurve
 from openest.generate.stdlib import *
 from impactcommon.math import minpoly, minspline
-import calculator
+import calculator, variables
 
 def user_failure(message):
     print "ERROR: " + message
@@ -24,8 +24,8 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config={}):
         return covariates.BinnedEconomicCovariator(economicmodel, 2015, args, config=config)
     elif covar == 'climtas':
         return covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, 'tas', config=config), {'climtas': 'tas'})
-    elif covar == 'irshare':
-        return covariates.ConstantCovariator('irshare', irvalues.load_irweights("social/baselines/agriculture/world-combo-201710-irrigated-area.csv", 'irrigated_share'))
+    elif covar == 'ir-share':
+        return covariates.ConstantCovariator('ir-share', irvalues.load_irweights("social/baselines/agriculture/world-combo-201710-irrigated-area.csv", 'irrigated_share'))
     elif covar[:8] == 'seasonal':
         return covariates.SeasonalWeatherCovariator(weatherbundle, 2015, config['within-season'], covar[8:], config)
     elif '*' in covar:
@@ -54,8 +54,9 @@ def create_covariator(specconf, weatherbundle, economicmodel, config={}):
         
 def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
     user_assert('depenunit' in specconf, "Specification configuration missing 'depenunit' string.")
-    user_assert('indepunit' in specconf, "Specification configuration missing 'indepunit' string.")
     user_assert('functionalform' in specconf, "Specification configuration missing 'functionalform' string.")
+    if specconf['functionalform'] in ['polynomial', 'cubicspline']:
+        user_assert('indepunit' in specconf, "Specification configuration missing 'indepunit' string.")
 
     depenunit = specconf['depenunit']
 
@@ -71,13 +72,11 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
                 match = re.match(variable + r'(\d+)', predname)
                 if match:
                     order = max(order, int(match.group(1)))
-                else:
-                    user_failure("Predictor %s not interpretable for %s." % (predname, specconf['functionalform']))
                     
         curr_curvegen = curvegen_known.PolynomialCurveGenerator([indepunit] + ['%s^%d' % (indepunit, pow) for pow in range(2, order+1)],
                                                                 depenunit, variable, order, csvv)
         minfinder = lambda mintemp, maxtemp: lambda curve: minpoly.findpolymin([0] + curve.ccs, mintemp, maxtemp)
-        weathernames = ['tas'] + ['tas-poly-%d' % power for power in range(2, order+1)]
+        weathernames = [variable] + ['%s-poly-%d' % (variable, power) for power in range(2, order+1)]
     elif specconf['functionalform'] == 'cubic spline':
         knots = specconf['knots']
         prefix = specconf['prefix']
@@ -86,7 +85,20 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
         curr_curvegen = curvegen_known.CubicSplineCurveGenerator([indepunit] + ['%s^3' % indepunit] * (len(knots) - 2),
                                                              depenunit, prefix, knots, csvv)
         minfinder = lambda mintemp, maxtemp: lambda curve: minspline.findsplinemin(knots, curve.coeffs, mintemp, maxtemp)
-        weathernames = ['tas']
+        weathernames = [prefix]
+    elif specconf['functionalform'] == 'coefficients':
+        ds_transforms = {}
+        indepunits = []
+        transform_descriptions = []
+        for name in specconf['variables']:
+            match = re.match(r"^(.+?)\s+\[(.+?)\]$", specconf['variables'][name])
+            assert match is not None, "Could not find unit in %s" % specconf['variables'][name]
+            ds_transforms[name] = variables.interpret_ds_transform(match.group(1), specconf)
+            transform_descriptions.append(match.group(1))
+            indepunits.append(match.group(2))
+
+        curr_curvegen = curvegen_arbitrary.SumCoefficientsCurveGenerator(ds_transforms.keys(), ds_transforms, transform_descriptions, indepunits, depenunit, csvv)
+        weathernames = [] # Use curve directly
     else:
         user_failure("Unknown functional form %s." % specconf['functionalform'])
 
@@ -109,7 +121,10 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
 
     def transform(region, curve):
         if len(weathernames) > 1:
-            final_curve = CoefficientsCurve(curve.ccs, weathernames)
+            if isinstance(curve, ZeroInterceptPolynomialCurve):
+                final_curve = smart_curve.ZeroInterceptPolynomialCurve(curve.ccs, weathernames, specconf.get('allow-raising', False))
+            else:
+                final_curve = smart_curve.CoefficientsCurve(curve.ccs, weathernames)
         else:
             final_curve = curve
 

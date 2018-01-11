@@ -12,7 +12,7 @@ import numpy as np
 from impactlab_tools.utils import files
 from climate import discover
 from generate import weather, loadmodels
-from interpret import variable
+from interpret import variables
 
 region = "IND.33.542.2153"
 varname = ' '.join(sys.argv[2:])
@@ -32,7 +32,7 @@ else:
     # Use <config> <variable> syntax
     config = files.get_allargv_config()
 
-    transform = variable.interpret_ds_transform(varname, config)
+    transform = variables.interpret_ds_transform(varname, config)
     
     ## Note: Copied from generate.py
     if config['module'][-4:] == '.yml':
