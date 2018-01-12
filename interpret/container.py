@@ -60,10 +60,14 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
                 for filepath in glob.glob(files.sharedpath(csvv)):
                     basename = os.path.basename(filepath)[:-5]
                     produce_csvv(basename, filepath, module, specconf, targetdir, weatherbundle, economicmodel, pvals, configs.merge(config, model), push_callback, suffix, profile, diagnosefile)
+                    if profile:
+                        return
         else:
             for filepath in glob.glob(files.sharedpath(csvvs)):
                 basename = os.path.basename(filepath)[:-5]
                 produce_csvv(basename, filepath, module, specconf, targetdir, weatherbundle, economicmodel, pvals, configs.merge(config, model), push_callback, suffix, profile, diagnosefile)
+                if profile:
+                    return
 
 def produce_csvv(basename, csvv, module, specconf, targetdir, weatherbundle, economicmodel, pvals, config, push_callback, suffix, profile, diagnosefile):
     if specconf.get('csvv-organization', 'normal') == 'three-ages':
@@ -85,6 +89,9 @@ def produce_csvv(basename, csvv, module, specconf, targetdir, weatherbundle, eco
         calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals[basename], specconf=specconf, config=config, standard=False)
 
         effectset.generate(targetdir, basename + suffix, weatherbundle, calculation, specconf['description'] + ", with interpolation and adaptation through interpolation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, basename), diagnosefile=diagnosefile.replace('.csv', '-' + basename + '.csv') if diagnosefile else False)
+
+        if profile:
+            return
         
         if config.get('do_farmers', False) and not weatherbundle.is_historical():
             # Lock in the values
