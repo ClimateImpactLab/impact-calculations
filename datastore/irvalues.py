@@ -12,6 +12,16 @@ def load_culture_months(filepath):
 
     return culture_months
 
+def load_culture_doys(filepath):
+    df = pd.read_csv(files.sharedpath(filepath), index_col='hierid')
+
+    culture_dates = {}
+    for index, row in df.iterrows():
+        if not np.isnan(row['plant_date']) and not np.isnan(row['harvest_date']):
+            culture_dates[index] = int(row['plant_date']), int(row['harvest_date'])
+
+    return culture_dates
+
 def load_irweights(filepath, column, ircol='hierid'):
     df = pd.read_csv(files.sharedpath(filepath), index_col=ircol)
 

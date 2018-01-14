@@ -36,10 +36,7 @@ def check_doit(targetdir, basename, suffix, deletebad=False):
 
     return False
 
-def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callback=None, suffix='', profile=False, diagnosefile=False):
-    if push_callback is None:
-        push_callback = lambda reg, yr, app, predget, mod: None
-
+def get_modules(config):
     models = config['models']
     for model in models:
         csvvs = model['csvvs']
@@ -55,6 +52,13 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
         else:
             assert False, "Model missing one of 'module', 'specification', or 'calculation'."
 
+        yield model, csvvs, module, specconf
+
+def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callback=None, suffix='', profile=False, diagnosefile=False):
+    if push_callback is None:
+        push_callback = lambda reg, yr, app, predget, mod: None
+
+    for model, csvvs, module, specconf in get_modules(config):
         if isinstance(csvvs, list):
             for csvv in csvvs:
                 for filepath in glob.glob(files.sharedpath(csvv)):

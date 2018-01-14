@@ -76,7 +76,11 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
         curr_curvegen = curvegen_known.PolynomialCurveGenerator([indepunit] + ['%s^%d' % (indepunit, pow) for pow in range(2, order+1)],
                                                                 depenunit, variable, order, csvv)
         minfinder = lambda mintemp, maxtemp: lambda curve: minpoly.findpolymin([0] + curve.ccs, mintemp, maxtemp)
-        weathernames = [variable] + ['%s-poly-%d' % (variable, power) for power in range(2, order+1)]
+        if 'within-season' in specconf:
+            weathernames = [lambda ds: variables.post_process(ds, variable, specconf)] * order
+        else:
+            weathernames = [variable] + ['%s-poly-%d' % (variable, power) for power in range(2, order+1)]
+            
     elif specconf['functionalform'] == 'cubic spline':
         knots = specconf['knots']
         prefix = specconf['prefix']
