@@ -1,7 +1,7 @@
 timerate: month
 climate: [ tas, edd, prmm ] # , prmm-poly-2, prmm-poly-3, prmm-poly-4
 models:
-  - csvvs: "social/parameters/agriculture/soy/*.csvv"
+  - csvvs: "social/parameters/agriculture/soy/*08.csvv"
     within-season: "social/baselines/agriculture/world-combo-201710-growing-seasons-soy.csv"
     clipping: false
     covariates:

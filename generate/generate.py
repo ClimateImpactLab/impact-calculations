@@ -7,6 +7,7 @@ from collections import OrderedDict
 import loadmodels
 import weather, pvalses, timing
 from adaptation import curvegen
+from openest.generate import diagnostic
 from impactlab_tools.utils import files, paralog
 import cProfile, pstats, StringIO, metacsv
 
@@ -112,6 +113,11 @@ def polypush_callback(region, year, application, get_predictors, model):
         predictors = get_predictors(region)
         writer.writerow([region, year, model] + [predictors[covar] for covar in covars])
 
+def genericpush_callback(region, year, application, get_predictors, model):
+    predictors = get_predictors(region)
+    for predictor in predictors:
+        diagnostic.record(region, year, predictor, predictors[predictor])
+
 mode_iterators = {'median': iterate_median, 'montecarlo': iterate_montecarlo, 'lincom': iterate_single, 'single': iterate_single, 'writesplines': iterate_single, 'writepolys': iterate_single, 'writecalcs': iterate_single, 'profile': iterate_nosideeffects, 'diagnostic': iterate_nosideeffects}
 
 assert 'mode' in config, "Configuration does not contain 'mode'."
@@ -171,6 +177,8 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
         mod.produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callback=splinepush_callback, diagnosefile=os.path.join(targetdir, shortmodule + "-allcalcs.csv"))
     elif config['mode'] in ['writepolys', 'lincom']:
         mod.produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callback=polypush_callback, diagnosefile=os.path.join(targetdir, shortmodule + "-allcalcs.csv"))
+    elif config['mode'] in ['writecalcs']:
+        mod.produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callback=genericpush_callback, diagnosefile=os.path.join(targetdir, shortmodule + "-allcalcs.csv"))
     elif config['mode'] == 'profile':
         mod.produce(targetdir, weatherbundle, economicmodel, pvals, config, profile=True)
         pr.disable()
@@ -188,7 +196,7 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
     else:
         mod.produce(targetdir, weatherbundle, economicmodel, pvals, config)
 
-    if config['mode'] not in ['writesplines', 'writepolys', 'diagnostic'] or config.get('do_historical', False):
+    if config['mode'] not in ['writesplines', 'writepolys', 'writecalcs', 'diagnostic'] or config.get('do_historical', False):
         # Generate historical baseline
         print "Historical"
         historybundle = weather.HistoricalWeatherBundle.make_historical(weatherbundle, None if config['mode'] == 'median' else pvals['histclim'].get_seed())

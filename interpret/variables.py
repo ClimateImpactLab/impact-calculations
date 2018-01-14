@@ -25,19 +25,25 @@ def interpret_ds_transform(name, config):
 
 def interpret_wrap_transform(transform, internal):
     if transform[:4] == 'bin(':
-        value = float(transform[4:-1])
+        value = float(transform[4:-1]) if '.' in transform else int(transform[4:-1])
         return lambda ds: internal(ds).sel(bin_edges=value)
-
+    
     assert False, "Unknown transform" + transform
 
 def post_process(ds, name, config):
     dataarr = ds[name]
     
     if 'within-season' in config:
-        culture = irvalues.get_file_cached(config['within-season'], irvalues.load_culture_months).get(ds.region, None)
-        if culture is not None:
-            assert len(dataarr) == 12
-            return fast_dataset.FastDataArray(dataarr[(culture[0]-1):(culture[1]-1)], dataarr.original_coords, ds)
+        if len(dataarr) == 12:
+            culture = irvalues.get_file_cached(config['within-season'], irvalues.load_culture_months).get(ds.region, None)
+            if culture is not None:
+                return fast_dataset.FastDataArray(dataarr[(culture[0]-1):(culture[1]-1)], dataarr.original_coords, ds)
+        elif len(dataarr) == 365:
+            culture = irvalues.get_file_cached(config['within-season'], irvalues.load_culture_doys).get(ds.region, None)
+            if culture is not None:
+                return fast_dataset.FastDataArray(dataarr[(culture[0]-1):(culture[1]-1)], dataarr.original_coords, ds)
+        else:
+            assert False, "Not expected number of elements: %s" % str(dataarr.shape)
 
     return dataarr
 
