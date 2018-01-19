@@ -39,7 +39,7 @@ class SumCoefficientsCurveGenerator(curvegen.CSVVCurveGenerator):
             for ii in range(len(self.prednames)):
                 diagnostic.record(region, covariates.get('year', 2000), self.diagprefix + self.prednames[ii], mycoeffs[ii])
 
-        return TransformCoefficientsCurve(mycoeffs, [self.ds_transforms[predname] for predname in self.prednames], self.transform_descriptions)
+        return TransformCoefficientsCurve(mycoeffs, [self.ds_transforms[predname] for predname in self.prednames], self.transform_descriptions, self.prednames if recorddiag and diagnostic.is_recording() else None)
 
     def format_call(self, lang, *args):
         if lang == 'latex':

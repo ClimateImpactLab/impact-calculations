@@ -8,7 +8,11 @@ def load_culture_months(filepath):
     culture_months = {}
     for index, row in df.iterrows():
         if not np.isnan(row['plant_month']) and not np.isnan(row['harvest_month']):
-            culture_months[index] = int(row['plant_month']), int(row['harvest_month'])
+            plant = int(row['plant_month'])
+            harvest = int(row['harvest_month'])
+            if harvest < plant:
+                harvest += 12
+            culture_months[index] = plant, harvest
 
     return culture_months
 
@@ -18,7 +22,11 @@ def load_culture_doys(filepath):
     culture_dates = {}
     for index, row in df.iterrows():
         if not np.isnan(row['plant_date']) and not np.isnan(row['harvest_date']):
-            culture_dates[index] = int(row['plant_date']), int(row['harvest_date'])
+            plant = int(row['plant_date'])
+            harvest = int(row['harvest_date'])
+            if harvest < plant:
+                harvest += 12
+            culture_dates[index] = plant, harvest
 
     return culture_dates
 

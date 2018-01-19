@@ -19,7 +19,7 @@ def get_bundle_iterator(config):
     if len(discoverers) == 1:
         return discoverers[0]
 
-    return weather.iterate_bundles(*discoverers)
+    return weather.iterate_bundles(*discoverers, **config)
 
 def check_doit(targetdir, basename, suffix, deletebad=False):
     filepath = os.path.join(targetdir, basename + suffix + '.nc4')

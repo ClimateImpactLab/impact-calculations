@@ -1,4 +1,5 @@
 timerate: month
+rolling-years: 2
 climate: [ tas, edd, prmm ] # , prmm-poly-2, prmm-poly-3, prmm-poly-4
 models:
   - csvvs: "social/parameters/agriculture/soy/*08.csvv"

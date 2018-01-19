@@ -42,14 +42,14 @@ def standard_variable(name, timerate):
             return discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'pr')
     if timerate == 'month':
         if name == 'tas':
-            return discover_day2month(standard_variable(name, 'day'),  lambda arr, dim: np.sum(arr, axis=dim))
+            return discover_day2month(standard_variable(name, 'day'),  lambda arr, dim: np.mean(arr, axis=dim))
         if name == 'tasbin':
             return discover_binned(files.sharedpath('climate/BCSD/aggregation/cmip5_bins/IR_level'), 'year', # Should this be year?
                                    'tas/tas_Bindays_aggregated_%scenario_r1i1p1_%model_%d.nc', 'SHAPENUM', 'DayNumber')
         if name == 'edd':
             return discover_rename(
                 discover_binned(files.sharedpath('climate/BCSD/Agriculture/Degree_days/snyder'), 'month',
-                                'Degreedays_aggregated_%scenario_%model_cropwt_%d.nc', 'SHAPENUM', 'EDD_agg', include_patterns=False), {'EDD_agg': 'edd'})
+                                'Degreedays_aggregated_%scenario_%model_cropwt_%d.nc', 'SHAPENUM', 'EDD_agg', include_patterns=False), {'EDD_agg': 'edd', 'month': 'time'})
         if name == 'prmm':
             discover_iterator = standard_variable(name, 'day')
             return discover_rename(
@@ -261,9 +261,19 @@ def discover_rename(discover_iterator, name_dict):
 def discover_day2month(discover_iterator, accumfunc):
     #time_conversion = lambda days: np.unique(np.floor((days % 1000) / 30.4167)) # Should just give 0 - 11
     time_conversion = lambda days: np.arange(12)
-    ds_conversion = lambda ds: fast_dataset.FastDataset({name: data_vars_time_conversion(name, ds, 'vars', accumfunc) for name in ds.variables},
-                                                        coords={name: data_vars_time_conversion(name, ds, 'coords', accumfunc) for name in ds.coords},
-                                                        attrs=ds.attrs)
+    def ds_conversion(ds):
+        vars_only = ds.variables.keys()
+        for name in ds.coords:
+            if name in vars_only:
+                vars_only.remove(name)
+        used_coords = ds.coords
+        if 'yyyyddd' in used_coords:
+            del used_coords['yyyyddd']
+
+        ds = fast_dataset.FastDataset({name: data_vars_time_conversion(name, ds, 'vars', accumfunc) for name in vars_only},
+                                      coords={name: data_vars_time_conversion(name, ds, 'coords', accumfunc) for name in used_coords},
+                                      attrs=ds.attrs)
+        return ds
     
     return discover_convert(discover_iterator, time_conversion, ds_conversion)
 
@@ -277,7 +287,7 @@ def data_vars_time_conversion(name, ds, varset, accumfunc):
             assert False, "Unknown varset."
     else:
         if varset == 'vars':
-            vardef = ds.variables[name]
+            vardef = (ds.variables[name].dims, ds.variables[name].values)
         elif varset == 'coords':
             vardef = ds.coords[name]
         else:
@@ -297,7 +307,7 @@ def data_vars_time_conversion(name, ds, varset, accumfunc):
             beforeindex[dimnum] = slice(int(mm * 30.4167), int((mm+1) * 30.4167))
             afterindex = [slice(None)] * len(vardef[0])
             afterindex[dimnum] = mm
-            result[tuple(afterindex)] = accumfunc(vardef[tuple(myindex)], dimnum)
+            result[tuple(afterindex)] = accumfunc(vardef[1][tuple(beforeindex)], dimnum)
 
         return (vardef[0], result)
 
