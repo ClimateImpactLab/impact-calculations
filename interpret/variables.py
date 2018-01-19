@@ -34,15 +34,16 @@ def post_process(ds, name, config):
     dataarr = ds[name]
     
     if 'within-season' in config:
-        if len(dataarr) == 12:
+        if len(dataarr) == 24:
             culture = irvalues.get_file_cached(config['within-season'], irvalues.load_culture_months).get(ds.region, None)
             if culture is not None:
                 return fast_dataset.FastDataArray(dataarr[(culture[0]-1):(culture[1]-1)], dataarr.original_coords, ds)
-        elif len(dataarr) == 365:
+        elif len(dataarr) == 730:
             culture = irvalues.get_file_cached(config['within-season'], irvalues.load_culture_doys).get(ds.region, None)
             if culture is not None:
                 return fast_dataset.FastDataArray(dataarr[(culture[0]-1):(culture[1]-1)], dataarr.original_coords, ds)
         else:
+            print ds
             assert False, "Not expected number of elements: %s" % str(dataarr.shape)
 
     return dataarr

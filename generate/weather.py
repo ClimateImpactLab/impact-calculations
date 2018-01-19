@@ -8,15 +8,27 @@ import helpers.header as headre
 from climate import netcdfs
 from datastore import irregions
 
+class WeatherTransformer(object):
+    def push(self, year, ds):
+        yield year, ds
+
+    def get_years(self, years):
+        return years
+
 def iterate_bundles(*iterators_readers, **config):
     """
     Return bundles for each RCP and model.
     """
+    if 'rolling-years' in config:
+        transformer = RollingYearTransfomer(config['rolling-years'])
+    else:
+        transformer = WeatherTransformer()
+
     if len(iterators_readers) == 1:
         for scenario, model, pastreader, futurereader in iterators_readers[0]:
             if 'gcm' in config and config['gcm'] != model:
                 continue
-            weatherbundle = PastFutureWeatherBundle([(pastreader, futurereader)], scenario, model)
+            weatherbundle = PastFutureWeatherBundle([(pastreader, futurereader)], scenario, model, transformer=transformer)
             yield scenario, model, weatherbundle
         return
     
@@ -33,7 +45,7 @@ def iterate_bundles(*iterators_readers, **config):
         if len(scenmodels[(scenario, model)]) < len(iterators_readers):
             continue
 
-        weatherbundle = PastFutureWeatherBundle(scenmodels[(scenario, model)], scenario, model)
+        weatherbundle = PastFutureWeatherBundle(scenmodels[(scenario, model)], scenario, model, transformer=transformer)
         yield scenario, model, weatherbundle
 
 def iterate_amorphous_bundles(iterators_reader_dict):
@@ -65,11 +77,12 @@ class WeatherBundle(object):
     below.
     """
 
-    def __init__(self, scenario, model, hierarchy='hierarchy.csv'):
+    def __init__(self, scenario, model, hierarchy='hierarchy.csv', transformer=WeatherTransformer()):
         self.dependencies = []
         self.scenario = scenario
         self.model = model
         self.hierarchy = hierarchy
+        self.transformer = transformer
 
     def is_historical(self):
         """Returns True if this data presents historical observations; else False."""
@@ -86,8 +99,8 @@ class WeatherBundle(object):
             self.dependencies = reader.dependencies
 
 class ReaderWeatherBundle(WeatherBundle):
-    def __init__(self, reader, scenario, model, hierarchy='hierarchy.csv'):
-        super(ReaderWeatherBundle, self).__init__(scenario, model, hierarchy)
+    def __init__(self, reader, scenario, model, hierarchy='hierarchy.csv', transformer=WeatherTransformer()):
+        super(ReaderWeatherBundle, self).__init__(scenario, model, hierarchy, transformer)
         self.reader = reader
 
         self.load_readermeta(reader)
@@ -158,14 +171,15 @@ class SingleWeatherBundle(ReaderWeatherBundle, DailyWeatherBundle):
 
     def yearbundles(self, maxyear=np.inf):
         for year, ds in self.reader.read_iterator_to(maxyear):
-            yield year, ds
+            for year2, ds2 in self.transformer.push(year, ds):
+                yield year2, ds2
 
     def get_years(self):
-        return self.reader.get_years()
+        return self.transformer.get_years(self.reader.get_years())
 
 class PastFutureWeatherBundle(DailyWeatherBundle):
-    def __init__(self, pastfuturereaders, scenario, model, hierarchy='hierarchy.csv'):
-        super(PastFutureWeatherBundle, self).__init__(scenario, model, hierarchy)
+    def __init__(self, pastfuturereaders, scenario, model, hierarchy='hierarchy.csv', transformer=WeatherTransformer()):
+        super(PastFutureWeatherBundle, self).__init__(scenario, model, hierarchy, transformer)
         self.pastfuturereaders = pastfuturereaders
 
         for pastfuturereader in pastfuturereaders:
@@ -186,7 +200,8 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
             for ds in self.pastfuturereaders[0][0].read_iterator_to(min(self.futureyear1, maxyear)):
                 assert ds.region.shape[0] == len(self.regions)
                 year = ds['time.year'][0]
-                yield year, ds
+                for year2, ds2 in self.transformer.push(year, ds):
+                    yield year2, ds2
 
             lastyear = year
             if maxyear > self.futureyear1:
@@ -195,7 +210,8 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
                     if year <= lastyear:
                         continue # allow for overlapping weather
                     assert ds.region.shape[0] == len(self.regions)
-                    yield year, ds
+                    for year2, ds2 in self.transformer.push(year, ds):
+                        yield year2, ds2
             return
         
         for year in self.get_years():
@@ -218,10 +234,11 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
                 assert ds.region.shape[0] == len(self.regions)
                 allds = fast_dataset.merge((allds, ds)) #xr.merge((allds, ds))
 
-            yield year, allds
+            for year2, ds2 in self.transformer.push(year, allds):
+                yield year2, ds2
 
     def get_years(self):
-        return np.unique(self.pastfuturereaders[0][0].get_years() + self.pastfuturereaders[0][1].get_years())
+        return self.transformer.get_years(np.unique(self.pastfuturereaders[0][0].get_years() + self.pastfuturereaders[0][1].get_years()))
 
     def get_dimension(self):
         alldims = []
@@ -231,8 +248,8 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
         return alldims
 
 class HistoricalWeatherBundle(DailyWeatherBundle):
-    def __init__(self, pastreaders, futureyear_end, seed, scenario, model, hierarchy='hierarchy.csv'):
-        super(HistoricalWeatherBundle, self).__init__(scenario, model, hierarchy)
+    def __init__(self, pastreaders, futureyear_end, seed, scenario, model, hierarchy='hierarchy.csv', transformer=WeatherTransformer()):
+        super(HistoricalWeatherBundle, self).__init__(scenario, model, hierarchy, transformer)
         self.pastreaders = pastreaders
 
         onereader = self.pastreaders[0]
@@ -275,7 +292,8 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
             for pastyear in self.pastyears:
                 if year > maxyear:
                     break
-                yield year, self.reader.read_year(pastyear)
+                for year2, ds2 in self.transformer.push(year, self.reader.read_year(pastyear)):
+                    yield year2, ds2
                 year += 1
             return
             
@@ -287,7 +305,8 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
                 ds = pastreader.read_year(pastyear)
                 allds = xr.merge((allds, ds))
 
-            yield year, allds
+            for year2, ds2 in self.transformer.push(year, allds):
+                yield year2, ds2
             year += 1
 
     def get_years(self):
@@ -307,11 +326,35 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
         return HistoricalWeatherBundle(pastreaders, futureyear_end, seed, weatherbundle.scenario, weatherbundle.model)
 
 class AmorphousWeatherBundle(WeatherBundle):
-    def __init__(self, pastfuturereader_dict, scenario, model, hierarchy='hierarchy.csv'):
-        super(AmorphousWeatherBundle, self).__init__(scenario, model, hierarchy)
+    def __init__(self, pastfuturereader_dict, scenario, model, hierarchy='hierarchy.csv', transformer=WeatherTransformer()):
+        super(AmorphousWeatherBundle, self).__init__(scenario, model, hierarchy, transformer)
 
         self.pastfuturereader_dict = pastfuturereader_dict
         
     def get_concrete(self, names):
         pastfuturereaders = [self.pastfuturereader_dict[name] for name in names]
         return PastFutureWeatherBundle(pastfuturereaders, self.scenario, self.model)
+
+class RollingYearTransfomer(WeatherTransformer):
+    def __init__(self, rolling_years=1):
+        self.rolling_years = rolling_years
+        assert self.rolling_years > 1
+        self.pastdses = []
+        self.last_year = None
+
+    def get_years(self, years):
+        return years[:-self.rolling_years + 1]
+        
+    def push(self, year, ds):
+        if self.last_year is not None and year != self.last_year + 1:
+            self.pastdses = []
+        self.last_year = year
+        
+        if len(self.pastdses) < self.rolling_years:
+            self.pastdses.append(ds)
+        else:
+            self.pastdses = self.pastdses[1:] + [ds]
+
+        if len(self.pastdses) == self.rolling_years:
+            ds = fast_dataset.concat(self.pastdses, dim='time')
+            yield year - self.rolling_years + 1, ds
