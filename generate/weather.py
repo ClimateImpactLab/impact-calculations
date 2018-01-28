@@ -303,7 +303,7 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
             allds = xr.Dataset({'region': self.regions})
             for pastreader in self.pastreaders:
                 ds = pastreader.read_year(pastyear)
-                allds = xr.merge((allds, ds))
+                allds = fast_dataset.merge((allds, ds)) #xr.merge((allds, ds))
 
             for year2, ds2 in self.transformer.push(year, allds):
                 yield year2, ds2
