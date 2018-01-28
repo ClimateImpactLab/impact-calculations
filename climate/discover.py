@@ -41,7 +41,7 @@ def standard_variable(name, timerate):
         if name == 'prmm':
             return discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'pr')
     if timerate == 'month':
-        if name == 'tas':
+        if name in ['tas', 'tasmax']:
             return discover_day2month(standard_variable(name, 'day'),  lambda arr, dim: np.mean(arr, axis=dim))
         if name == 'tasbin':
             return discover_binned(files.sharedpath('climate/BCSD/aggregation/cmip5_bins/IR_level'), 'year', # Should this be year?
