@@ -25,6 +25,8 @@ def readmeta(filepath, variable):
     assert os.path.exists(filepath), filepath + " does not exist."
 
     rootgrp = Dataset(filepath, 'r', format='NETCDF4')
+    assert variable in rootgrp.variables, "%s does not contain %s." % (filepath, variable)
+
     version = rootgrp.version
     if hasattr(rootgrp.variables[variable], 'units'):
         units = rootgrp.variables[variable].units
