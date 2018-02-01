@@ -1,6 +1,6 @@
 ## Equivalent to `allmodels.py` for imperics .yml specifications.
 
-import os, glob, copy
+import os, glob, copy, warnings
 from impactlab_tools.utils import files
 from generate import weather, server, effectset, caller, checks
 from adaptation import csvvfile
@@ -55,7 +55,11 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
                     basename = os.path.basename(filepath)[:-5]
                     produce_csvv(basename, filepath, module, specconf, targetdir, weatherbundle, economicmodel, pvals, config, push_callback, suffix, profile, diagnosefile)
         else:
-            for filepath in glob.glob(files.sharedpath(csvvs)):
+            filepaths = glob.glob(files.sharedpath(csvvs))
+            if not filepaths:
+                warnings.warn("Cannot find any files that match %s" % files.sharedpath(csvvs))
+                
+            for filepath in filepaths:
                 basename = os.path.basename(filepath)[:-5]
                 produce_csvv(basename, filepath, module, specconf, targetdir, weatherbundle, economicmodel, pvals, config, push_callback, suffix, profile, diagnosefile)
 
