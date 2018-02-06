@@ -78,7 +78,8 @@ Basic model configration:
 * `clipping` (required): Should values less than 0 be replaced with 0?
 
 * `covariates` (required): A list of known covariate names,
-  interpretted by `interpret.specification::get_covriator`.
+  interpretted by `interpret.specification::get_covriator`.  See the
+  Covariates Expressions below, for more information.
   
 * `description` (required): A description for the final result of the
   calculation.
@@ -95,8 +96,8 @@ Basic model configration:
   weather parameters will be limited to seasons specified by the given
   CSV file.  The columns of file should include `hierid`,
   `plant_date`, `harvest_date`, `plant_month`, `harvest_month`.
-  
-Specification configuration:
+
+## Specification configuration:
 
 The specification configuration can be specified by the following two
 structures:
@@ -151,7 +152,24 @@ The coefficients form has the following additional options:
   form:
   `<variable-name>: <variable definition> [<unit>]`
 
-Calculation (or post-calculation) options:
+## Covariates Expressions:
+
+Here is the current list of known covariates, all of which are
+long-run averages (typically with a Bartlett kernel):
+
+* `loggdppc`: Log GDP per capita
+* `logpopop`: Log population-weighted population density
+* `incbin`: Binned income (indicators for each log income bin); takes a list of N+1 log income knots.
+* `climtas`: Average temperature (C)
+* `ir-share`: Share of the area under irrigation
+
+Modifications of covariates:
+
+* `seasonal...`: The seasonal prefix only averages the covariate values for the `within-season` span.
+* `*`: Multiplication of two covariates.
+* `^`: A covariate raised to a power.
+
+## Calculation (or post-calculation) options:
 
 The list of calculation step known can be given by
 `interpret.available`.  Each calculation step has different
