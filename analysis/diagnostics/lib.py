@@ -1,5 +1,7 @@
 import subprocess, csv, os
 import numpy as np
+import pandas as pd
+import xarray as xr
 from netCDF4 import Dataset
 
 def show_header(text):
@@ -52,7 +54,7 @@ def get_excerpt(filepath, first_col, regionid, years, hasmodel=True, onlymodel=N
                 if row[1] in data:
                     # Just fill in NAs (until we figure out why dubling up lines)
                     for ii in range(len(data[row[1]])):
-                        if np.isnan(data[row[1]][ii]):
+                        if np.isnan(data[row[1]][ii]) and row[first_col+ii] != 'NA':
                             data[row[1]][ii] = float(row[first_col+ii])
                 else:
                     data[row[1]] = map(lambda x: float(x) if x != 'NA' else np.nan, row[first_col:])
@@ -164,19 +166,21 @@ def get_adm0_regionindices(adm0):
             if row[0][:3] == adm0 and row[6] != '':
                 yield int(row[6]) - 1
 
-def get_weather(weathertemplate, years, shapenum=None, show_all_years=[], variable='tas'):
+def get_weather(weathertemplate, years, shapenum, show_all_years=[], variable='tas', regindex='hierid', subset=None):
     weather = {}
     for year in years:
         filepath = weathertemplate.format('historical' if year < 2006 else 'rcp85', year)
         assert os.path.exists(filepath), "Cannot find %s" % filepath
-        rootgrp = Dataset(filepath, 'r', format='NETCDF4')
+        ds = xr.open_dataset(filepath)
         if isinstance(shapenum, str):
-            regions = rootgrp.variables['hierid'][:]
-            regions = [''.join([region[ii] for ii in range(len(region)) if region[ii] is not np.ma.masked]) for region in regions]
+            regions = list(ds[regindex].values)
             shapenum = regions.index(shapenum)
             
-        data = rootgrp.variables[variable][:, shapenum]
-        rootgrp.close()
+        data = ds[variable].isel(**{regindex: shapenum})
+        if subset is None:
+            data = data.values
+        else:
+            data = data[subset].values
 
         if year in show_all_years:
             print str(year) + ': ' + ','.join(map(str, data))
@@ -204,3 +208,12 @@ def get_outputs(outputpath, years, shapenum, timevar='year'):
         print ','.join([str(year)] + [str(data[var]) for var in outvars])
 
     return outputs
+
+def get_region_data(filepath, region, indexcol='hierid'):
+    df = pd.read_csv(filepath, index_col=indexcol)
+    header = df.columns.values
+    print ','.join(header)
+    row = df.loc[region]
+    print ','.join(map(str, row))
+
+    return {header[ii]: row[ii] for ii in range(len(header))}

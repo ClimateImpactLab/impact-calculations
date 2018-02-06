@@ -2,20 +2,30 @@
 Provides iterators of WeatherReaders (typically a historical and a
 future reader).
 """
-import os
+import os, re, copy
+import numpy as np
 from impactlab_tools.utils import files
+from openest.generate import fast_dataset
 from reader import ConversionWeatherReader, RegionReorderWeatherReader, HistoricalCycleReader, RenameReader
-from dailyreader import DailyWeatherReader, YearlyBinnedWeatherReader
+from dailyreader import DailyWeatherReader, YearlyBinnedWeatherReader, MonthlyBinnedWeatherReader
 from yearlyreader import YearlyWeatherReader
 import pattern_matching
 
+re_dotsplit = re.compile("\.(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)")
+
 def standard_variable(name, timerate):
     if '/' in name:
-        return discover_versioned(files.configpath(name), os.path.basename(name))
+        if os.path.exists(files.configpath(name)):
+            return discover_versioned(files.configpath(name), os.path.basename(name))
 
-    if name[-9:] == '.histclim':
-        return discover_makehist(standard_variable(name[:-9], timerate))
-    
+    if '.' in name:
+        chunks = re_dotsplit.split(name)
+        if len(chunks) > 1:
+            var = standard_variable(chunks[0], timerate)
+            for chunk in chunks[2:]:
+                var = interpret_transform(var, chunk)
+            return var
+        
     assert timerate in ['day', 'month', 'year']
 
     if timerate == 'day':
@@ -28,10 +38,36 @@ def standard_variable(name, timerate):
             return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/" + name), name)
         if name in ['tasmax' + str(ii) for ii in range(2, 10)]:
             return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tasmax-poly-" + name[6]), 'tasmax-poly-' + name[6])
+        if name == 'prmm':
+            return discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'pr')
+    if timerate == 'month':
+        if name in ['tas', 'tasmax']:
+            return discover_day2month(standard_variable(name, 'day'),  lambda arr, dim: np.mean(arr, axis=dim))
+        if name == 'tasbin':
+            return discover_binned(files.sharedpath('climate/BCSD/aggregation/cmip5_bins/IR_level'), 'year', # Should this be year?
+                                   'tas/tas_Bindays_aggregated_%scenario_r1i1p1_%model_%d.nc', 'SHAPENUM', 'DayNumber')
+        if name == 'edd':
+            return discover_rename(
+                discover_binned(files.sharedpath('climate/BCSD/Agriculture/Degree_days/snyder'), 'month',
+                                'Degreedays_aggregated_%scenario_%model_cropwt_%d.nc', 'SHAPENUM', 'EDD_agg', include_patterns=False), {'EDD_agg': 'edd', 'month': 'time'})
+        if name == 'prmm':
+            discover_iterator = standard_variable(name, 'day')
+            return discover_rename(
+                discover_day2month(discover_iterator, lambda arr, dim: np.sum(arr, axis=dim)), {'pr': 'prmm'})
 
     raise ValueError("Unknown variable: " + name)
-        
-def discover_models(basedir):
+
+def interpret_transform(var, transform):
+    if transform == 'histclim':
+        return discover_makehist(var)
+
+    if transform[:7] == 'gddkdd(':
+        lower, upper = tuple(map(float, transform[7:-1].split(',')))
+        return discover_makegddkdd(var, lower, upper)
+    
+    assert False, "Cannot interpret transformation %s" % transform
+
+def discover_models(basedir, include_patterns=True):
     """
     basedir points to directory with both 'historical', 'rcp*'
     """
@@ -42,7 +78,11 @@ def discover_models(basedir):
         if scenario[0:3] != 'rcp':
             continue
 
-        for model in models + pattern_matching.rcp_models[scenario].keys():
+        modelset = copy.copy(models)
+        if include_patterns:
+            modelset += pattern_matching.rcp_models[scenario].keys()
+
+        for model in modelset:
             pastdir = os.path.join(basedir, 'historical', model)
             futuredir = os.path.join(basedir, scenario, model)
 
@@ -59,13 +99,18 @@ def discover_models(basedir):
 ### Reader discovery functions
 # Yields (scenario, model, pastreader, futurereader)
 
-def discover_tas_binned(basedir):
-    for scenario, model, pastdir, futuredir in discover_models(basedir):
-        pasttemplate = os.path.join(pastdir, 'tas/tas_Bindays_aggregated_historical_r1i1p1_' + model + '_%d.nc')
-        futuretemplate = os.path.join(futuredir, 'tas/tas_Bindays_aggregated_' + scenario + '_r1i1p1_' + model + '_%d.nc')
-
-        pastreader = YearlyBinnedWeatherReader(pasttemplate, 1981, 'SHAPENUM', 'DayNumber')
-        futurereader = YearlyBinnedWeatherReader(futuretemplate, 2006, 'SHAPENUM', 'DayNumber')
+def discover_binned(basedir, timerate, template, regionvar, ncvar, include_patterns=True):
+    for scenario, model, pastdir, futuredir in discover_models(basedir, include_patterns=include_patterns):
+        get_template = lambda scenario, model: template.replace("%scenario", scenario).replace("%model", model)
+        pasttemplate = os.path.join(pastdir, get_template('historical', model))
+        futuretemplate = os.path.join(futuredir, get_template(scenario, model))
+        
+        if timerate == 'year':
+            pastreader = YearlyBinnedWeatherReader(pasttemplate, 1981, regionvar, ncvar)
+            futurereader = YearlyBinnedWeatherReader(futuretemplate, 2006, regionvar, ncvar)
+        elif timerate == 'month':
+            pastreader = MonthlyBinnedWeatherReader(pasttemplate, 1981, regionvar, ncvar)
+            futurereader = MonthlyBinnedWeatherReader(futuretemplate, 2006, regionvar, ncvar)
 
         yield scenario, model, pastreader, futurereader
 
@@ -75,16 +120,26 @@ def discover_variable(basedir, variable, withyear=True, rcp_only=None):
             continue
 
         if withyear:
-            pasttemplate = os.path.join(pastdir, variable, variable + '_day_aggregated_historical_r1i1p1_' + model + '_%d.nc')
+            if model in pattern_matching.rcp_models[scenario]:
+                pasttemplate = os.path.join(pastdir, variable, variable + '_day_aggregated_historical_r1i1p1_' + pattern_matching.rcp_models[scenario][model] + '_%d.nc')
+            else:
+                pasttemplate = os.path.join(pastdir, variable, variable + '_day_aggregated_historical_r1i1p1_' + model + '_%d.nc')
             futuretemplate = os.path.join(futuredir, variable, variable + '_day_aggregated_' + scenario + '_r1i1p1_' + model + '_%d.nc')
+            if not os.path.exists(futuretemplate % 2006):
+                continue
 
             pastreader = DailyWeatherReader(pasttemplate, 1981, 'SHAPENUM', variable)
             futurereader = DailyWeatherReader(futuretemplate, 2006, 'SHAPENUM', variable)
 
             yield scenario, model, pastreader, futurereader
         else:
-            pastpath = os.path.join(pastdir, variable, variable + '_annual_aggregated_historical_r1i1p1_' + model + '.nc')
+            if model in pattern_matching.rcp_models[scenario]:
+                pastpath = os.path.join(pastdir, variable, variable + '_annual_aggregated_historical_r1i1p1_' + pattern_matching.rcp_models[scenario][model] + '.nc')
+            else:
+                pastpath = os.path.join(pastdir, variable, variable + '_annual_aggregated_historical_r1i1p1_' + model + '.nc')
             futurepath = os.path.join(futuredir, variable, variable + '_aggregated_' + scenario + '_r1i1p1_' + model + '.nc')
+            if not os.path.exists(futurepath):
+                continue
 
             pastreader = YearlyWeatherReader(pastpath, variable)
             futurereader = YearlyWeatherReader(futurepath, variable)
@@ -194,3 +249,69 @@ def discover_makehist(discover_iterator):
     """Mainly used with .histclim for, e.g., lincom (since normal historical is at the bundle level)."""
     for scenario, model, pastreader, futurereader in discover_iterator:
         yield scenario, model, RenameReader(pastreader, lambda x: x + '.histclim'), HistoricalCycleReader(pastreader, futurereader)
+
+def discover_makegddkdd(discover_iterator, lower, upper):
+    for scenario, model, pastreader, futurereader in discover_iterator:
+        yield scenario, model, GDDKDDReader(pastreader, lower, upper), GDDKDDReader(futurereader, lower, upper)
+
+def discover_rename(discover_iterator, name_dict):
+    for scenario, model, pastreader, futurereader in discover_iterator:
+        yield scenario, model, RenameReader(pastreader, name_dict), RenameReader(futurereader, name_dict)
+        
+def discover_day2month(discover_iterator, accumfunc):
+    #time_conversion = lambda days: np.unique(np.floor((days % 1000) / 30.4167)) # Should just give 0 - 11
+    time_conversion = lambda days: np.arange(12)
+    def ds_conversion(ds):
+        vars_only = ds.variables.keys()
+        for name in ds.coords:
+            if name in vars_only:
+                vars_only.remove(name)
+        used_coords = ds.coords
+        if 'yyyyddd' in used_coords:
+            del used_coords['yyyyddd']
+
+        ds = fast_dataset.FastDataset({name: data_vars_time_conversion(name, ds, 'vars', accumfunc) for name in vars_only},
+                                      coords={name: data_vars_time_conversion(name, ds, 'coords', accumfunc) for name in used_coords},
+                                      attrs=ds.attrs)
+        return ds
+    
+    return discover_convert(discover_iterator, time_conversion, ds_conversion)
+
+def data_vars_time_conversion(name, ds, varset, accumfunc):
+    if isinstance(ds, fast_dataset.FastDataset):
+        if varset == 'vars':
+            vardef = ds.original_data_vars[name]
+        elif varset == 'coords':
+            vardef = ds.original_coords[name]
+        else:
+            assert False, "Unknown varset."
+    else:
+        if varset == 'vars':
+            vardef = (ds.variables[name].dims, ds.variables[name].values)
+        elif varset == 'coords':
+            vardef = ds.coords[name]
+        else:
+            assert False, "Unknown varset."
+            
+    if isinstance(vardef, tuple):
+        try:
+            dimnum = vardef[0].index('time')
+        except:
+            return vardef
+
+        myshape = list(vardef[1].shape)
+        myshape[dimnum] = 12
+        result = np.zeros(tuple(myshape))
+        for mm in range(12):
+            beforeindex = [slice(None)] * len(vardef[0])
+            beforeindex[dimnum] = slice(int(mm * 30.4167), int((mm+1) * 30.4167))
+            afterindex = [slice(None)] * len(vardef[0])
+            afterindex[dimnum] = mm
+            result[tuple(afterindex)] = accumfunc(vardef[1][tuple(beforeindex)], dimnum)
+
+        return (vardef[0], result)
+
+    if name != 'time':
+        return vardef
+
+    return np.arange(12)
