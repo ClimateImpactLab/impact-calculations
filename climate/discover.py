@@ -25,19 +25,25 @@ def standard_variable(name, timerate):
             for chunk in chunks[2:]:
                 var = interpret_transform(var, chunk)
             return var
+
+    version = None
+    if '==' in name:
+        chunks = name.split('==')
+        name = chunks[0]
+        version = chunks[1]
         
     assert timerate in ['day', 'month', 'year']
 
     if timerate == 'day':
         if name in ['tas'] + ['tas-poly-' + str(ii) for ii in range(2, 10)]:
-            return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/" + name), name)
+            return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/" + name), name, version=version)
         if name in ['tas' + str(ii) for ii in range(2, 10)]:
-            return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-" + name[3]), 'tas-poly-' + name[3])
+            return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-" + name[3]), 'tas-poly-' + name[3], version=version)
             
         if name in ['tasmax'] + ['tasmax-poly-' + str(ii) for ii in range(2, 10)]:
-            return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/" + name), name)
+            return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/" + name), name, version=version)
         if name in ['tasmax' + str(ii) for ii in range(2, 10)]:
-            return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tasmax-poly-" + name[6]), 'tasmax-poly-' + name[6])
+            return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tasmax-poly-" + name[6]), 'tasmax-poly-' + name[6], version=version)
         if name == 'prmm':
             return discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'pr')
     if timerate == 'month':
