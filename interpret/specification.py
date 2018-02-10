@@ -22,12 +22,12 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config={}):
         return covariates.EconomicCovariator(economicmodel, 2015, config=config)
     elif covar == 'incbin':
         return covariates.BinnedEconomicCovariator(economicmodel, 2015, args, config=config)
-    elif covar == 'climtas':
-        return covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, 'tas', config=config), {'climtas': 'tas'})
     elif covar == 'ir-share':
         return covariates.ConstantCovariator('ir-share', irvalues.load_irweights("social/baselines/agriculture/world-combo-201710-irrigated-area.csv", 'irrigated_share'))
     elif covar[:8] == 'seasonal':
         return covariates.SeasonalWeatherCovariator(weatherbundle, 2015, config['within-season'], covar[8:], config)
+    elif covar[:4] == 'clim': # climtas, climcdd-20, etc.
+        return covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, covar[4:], config=config), {covar: covar[4:]})
     elif '*' in covar:
         sources = map(lambda x: get_covariator(x.strip(), args, weatherbundle, economicmodel, config=config), covar.split('*', 1))
         return covariates.ProductCovariator(sources[0], sources[1])
