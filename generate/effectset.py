@@ -91,7 +91,7 @@ def write_ncdf(targetdir, basename, weatherbundle, calculation, description, cal
             myname += "2"
         usednames.append(myname)
 
-        column = rootgrp.createVariable(myname, 'f8', ('year', 'region'))
+        column = rootgrp.createVariable(myname, 'f4', ('year', 'region'))
         column.long_title = infos[ii]['title']
         column.units = calculation.unitses[ii]
         column.source = infos[ii]['description']
