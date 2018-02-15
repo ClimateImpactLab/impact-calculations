@@ -53,8 +53,8 @@ for clim_scenario, clim_model, weatherbundle in weather.iterate_bundles(discover
     yeardata = weatherbundle.get_years()
     years[:] = yeardata
 
-    annual = rootgrp.createVariable("annual", 'f8', ('year', 'region', 'covar'))
-    averaged = rootgrp.createVariable("averaged", 'f8', ('year', 'region', 'covar'))
+    annual = rootgrp.createVariable("annual", 'f4', ('year', 'region', 'covar'))
+    averaged = rootgrp.createVariable("averaged", 'f4', ('year', 'region', 'covar'))
 
     annualdata = np.zeros((len(yeardata), len(weatherbundle.regions), len(covar_names)))
     averageddata = np.zeros((len(yeardata), len(weatherbundle.regions), len(covar_names)))
