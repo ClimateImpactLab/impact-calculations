@@ -180,16 +180,20 @@ class RegionReorderWeatherReader(WeatherReader):
                 continue
             #newds[var] = ds[var] # Automatically reordered
             # Don't use automatic reordering: too slow later (XXX: is this true?)
-            if len(ds[var].dims) == 1:
-                if 'region' not in ds[var].dims:
-                    newvars[var] = ds[var]
+            try:
+                if len(ds[var].dims) == 1:
+                    if 'region' not in ds[var].dims:
+                        newvars[var] = ds[var]
+                    else:
+                        newvars[var] = (['region'], ds[var].values[self.reorder])
                 else:
-                    newvars[var] = (['region'], ds[var].values[self.reorder])
-            else:
-                if ds[var].dims.index('time') == 0:
-                    newvars[var] = (['time', 'region'], ds[var].values[:, self.reorder])
-                else:
-                    newvars[var] = (['region', 'time'], ds[var].values[self.reorder, :])
+                    if ds[var].dims.index('time') == 0:
+                        newvars[var] = (['time', 'region'], ds[var].values[:, self.reorder])
+                    else:
+                        newvars[var] = (['region', 'time'], ds[var].values[self.reorder, :])
+            except Exception as ex:
+                print "Failed to reorder %s for %s" % (var, self.reader)
+                raise ex
 
         newds = xr.Dataset(newvars, coords={'time': ds.time, 'region': ds.region[self.reorder]})
         newds.load()
