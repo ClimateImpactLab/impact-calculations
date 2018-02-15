@@ -113,10 +113,12 @@ def polypush_callback(region, year, application, get_predictors, model):
         predictors = get_predictors(region)
         writer.writerow([region, year, model] + [predictors[covar] for covar in covars])
 
-def genericpush_callback(region, year, application, get_predictors, model):
+def genericpush_callback(region, year, application, get_predictors, model, weatherbundle=None, economicmodel=None):
     predictors = get_predictors(region)
     for predictor in predictors:
         diagnostic.record(region, year, predictor, predictors[predictor])
+    if economicmodel is not None:
+        diagnostic.record(region, year, 'population', economicmodel.get_population_year(region, year))
 
 mode_iterators = {'median': iterate_median, 'montecarlo': iterate_montecarlo, 'lincom': iterate_single, 'single': iterate_single, 'writesplines': iterate_single, 'writepolys': iterate_single, 'writecalcs': iterate_single, 'profile': iterate_nosideeffects, 'diagnostic': iterate_nosideeffects}
 
@@ -178,7 +180,7 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
     elif config['mode'] in ['writepolys', 'lincom']:
         mod.produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callback=polypush_callback, diagnosefile=os.path.join(targetdir, shortmodule + "-allcalcs.csv"))
     elif config['mode'] in ['writecalcs']:
-        mod.produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callback=genericpush_callback, diagnosefile=os.path.join(targetdir, shortmodule + "-allcalcs.csv"))
+        mod.produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callback=lambda *args: genericpush_callback(*args, weatherbundle=weatherbundle, economicmodel=economicmodel), diagnosefile=os.path.join(targetdir, shortmodule + "-allcalcs.csv"))
     elif config['mode'] == 'profile':
         mod.produce(targetdir, weatherbundle, economicmodel, pvals, config, profile=True)
         pr.disable()
