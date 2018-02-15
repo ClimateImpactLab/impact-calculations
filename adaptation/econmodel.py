@@ -112,3 +112,11 @@ class SSPEconomicModel(object):
                 return self.pop_future_years[region][year] * self.densities[region] / self.pop_future_years[region][2010]
 
         return None
+
+    def get_population_year(self, region, year):
+        if region not in self.pop_future_years:
+            return np.nan
+        if year not in self.pop_future_years[region]:
+            return np.nan
+        return self.pop_future_years[region][year]
+    
