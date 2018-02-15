@@ -1,9 +1,11 @@
-timerate: day
-climate: [ tas, tas-poly-2, tas-poly-3, tas-poly-4, cdd-20, cdd-20-poly-2, cdd-20-poly-3, cdd-20-poly-4, hdd-20, hdd-20-poly-2, hdd-20-poly-3, hdd-20-poly-4 ]
+timerate: year
+climate: [ tas, tas-poly-2, tas-cdd-20, tas-cdd-20-poly-2, tas-hdd-20, tas-hdd-20-poly-2 ]
 models:
-  - csvvs: "social/parameters/energy/projection1/*.csvv"
+  - csvvs: "social/parameters/energy/projection3/*.csvv"
     covariates:
-      - incbin: [ -inf, 7.427, 7.941, 8.355, 8.706, 9.015, 9.309, 9.634, 9.993, 10.390, inf ]
+      - incbin: [ -inf, 7.215, 7.744, 8.157, 8.495, 8.812, 9.095, 9.407, 9.782, 10.180, inf ]
+      - climtas-cdd-20
+      - climtas-hdd-20
     clipping: false
     description: Change in energy usage driven by a single day's mean temperature
     depenunit: kWh/pc
@@ -25,10 +27,10 @@ models:
         variable: cdd-20
     calculation:
       - Sum:
-        - YearlySumDay:
+        - YearlyApply:
             model: tas
-        - YearlySumDay:
+        - YearlyApply:
             model: hdd-20
-        - YearlySumDay:
+        - YearlyApply:
             model: cdd-20
       - Rebase

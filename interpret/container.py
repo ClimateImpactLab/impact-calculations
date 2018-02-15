@@ -47,7 +47,7 @@ def get_modules(config):
             module = 'interpret.specification'
             specconf = model['specification']
         elif 'calculation' in model:
-            module = 'interpret.calculator'
+            module = 'interpret.calcspec'
             specconf = model
         else:
             assert False, "Model missing one of 'module', 'specification', or 'calculation'."

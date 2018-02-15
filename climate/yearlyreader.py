@@ -2,7 +2,7 @@ import os
 import numpy as np
 import xarray as xr
 import netcdfs
-from reader import WeatherReader
+from reader import WeatherReader, YearlySplitWeatherReader
 
 class YearlyWeatherReader(WeatherReader):
     """Exposes yearly weather data, with one file per GCM."""
@@ -50,6 +50,43 @@ class YearlyWeatherReader(WeatherReader):
 
     def __str__(self):
         return "%s: %s" % (self.filepath, ','.join(self.variables))
+
+class YearlyDayLikeWeatherReader(YearlySplitWeatherReader):
+    """Exposes yearly weather data, split into yearly files."""
+
+    def __init__(self, template, year1, regionvar, *variables):
+        super(YearlyDayLikeWeatherReader, self).__init__(template, year1, variables)
+        self.regionvar = regionvar
+        self.regions = netcdfs.readncdf_single(self.find_templated(year1), regionvar, allow_missing=True)
+
+    def get_times(self):
+        return self.get_years()
+
+    def get_regions(self):
+        """Returns a list of all regions available."""
+        return self.regions
+
+    def get_dimension(self):
+        return self.variable
+
+    def read_iterator(self):
+        # Yield data in yearly chunks
+        year = self.year1
+        for filename in self.file_iterator():
+            yield self.prepare_ds(filename, year)
+            year += 1
+
+    def read_year(self, year):
+        return self.prepare_ds(self.file_for_year(year), year)
+
+    def prepare_ds(self, filename, year):
+        ds = xr.open_dataset(filename)
+        ds.rename({self.regionvar: 'region'}, inplace=True)
+        ds['time'] = np.array([year])
+        ds.set_coords(['time'])
+        ds[self.variable[0]] = ds[self.variable[0]].expand_dims('time', 0)
+        ds.load() # Collect all data now
+        return ds
 
 class RandomYearlyAccess(object):
     def __init__(self, yearlyreader):

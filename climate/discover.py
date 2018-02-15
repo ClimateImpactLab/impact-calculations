@@ -8,7 +8,7 @@ from impactlab_tools.utils import files
 from openest.generate import fast_dataset
 from reader import ConversionWeatherReader, RegionReorderWeatherReader, HistoricalCycleReader, RenameReader
 from dailyreader import DailyWeatherReader, YearlyBinnedWeatherReader, MonthlyBinnedWeatherReader
-from yearlyreader import YearlyWeatherReader
+from yearlyreader import YearlyWeatherReader, YearlyDayLikeWeatherReader
 import pattern_matching
 
 re_dotsplit = re.compile("\.(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)")
@@ -29,17 +29,18 @@ def standard_variable(name, timerate):
     assert timerate in ['day', 'month', 'year']
 
     if timerate == 'day':
-        if name in ['tas'] + ['tas-poly-' + str(ii) for ii in range(2, 10)]:
+        polyedvars = ['tas', 'tasmax']
+    
+        if name in polyedvars:
             return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/" + name), name)
-        if name in ['tas' + str(ii) for ii in range(2, 10)]:
-            return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-" + name[3]), 'tas-poly-' + name[3])
-            
-        if name in ['tasmax'] + ['tasmax-poly-' + str(ii) for ii in range(2, 10)]:
-            return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/" + name), name)
-        if name in ['tasmax' + str(ii) for ii in range(2, 10)]:
-            return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tasmax-poly-" + name[6]), 'tasmax-poly-' + name[6])
+        for ii in range(2, 10):
+            if name in ["%s-poly-%d" % (var, ii) for var in polyedvars]:
+                return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/" + name), name)
+            if name in ["%s%d" % (var, ii) for var in polyedvars]:
+                return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/%s-poly-%s" % (name[:-1], name[-1])), '%s-poly-%s' % (name[:-1], name[-1]))
         if name == 'prmm':
             return discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'pr')
+        
     if timerate == 'month':
         if name in ['tas', 'tasmax']:
             return discover_day2month(standard_variable(name, 'day'),  lambda arr, dim: np.mean(arr, axis=dim))
@@ -55,6 +56,26 @@ def standard_variable(name, timerate):
             return discover_rename(
                 discover_day2month(discover_iterator, lambda arr, dim: np.sum(arr, axis=dim)), {'pr': 'prmm'})
 
+    if timerate == 'year':
+        polyedvars = ['tas-cdd-20', 'tas-hdd-20']
+        polyedvars_daily = ['tas', 'tasmax'] # Currently do these as sums
+        
+        if name in polyedvars:
+            return discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/" + name), name)
+        for ii in range(2, 10):
+            if name in ["%s-poly-%d" % (var, ii) for var in polyedvars]:
+                return discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/" + name), name)
+            if name in ["%s%d" % (var, ii) for var in polyedvars]:
+                return discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/%s-poly-%s" % (name[:-1], name[-1])), '%s-poly-%s' % (name[:-1], name[-1]))
+
+        if name in polyedvars_daily:
+            return discover_day2year(standard_variable(name, 'day'), lambda arr, dim: np.sum(arr, axis=dim))
+        for ii in range(2, 10):
+            if name in ["%s-poly-%d" % (var, ii) for var in polyedvars_daily]:
+                return discover_day2year(standard_variable(name, 'day'), lambda arr, dim: np.sum(arr, axis=dim))
+            if name in ["%s%d" % (var, ii) for var in polyedvars_daily]:
+                return discover_day2year(standard_variable(name, 'day'), lambda arr, dim: np.sum(arr, axis=dim))
+            
     raise ValueError("Unknown variable: " + name)
 
 def interpret_transform(var, transform):
@@ -85,6 +106,9 @@ def discover_models(basedir, include_patterns=True):
         for model in modelset:
             pastdir = os.path.join(basedir, 'historical', model)
             futuredir = os.path.join(basedir, scenario, model)
+
+            if not os.path.exists(futuredir):
+                continue # Silently drop
 
             if not os.path.exists(pastdir):
                 if model in pattern_matching.rcp_models[scenario]:
@@ -245,6 +269,24 @@ def discover_versioned(basedir, variable, version=None, reorder=True):
             
         yield scenario, model, pastreader, futurereader
 
+def discover_versioned_yearly(basedir, variable, version=None, reorder=True):
+    """Find the most recent version, if none specified."""
+    if version is None:
+        version = '%v'
+    
+    for scenario, model, pastdir, futuredir in discover_models(basedir):
+        pasttemplate = os.path.join(pastdir, "%d", version + '.nc4')
+        futuretemplate = os.path.join(futuredir, "%d", version + '.nc4')
+
+        if reorder:
+            pastreader = RegionReorderWeatherReader(YearlyDayLikeWeatherReader(pasttemplate, 1981, 'hierid', variable))
+            futurereader = RegionReorderWeatherReader(YearlyDayLikeWeatherReader(futuretemplate, 2006, 'hierid', variable))
+        else:
+            pastreader = YearlyDayLikeWeatherReader(pasttemplate, 1981, 'hierid', variable)
+            futurereader = YearlyDayLikeWeatherReader(futuretemplate, 2006, 'hierid', variable)
+            
+        yield scenario, model, pastreader, futurereader
+
 def discover_makehist(discover_iterator):
     """Mainly used with .histclim for, e.g., lincom (since normal historical is at the bundle level)."""
     for scenario, model, pastreader, futurereader in discover_iterator:
@@ -315,3 +357,58 @@ def data_vars_time_conversion(name, ds, varset, accumfunc):
         return vardef
 
     return np.arange(12)
+
+def discover_day2year(discover_iterator, accumfunc):
+    time_conversion = lambda days: np.array([days[0] // 1000])
+    def ds_conversion(ds):
+        vars_only = ds.variables.keys()
+        for name in ds.coords:
+            if name in vars_only:
+                vars_only.remove(name)
+        used_coords = ds.coords
+        if 'yyyyddd' in used_coords:
+            del used_coords['yyyyddd']
+
+        ds = fast_dataset.FastDataset({name: data_vars_time_conversion_year(name, ds, 'vars', accumfunc) for name in vars_only},
+                                      coords={name: data_vars_time_conversion_year(name, ds, 'coords', accumfunc) for name in used_coords},
+                                      attrs=ds.attrs)
+        return ds
+    
+    return discover_convert(discover_iterator, time_conversion, ds_conversion)
+
+def data_vars_time_conversion_year(name, ds, varset, accumfunc):
+    if isinstance(ds, fast_dataset.FastDataset):
+        if varset == 'vars':
+            vardef = ds.original_data_vars[name]
+        elif varset == 'coords':
+            vardef = ds.original_coords[name]
+        else:
+            assert False, "Unknown varset."
+    else:
+        if varset == 'vars':
+            vardef = (ds.variables[name].dims, ds.variables[name].values)
+        elif varset == 'coords':
+            vardef = ds.coords[name]
+        else:
+            assert False, "Unknown varset."
+            
+    if isinstance(vardef, tuple):
+        try:
+            dimnum = vardef[0].index('time')
+        except:
+            return vardef
+
+        myshape = list(vardef[1].shape)
+        myshape[dimnum] = 1
+        result = np.zeros(tuple(myshape))
+        beforeindex = [slice(None)] * len(vardef[0])
+        afterindex = [slice(None)] * len(vardef[0])
+        afterindex[dimnum] = 0
+        result[tuple(afterindex)] = accumfunc(vardef[1][tuple(beforeindex)], dimnum)
+
+        return (vardef[0], result)
+
+    if name != 'time':
+        return vardef
+
+    return np.array([ds['time.year'][0]])

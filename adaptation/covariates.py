@@ -101,7 +101,12 @@ class MeanWeatherCovariator(Covariator):
         print "Collecting baseline information..."
         temp_predictors = {}
         for region, ds in weatherbundle.baseline_values(maxbaseline): # baseline through maxbaseline
-            temp_predictors[region] = averages.interpret(config, standard_climate_config, ds[variable][-self.numtempyears:])
+            try:
+                temp_predictors[region] = averages.interpret(config, standard_climate_config, ds[variable][-self.numtempyears:])
+            except Exception as ex:
+                print "Cannot retrieve baseline data for %s" % variable
+                print ds
+                raise ex
 
         self.temp_predictors = temp_predictors
         self.weatherbundle = weatherbundle
