@@ -305,6 +305,14 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
                 ds = pastreader.read_year(pastyear)
                 allds = fast_dataset.merge((allds, ds)) #xr.merge((allds, ds))
 
+            # Correct the time - should generalize
+            if ds2['time'][0] < 10000:
+                ds2['time'] += year - pastyear # YYYY
+            elif ds2['time'][0] < 1000000:
+                ds2['time'] += (year - pastyear) * 100 # YYYYMM
+            else:
+                ds2['time'] += (year - pastyear) * 1000 # YYYYDDD
+                
             for year2, ds2 in self.transformer.push(year, allds):
                 yield year2, ds2
             year += 1

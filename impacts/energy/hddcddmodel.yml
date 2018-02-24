@@ -6,6 +6,8 @@ models:
       - incbin: [ -inf, 7.215, 7.744, 8.157, 8.495, 8.812, 9.095, 9.407, 9.782, 10.180, inf ]
       - climtas-cdd-20
       - climtas-hdd-20
+      - climtas-cdd-20*incbin: [ -inf, 7.215, 7.744, 8.157, 8.495, 8.812, 9.095, 9.407, 9.782, 10.180, inf ]
+      - climtas-hdd-20*incbin: [ -inf, 7.215, 7.744, 8.157, 8.495, 8.812, 9.095, 9.407, 9.782, 10.180, inf ]
     clipping: false
     description: Change in energy usage driven by a single day's mean temperature
     depenunit: kWh/pc
@@ -17,14 +19,14 @@ models:
         variable: tas
       hdd-20:
         description: Below 20C days.
-        indepunit: C day
+        indepunit: C
         functionalform: polynomial
-        variable: hdd-20
+        variable: tas-hdd-20
       cdd-20:
         description: Above 20C days.
-        indepunit: C day
+        indepunit: C
         functionalform: polynomial
-        variable: cdd-20
+        variable: tas-cdd-20
     calculation:
       - Sum:
         - YearlyApply:

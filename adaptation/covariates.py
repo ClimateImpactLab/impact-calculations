@@ -16,9 +16,20 @@ class Covariator(object):
     """
     def __init__(self, maxbaseline):
         self.startupdateyear = maxbaseline
+        self.lastyear = {}
 
     def get_current(self, region):
         raise NotImplementedError
+
+    def offer_update(self, region, year, ds):
+        assert year < 10000
+        # Ensure that we aren't called with a year twice
+        assert self.lastyear.get(region, -np.inf) <= year, "Called with %d, but previously did %d" % (year, self.lastyear.get(region, -np.inf))
+        if self.lastyear.get(region, -np.inf) < year:
+            self.lastyear[region] = year
+            return self.get_update(region, year, ds)
+
+        return self.get_current(region)
 
     def get_update(self, region, year, ds):
         raise NotImplementedError
@@ -110,7 +121,6 @@ class MeanWeatherCovariator(Covariator):
 
         self.temp_predictors = temp_predictors
         self.weatherbundle = weatherbundle
-        self.lastyear = {}
 
     def get_current(self, region):
         #assert region in self.temp_predictors, "Missing " + region
@@ -118,11 +128,6 @@ class MeanWeatherCovariator(Covariator):
 
     def get_update(self, region, year, ds):
         """Allow ds = None for incadapt farmer who cannot adapt to temperature."""
-        assert year < 10000
-        # Ensure that we aren't called with a year twice
-        assert self.lastyear.get(region, -np.inf) < year, "Called with %d, but previously did %d" % (year, self.lastyear.get(region, -np.inf))
-        self.lastyear[region] = year
-
         if ds is not None and year > self.startupdateyear:
             self.temp_predictors[region].update(np.mean(ds[self.variable]._values)) # if only yearly values
 

@@ -24,13 +24,13 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config={}):
         return covariates.BinnedEconomicCovariator(economicmodel, 2015, args, config=config)
     elif covar == 'ir-share':
         return covariates.ConstantCovariator('ir-share', irvalues.load_irweights("social/baselines/agriculture/world-combo-201710-irrigated-area.csv", 'irrigated_share'))
+    elif '*' in covar:
+        sources = map(lambda x: get_covariator(x.strip(), args, weatherbundle, economicmodel, config=config), covar.split('*', 1))
+        return covariates.ProductCovariator(sources[0], sources[1])
     elif covar[:8] == 'seasonal':
         return covariates.SeasonalWeatherCovariator(weatherbundle, 2015, config['within-season'], covar[8:], config)
     elif covar[:4] == 'clim': # climtas, climcdd-20, etc.
         return covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, covar[4:], config=config), {covar: covar[4:]})
-    elif '*' in covar:
-        sources = map(lambda x: get_covariator(x.strip(), args, weatherbundle, economicmodel, config=config), covar.split('*', 1))
-        return covariates.ProductCovariator(sources[0], sources[1])
     elif '^' in covar:
         chunks = covar.split('^', 1)
         return covariates.PowerCovariator(get_covariator(chunks[0].strip(), args, weatherbundle, economicmodel, config=config), float(chunks[1]))
@@ -124,13 +124,10 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
             baselinemins = {region: curvemin for region in regions}
 
     def transform(region, curve):
-        if len(weathernames) > 1:
-            if isinstance(curve, ZeroInterceptPolynomialCurve):
-                final_curve = smart_curve.ZeroInterceptPolynomialCurve(curve.ccs, weathernames, specconf.get('allow-raising', False))
-            else:
-                final_curve = smart_curve.CoefficientsCurve(curve.ccs, weathernames)
+        if isinstance(curve, ZeroInterceptPolynomialCurve):
+            final_curve = smart_curve.ZeroInterceptPolynomialCurve(curve.ccs, weathernames, specconf.get('allow-raising', False))
         else:
-            final_curve = curve
+            final_curve = smart_curve.CoefficientsCurve(curve.ccs, weathernames)
 
         if specconf.get('clipping', False):
             final_curve = ShiftedCurve(final_curve, -curve(baselinemins[region]))
