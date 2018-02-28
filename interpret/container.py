@@ -21,14 +21,17 @@ def get_bundle_iterator(config):
 
     return weather.iterate_bundles(*discoverers, **config)
 
-def check_doit(targetdir, basename, suffix, deletebad=False):
+def check_doit(targetdir, basename, suffix, config, deletebad=False):
     filepath = os.path.join(targetdir, basename + suffix + '.nc4')
     if not os.path.exists(filepath):
         print "REDO: Cannot find", filepath
         return True
 
     # Check if has 100 valid years
-    if not checks.check_result_100years(filepath):
+    checkargs = {}
+    if 'filter-region' in config:
+        checkargs['regioncount'] = 1
+    if not checks.check_result_100years(filepath, **checkargs):
         print "REDO: Incomplete", basename, suffix
         if deletebad:
             os.remove(filepath)
@@ -92,7 +95,7 @@ def produce_csvv(basename, csvv, module, specconf, targetdir, weatherbundle, eco
         return
 
     # Full Adaptation
-    if check_doit(targetdir, basename, suffix):
+    if check_doit(targetdir, basename, suffix, config):
         print "Full Adaptation"
         calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals[basename], specconf=specconf, config=config, standard=False)
 
@@ -105,12 +108,12 @@ def produce_csvv(basename, csvv, module, specconf, targetdir, weatherbundle, eco
             # Lock in the values
             pvals[basename].lock()
 
-            if check_doit(targetdir, basename + "-noadapt", suffix):
+            if check_doit(targetdir, basename + "-noadapt", suffix, config):
                 print "No adaptation"
                 calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals[basename], specconf=specconf, farmer='noadapt', config=config, standard=False)
                 effectset.generate(targetdir, basename + "-noadapt" + suffix, weatherbundle, calculation, specconf['description'] + ", with no adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, basename))
 
-            if check_doit(targetdir, basename + "-incadapt", suffix):
+            if check_doit(targetdir, basename + "-incadapt", suffix, config):
                 print "Income-only adaptation"
                 calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals[basename], specconf=specconf, farmer='incadapt', config=config, standard=False)
                 effectset.generate(targetdir, basename + "-incadapt" + suffix, weatherbundle, calculation, specconf['description'] + ", with interpolation and only environmental adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, basename))

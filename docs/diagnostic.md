@@ -61,6 +61,9 @@ Optional:
    results are not produced with the diagnostic run, but setting this
    to `true` will produce them.
 
+ - `do_fillin`: true or false; if true, an existing single folder is
+   not deleted and only new files are added.
+
  - `csvvfile`: A path to a CSVV file to be used for the coefficients.
    This can be given as a subpath from the data directory; e.g.,
    `social/parameters/mortality/.../....csv`.

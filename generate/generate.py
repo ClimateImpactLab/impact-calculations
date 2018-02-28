@@ -45,7 +45,7 @@ def iterate_single():
 
     # Check if this already exists and delete if so
     targetdir = files.configpath(os.path.join(config['outputdir'], singledir, clim_scenario, clim_model, econ_model, econ_scenario))
-    if os.path.exists(targetdir):
+    if os.path.exists(targetdir) and not config.get('do_fillin', False):
         shutil.rmtree(targetdir)
 
     yield singledir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
@@ -163,7 +163,12 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
         pr = cProfile.Profile()
         pr.enable()
 
-    if not statman.claim(targetdir) and 'targetdir' not in config:
+    if statman.is_claimed(targetdir) and mode_iterators[config['mode']] == iterate_single:
+        try:
+            paralog.StatusManager.kill_active(targetdir, 'generate') # if do_fillin and crashed, could still exist
+        except:
+            pass
+    elif not statman.claim(targetdir) and 'targetdir' not in config:
         continue
 
     print targetdir
