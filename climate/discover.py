@@ -13,7 +13,7 @@ import pattern_matching
 
 re_dotsplit = re.compile("\.(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)")
 
-def standard_variable(name, timerate, **config):
+def standard_variable(name, mytimerate, **config):
     if '/' in name:
         if os.path.exists(files.configpath(name)):
             return discover_versioned(files.configpath(name), os.path.basename(name), **config)
@@ -21,14 +21,14 @@ def standard_variable(name, timerate, **config):
     if '.' in name:
         chunks = re_dotsplit.split(name)
         if len(chunks) > 1:
-            var = standard_variable(chunks[0], timerate)
+            var = standard_variable(chunks[0], mytimerate, **config)
             for chunk in chunks[2:]:
                 var = interpret_transform(var, chunk)
             return var
         
-    assert timerate in ['day', 'month', 'year']
+    assert mytimerate in ['day', 'month', 'year']
 
-    if timerate == 'day':
+    if mytimerate == 'day':
         polyedvars = ['tas', 'tasmax']
     
         if name in polyedvars:
@@ -41,9 +41,9 @@ def standard_variable(name, timerate, **config):
         if name == 'prmm':
             return discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'pr', **config)
         
-    if timerate == 'month':
+    if mytimerate == 'month':
         if name in ['tas', 'tasmax']:
-            return discover_day2month(standard_variable(name, 'day'),  lambda arr, dim: np.mean(arr, axis=dim))
+            return discover_day2month(standard_variable(name, 'day', **config),  lambda arr, dim: np.mean(arr, axis=dim))
         if name == 'tasbin':
             return discover_binned(files.sharedpath('climate/BCSD/aggregation/cmip5_bins/IR_level'), 'year', # Should this be year?
                                    'tas/tas_Bindays_aggregated_%scenario_r1i1p1_%model_%d.nc', 'SHAPENUM', 'DayNumber')
@@ -52,11 +52,11 @@ def standard_variable(name, timerate, **config):
                 discover_binned(files.sharedpath('climate/BCSD/Agriculture/Degree_days/snyder'), 'month',
                                 'Degreedays_aggregated_%scenario_%model_cropwt_%d.nc', 'SHAPENUM', 'EDD_agg', include_patterns=False), {'EDD_agg': 'edd', 'month': 'time'})
         if name == 'prmm':
-            discover_iterator = standard_variable(name, 'day')
+            discover_iterator = standard_variable(name, 'day', **config)
             return discover_rename(
                 discover_day2month(discover_iterator, lambda arr, dim: np.sum(arr, axis=dim)), {'pr': 'prmm'})
 
-    if timerate == 'year':
+    if mytimerate == 'year':
         polyedvars = ['tas-cdd-20', 'tas-hdd-20']
         polyedvars_daily = ['tas', 'tasmax'] # Currently do these as sums
         
@@ -69,12 +69,12 @@ def standard_variable(name, timerate, **config):
                 return discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/%s-poly-%s" % (name[:-1], name[-1])), '%s-poly-%s' % (name[:-1], name[-1]), **config)
 
         if name in polyedvars_daily:
-            return discover_day2year(standard_variable(name, 'day'), lambda arr, dim: np.sum(arr, axis=dim))
+            return discover_day2year(standard_variable(name, 'day', **config), lambda arr, dim: np.sum(arr, axis=dim))
         for ii in range(2, 10):
             if name in ["%s-poly-%d" % (var, ii) for var in polyedvars_daily]:
-                return discover_day2year(standard_variable(name, 'day'), lambda arr, dim: np.sum(arr, axis=dim))
+                return discover_day2year(standard_variable(name, 'day', **config), lambda arr, dim: np.sum(arr, axis=dim))
             if name in ["%s%d" % (var, ii) for var in polyedvars_daily]:
-                return discover_day2year(standard_variable(name, 'day'), lambda arr, dim: np.sum(arr, axis=dim))
+                return discover_day2year(standard_variable(name, 'day', **config), lambda arr, dim: np.sum(arr, axis=dim))
             
     raise ValueError("Unknown variable: " + name)
 
