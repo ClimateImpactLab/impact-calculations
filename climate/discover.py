@@ -2,7 +2,7 @@
 Provides iterators of WeatherReaders (typically a historical and a
 future reader).
 """
-import os
+import os, copy
 from impactlab_tools.utils import files
 from reader import ConversionWeatherReader, RegionReorderWeatherReader
 from dailyreader import DailyWeatherReader, YearlyBinnedWeatherReader
@@ -28,7 +28,7 @@ def standard_variable(name, timerate):
 
     raise ValueError("Unknown variable: " + name)
         
-def discover_models(basedir):
+def discover_models(basedir, include_patterns=True):
     """
     basedir points to directory with both 'historical', 'rcp*'
     """
@@ -39,10 +39,17 @@ def discover_models(basedir):
         if scenario[0:3] != 'rcp':
             continue
 
-        for model in models + pattern_matching.rcp_models[scenario].keys():
+        modelset = copy.copy(models)
+        if include_patterns:
+            modelset += pattern_matching.rcp_models[scenario].keys()
+        
+        for model in modelset:
             pastdir = os.path.join(basedir, 'historical', model)
             futuredir = os.path.join(basedir, scenario, model)
 
+            if not os.path.exists(futuredir):
+                continue # Silently drop
+            
             if not os.path.exists(pastdir):
                 if model in pattern_matching.rcp_models[scenario]:
                     pastdir = os.path.join(basedir, 'historical',
