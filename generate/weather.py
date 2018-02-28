@@ -307,11 +307,11 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
 
             # Correct the time - should generalize
             if allds['time'][0] < 10000:
-                allds['time'] += year - pastyear # YYYY
+                allds['time']._values += year - pastyear # YYYY
             elif allds['time'][0] < 1000000:
-                allds['time'] += (year - pastyear) * 100 # YYYYMM
+                allds['time']._values += (year - pastyear) * 100 # YYYYMM
             else:
-                allds['time'] += (year - pastyear) * 1000 # YYYYDDD
+                allds['time']._values += (year - pastyear) * 1000 # YYYYDDD
                 
             for year2, ds2 in self.transformer.push(year, allds):
                 yield year2, ds2
