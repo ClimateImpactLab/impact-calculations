@@ -54,7 +54,7 @@ class DailyWeatherReader(YearlySplitWeatherReader):
         if precheck_yearly:
             return precheck_yearly
 
-        precheck_netcdf = netcdfs.precheck_single(YearlySplitWeatherReader.find_templated_given(year1), regionvar, allow_missing=True)
+        precheck_netcdf = netcdfs.precheck_single(YearlySplitWeatherReader.find_templated_given(template, year1), regionvar)
         if precheck_netcdf:
             return precheck_netcdf
 

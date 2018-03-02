@@ -267,6 +267,7 @@ def discover_versioned(basedir, variable, version=None, reorder=True):
         precheck_future = DailyWeatherReader.precheck(futuretemplate, 2006, 'hierid', variable)
         if precheck_future:
             print "Skipping %s %s (future): %s" % (scenario, model, precheck_future)
+            continue
         
         if reorder:
             pastreader = RegionReorderWeatherReader(DailyWeatherReader(pasttemplate, 1981, 'hierid', variable))
