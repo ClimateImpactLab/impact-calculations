@@ -264,6 +264,14 @@ def discover_versioned(basedir, variable, version=None, reorder=True, **config):
         pasttemplate = os.path.join(pastdir, "%d", version + '.nc4')
         futuretemplate = os.path.join(futuredir, "%d", version + '.nc4')
 
+        precheck_past = DailyWeatherReader.precheck(pasttemplate, 1981, 'hierid', variable)
+        if precheck_past:
+            print "Skipping %s %s (past): %s" % (scenario, model, precheck_past)
+            continue
+        precheck_future = DailyWeatherReader.precheck(futuretemplate, 2006, 'hierid', variable)
+        if precheck_future:
+            print "Skipping %s %s (future): %s" % (scenario, model, precheck_future)
+        
         if reorder:
             pastreader = RegionReorderWeatherReader(DailyWeatherReader(pasttemplate, 1981, 'hierid', variable))
             futurereader = RegionReorderWeatherReader(DailyWeatherReader(futuretemplate, 2006, 'hierid', variable))
