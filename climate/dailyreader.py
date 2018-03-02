@@ -47,6 +47,18 @@ class DailyWeatherReader(YearlySplitWeatherReader):
         ds.swap_dims({'yyyyddd': 'time'}, inplace=True)
         ds.load() # Collect all data now
         return ds
+
+    @staticmethod
+    def precheck(template, year1, regionvar, *variables):
+        precheck_yearly = YearlySplitWeatherReader.precheck(template, year1, variables)
+        if precheck_yearly:
+            return precheck_yearly
+
+        precheck_netcdf = netcdfs.precheck_single(YearlySplitWeatherReader.find_templated_given(template, year1), regionvar)
+        if precheck_netcdf:
+            return precheck_netcdf
+
+        return None
     
 class MonthlyBinnedWeatherReader(YearlySplitWeatherReader):
     """Exposes binned weather data, accumulated into months and split into yearly file."""

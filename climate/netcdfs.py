@@ -96,3 +96,12 @@ def guess_variable(filename):
         return 'pr'
 
     return None
+
+def precheck_single(filepath, variable):
+    if not os.path.exists(filepath):
+        return "%s is missing" % filepath
+
+    if os.path.splitext(filepath)[1] not in ['.nc', '.nc4']:
+        return "%s does not appear to be NetCDF" % filepath
+
+    return None

@@ -86,16 +86,24 @@ class YearlySplitWeatherReader(WeatherReader):
     # Template handling
 
     def find_templated(self, year):
-        if "%v" not in self.template:
-            return self.template % (year)
+        return YearlySplitWeatherReader.find_templated_given(self.template, year)
 
-        options = glob.glob(self.template.replace("%v", "*") % (year))
+    @staticmethod
+    def find_templated_given(template, year):
+        if "%v" not in template:
+            return template % (year)
+
+        options = glob.glob(template.replace("%v", "*") % (year))
         if len(options) == 0:
-            return self.template.replace("%v", "unknown") % (year)
+            return template.replace("%v", "unknown") % (year)
         
         options = map(lambda s: os.path.splitext(os.path.basename(s))[0], options)
         options.sort(key=lambda s: map(int, s.split('.')))
-        return self.template.replace("%v", options[-1]) % (year)
+        return template.replace("%v", options[-1]) % (year)        
+
+    @staticmethod
+    def precheck(template, year1, variables):
+        return None
     
 class ConversionWeatherReader(WeatherReader):
     """Wraps another weather reader, applying conversion to its weather."""
