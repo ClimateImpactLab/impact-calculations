@@ -57,28 +57,29 @@ def get_modules(config):
 
         yield model, csvvs, module, specconf
 
-def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callback=None, suffix='', profile=False, diagnosefile=False):
-    if push_callback is None:
-        push_callback = lambda reg, yr, app, predget, mod: None
-
+def get_modules_csvv(config):
     for model, csvvs, module, specconf in get_modules(config):
         if isinstance(csvvs, list):
             for csvv in csvvs:
                 for filepath in glob.glob(files.sharedpath(csvv)):
-                    basename = os.path.basename(filepath)[:-5]
-                    produce_csvv(basename, filepath, module, specconf, targetdir, weatherbundle, economicmodel, pvals, configs.merge(config, model), push_callback, suffix, profile, diagnosefile)
-                    if profile:
-                        return
+                    yield model, filepath, module, specconf
         else:
             filepaths = glob.glob(files.sharedpath(csvvs))
             if not filepaths:
                 warnings.warn("Cannot find any files that match %s" % files.sharedpath(csvvs))
                 
             for filepath in filepaths:
-                basename = os.path.basename(filepath)[:-5]
-                produce_csvv(basename, filepath, module, specconf, targetdir, weatherbundle, economicmodel, pvals, configs.merge(config, model), push_callback, suffix, profile, diagnosefile)
-                if profile:
-                    return
+                yield model, filepath, module, specconf
+
+def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callback=None, suffix='', profile=False, diagnosefile=False):
+    if push_callback is None:
+        push_callback = lambda reg, yr, app, predget, mod: None
+
+    for model, csvvpath, module, specconf in get_modules_csvv(config):
+        basename = os.path.basename(csvvpath)[:-5]
+        produce_csvv(basename, csvvpath, module, specconf, targetdir, weatherbundle, economicmodel, pvals, configs.merge(config, model), push_callback, suffix, profile, diagnosefile)
+        if profile:
+            return
 
 def produce_csvv(basename, csvv, module, specconf, targetdir, weatherbundle, economicmodel, pvals, config, push_callback, suffix, profile, diagnosefile):
     if specconf.get('csvv-organization', 'normal') == 'three-ages':
