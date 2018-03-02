@@ -1,5 +1,6 @@
 import sys, os, csv, importlib, yaml
 import numpy as np
+from impactlab_tools.utils import files
 from interpret import container, specification
 from generate import caller
 import lib
@@ -9,7 +10,7 @@ import lib
 futureyear = 2050
 region = 'USA.14.608' #'IND.33.542.2153'
 
-config = sys.argv[1]
+config = files.get_argv_config()
 allcalcs = sys.argv[2]
 
 ## Starting
@@ -19,8 +20,9 @@ with open(config['module'], 'r') as fp:
     config.update(yaml.load(fp))
 shortmodule = os.path.basename(config['module'])[:-4]
 
-allcalcs_prefix = "allmodels-allcalcs-"
+allcalcs_prefix = shortmodule + "-allcalcs-"
 onlymodel = os.path.basename(allcalcs)[len(allcalcs_prefix):-4]
+dir = os.path.dirname(allcalcs)
 
 # Find the relevant CSVV
 foundcsvv = False
