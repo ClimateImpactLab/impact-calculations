@@ -29,3 +29,12 @@ Level 7, `targetdir`: This folder contains all of the actual results,
 mostly in the form of NetCDF4 files.  A `pvals.yml` file describes the
 assumptions around economic uncertainty, and `status-*.txt` which
 logs current and past actions.
+
+## Other configuration options
+
+Below are additional configuration options that can be included in the
+generate configuration file.
+
+ - only-models: a list of allowed GCMs
+ - only-rcp: a list of allowed RCPs
+ - include-patterns: true or false; produce results for pattern models
