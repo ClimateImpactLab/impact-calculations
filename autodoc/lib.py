@@ -55,9 +55,9 @@ def get_excerpt(filepath, first_col, regionid, years, hasmodel=True, onlymodel=N
                     # Just fill in NAs (until we figure out why dubling up lines)
                     for ii in range(len(data[row[1]])):
                         if np.isnan(data[row[1]][ii]) and row[first_col+ii] != 'NA':
-                            data[row[1]][ii] = float(row[first_col+ii])
+                            data[row[1]][ii] = pflt(row[first_col+ii])
                 else:
-                    data[row[1]] = map(lambda x: float(x) if x != 'NA' else np.nan, row[first_col:])
+                    data[row[1]] = map(lambda x: pflt(x) if x != 'NA' else np.nan, row[first_col:])
 
     return data
 
@@ -107,6 +107,13 @@ def jstr(x):
     else:
         return str(x)
 
+def pflt(x):
+    if x == 'True' or x == 'true':
+        return 1.
+    if x == 'False' or x == 'false':
+        return 0.
+    return float(x)
+    
 def show_coefficient(csvv, preds, year, coefname, covartrans):
     predyear = year - 1 if year > 2015 else year
 
