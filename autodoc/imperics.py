@@ -2,7 +2,7 @@ import sys, os, csv, importlib, yaml
 import numpy as np
 from impactlab_tools.utils import files
 from interpret import container, specification
-from generate import caller
+from generate import caller, loadmodels
 import lib
 
 ## Configuration
@@ -36,6 +36,9 @@ assert foundcsvv, "Could not find a CSVV correspondnig to %s." % onlymodel
 
 ## Print the inputs
 
+lib.show_header("Merged configuration:")
+print yaml.dump(config)
+
 lib.show_header("The Predictors File (allcalcs):")
 calcs = lib.get_excerpt(os.path.join(dir, allcalcs_prefix + onlymodel + ".csv"), 2, region, range(2000, 2011) + [futureyear-1, futureyear], hasmodel=False)
 
@@ -47,25 +50,26 @@ with open(os.path.join("/shares/gcp/regions/hierarchy-flat.csv"), 'r') as fp:
         if row[0] == region:
             shapenum = int(row[header.index('agglomid')]) - 1
             break
-
+        
 lib.show_header("CSVV:")
 csvv = lib.get_csvv(csvvpath)
 
 lib.show_header("Weather:")
 clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel = loadmodels.single(container.get_bundle_iterator(config))
-covariator = specification.create_covariator(config, weatherbundle, economicmodel, config)
+covariator = specification.create_covariator(specconf, weatherbundle, economicmodel, config)
 
 weather = {}
 covariates = {}
 for year, ds in weatherbundle.yearbundles(futureyear):
     if year in range(2001, 2011) + [futureyear]:
-        ds = ds.isel({'hierid': shapenum})
-        if year == 2001:
-            print ','.join([variable for variable in ds])
-        for variable in ds:
-            print "%d: %s..." % (year, ','.join(map(str, ds[variable].values[:10])))
-        weather[year] = {variable: ds[varliable].values for variable in ds}
-        covariates[year] = covariates.get_update(region, year, ds)
+        ds = ds.isel(hierid=shapenum)
+        weather[year] = {variable: ds[variable].values for variable in ds}
+        covariates[year] = covariator.get_update(region, year, ds)
+
+for variable in weather[2001]:
+    lib.show_header("  %s:" % variable)
+    for year in weather:
+        print "%d: %s..." % (year, ','.join(map(str, weather[year][variable][:10])))
             
 lib.show_header("Covariates:")
 for year in covariates:
