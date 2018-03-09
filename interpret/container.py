@@ -14,7 +14,7 @@ def get_bundle_iterator(config):
     timerate = config.get('timerate', 'day')
     discoverers = []
     for variable in config['climate']:
-        discoverers.append(standard_variable(variable, timerate))
+        discoverers.append(standard_variable(variable, timerate, **config))
 
     if len(discoverers) == 1:
         return discoverers[0]
