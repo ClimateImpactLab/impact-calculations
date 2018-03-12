@@ -9,7 +9,7 @@ from impactlab_tools.utils import files
 from climate import discover
 from datastore import weights
 from adaptation import farming, econmodel, csvvfile
-from helpers import interpret
+from interpret import variables
 import weather, pvalses, caller, effectset, aggregate
 import cProfile, pstats, StringIO
 
@@ -45,7 +45,7 @@ csvv = csvvfile.read(files.configpath(csvvpath))
 csvvfile.collapse_bang(csvv, pvals[basename].get_seed())
 
 if 'csvvsubset' in config:
-    indices = interpret.read_range(config['csvvsubset'])
+    indices = variables.read_range(config['csvvsubset'])
     csvv = csvvfile.subset(csvv, indices)
 
 suffix, farmer = farming.interpret(config)

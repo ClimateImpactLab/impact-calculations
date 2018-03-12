@@ -111,7 +111,7 @@ class ConversionWeatherReader(WeatherReader):
         return self.time_conversion(self.reader.get_times())
 
     def get_years(self):
-        return list(self.get_times()) # for now, assume converted to years
+        return self.reader.get_years() # for now, assume no changes to years
         
     def get_dimension(self):
         """Returns a list of length K, describing the number of elements
@@ -214,7 +214,10 @@ class RenameReader(WeatherReader):
         """Returns a list of length K, describing the number of elements
         describing the weather in each region and time period.
         """
-        return map(self.renamer, self.reader.get_dimension())
+        if callable(self.renamer):
+            return map(self.renamer, self.reader.get_dimension())
+        else:
+            return self.renamer.keys()
 
     def read_iterator(self):
         """Yields an xarray Dataset in whatever chunks are convenient.
@@ -223,8 +226,11 @@ class RenameReader(WeatherReader):
             yield self.read_year(year)
 
     def read_year(self, year):
-        renames = {name: self.renamer(name) for name in self.reader.get_dimension()}
-        
+        if callable(self.renamer):
+            renames = {name: self.renamer(name) for name in self.reader.get_dimension()}
+        else:
+            renames = self.renamer
+            
         return self.reader.read_year(year).rename(renames)
     
 class HistoricalCycleReader(WeatherReader):
