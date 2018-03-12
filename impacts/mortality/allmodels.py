@@ -15,7 +15,7 @@ def get_bundle_iterator(config):
                                    discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-2"), 'tas-poly-2'),
                                    discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-3"), 'tas-poly-3'),
                                    discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-4"), 'tas-poly-4'),
-                                   discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-5"), 'tas-poly-5'))
+                                   discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-5"), 'tas-poly-5'), **config)
 
 def check_doit(targetdir, basename, suffix):
     filepath = os.path.join(targetdir, basename + suffix + '.nc4')
