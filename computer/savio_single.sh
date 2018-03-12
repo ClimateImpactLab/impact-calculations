@@ -17,6 +17,8 @@ module load virtualenv
 source ../../env/bin/activate
 
 module load numpy
+module load hdf5
+module load h5py
 
 for i in {1..23}
 do

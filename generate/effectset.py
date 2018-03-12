@@ -91,13 +91,13 @@ def write_ncdf(targetdir, basename, weatherbundle, calculation, description, cal
             myname += "2"
         usednames.append(myname)
 
-        column = rootgrp.createVariable(myname, 'f8', ('year', 'region'))
+        column = rootgrp.createVariable(myname, 'f4', ('year', 'region'))
         column.long_title = infos[ii]['title']
         column.units = calculation.unitses[ii]
         column.source = infos[ii]['description']
 
         columns.append(column)
-        columndata.append(np.zeros((len(yeardata), len(my_regions))))
+        columndata.append(np.zeros((len(yeardata), len(my_regions))) * np.nan)
 
     nc4writer.make_str_variable(rootgrp, 'operation', 'orderofoperations', list(reversed(usednames)),
                                 "Order of the operations applied to the input weather data.")

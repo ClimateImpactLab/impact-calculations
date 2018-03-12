@@ -25,8 +25,9 @@ def iterresults(outdir, batchfilter=lambda batch: True, targetdirfilter=lambda t
                         yield batch, clim_scenario, clim_model, econ_scenario, econ_model, espath
 
 def copy_timereg_variable(writer, variable, key, dstvalues, suffix, unitchange=lambda x: x, timevar='year'):
-    column = writer.createVariable(key, 'f8', (timevar, 'region'))
-    column.units = unitchange(variable.units)
+    column = writer.createVariable(key, 'f4', (timevar, 'region'))
+    if hasattr(variable, 'units'):
+        column.units = unitchange(variable.units)
     if hasattr(variable, 'long_title'):
         column.long_title = variable.long_title
     if hasattr(variable, 'source'):
@@ -39,6 +40,11 @@ def iter_timereg_variables(reader, timevar='year'):
         if (timevar, 'region') == reader.variables[key].dimensions:
             print key
             variable = reader.variables[key]
+
+            yield key, variable
+        elif (timevar, 'region') == reader.variables[key].dimensions[:2] and reader.variables[key].shape[2] == 1: # This is currently true of temps
+            print key
+            variable = reader.variables[key][:, :, 0]
 
             yield key, variable
 
