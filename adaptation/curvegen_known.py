@@ -16,7 +16,7 @@ class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
 
         if recorddiag and diagnostic.is_recording():
             for predname in self.prednames:
-                diagnostic.record(region, covariates.get('year', 2000), self.diagprefix + predname, coefficients[predname])
+                diagnostic.record(region, year, self.diagprefix + predname, coefficients[predname])
 
         return ZeroInterceptPolynomialCurve([-np.inf, np.inf], yy)
 
@@ -58,6 +58,6 @@ class CubicSplineCurveGenerator(curvegen.CSVVCurveGenerator):
 
         if recorddiag and diagnostic.is_recording():
             for predname in self.prednames:
-                diagnostic.record(region, covariates.get('year', 2000), predname, coefficients[predname])
+                diagnostic.record(region, year, predname, coefficients[predname])
 
         return CubicSplineCurve(self.knots, yy)

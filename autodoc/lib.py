@@ -62,7 +62,10 @@ def get_excerpt(filepath, first_col, regionid, years, hasmodel=True, onlymodel=N
     return data
 
 def excind(data, year, column):
-    return data[str(year)][data['header'].index(column)]
+    if 'header' in data:
+        return data[str(year)][data['header'].index(column)]
+    else:
+        return data[str(year)][column]
 
 def parse_csvv_line(line):
     line = line.rstrip().split(',')
@@ -114,7 +117,7 @@ def pflt(x):
         return 0.
     return float(x)
     
-def show_coefficient(csvv, preds, year, coefname, covartrans):
+def show_coefficient(csvv, preds, year, coefname, covartrans={}):
     predyear = year - 1 if year > 2015 else year
 
     terms = []
@@ -178,7 +181,9 @@ def get_outputs(outputpath, years, shapenum, timevar='year'):
     if isinstance(shapenum, str):
         regions = list(rootgrp.variables['regions'][:])
         shapenum = regions.index(shapenum)
-
+    elif len(rootgrp.variables['regions']) == 1:
+        shapenum = 0
+        
     outyears = list(rootgrp.variables[timevar])
     outvars = [var for var in rootgrp.variables if len(rootgrp.variables[var].shape) == 2]
     print 'year,' + ','.join(outvars)

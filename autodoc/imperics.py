@@ -1,4 +1,4 @@
-import sys, os, csv, importlib, yaml
+import sys, os, csv, importlib, yaml, random
 import numpy as np
 from impactlab_tools.utils import files
 from interpret import container, specification
@@ -56,36 +56,36 @@ csvv = lib.get_csvv(csvvpath)
 
 lib.show_header("Weather:")
 clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel = loadmodels.single(container.get_bundle_iterator(config))
-covariator = specification.create_covariator(specconf, weatherbundle, economicmodel, config)
+covariator = specification.create_covariator(specconf, weatherbundle, economicmodel, config, quiet=True)
 
 weather = {}
 covariates = {}
 for year, ds in weatherbundle.yearbundles(futureyear):
-    if year in range(2001, 2011) + [futureyear]:
+    if year in range(2001, 2011) + [futureyear-1, futureyear]:
         ds = ds.isel(hierid=shapenum)
-        weather[year] = {variable: ds[variable].values for variable in ds}
-        covariates[year] = covariator.get_update(region, year, ds)
+        weather[str(year)] = {variable: ds[variable].values for variable in ds}
+        covariates[str(year)] = covariator.get_update(region, year, ds)
 
-for variable in weather[2001]:
+for variable in weather['2001']:
     lib.show_header("  %s:" % variable)
-    for year in weather:
-        print "%d: %s..." % (year, ','.join(map(str, weather[year][variable][:10])))
+    for year in sorted(weather.keys()):
+        print "%s: %s..." % (year, ','.join(map(str, weather[year][variable][:10])))
             
 lib.show_header("Covariates:")
-for year in covariates:
-    print ','.join(covariates[year].keys())
-    print "%d: %s" % (year, ','.join([covariates[year][key] for key in covariates[year]]))
+print ','.join(covariates.values()[0].keys())
+for year in sorted(covariates.keys()):
+    print "%s: %s" % (year, ','.join([str(covariates[year][key]) for key in covariates[year]]))
 
 lib.show_header("Outputs:")
 outputs = lib.get_outputs(os.path.join(dir, onlymodel + '.nc4'), [futureyear], shapenum)
 
 ## Computations
 # decide on a covariated variable
-variable = [csvv['prednames'][ii] for ii in range(len(csvv['prednames'])) if csvv['covarnames'][ii] != '1'][0]
+variable = random.choice([csvv['prednames'][ii] for ii in range(len(csvv['prednames'])) if csvv['covarnames'][ii] != '1'])
 
 for year in [2001, futureyear]:
     lib.show_header("Calc. of %s coefficient in %d (%f reported)" % (variable, year, lib.excind(calcs, year-1, 'coeff-' + variable)))
-    lib.show_coefficient(csvv, preds, year, variable, covariates[year])
+    lib.show_coefficient(csvv, covariates, year, variable)
 
 calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals[basename], specconf=specconf, config=config, standard=False)
     
