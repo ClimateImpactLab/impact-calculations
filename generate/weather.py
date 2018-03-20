@@ -143,7 +143,7 @@ class DailyWeatherBundle(WeatherBundle):
         for ii in range(len(self.regions)):
             yield self.regions[ii], region_averages[ii]
 
-    def baseline_values(self, maxyear, do_mean=True):
+    def baseline_values(self, maxyear, do_mean=True, quiet=False):
         """Yield the list of all weather values up to `maxyear` for each region."""
 
         # Construct an empty dataset to append to
@@ -151,7 +151,8 @@ class DailyWeatherBundle(WeatherBundle):
 
         # Append each year
         for year, ds in self.yearbundles(maxyear):
-            print year
+            if not quiet:
+                print year
 
             # Stack this year below the previous years
             if do_mean:

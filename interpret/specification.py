@@ -15,9 +15,9 @@ def user_assert(check, message):
     if not check:
         user_failure(message)
 
-def get_covariator(covar, args, weatherbundle, economicmodel, config={}):
+def get_covariator(covar, args, weatherbundle, economicmodel, config={}, quiet=False):
     if isinstance(covar, dict):
-        return get_covariator(covar.keys()[0], covar.values()[0], weatherbundle, economicmodel, config=config)
+        return get_covariator(covar.keys()[0], covar.values()[0], weatherbundle, economicmodel, config=config, quiet=quiet)
     elif covar in ['loggdppc', 'logpopop']:
         return covariates.EconomicCovariator(economicmodel, 2015, config=config)
     elif covar == 'incbin':
@@ -25,23 +25,23 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config={}):
     elif covar == 'ir-share':
         return covariates.ConstantCovariator('ir-share', irvalues.load_irweights("social/baselines/agriculture/world-combo-201710-irrigated-area.csv", 'irrigated_share'))
     elif '*' in covar:
-        sources = map(lambda x: get_covariator(x.strip(), args, weatherbundle, economicmodel, config=config), covar.split('*', 1))
+        sources = map(lambda x: get_covariator(x.strip(), args, weatherbundle, economicmodel, config=config, quiet=quiet), covar.split('*', 1))
         return covariates.ProductCovariator(sources[0], sources[1])
     elif covar[:8] == 'seasonal':
         return covariates.SeasonalWeatherCovariator(weatherbundle, 2015, config['within-season'], covar[8:], config)
     elif covar[:4] == 'clim': # climtas, climcdd-20, etc.
-        return covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, covar[4:], config=config), {covar: covar[4:]})
+        return covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, covar[4:], config=config, quiet=quiet), {covar: covar[4:]})
     elif '^' in covar:
         chunks = covar.split('^', 1)
-        return covariates.PowerCovariator(get_covariator(chunks[0].strip(), args, weatherbundle, economicmodel, config=config), float(chunks[1]))
+        return covariates.PowerCovariator(get_covariator(chunks[0].strip(), args, weatherbundle, economicmodel, config=config, quiet=quiet), float(chunks[1]))
     else:
         user_failure("Covariate %s is unknown." % covar)
         
-def create_covariator(specconf, weatherbundle, economicmodel, config={}):
+def create_covariator(specconf, weatherbundle, economicmodel, config={}, quiet=False):
     if 'covariates' in specconf:
         covariators = []
         for covar in specconf['covariates']:
-            covariators.append(get_covariator(covar, None, weatherbundle, economicmodel, config=config))
+            covariators.append(get_covariator(covar, None, weatherbundle, economicmodel, config=config, quiet=quiet))
             
         if len(covariators) == 1:
             covariator = covariators[0]

@@ -103,15 +103,16 @@ class BinnedEconomicCovariator(EconomicCovariator):
         return self.add_bins(covars)
     
 class MeanWeatherCovariator(Covariator):
-    def __init__(self, weatherbundle, maxbaseline, variable, config={}):
+    def __init__(self, weatherbundle, maxbaseline, variable, config={}, quiet=False):
         super(MeanWeatherCovariator, self).__init__(maxbaseline)
 
         self.numtempyears = config.get('length', standard_climate_config['length'])
         self.variable = variable
 
-        print "Collecting baseline information..."
+        if not quiet:
+            print "Collecting baseline information..."
         temp_predictors = {}
-        for region, ds in weatherbundle.baseline_values(maxbaseline): # baseline through maxbaseline
+        for region, ds in weatherbundle.baseline_values(maxbaseline, quiet=quiet): # baseline through maxbaseline
             try:
                 temp_predictors[region] = averages.interpret(config, standard_climate_config, ds[variable][-self.numtempyears:])
             except Exception as ex:
@@ -131,7 +132,7 @@ class MeanWeatherCovariator(Covariator):
         if ds is not None and year > self.startupdateyear:
             self.temp_predictors[region].update(np.mean(ds[self.variable]._values)) # if only yearly values
 
-        return {self.variable: self.temp_predictors[region].get()}
+        return {self.variable: self.temp_predictors[region].get(), 'year': year}
 
 class SubspanWeatherCovariator(MeanWeatherCovariator):
     def __init__(self, weatherbundle, maxbaseline, day_start, day_end, variable, config={}):
@@ -254,16 +255,17 @@ class YearlyWeatherCovariator(Covariator):
         return {self.yearlyreader.get_dimension()[0]: self.predictors[region].get()}
 
 class MeanBinsCovariator(Covariator):
-    def __init__(self, weatherbundle, binlimits, dropbin, maxbaseline, config={}):
+    def __init__(self, weatherbundle, binlimits, dropbin, maxbaseline, config={}, quiet=False):
         super(MeanBinsCovariator, self).__init__(maxbaseline)
 
         self.binlimits = binlimits
         self.dropbin = dropbin
         self.numtempyears = config.get('length', standard_climate_config['length'])
 
-        print "Collecting baseline information..."
+        if not quiet:
+            print "Collecting baseline information..."
         temp_predictors = {} # {region: [rm-bin-1, ...]}
-        for region, binyears in weatherbundle.baseline_values(maxbaseline): # baseline through maxbaseline
+        for region, binyears in weatherbundle.baseline_values(maxbaseline, quiet=quiet): # baseline through maxbaseline
             usedbinyears = []
             for kk in range(binyears.shape[-1]):
                 usedbinyears.append(averages.interpret(config, standard_climate_config, binyears[-self.numtempyears:, kk]))
@@ -461,7 +463,12 @@ class ProductCovariator(Covariator):
 
     def make_product(self, covars1, covars2):
         combos = itertools.product(covars1.keys(), covars2.keys())
-        return {"%s*%s" % (key1, key2): covars1[key1] * covars2[key2] for key1, key2 in combos}
+        result = {"%s*%s" % (key1, key2): covars1[key1] * covars2[key2] for key1, key2 in combos if key1 != 'year' and key2 != 'year'}
+        if 'year' in covars1:
+            result['year'] = covars1['year']
+        if 'year' in covars2:
+            result['year'] = covars2['year']
+        return result
         
     def get_update(self, region, year, ds):
         covars1 = self.source1.get_update(region, year, ds)
