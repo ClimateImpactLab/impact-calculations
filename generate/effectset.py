@@ -31,6 +31,7 @@ def simultaneous_application(weatherbundle, calculation, regions=None, push_call
 
             if push_callback is not None:
                 push_callback(region, year, applications[region])
+                diagnostic.finish(region, year, group='input')
 
     for region in applications:
         for yearresult in applications[region].done():
@@ -105,7 +106,7 @@ def write_ncdf(targetdir, basename, weatherbundle, calculation, description, cal
     years[:] = yeardata
 
     if diagnosefile:
-        diagnostic.begin(diagnosefile)
+        diagnostic.begin(diagnosefile, finishset=set(['input', 'output']))
 
     region_indices = {region: my_regions.index(region) for region in my_regions}
         
@@ -113,7 +114,7 @@ def write_ncdf(targetdir, basename, weatherbundle, calculation, description, cal
         for col in range(len(results)):
             columndata[col][year - yeardata[0], region_indices[region]] = results[col]
         if diagnosefile:
-            diagnostic.finish(region, year)
+            diagnostic.finish(region, year, group='output')
 
     if diagnosefile:
         diagnostic.close()
