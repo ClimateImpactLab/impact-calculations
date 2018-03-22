@@ -146,25 +146,26 @@ class DailyWeatherBundle(WeatherBundle):
     def baseline_values(self, maxyear, do_mean=True, quiet=False):
         """Yield the list of all weather values up to `maxyear` for each region."""
 
-        # Construct an empty dataset to append to
-        allds = []
+        if not hasattr(self, 'saved_baseline_values'):
+            # Construct an empty dataset to append to
+            allds = []
 
-        # Append each year
-        for year, ds in self.yearbundles(maxyear):
-            if not quiet:
-                print year
+            # Append each year
+            for year, ds in self.yearbundles(maxyear):
+                if not quiet:
+                    print year
 
-            # Stack this year below the previous years
-            if do_mean:
-                allds.append(ds.mean('time'))
-            else:
-                allds.append(ds)
+                # Stack this year below the previous years
+                if do_mean:
+                    allds.append(ds.mean('time'))
+                else:
+                    allds.append(ds)
 
-        allyears = fast_dataset.concat(allds, dim='time')
+            self.saved_baseline_values = fast_dataset.concat(allds, dim='time')
 
         # Yield the entire collection of values for each region
         for ii in range(len(self.regions)):
-            yield self.regions[ii], allyears.sel(region=self.regions[ii])
+            yield self.regions[ii], self.saved_baseline_values.sel(region=self.regions[ii])
 
 class SingleWeatherBundle(ReaderWeatherBundle, DailyWeatherBundle):
     def is_historical(self):

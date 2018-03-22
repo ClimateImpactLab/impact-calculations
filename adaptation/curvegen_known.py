@@ -4,9 +4,9 @@ from openest.generate import diagnostic, formatting
 from openest.models.curve import ZeroInterceptPolynomialCurve, CubicSplineCurve
 
 class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
-    def __init__(self, indepunits, depenunit, prefix, order, csvv, diagprefix='coeff-'):
+    def __init__(self, indepunits, depenunit, prefix, order, csvv, diagprefix='coeff-', predinfix=''):
         self.order = order
-        prednames = [prefix + str(ii) if ii > 1 else prefix for ii in range(1, order+1)]
+        prednames = [prefix + predinfix + str(ii) if ii > 1 else prefix for ii in range(1, order+1)]
         super(PolynomialCurveGenerator, self).__init__(prednames, indepunits * order, depenunit, csvv)
         self.diagprefix = diagprefix
 
@@ -16,7 +16,11 @@ class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
 
         if recorddiag and diagnostic.is_recording():
             for predname in self.prednames:
-                diagnostic.record(region, year, self.diagprefix + predname, coefficients[predname])
+                if year < 2015: # Only called once, so make the most of it
+                    for yr in range(year, 2015):
+                        diagnostic.record(region, yr, self.diagprefix + predname, coefficients[predname])
+                else:
+                    diagnostic.record(region, year, self.diagprefix + predname, coefficients[predname])
 
         return ZeroInterceptPolynomialCurve([-np.inf, np.inf], yy)
 
@@ -41,10 +45,15 @@ class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
         return self.csvv['gammavcv']
 
     def format_call(self, lang, *args):
+        var = formatting.get_variable()
+        get_values = lambda region, year, covariates: self.get_curve(region, year, covariates).ccs # start with lowest order
+        
         if lang == 'latex':
-            return {'main': formatting.FormatElement(r"\sum_{k=1}^%d \beta_k %s^k" % (self.order, args[0]), self.depenunit, is_primitive=True)}
+            return {'main': formatting.FormatElement(r"\sum_{k=1}^%d %s_k %s^k" % (self.order, var, args[0]), self.depenunit, [var], is_primitive=True),
+                    var: formatting.FormatAppliedNumeric(get_values, '')}
         elif lang == 'julia':
-            return {'main': formatting.FormatElement("beta[1] * " + args[0] + ' + ' + ' + '.join(["beta[%d] * %s^%d" % (order, args[0], order) for order in range(2, self.order + 1)]), self.depenunit, is_primitive=True)}
+            return {'main': formatting.FormatElement(var + "[1] * " + args[0] + ' + ' + ' + '.join([var + "[%d] * %s^%d" % (order, args[0], order) for order in range(2, self.order + 1)]), self.depenunit, [var], is_primitive=True),
+                    var: formatting.FormatAppliedNumeric(get_values, '')}
 
 class CubicSplineCurveGenerator(curvegen.CSVVCurveGenerator):
     def __init__(self, indepunits, depenunit, prefix, knots, csvv):
@@ -58,6 +67,10 @@ class CubicSplineCurveGenerator(curvegen.CSVVCurveGenerator):
 
         if recorddiag and diagnostic.is_recording():
             for predname in self.prednames:
-                diagnostic.record(region, year, predname, coefficients[predname])
+                if year < 2015: # Only called once, so make the most of it
+                    for yr in range(year, 2015):
+                        diagnostic.record(region, yr, predname, coefficients[predname])
+                else:
+                    diagnostic.record(region, year, predname, coefficients[predname])
 
         return CubicSplineCurve(self.knots, yy)

@@ -65,6 +65,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
         indepunit = specconf['indepunit']
         
         order = 0
+        predinfix = ''
         for predname in csvv['prednames']:
             if predname == variable:
                 order = max(order, 1)
@@ -72,9 +73,17 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
                 match = re.match(variable + r'(\d+)', predname)
                 if match:
                     order = max(order, int(match.group(1)))
+                    continue
+                match = re.match(variable + r'-poly-(\d+)', predname)
+                if match:
+                    predinfix = '-poly-'
+                    order = max(order, int(match.group(1)))
+                    continue
+
+        assert order > 1
                     
         curr_curvegen = curvegen_known.PolynomialCurveGenerator([indepunit] + ['%s^%d' % (indepunit, pow) for pow in range(2, order+1)],
-                                                                depenunit, variable, order, csvv)
+                                                                depenunit, variable, order, csvv, predinfix=predinfix)
         minfinder = lambda mintemp, maxtemp: lambda curve: minpoly.findpolymin([0] + curve.ccs, mintemp, maxtemp)
         if 'within-season' in specconf:
             weathernames = [lambda ds: variables.post_process(ds, variable, specconf)] * order
