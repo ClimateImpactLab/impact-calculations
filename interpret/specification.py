@@ -82,13 +82,13 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
 
         assert order > 1
                     
-        curr_curvegen = curvegen_known.PolynomialCurveGenerator([indepunit] + ['%s^%d' % (indepunit, pow) for pow in range(2, order+1)],
-                                                                depenunit, variable, order, csvv, predinfix=predinfix)
-        minfinder = lambda mintemp, maxtemp: lambda curve: minpoly.findpolymin([0] + curve.ccs, mintemp, maxtemp)
         if 'within-season' in specconf:
             weathernames = [lambda ds: variables.post_process(ds, variable, specconf)] * order
         else:
             weathernames = [variable] + ['%s-poly-%d' % (variable, power) for power in range(2, order+1)]
+        curr_curvegen = curvegen_known.PolynomialCurveGenerator([indepunit] + ['%s^%d' % (indepunit, pow) for pow in range(2, order+1)],
+                                                                depenunit, variable, order, csvv, predinfix=predinfix, weathernames=weathernames)
+        minfinder = lambda mintemp, maxtemp: lambda curve: minpoly.findpolymin([0] + curve.ccs, mintemp, maxtemp)
             
     elif specconf['functionalform'] == 'cubic spline':
         knots = specconf['knots']
@@ -158,7 +158,14 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
         else:
             return final_curve
 
-    final_curvegen = curvegen.TransformCurveGenerator(transform, "Clipping and/or Good Money", curr_curvegen)
+    if specconf.get('clipping', False) and specconf.get('goodmoney', False):
+        final_curvegen = curvegen.TransformCurveGenerator(transform, "Clipping and Good Money transformation", curr_curvegen)
+    elif specconf.get('clipping', False):
+        final_curvegen = curvegen.TransformCurveGenerator(transform, "Clipping transformation", curr_curvegen)
+    elif specconf.get('goodmoney', False):
+        final_curvegen = curvegen.TransformCurveGenerator(transform, "Good Money transformation", curr_curvegen)
+    else:
+        final_curvegen = curvegen.TransformCurveGenerator(transform, None, curr_curvegen)
 
     if covariator:
         final_curvegen = curvegen.FarmerCurveGenerator(final_curvegen, covariator, farmer)
