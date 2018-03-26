@@ -4,11 +4,12 @@ from openest.generate import diagnostic, formatting
 from openest.models.curve import ZeroInterceptPolynomialCurve, CubicSplineCurve
 
 class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
-    def __init__(self, indepunits, depenunit, prefix, order, csvv, diagprefix='coeff-', predinfix=''):
+    def __init__(self, indepunits, depenunit, prefix, order, csvv, diagprefix='coeff-', predinfix='', weathernames=None):
         self.order = order
         prednames = [prefix + predinfix + str(ii) if ii > 1 else prefix for ii in range(1, order+1)]
         super(PolynomialCurveGenerator, self).__init__(prednames, indepunits * order, depenunit, csvv)
         self.diagprefix = diagprefix
+        self.weathernames = weathernames
 
     def get_curve(self, region, year, covariates={}, recorddiag=True, **kwargs):
         coefficients = self.get_coefficients(covariates)
@@ -45,15 +46,32 @@ class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
         return self.csvv['gammavcv']
 
     def format_call(self, lang, *args):
-        var = formatting.get_variable()
-        get_values = lambda region, year, covariates: self.get_curve(region, year, covariates).ccs # start with lowest order
-        
+        coeffs = [self.diagprefix + predname for predname in self.prednames]
+        coeffreps = [formatting.get_parametername(coeff, lang) for coeff in coeffs]
+        if self.weathernames:
+            weatherreps = [formatting.get_parametername(weather, lang) for weather in self.weathernames]
+        else:
+            weatherreps = None
         if lang == 'latex':
-            return {'main': formatting.FormatElement(r"\sum_{k=1}^%d %s_k %s^k" % (self.order, var, args[0]), self.depenunit, [var], is_primitive=True),
-                    var: formatting.FormatAppliedNumeric(get_values, '')}
+            if weatherreps is None:
+                beta = formatting.get_beta(lang)
+                elements = {'main': formatting.FormatElement(r"\sum_{k=1}^%d %s_k %s^k" % (self.order, beta, args[0]), self.depenunit, [beta], is_primitive=True),
+                            beta: formatting.FormatElement('[' + ', '.join(coeffreps) + ']', '', coeffs)}
+            else:
+                elements = {'main': formatting.FormatElement(' + '.join(["%s_k %s" % (beta, weatherreps[kk]) for kk in range(self.order)]), self.depenunit, coeffs + self.weathernames, is_primitive=True)}
         elif lang == 'julia':
-            return {'main': formatting.FormatElement(var + "[1] * " + args[0] + ' + ' + ' + '.join([var + "[%d] * %s^%d" % (order, args[0], order) for order in range(2, self.order + 1)]), self.depenunit, [var], is_primitive=True),
-                    var: formatting.FormatAppliedNumeric(get_values, '')}
+            if weatherreps is None:
+                elements = {'main': formatting.FormatElement(' + '.join(["%s * %s^%d" % (coeffreps[kk], args[0], order+1) for kk in range(self.order)]), self.depenunit, coeffs, is_primitive=True)}
+            else:
+                elements = {'main': formatting.FormatElement(' + '.join(["%s * %s" % (coeffreps[kk], weatherreps[kk]) for kk in range(self.order)]), self.depenunit, coeffs + self.weathernames, is_primitive=True)}
+
+        for ii in range(len(coeffs)):
+            elements[coeffs[ii]] = formatting.ParameterFormatElement(coeffs[ii], coeffreps[ii], '')
+        if weatherreps is not None:
+            for ii in range(len(self.weathernames)):
+                elements[self.weathernames[ii]] = formatting.ParameterFormatElement(self.weathernames[ii], weatherreps[ii], '')
+
+        return elements
 
 class CubicSplineCurveGenerator(curvegen.CSVVCurveGenerator):
     def __init__(self, indepunits, depenunit, prefix, knots, csvv):

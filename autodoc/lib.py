@@ -17,7 +17,7 @@ def show_julia(command, clipto=160):
                 print line[:(clipto-3)] + '...'
             else:
                 print line
-                
+
         print "# " + subprocess.check_output(["julia", "-e", "; ".join(command[:-1]) + "; println(" + command[-1] + ")"])
 
 def get_excerpt(filepath, first_col, regionid, years, hasmodel=True, onlymodel=None, hidecols=[]):

@@ -10,7 +10,7 @@ import lib
 ## Configuration
 
 futureyear = 2050
-region = 'USA.14.608' #'IND.33.542.2153'
+region = 'IND.21.329.1353' #'USA.14.608'
 
 config = files.get_argv_config()
 allcalcs = sys.argv[2]
@@ -33,6 +33,7 @@ print "RCP: " + rcp
 print "GCM: " + gcm
 print "IAM: " + iam
 print "SSP: " + ssp
+print "Region: " + region
 
 # Find the relevant CSVV
 foundcsvv = False
@@ -69,50 +70,65 @@ lib.show_header("Weather:")
 clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel = loadmodels.single(container.get_bundle_iterator(configs.merge(config, {'only-models': [gcm]})))
 
 weather = {}
-for year, ds in weatherbundle.yearbundles(futureyear):
+for year, ds in weatherbundle.yearbundles(futureyear + 1):
     if year in range(2001, 2011) + [futureyear-1, futureyear]:
-        ds = ds.isel(hierid=shapenum)
+        ds = ds.isel(region=shapenum)
         weather[str(year)] = {variable: ds[variable].values for variable in ds}
 
 for variable in weather['2001']:
+    if variable in ['time', 'region']:
+        continue
     lib.show_header("  %s:" % variable)
     for year in sorted(weather.keys()):
         print "%s: %s..." % (year, ','.join(map(str, weather[year][variable][:10])))
             
 lib.show_header("Outputs:")
-outputs = lib.get_outputs(os.path.join(dir, onlymodel + '.nc4'), [futureyear], shapenum)
+outputs = lib.get_outputs(os.path.join(dir, onlymodel + '.nc4'), [2001, futureyear], shapenum)
 
 ## Computations
 # decide on a covariated variable
 for variable in set([csvv['prednames'][ii] for ii in range(len(csvv['prednames'])) if csvv['covarnames'][ii] != '1']):
     for year in [2001, futureyear]:
-        lib.show_header("Calc. of %s coefficient in %d (%f reported)" % (variable, year, lib.excind(calcs, year-1, 'coeff-' + variable)))
+        lib.show_header("Calculation of %s coefficient in %d (%f reported)" % (variable, year, lib.excind(calcs, year-1, 'coeff-' + variable)))
         lib.show_coefficient(csvv, calcs, year, variable)
 
 pvals = pvalses.ConstantPvals(.5)
 calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvvobj, module, weatherbundle, economicmodel, pvals[basename], specconf=specconf, config=configs.merge(config, {'quiet': True}), standard=False)
-    
-print formatting.format_julia(calculation)
-exit()
 
-coefflist = ['coeff-tas'] + ['coeff-tas%d' % ii for ii in range(2, polypower + 1)]
+formatting.format_reset()
+fullelements = calculation.format('julia')
 
+last_label = None
+for year in [2001, futureyear]:
+    used_outputs = set()
+    for label, elements in formatting.format_labels:
+        if label == 'rebased':
+            break
+        
+        while label in used_outputs:
+            label += '2'
+        last_label = label
+        used_outputs.add(label)
+
+        lib.show_header("Calculation of %s in %d (%f reported)" % (label, year, outputs[year][label]))
+        julia = formatting.format_julia(elements, {calcs['header'][ii]: calcs[str(year)][ii] for ii in range(len(calcs['header']))}, include_comments=False)
+        lib.show_julia(julia.split('\n'), clipto=None)
+
+## Calculate rebased
 lib.show_header("Calc. of baseline (%f reported)" % (lib.excind(calcs, 2000, 'baseline')))
-lines = []
-for year in range(2001, 2011):
-    lines.append("weather_%d = [%s]" % (year, ','.join(["%.12g" % weday for weday in weather[year]])))
-lines.append("bl1(weather) = sum([%s]' * weather)" % ', '.join(["%.12g" % lib.excind(calcs, 2000, coeff) for coeff in coefflist]))
-lines.append("bl2(weather) = bl1([%s])" % '; '.join(["weather'.^%d" % pow for pow in range(1, polypower+1)]))
-terms = []
-for year in range(2001, 2011):
-    terms.append("bl2(weather_%d)" % (year))
-lines.append("(" + ' + '.join(terms) + ") / 10")
-lib.show_julia(lines)
 
-lib.show_header("Calc. of result (%f reported)" % (outputs[futureyear]['rebased']))
+alllines = []
+for year in range(2001, 2011):
+    elements = formatting.format_labels[-2][1]
+    julia = formatting.format_julia(elements, {calcs['header'][ii]: calcs[str(year)][ii] for ii in range(len(calcs['header']))}, include_comments=False)
+    lines = julia.split('\n')
+    lines[-1] = 'output%d = ' % year +lines[-1]
+    alllines.extend(lines)
 
-lines = ["weather_%d = [%s]" % (futureyear, ','.join(["%.12g" % weday for weday in weather[futureyear]])),
-         "eff1(weather) = sum([%s]' * weather)" % ', '.join(["%.12g" % lib.excind(calcs, futureyear, coeff) for coeff in coefflist]),
-         "eff2(weather) = eff1([%s])" % ('; '.join(["weather'.^%d" % pow for pow in range(1, polypower+1)]))]
-lines.append("eff2(weather_%d) - %.12g" % (futureyear, lib.excind(calcs, 2000, 'baseline')))
-lib.show_julia(lines)
+alllines.append("(" + ' + '.join(["output%d" % year for year in range(2001, 2011)]) + ") / 10")
+lib.show_julia(alllines, clipto=None)
+
+## Final calculation
+
+lib.show_header("Calc. of rebased (%f reported)" % outputs[futureyear]['rebased'])
+lib.show_julia("%f - %f" % (outputs[futureyear][last_label], lib.excind(calcs, 2000, 'baseline')))
