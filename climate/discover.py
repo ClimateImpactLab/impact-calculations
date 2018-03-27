@@ -25,6 +25,12 @@ def standard_variable(name, mytimerate, **config):
             for chunk in chunks[2:]:
                 var = interpret_transform(var, chunk)
             return var
+
+    version = None
+    if '==' in name:
+        chunks = name.split('==')
+        name = chunks[0]
+        version = chunks[1]
         
     assert mytimerate in ['day', 'month', 'year']
 
@@ -32,12 +38,12 @@ def standard_variable(name, mytimerate, **config):
         polyedvars = ['tas', 'tasmax']
     
         if name in polyedvars:
-            return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/" + name), name, **config)
+            return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/" + name), name, version=version, **config)
         for ii in range(2, 10):
             if name in ["%s-poly-%d" % (var, ii) for var in polyedvars]:
-                return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/" + name), name, **config)
+                return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/" + name), name, version=version, **config)
             if name in ["%s%d" % (var, ii) for var in polyedvars]:
-                return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/%s-poly-%s" % (name[:-1], name[-1])), '%s-poly-%s' % (name[:-1], name[-1]), **config)
+                return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/%s-poly-%s" % (name[:-1], name[-1])), '%s-poly-%s' % (name[:-1], name[-1]), version=version, **config)
         if name == 'prmm':
             return discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'pr', **config)
         
@@ -61,12 +67,12 @@ def standard_variable(name, mytimerate, **config):
         polyedvars_daily = ['tas', 'tasmax'] # Currently do these as sums
         
         if name in polyedvars:
-            return discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/" + name), name, **config)
+            return discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/" + name), name, version=version, **config)
         for ii in range(2, 10):
             if name in ["%s-poly-%d" % (var, ii) for var in polyedvars]:
-                return discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/" + name), name, **config)
+                return discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/" + name), name, version=version, **config)
             if name in ["%s%d" % (var, ii) for var in polyedvars]:
-                return discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/%s-poly-%s" % (name[:-1], name[-1])), '%s-poly-%s' % (name[:-1], name[-1]), **config)
+                return discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/%s-poly-%s" % (name[:-1], name[-1])), '%s-poly-%s' % (name[:-1], name[-1]), version=version, **config)
 
         if name in polyedvars_daily:
             return discover_day2year(standard_variable(name, 'day', **config), lambda arr, dim: np.sum(arr, axis=dim))
