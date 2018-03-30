@@ -10,7 +10,7 @@ import lib
 ## Configuration
 
 futureyear = 2050
-region = 'IND.21.329.1353' #'USA.14.608'
+region = 'USA.14.608' #'IND.21.329.1353'
 
 config = files.get_argv_config()
 allcalcs = sys.argv[2]
