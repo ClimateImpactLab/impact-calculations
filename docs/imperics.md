@@ -75,7 +75,7 @@ Basic model configration:
   Filepath expansions are interpretted by
   https://docs.python.org/2/library/glob.html
 
-* `clipping` (required): Should values less than 0 be replaced with 0?
+* `clipping` (required): Should values less than 0 be replaced with 0?  Currently this only clips on the lower end.  The default limits for the temperature at which this can occur are 10C and 25C, but these can be adjusted with `clip-mintemp` and `clip-maxtemp` options.
 
 * `covariates` (required): A list of known covariate names,
   interpretted by `interpret.specification::get_covriator`.  See the
