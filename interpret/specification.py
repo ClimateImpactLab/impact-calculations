@@ -1,11 +1,11 @@
 import re
 from adaptation import csvvfile, curvegen, curvegen_known, curvegen_arbitrary, covariates, constraints
 from datastore import irvalues
-from openest.generate import smart_curve
+from openest.generate import smart_curve, selfdocumented
 from openest.models.curve import ShiftedCurve, MinimumCurve, ClippedCurve, ZeroInterceptPolynomialCurve
 from openest.generate.stdlib import *
 from impactcommon.math import minpoly, minspline
-import calculator, variables
+import calculator, variables, configs
 
 def user_failure(message):
     print "ERROR: " + message
@@ -41,7 +41,8 @@ def create_covariator(specconf, weatherbundle, economicmodel, config={}, quiet=F
     if 'covariates' in specconf:
         covariators = []
         for covar in specconf['covariates']:
-            covariators.append(get_covariator(covar, None, weatherbundle, economicmodel, config=config, quiet=quiet))
+            fullconfig = configs.merge(config, specconf)
+            covariators.append(get_covariator(covar, None, weatherbundle, economicmodel, config=fullconfig, quiet=quiet))
             
         if len(covariators) == 1:
             covariator = covariators[0]
@@ -82,10 +83,10 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
 
         assert order > 1
                     
+        weathernames = [variable] + ['%s-poly-%d' % (variable, power) for power in range(2, order+1)]
         if 'within-season' in specconf:
-            weathernames = [lambda ds: variables.post_process(ds, variable, specconf)] * order
-        else:
-            weathernames = [variable] + ['%s-poly-%d' % (variable, power) for power in range(2, order+1)]
+            weathernames = [selfdocumented.DocumentedFunction(lambda ds: variables.post_process(ds, name, specconf), None, "Limit to within season", name) for name in weathernames]
+
         curr_curvegen = curvegen_known.PolynomialCurveGenerator([indepunit] + ['%s^%d' % (indepunit, pow) for pow in range(2, order+1)],
                                                                 depenunit, variable, order, csvv, predinfix=predinfix, weathernames=weathernames)
         minfinder = lambda mintemp, maxtemp: lambda curve: minpoly.findpolymin([0] + curve.ccs, mintemp, maxtemp)
@@ -135,6 +136,8 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
     def transform(region, curve):
         if isinstance(curve, ZeroInterceptPolynomialCurve):
             final_curve = smart_curve.ZeroInterceptPolynomialCurve(curve.ccs, weathernames, specconf.get('allow-raising', False))
+        elif isinstance(curve, smart_curve.SmartCurve):
+            final_curve = curve
         else:
             final_curve = smart_curve.CoefficientsCurve(curve.ccs, weathernames)
 

@@ -139,9 +139,10 @@ class ConversionWeatherReader(WeatherReader):
 class RegionReorderWeatherReader(WeatherReader):
     """Wraps another weather reader, reordering its regions to IR shapefile order."""
 
-    def __init__(self, reader, hierarchy='hierarchy.csv'):
+    def __init__(self, reader, hierarchy='hierarchy.csv', timevar='time'):
         super(RegionReorderWeatherReader, self).__init__(reader.version, reader.units, reader.time_units)
         self.reader = reader
+        self.timevar = timevar
 
         self.dependencies = []
         desired_regions = irregions.load_regions(hierarchy, self.dependencies)
@@ -174,7 +175,7 @@ class RegionReorderWeatherReader(WeatherReader):
         """Yields an xarray Dataset in whatever chunks are convenient to a given year."""
         for ds in self.reader.read_iterator():
             yield self.reorder_regions(ds)
-            if ds['time.year'][0] >= maxyear:
+            if ds[self.timevar + '.year'][0] >= maxyear:
                 break
 
     def read_year(self, year):
@@ -184,7 +185,7 @@ class RegionReorderWeatherReader(WeatherReader):
     def reorder_regions(self, ds):
         newvars = {}
         for var in ds:
-            if var in ['time', 'region']:
+            if var in [self.timevar, 'region']:
                 continue
             #newds[var] = ds[var] # Automatically reordered
             # Don't use automatic reordering: too slow later (XXX: is this true?)
@@ -194,16 +195,21 @@ class RegionReorderWeatherReader(WeatherReader):
                         newvars[var] = ds[var]
                     else:
                         newvars[var] = (['region'], ds[var].values[self.reorder])
-                else:
-                    if ds[var].dims.index('time') == 0:
-                        newvars[var] = (['time', 'region'], ds[var].values[:, self.reorder])
+                elif len(ds[var].dims) == 2:
+                    if ds[var].dims.index(self.timevar) == 0:
+                        newvars[var] = ([self.timevar, 'region'], ds[var].values[:, self.reorder])
                     else:
-                        newvars[var] = (['region', 'time'], ds[var].values[self.reorder, :])
+                        newvars[var] = (['region', self.timevar], ds[var].values[self.reorder, :])
+                else:
+                    tindex = list(ds[var].dims).index('region')
+                    indices = [slice(None)] * len(ds[var].dims)
+                    indices[tindex] = self.reorder
+                    newvars[var] = (ds[var].dims, ds[var].values[tuple(indices)])
             except Exception as ex:
                 print "Failed to reorder %s for %s" % (var, self.reader)
-                raise ex
+                raise
 
-        newds = xr.Dataset(newvars, coords={'time': ds.time, 'region': ds.region[self.reorder]})
+        newds = xr.Dataset(newvars, coords={self.timevar: ds[self.timevar], 'region': ds.region[self.reorder]})
         newds.load()
 
         return newds

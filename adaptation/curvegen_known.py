@@ -1,6 +1,6 @@
 import numpy as np
 import csvvfile, curvegen
-from openest.generate import diagnostic, formatting
+from openest.generate import diagnostic, formatting, selfdocumented
 from openest.models.curve import ZeroInterceptPolynomialCurve, CubicSplineCurve
 
 class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
@@ -49,7 +49,7 @@ class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
         coeffs = [self.diagprefix + predname for predname in self.prednames]
         coeffreps = [formatting.get_parametername(coeff, lang) for coeff in coeffs]
         if self.weathernames:
-            weatherreps = [formatting.get_parametername(weather, lang) for weather in self.weathernames]
+            weatherreps = [selfdocumented.get_repstr(weather, lang) for weather in self.weathernames]
         else:
             weatherreps = None
         if lang == 'latex':
@@ -69,7 +69,7 @@ class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
             elements[coeffs[ii]] = formatting.ParameterFormatElement(coeffs[ii], coeffreps[ii], '')
         if weatherreps is not None:
             for ii in range(len(self.weathernames)):
-                elements[self.weathernames[ii]] = formatting.ParameterFormatElement(self.weathernames[ii], weatherreps[ii], '')
+                elements.update(selfdocumented.format(self.weathernames[ii]))
 
         return elements
 
