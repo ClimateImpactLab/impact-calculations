@@ -62,8 +62,10 @@ def standard_variable(name, mytimerate, **config):
             return discover_binned(files.sharedpath('climate/BCSD/aggregation/cmip5_bins/IR_level'), 'year', # Should this be year?
                                    'tas/tas_Bindays_aggregated_%scenario_r1i1p1_%model_%d.nc', 'SHAPENUM', 'DayNumber')
         if name == 'edd':
-            return discover_versioned_binned(files.sharedpath('climate/BCSD/hierid/cropwt/monthly/edd_monthly'),
-                                             'edd_monthly', 'refTemp', version=version, **config)
+            return discover_rename(
+                discover_versioned_binned(files.sharedpath('climate/BCSD/hierid/cropwt/monthly/edd_monthly'),
+                                          'edd_monthly', 'refTemp', version=version, **config),
+                {'edd_monthly': 'edd'})
         if name in ['prmm', 'prmm-poly-2']:
             return discover_rename(
                 discover_versioned(files.sharedpath('climate/BCSD/hierid/cropwt/monthly/' + name.replace('prmm', 'pr')),
@@ -300,7 +302,7 @@ def discover_versioned(basedir, variable, version=None, reorder=True, **config):
         yield scenario, model, pastreader, futurereader
 
 def discover_versioned_binned(basedir, variable, dim, version=None, reorder=True, **config):
-    post_process = lambda x: RegionReorderWeatherReader(x, timevar='month') if reorder else lambda x: x
+    post_process = lambda x: RegionReorderWeatherReader(x) if reorder else lambda x: x
     
     for scenario, model, pasttemplate, futuretemplate in discover_versioned_models(basedir, version, **config):
         pastreader = MonthlyDimensionedWeatherReader(pasttemplate, 1981, 'hierid', variable, dim)

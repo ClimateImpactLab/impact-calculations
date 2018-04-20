@@ -7,6 +7,8 @@ region_curves = {}
 class CSVVCurveGenerator(CurveGenerator):
     def __init__(self, prednames, indepunits, depenunit, csvv):
         super(CSVVCurveGenerator, self).__init__(indepunits, depenunit)
+
+        assert isinstance(prednames, list) or isinstance(prednames, set) or isinstance(prednames, tuple)
         self.prednames = prednames
         self.csvv = csvv
 
