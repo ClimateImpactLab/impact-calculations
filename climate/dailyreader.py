@@ -97,14 +97,20 @@ class MonthlyDimensionedWeatherReader(YearlySplitWeatherReader):
         # Yield data in yearly chunks
         for filename in self.file_iterator():
             ds = xr.open_dataset(filename)
-            ds.rename({self.regionvar: 'region'}, inplace=True)
-            ds = ds.transpose('month', 'region', self.dim) # Some old code may depend on T x REGIONS x K
+            if 'month' in ds.coords:
+                ds.rename({'month': 'time', self.regionvar: 'region'}, inplace=True)
+            else:
+                ds.rename({self.regionvar: 'region'}, inplace=True)
+            ds = ds.transpose('time', 'region', self.dim) # Some old code may depend on T x REGIONS x K
             yield ds
 
     def read_year(self, year):
         ds = xr.open_dataset(self.file_for_year(year))
-        ds.rename({self.regionvar: 'region'}, inplace=True)
-        ds = ds.transpose('month', 'region', self.dim) # Some old code may depend on T x REGIONS x K
+        if 'month' in ds.coords:
+            ds.rename({'month': 'time', self.regionvar: 'region'}, inplace=True)
+        else:
+            ds.rename({self.regionvar: 'region'}, inplace=True)
+        ds = ds.transpose('time', 'region', self.dim) # Some old code may depend on T x REGIONS x K
         return ds
 
 class MonthlyBinnedWeatherReader(MonthlyDimensionedWeatherReader):

@@ -52,24 +52,27 @@ class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
             weatherreps = [selfdocumented.get_repstr(weather, lang) for weather in self.weathernames]
         else:
             weatherreps = None
+
+        weatherdeps = [dep for weather in self.weathernames for dep in selfdocumented.get_dependencies(weather, lang)]
+
         if lang == 'latex':
             if weatherreps is None:
                 beta = formatting.get_beta(lang)
                 elements = {'main': formatting.FormatElement(r"\sum_{k=1}^%d %s_k %s^k" % (self.order, beta, args[0]), self.depenunit, [beta], is_primitive=True),
                             beta: formatting.FormatElement('[' + ', '.join(coeffreps) + ']', '', coeffs)}
             else:
-                elements = {'main': formatting.FormatElement(' + '.join(["%s_k %s" % (beta, weatherreps[kk]) for kk in range(self.order)]), self.depenunit, coeffs + self.weathernames, is_primitive=True)}
+                elements = {'main': formatting.FormatElement(' + '.join(["%s_k %s" % (beta, weatherreps[kk]) for kk in range(self.order)]), self.depenunit, coeffs + weatherdeps, is_primitive=True)}
         elif lang == 'julia':
             if weatherreps is None:
                 elements = {'main': formatting.FormatElement(' + '.join(["%s * %s^%d" % (coeffreps[kk], args[0], order+1) for kk in range(self.order)]), self.depenunit, coeffs, is_primitive=True)}
             else:
-                elements = {'main': formatting.FormatElement(' + '.join(["%s * %s" % (coeffreps[kk], weatherreps[kk]) for kk in range(self.order)]), self.depenunit, coeffs + self.weathernames, is_primitive=True)}
+                elements = {'main': formatting.FormatElement(' + '.join(["%s * %s" % (coeffreps[kk], weatherreps[kk]) for kk in range(self.order)]), self.depenunit, coeffs + weatherdeps, is_primitive=True)}
 
         for ii in range(len(coeffs)):
-            elements[coeffs[ii]] = formatting.ParameterFormatElement(coeffs[ii], coeffreps[ii], '')
+            elements[coeffs[ii]] = formatting.ParameterFormatElement(coeffs[ii], coeffreps[ii], 'todo')
         if weatherreps is not None:
             for ii in range(len(self.weathernames)):
-                elements.update(selfdocumented.format(self.weathernames[ii]))
+                elements.update(selfdocumented.format_nomain(self.weathernames[ii], lang))
 
         return elements
 

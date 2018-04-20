@@ -85,7 +85,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
                     
         weathernames = [variable] + ['%s-poly-%d' % (variable, power) for power in range(2, order+1)]
         if 'within-season' in specconf:
-            weathernames = [selfdocumented.DocumentedFunction(lambda ds: variables.post_process(ds, name, specconf), None, "Limit to within season", name) for name in weathernames]
+            weathernames = [variables.get_post_process(name, specconf) for name in weathernames]
 
         curr_curvegen = curvegen_known.PolynomialCurveGenerator([indepunit] + ['%s^%d' % (indepunit, pow) for pow in range(2, order+1)],
                                                                 depenunit, variable, order, csvv, predinfix=predinfix, weathernames=weathernames)

@@ -10,7 +10,10 @@ def show_header(text):
 def show_julia(command, clipto=160):
     if isinstance(command, str):
         print command
-        print "# " + subprocess.check_output(["julia", "-e", "println(" + command + ")"])
+        try:
+            print "# " + subprocess.check_output(["julia", "-e", "println(" + command + ")"])
+        except Exception as ex:
+            print ex
     else:
         for line in command:
             if clipto is not None and len(line) > clipto:
@@ -18,7 +21,10 @@ def show_julia(command, clipto=160):
             else:
                 print line
 
-        print "# " + subprocess.check_output(["julia", "-e", "; ".join(command[:-1]) + "; println(" + command[-1] + ")"])
+        try:
+            print "# " + subprocess.check_output(["julia", "-e", "; ".join(command[:-1]) + "; println(" + command[-1] + ")"])
+        except Exception as ex:
+            print ex
 
 def get_excerpt(filepath, first_col, regionid, years, hasmodel=True, onlymodel=None, hidecols=[]):
     data = {}
