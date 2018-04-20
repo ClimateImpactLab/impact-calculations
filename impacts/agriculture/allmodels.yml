@@ -20,6 +20,9 @@ models:
           gdd-8-30: edd.bin(8) - edd.bin(30) [C day]
           kdd-30: edd.bin(30) [C day]
         functionalform: coefficients
+	beta-limits:
+	  gdd-8-30: 0, inf
+	  kdd-30: -inf, 0
       precip:
         description: Precipitation-driven yield rate for soybeans
         depenunit: log kg / Ha

@@ -93,10 +93,12 @@ outputs = lib.get_outputs(os.path.join(dir, onlymodel + '.nc4'), [2001, futureye
 
 ## Computations
 # decide on a covariated variable
+betalimits = lib.find_betalimits(config)
+
 for variable in set([csvv['prednames'][ii] for ii in range(len(csvv['prednames'])) if csvv['covarnames'][ii] != '1']):
     for year in [2001, futureyear]:
         lib.show_header("Calculation of %s coefficient in %d (%f reported)" % (variable, year, lib.excind(calcs, year-1, 'coeff-' + variable)))
-        lib.show_coefficient(csvv, calcs, year, variable)
+        lib.show_coefficient(csvv, calcs, year, variable, betalimits=betalimits.get(variable, None))
 
 pvals = pvalses.ConstantPvals(.5)
 calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvvobj, module, weatherbundle, economicmodel, pvals[basename], specconf=specconf, config=configs.merge(config, {'quiet': True}), standard=False)

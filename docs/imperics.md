@@ -127,6 +127,12 @@ The specification configuration options are described below:
 * `functionalform` (required): The functional form of the
   coefficients.  It may be one of `polynomial`, `cubicspline`, or
   `coefficients`.
+* `beta-limits` (optional): Specifies minimum and maximum values for
+  each beta (post-covariated) coefficient, as in:
+  ```
+  beta-limits:
+      kdd-30: -inf, 0
+  ```
   
 The independent variables are specified differently according to the
 functional form.
