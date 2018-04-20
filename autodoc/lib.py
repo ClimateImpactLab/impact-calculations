@@ -113,6 +113,10 @@ def jstr(x):
         return 'true'
     elif x == False:
         return 'false'
+    elif x == np.inf:
+        return 'Inf'
+    elif x == -np.inf:
+        return '-Inf'
     else:
         return str(x)
 
@@ -123,7 +127,7 @@ def pflt(x):
         return 0.
     return float(x)
     
-def show_coefficient(csvv, preds, year, coefname, covartrans={}):
+def show_coefficient(csvv, preds, year, coefname, covartrans={}, betalimits=None):
     predyear = year - 1 if year > 2015 else year
 
     terms = []
@@ -141,7 +145,10 @@ def show_coefficient(csvv, preds, year, coefname, covartrans={}):
             else:
                 terms.append(str(csvv['gamma'][ii]) + " * " + jstr(excind(preds, predyear, csvv['covarnames'][ii])))
 
-    show_julia(' + '.join(terms))
+    if betalimits is not None:
+        show_julia("min(max(%s, %s), %s)" % (jstr(betalimits[0]), ' + '.join(terms), jstr(betalimits[1])))
+    else:
+        show_julia(' + '.join(terms))
 
 def show_coefficient_mle(csvv, preds, year, coefname, covartrans):
     predyear = year - 1 if year > 2015 else year
@@ -211,3 +218,22 @@ def get_region_data(filepath, region, indexcol='hierid'):
     print ','.join(map(str, row))
 
     return {header[ii]: row[ii] for ii in range(len(header))}
+
+def find_betalimits(config):
+    if isinstance(config, list):
+        betalimits = {}
+        for ii in range(len(config)):
+            if isinstance(config[ii], list) or isinstance(config[ii], dict):
+                betalimits.update(find_betalimits(config[ii]))
+        return betalimits
+
+    if 'beta-limits' in config:
+        betalimits = {key: map(float, config['beta-limits'][key].split(',')) for key in config['beta-limits']}
+    else:
+        betalimits = {}
+
+    for key in config:
+        if isinstance(config[key], list) or isinstance(config[key], dict):
+            betalimits.update(find_betalimits(config[key]))
+
+    return betalimits

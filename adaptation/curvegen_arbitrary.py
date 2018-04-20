@@ -4,14 +4,14 @@ from openest.generate import formatting, diagnostic, selfdocumented
 from openest.generate.smart_curve import TransformCoefficientsCurve
 
 class CoefficientsCurveGenerator(curvegen.CSVVCurveGenerator):
-    def __init__(self, curvefunc, indepunits, depenunit, prefix, order, csvv, zerostart=True):
+    def __init__(self, curvefunc, indepunits, depenunit, prefix, order, csvv, zerostart=True, betalimits={}):
         self.curvefunc = curvefunc
         if zerostart:
             prednames = [prefix + str(ii) for ii in range(order)]
         else:
             prednames = [prefix + str(ii) if ii > 1 else prefix for ii in range(1, order+1)]
 
-        super(CoefficientsCurveGenerator, self).__init__(prednames, indepunits, depenunit, csvv)
+        super(CoefficientsCurveGenerator, self).__init__(prednames, indepunits, depenunit, csvv, betalimits=betalimits)
 
     def get_curve_parameters(self, region, year, covariates={}):
         allcoeffs = self.get_coefficients(covariates)

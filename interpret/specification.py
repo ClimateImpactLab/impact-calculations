@@ -61,6 +61,9 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
 
     depenunit = specconf['depenunit']
 
+    betalimits = specconf.get('beta-limits', {})
+    betalimits = {key: map(float, betalimits[key].split(',')) for key in betalimits}
+
     if specconf['functionalform'] == 'polynomial':
         variable = specconf['variable']
         indepunit = specconf['indepunit']
@@ -88,7 +91,8 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
             weathernames = [variables.get_post_process(name, specconf) for name in weathernames]
 
         curr_curvegen = curvegen_known.PolynomialCurveGenerator([indepunit] + ['%s^%d' % (indepunit, pow) for pow in range(2, order+1)],
-                                                                depenunit, variable, order, csvv, predinfix=predinfix, weathernames=weathernames)
+                                                                depenunit, variable, order, csvv, predinfix=predinfix,
+                                                                weathernames=weathernames, betalimits=betalimits)
         minfinder = lambda mintemp, maxtemp: lambda curve: minpoly.findpolymin([0] + curve.ccs, mintemp, maxtemp)
             
     elif specconf['functionalform'] == 'cubic spline':
@@ -97,7 +101,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
         indepunit = specconf['indepunit']
 
         curr_curvegen = curvegen_known.CubicSplineCurveGenerator([indepunit] + ['%s^3' % indepunit] * (len(knots) - 2),
-                                                             depenunit, prefix, knots, csvv)
+                                                                 depenunit, prefix, knots, csvv, betalimits=betalimits)
         minfinder = lambda mintemp, maxtemp: lambda curve: minspline.findsplinemin(knots, curve.coeffs, mintemp, maxtemp)
         weathernames = [prefix]
     elif specconf['functionalform'] == 'coefficients':
@@ -111,7 +115,9 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
             transform_descriptions.append(match.group(1))
             indepunits.append(match.group(2))
 
-        curr_curvegen = curvegen_arbitrary.SumCoefficientsCurveGenerator(ds_transforms.keys(), ds_transforms, transform_descriptions, indepunits, depenunit, csvv)
+        curr_curvegen = curvegen_arbitrary.SumCoefficientsCurveGenerator(ds_transforms.keys(), ds_transforms,
+                                                                         transform_descriptions, indepunits, depenunit,
+                                                                         csvv, betalimits=betalimits)
         weathernames = [] # Use curve directly
     else:
         user_failure("Unknown functional form %s." % specconf['functionalform'])

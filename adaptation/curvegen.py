@@ -5,12 +5,13 @@ from openest.generate import checks, fast_dataset, formatting
 region_curves = {}
 
 class CSVVCurveGenerator(CurveGenerator):
-    def __init__(self, prednames, indepunits, depenunit, csvv):
+    def __init__(self, prednames, indepunits, depenunit, csvv, betalimits={}):
         super(CSVVCurveGenerator, self).__init__(indepunits, depenunit)
 
         assert isinstance(prednames, list) or isinstance(prednames, set) or isinstance(prednames, tuple)
         self.prednames = prednames
         self.csvv = csvv
+        self.betalimits = betalimits
 
         for ii, predname in enumerate(prednames):
             if predname not in csvv['variables']:
@@ -51,6 +52,9 @@ class CSVVCurveGenerator(CurveGenerator):
             else:
                 try:
                     coefficients[predname] = self.constant.get(predname, 0) + np.sum(self.predgammas[predname] * np.array([covariates[covar] for covar in self.predcovars[predname]]))
+                    if predname in self.betalimits:
+                        coefficients[predname] = min(max(self.betalimits[predname][0], coefficients[predname]), self.betalimits[predname][1])
+                    
                     if debug:
                         print predname, coefficients[predname], self.constant.get(predname, 0), self.predgammas[predname], np.array([covariates[covar] for covar in self.predcovars[predname]])
                 except Exception as e:

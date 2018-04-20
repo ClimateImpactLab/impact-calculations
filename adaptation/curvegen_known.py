@@ -4,10 +4,10 @@ from openest.generate import diagnostic, formatting, selfdocumented
 from openest.models.curve import ZeroInterceptPolynomialCurve, CubicSplineCurve
 
 class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
-    def __init__(self, indepunits, depenunit, prefix, order, csvv, diagprefix='coeff-', predinfix='', weathernames=None):
+    def __init__(self, indepunits, depenunit, prefix, order, csvv, diagprefix='coeff-', predinfix='', weathernames=None, betalimits={}):
         self.order = order
         prednames = [prefix + predinfix + str(ii) if ii > 1 else prefix for ii in range(1, order+1)]
-        super(PolynomialCurveGenerator, self).__init__(prednames, indepunits * order, depenunit, csvv)
+        super(PolynomialCurveGenerator, self).__init__(prednames, indepunits * order, depenunit, csvv, betalimits=betalimits)
         self.diagprefix = diagprefix
         self.weathernames = weathernames
 
@@ -77,10 +77,10 @@ class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
         return elements
 
 class CubicSplineCurveGenerator(curvegen.CSVVCurveGenerator):
-    def __init__(self, indepunits, depenunit, prefix, knots, csvv):
+    def __init__(self, indepunits, depenunit, prefix, knots, csvv, betalimits={}):
         self.knots = knots
         prednames = [prefix + str(ii) for ii in range(len(knots)-1)]
-        super(CubicSplineCurveGenerator, self).__init__(prednames, indepunits, depenunit, csvv)
+        super(CubicSplineCurveGenerator, self).__init__(prednames, indepunits, depenunit, csvv, betalimits=betalimits)
 
     def get_curve(self, region, year, covariates={}, recorddiag=True, **kwargs):
         coefficients = self.get_coefficients(covariates)
