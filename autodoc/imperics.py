@@ -56,6 +56,8 @@ if 'within-season' in specconf:
     season_doys = irvalues.load_culture_doys(specconf['within-season'])[region]
     print "\nSeason months: %d - %d; Season doys: %d - %d\n" % (season_months[0], season_months[1], season_doys[0], season_doys[1])
 
+betalimits = lib.find_betalimits(config)
+    
 lib.show_header("The Predictors File (allcalcs):")
 calcs = lib.get_excerpt(os.path.join(dir, allcalcs_prefix + onlymodel + ".csv"), 2, region, range(2000, 2011) + [futureyear-1, futureyear], hasmodel=False)
 
@@ -93,8 +95,6 @@ outputs = lib.get_outputs(os.path.join(dir, onlymodel + '.nc4'), [2001, futureye
 
 ## Computations
 # decide on a covariated variable
-betalimits = lib.find_betalimits(config)
-
 for variable in set([csvv['prednames'][ii] for ii in range(len(csvv['prednames'])) if csvv['covarnames'][ii] != '1']):
     for year in [2001, futureyear]:
         lib.show_header("Calculation of %s coefficient in %d (%f reported)" % (variable, year, lib.excind(calcs, year-1, 'coeff-' + variable)))
@@ -155,8 +155,8 @@ for year in [2001, futureyear]:
 #     lines[-1] = 'output%d = ' % year +lines[-1]
 #     alllines.extend(lines)
 
-alllines.append("(" + ' + '.join(["output%d" % year for year in range(2001, 2011)]) + ") / 10")
-lib.show_julia(alllines, clipto=None)
+# alllines.append("(" + ' + '.join(["output%d" % year for year in range(2001, 2011)]) + ") / 10")
+# lib.show_julia(alllines, clipto=None)
 
 ## Final calculation
 

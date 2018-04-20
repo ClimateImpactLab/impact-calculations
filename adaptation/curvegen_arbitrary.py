@@ -22,8 +22,8 @@ class CoefficientsCurveGenerator(curvegen.CSVVCurveGenerator):
         return self.curvefunc(mycoeffs)
 
 class SumCoefficientsCurveGenerator(curvegen.CSVVCurveGenerator):
-    def __init__(self, prednames, ds_transforms, transform_descriptions, indepunits, depenunit, csvv, diagprefix='coeff-'):
-        super(SumCoefficientsCurveGenerator, self).__init__(prednames, indepunits, depenunit, csvv)
+    def __init__(self, prednames, ds_transforms, transform_descriptions, indepunits, depenunit, csvv, diagprefix='coeff-', betalimits={}):
+        super(SumCoefficientsCurveGenerator, self).__init__(prednames, indepunits, depenunit, csvv, betalimits=betalimits)
         self.ds_transforms = ds_transforms
         self.transform_descriptions = transform_descriptions
         self.diagprefix = diagprefix
