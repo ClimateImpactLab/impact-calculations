@@ -1,17 +1,17 @@
 import curvegen
 import numpy as np
-from openest.generate import formatting, diagnostic
+from openest.generate import formatting, diagnostic, selfdocumented
 from openest.generate.smart_curve import TransformCoefficientsCurve
 
 class CoefficientsCurveGenerator(curvegen.CSVVCurveGenerator):
-    def __init__(self, curvefunc, indepunits, depenunit, prefix, order, csvv, zerostart=True):
+    def __init__(self, curvefunc, indepunits, depenunit, prefix, order, csvv, zerostart=True, betalimits={}):
         self.curvefunc = curvefunc
         if zerostart:
             prednames = [prefix + str(ii) for ii in range(order)]
         else:
             prednames = [prefix + str(ii) if ii > 1 else prefix for ii in range(1, order+1)]
 
-        super(CoefficientsCurveGenerator, self).__init__(prednames, indepunits, depenunit, csvv)
+        super(CoefficientsCurveGenerator, self).__init__(prednames, indepunits, depenunit, csvv, betalimits=betalimits)
 
     def get_curve_parameters(self, region, year, covariates={}):
         allcoeffs = self.get_coefficients(covariates)
@@ -22,8 +22,8 @@ class CoefficientsCurveGenerator(curvegen.CSVVCurveGenerator):
         return self.curvefunc(mycoeffs)
 
 class SumCoefficientsCurveGenerator(curvegen.CSVVCurveGenerator):
-    def __init__(self, prednames, ds_transforms, transform_descriptions, indepunits, depenunit, csvv, diagprefix='coeff-'):
-        super(SumCoefficientsCurveGenerator, self).__init__(prednames, indepunits, depenunit, csvv)
+    def __init__(self, prednames, ds_transforms, transform_descriptions, indepunits, depenunit, csvv, diagprefix='coeff-', betalimits={}):
+        super(SumCoefficientsCurveGenerator, self).__init__(prednames, indepunits, depenunit, csvv, betalimits=betalimits)
         self.ds_transforms = ds_transforms
         self.transform_descriptions = transform_descriptions
         self.diagprefix = diagprefix
@@ -42,13 +42,21 @@ class SumCoefficientsCurveGenerator(curvegen.CSVVCurveGenerator):
         return TransformCoefficientsCurve(mycoeffs, [self.ds_transforms[predname] for predname in self.prednames], self.transform_descriptions, self.prednames if recorddiag and diagnostic.is_recording() else None)
 
     def format_call(self, lang, *args):
+        coeffs = [self.diagprefix + predname for predname in self.prednames]
+        coeffreps = [formatting.get_parametername(coeff, lang) for coeff in coeffs]
+        predreps = [formatting.get_parametername(predname, lang) for predname in self.prednames]
+        transreps = [selfdocumented.get_repstr(self.ds_transforms[predname], lang) for predname in self.prednames]
+        transdeps = [dep for predname in self.prednames for dep in selfdocumented.get_dependencies(self.ds_transforms[predname], lang)]
+
         if lang == 'latex':
-            elts = {'main': formatting.FormatElement(r"\sum_{k=1}^%d \beta_k x_k" % len(self.prednames), self.depenunit, is_primitive=True)}
+            elts = {'main': formatting.FormatElement(r"\sum_{k=1}^%d \beta_k x_k" % len(self.prednames), coeffs + self.prednames + transdeps, is_primitive=True)}
         elif lang == 'julia':
-            elts = {'main': formatting.FormatElement("sum(beta .* [%s])" % ', '.join("x_%d" % ii for ii in range(len(self.prednames))), self.depenunit, is_primitive=True)}
+            elts = {'main': formatting.FormatElement("sum(%s)" % ' + '.join(["%s * (%s)" % (coeffreps[ii], transreps[ii]) for ii in range(len(coeffs))]), coeffs + transdeps, is_primitive=True)}
 
         for ii in range(len(self.prednames)):
-            elts['x_%d' % ii] = formatting.FormatElement("%s (%s)" % (self.prednames[ii], self.transform_descriptions[ii]), self.indepunits[ii])
+            elts[self.prednames[ii]] = formatting.ParameterFormatElement(self.prednames[ii], predreps[ii])
+            elts[coeffs[ii]] = formatting.ParameterFormatElement(coeffs[ii], coeffreps[ii])
+            elts.update(selfdocumented.format_nomain(self.ds_transforms[self.prednames[ii]], lang))
 
         return elts
     

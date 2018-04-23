@@ -1,6 +1,6 @@
 import re
 import numpy as np
-from openest.generate import fast_dataset
+from openest.generate import fast_dataset, selfdocumented
 from datastore import irvalues
 
 re_dotsplit = re.compile("\.(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)")
@@ -11,25 +11,35 @@ def interpret_ds_transform(name, config):
         internal_left = interpret_ds_transform(chunks[0], config)
         internal_right = interpret_ds_transform(chunks[1], config)
 
-        return lambda ds: internal_left(ds) - internal_right(ds)
+        return selfdocumented.DocumentedFunction(lambda ds: internal_left(ds) - internal_right(ds),
+                                                 name, lambda x, y: x - y,
+                                                 [internal_left, internal_right])
     
     if '.' in name:
         chunks = re_dotsplit.split(name)
         if len(chunks) > 1:
-            internal = lambda ds: post_process(ds, chunks[0], config)
+            internal = get_post_process(chunks[0], config)
             for chunk in chunks[1:]:
                 internal = interpret_wrap_transform(chunk, internal)
             return internal
 
-    return lambda ds: post_process(ds, name, config)
+    return get_post_process(name, config)
 
 def interpret_wrap_transform(transform, internal):
     if transform[:4] == 'bin(':
         value = float(transform[4:-1]) if '.' in transform else int(transform[4:-1])
-        return lambda ds: internal(ds).sel(bin_edges=value)
+        return selfdocumented.DocumentedFunction(lambda ds: internal(ds).sel(refTemp=value),
+                                                 "Extract bin from weather",
+                                                 docargs=[internal, value])
     
     assert False, "Unknown transform" + transform
 
+def get_post_process(name, config):
+    if 'within-season' in config:
+        return selfdocumented.DocumentedFunction(lambda ds: post_process(ds, name, config), "Limit to within season", docargs=[name])
+
+    return selfdocumented.DocumentedFunction(lambda ds: ds[name], "Extract from weather", docfunc=lambda x: x, docargs=[name])
+    
 def post_process(ds, name, config):
     dataarr = ds[name]
     
@@ -37,11 +47,11 @@ def post_process(ds, name, config):
         if len(dataarr) == 24:
             culture = irvalues.get_file_cached(config['within-season'], irvalues.load_culture_months).get(ds.region, None)
             if culture is not None:
-                return fast_dataset.FastDataArray(dataarr[(culture[0]-1):(culture[1]-1)], dataarr.original_coords, ds)
+                return fast_dataset.FastDataArray(dataarr[(culture[0]-1):culture[1]], dataarr.original_coords, ds)
         elif len(dataarr) == 730:
             culture = irvalues.get_file_cached(config['within-season'], irvalues.load_culture_doys).get(ds.region, None)
             if culture is not None:
-                return fast_dataset.FastDataArray(dataarr[(culture[0]-1):(culture[1]-1)], dataarr.original_coords, ds)
+                return fast_dataset.FastDataArray(dataarr[(culture[0]-1):culture[1]], dataarr.original_coords, ds)
         else:
             print ds
             assert False, "Not expected number of elements: %s" % str(dataarr.shape)

@@ -1,11 +1,11 @@
 import re
 from adaptation import csvvfile, curvegen, curvegen_known, curvegen_arbitrary, covariates, constraints
 from datastore import irvalues
-from openest.generate import smart_curve
+from openest.generate import smart_curve, selfdocumented
 from openest.models.curve import ShiftedCurve, MinimumCurve, ClippedCurve, ZeroInterceptPolynomialCurve
 from openest.generate.stdlib import *
 from impactcommon.math import minpoly, minspline
-import calculator, variables
+import calculator, variables, configs
 
 def user_failure(message):
     print "ERROR: " + message
@@ -41,7 +41,8 @@ def create_covariator(specconf, weatherbundle, economicmodel, config={}, quiet=F
     if 'covariates' in specconf:
         covariators = []
         for covar in specconf['covariates']:
-            covariators.append(get_covariator(covar, None, weatherbundle, economicmodel, config=config, quiet=quiet))
+            fullconfig = configs.merge(config, specconf)
+            covariators.append(get_covariator(covar, None, weatherbundle, economicmodel, config=fullconfig, quiet=quiet))
             
         if len(covariators) == 1:
             covariator = covariators[0]
@@ -59,6 +60,9 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
         user_assert('indepunit' in specconf, "Specification configuration missing 'indepunit' string.")
 
     depenunit = specconf['depenunit']
+
+    betalimits = specconf.get('beta-limits', {})
+    betalimits = {key: map(float, betalimits[key].split(',')) for key in betalimits}
 
     if specconf['functionalform'] == 'polynomial':
         variable = specconf['variable']
@@ -82,12 +86,13 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
 
         assert order > 1
                     
+        weathernames = [variable] + ['%s-poly-%d' % (variable, power) for power in range(2, order+1)]
         if 'within-season' in specconf:
-            weathernames = [lambda ds: variables.post_process(ds, variable, specconf)] * order
-        else:
-            weathernames = [variable] + ['%s-poly-%d' % (variable, power) for power in range(2, order+1)]
+            weathernames = [variables.get_post_process(name, specconf) for name in weathernames]
+
         curr_curvegen = curvegen_known.PolynomialCurveGenerator([indepunit] + ['%s^%d' % (indepunit, pow) for pow in range(2, order+1)],
-                                                                depenunit, variable, order, csvv, predinfix=predinfix, weathernames=weathernames)
+                                                                depenunit, variable, order, csvv, predinfix=predinfix,
+                                                                weathernames=weathernames, betalimits=betalimits)
         minfinder = lambda mintemp, maxtemp: lambda curve: minpoly.findpolymin([0] + curve.ccs, mintemp, maxtemp)
             
     elif specconf['functionalform'] == 'cubic spline':
@@ -96,7 +101,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
         indepunit = specconf['indepunit']
 
         curr_curvegen = curvegen_known.CubicSplineCurveGenerator([indepunit] + ['%s^3' % indepunit] * (len(knots) - 2),
-                                                             depenunit, prefix, knots, csvv)
+                                                                 depenunit, prefix, knots, csvv, betalimits=betalimits)
         minfinder = lambda mintemp, maxtemp: lambda curve: minspline.findsplinemin(knots, curve.coeffs, mintemp, maxtemp)
         weathernames = [prefix]
     elif specconf['functionalform'] == 'coefficients':
@@ -110,7 +115,9 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
             transform_descriptions.append(match.group(1))
             indepunits.append(match.group(2))
 
-        curr_curvegen = curvegen_arbitrary.SumCoefficientsCurveGenerator(ds_transforms.keys(), ds_transforms, transform_descriptions, indepunits, depenunit, csvv)
+        curr_curvegen = curvegen_arbitrary.SumCoefficientsCurveGenerator(ds_transforms.keys(), ds_transforms,
+                                                                         transform_descriptions, indepunits, depenunit,
+                                                                         csvv, betalimits=betalimits)
         weathernames = [] # Use curve directly
     else:
         user_failure("Unknown functional form %s." % specconf['functionalform'])
@@ -135,6 +142,8 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
     def transform(region, curve):
         if isinstance(curve, ZeroInterceptPolynomialCurve):
             final_curve = smart_curve.ZeroInterceptPolynomialCurve(curve.ccs, weathernames, specconf.get('allow-raising', False))
+        elif isinstance(curve, smart_curve.SmartCurve):
+            final_curve = curve
         else:
             final_curve = smart_curve.CoefficientsCurve(curve.ccs, weathernames)
 
