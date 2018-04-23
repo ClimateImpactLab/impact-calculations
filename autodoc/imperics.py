@@ -111,8 +111,9 @@ if 'within-season' in specconf:
 formatting.functions_known['Extract from weather'] = formatting.ParameterFormatElement('identity', 'identity')
 formatting.functions_known['Extract bin from weather'] = formatting.ParameterFormatElement('extract-bin', 'getbin', dependencies=['bin-edges', 'edd'])
 
-extraparams = {'season-weather': "(x) -> (length(size(x)) == 2 ? (size(x)[1] <= 24 ? x[%d:%d, :] : x[%d:%d, :]) : (length(x) <= 24 ? x[%d:%d] : x[%d:%d]))" % (season_months[0], season_months[1], season_doys[0], season_doys[1], season_months[0], season_months[1], season_doys[0], season_doys[1]),
-               'extract-bin': "(weather, bin) -> weather[:, bin_edges .== bin]"}
+extraparams = {'extract-bin': "(weather, bin) -> weather[:, bin_edges .== bin]"}
+if 'within-season' in specconf:
+    extraparams['season-weather'] = "(x) -> (length(size(x)) == 2 ? (size(x)[1] <= 24 ? x[%d:%d, :] : x[%d:%d, :]) : (length(x) <= 24 ? x[%d:%d] : x[%d:%d]))" % (season_months[0], season_months[1], season_doys[0], season_doys[1], season_months[0], season_months[1], season_doys[0], season_doys[1])
 
 extraelements = {'bin-edges': formatting.ParameterFormatElement('refTemp', "bin_edges"),
                  'edd': formatting.ParameterFormatElement('edd', "edd")}
