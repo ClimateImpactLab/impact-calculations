@@ -49,11 +49,18 @@ class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
         coeffs = [self.diagprefix + predname for predname in self.prednames]
         coeffreps = [formatting.get_parametername(coeff, lang) for coeff in coeffs]
         if self.weathernames:
-            weatherreps = [selfdocumented.get_repstr(weather, lang) for weather in self.weathernames]
+            weatherreps = []
+            weatherdeps = []
+            for weather in self.weathernames:
+                if isinstance(weather, str):
+                    weatherreps.append(formatting.get_parametername(weather, lang))
+                    weatherdeps.append(weather)
+                else:
+                    weatherreps.append(selfdocumented.get_repstr(weather, lang))
+                    weatherdeps.extend(selfdocumented.get_dependencies(weather, lang))
         else:
             weatherreps = None
-
-        weatherdeps = [dep for weather in self.weathernames for dep in selfdocumented.get_dependencies(weather, lang)]
+            weatherdeps = []
 
         if lang == 'latex':
             if weatherreps is None:
@@ -72,7 +79,10 @@ class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
             elements[coeffs[ii]] = formatting.ParameterFormatElement(coeffs[ii], coeffreps[ii])
         if weatherreps is not None:
             for ii in range(len(self.weathernames)):
-                elements.update(selfdocumented.format_nomain(self.weathernames[ii], lang))
+                if isinstance(self.weathernames[ii], str):
+                    elements[self.weathernames[ii]] = formatting.ParameterFormatElement(self.weathernames[ii], weatherreps[ii])
+                else:
+                    elements.update(selfdocumented.format_nomain(self.weathernames[ii], lang))
 
         return elements
 
