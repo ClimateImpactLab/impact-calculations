@@ -12,7 +12,7 @@ def interpret_ds_transform(name, config):
         internal_right = interpret_ds_transform(chunks[1], config)
 
         return selfdocumented.DocumentedFunction(lambda ds: internal_left(ds) - internal_right(ds),
-                                                 internal_left.unit, name, lambda x, y: x - y,
+                                                 name, lambda x, y: x - y,
                                                  [internal_left, internal_right])
     
     if '.' in name:
@@ -29,16 +29,16 @@ def interpret_wrap_transform(transform, internal):
     if transform[:4] == 'bin(':
         value = float(transform[4:-1]) if '.' in transform else int(transform[4:-1])
         return selfdocumented.DocumentedFunction(lambda ds: internal(ds).sel(refTemp=value),
-                                                 internal.unit, "Extract bin from weather",
+                                                 "Extract bin from weather",
                                                  docargs=[internal, value])
     
     assert False, "Unknown transform" + transform
 
 def get_post_process(name, config):
     if 'within-season' in config:
-        return selfdocumented.DocumentedFunction(lambda ds: post_process(ds, name, config), None, "Limit to within season", docargs=[name])
+        return selfdocumented.DocumentedFunction(lambda ds: post_process(ds, name, config), "Limit to within season", docargs=[name])
 
-    return selfdocumented.DocumentedFunction(lambda ds: ds[name], None, "Extract from weather", docfunc=lambda x: x, docargs=[name])
+    return selfdocumented.DocumentedFunction(lambda ds: ds[name], "Extract from weather", docfunc=lambda x: x, docargs=[name])
     
 def post_process(ds, name, config):
     dataarr = ds[name]

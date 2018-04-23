@@ -166,5 +166,5 @@ class DifferenceCurveGenerator(CurveGenerator):
         result = {}
         result.update(equation_one)
         result.update(equation_two)
-        result['main'] = formatting.FormatElement("%s - %s" % (equation_one['main'].repstr, equation_two['main'].repstr), self.one.depenunit, self.one.dependencies + self.two.dependencies)
+        result['main'] = formatting.FormatElement("%s - %s" % (equation_one['main'].repstr, equation_two['main'].repstr), self.one.dependencies + self.two.dependencies)
         return result
