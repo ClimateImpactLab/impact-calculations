@@ -7,7 +7,7 @@ import numpy as np
 from impactlab_tools.utils import files
 from openest.generate import fast_dataset
 from reader import ConversionWeatherReader, RegionReorderWeatherReader, HistoricalCycleReader, RenameReader
-from dailyreader import DailyWeatherReader, YearlyBinnedWeatherReader, MonthlyBinnedWeatherReader
+from dailyreader import DailyWeatherReader, YearlyBinnedWeatherReader, MonthlyBinnedWeatherReader, MonthlyDimensionedWeatherReader
 from yearlyreader import YearlyWeatherReader, YearlyDayLikeWeatherReader
 import pattern_matching
 
@@ -34,6 +34,14 @@ def standard_variable(name, mytimerate, **config):
         
     assert mytimerate in ['day', 'month', 'year']
 
+    if 'grid-weight' in config:
+        timerate_translate = dict(day='daily', month='monthly', year='annual')
+        path = files.sharedpath(os.path.join("climate/BCSD/hierid", config['grid-weight'], timerate_translate[mytimerate], name))
+        if os.path.exists(path):
+            return discover_versioned(path, name, version=version, **config)
+
+        print "WARNING: Cannot find new-style climate data %s, by %s, weighted by %s." % (name, mytimerate, config['grid-weight'])
+    
     if mytimerate == 'day':
         polyedvars = ['tas', 'tasmax']
     
@@ -55,12 +63,13 @@ def standard_variable(name, mytimerate, **config):
                                    'tas/tas_Bindays_aggregated_%scenario_r1i1p1_%model_%d.nc', 'SHAPENUM', 'DayNumber')
         if name == 'edd':
             return discover_rename(
-                discover_binned(files.sharedpath('climate/BCSD/Agriculture/Degree_days/snyder'), 'month',
-                                'Degreedays_aggregated_%scenario_%model_cropwt_%d.nc', 'SHAPENUM', 'EDD_agg', include_patterns=False), {'EDD_agg': 'edd', 'month': 'time'})
-        if name == 'prmm':
-            discover_iterator = standard_variable(name, 'day', **config)
+                discover_versioned_binned(files.sharedpath('climate/BCSD/hierid/cropwt/monthly/edd_monthly'),
+                                          'edd_monthly', 'refTemp', version=version, **config),
+                {'edd_monthly': 'edd'})
+        if name in ['prmm', 'prmm-poly-2']:
             return discover_rename(
-                discover_day2month(discover_iterator, lambda arr, dim: np.sum(arr, axis=dim)), {'pr': 'prmm'})
+                discover_versioned(files.sharedpath('climate/BCSD/hierid/cropwt/monthly/' + name.replace('prmm', 'pr')),
+                                   name.replace('prmm', 'pr'), version=version, **config), {name.replace('prmm', 'pr'), name})
 
     if mytimerate == 'year':
         polyedvars = ['tas-cdd-20', 'tas-hdd-20']
@@ -260,8 +269,8 @@ def discover_convert(discover_iterator, time_conversion, ds_conversion):
         newpastreader = ConversionWeatherReader(pastreader, time_conversion, ds_conversion)
         newfuturereader = ConversionWeatherReader(futurereader, time_conversion, ds_conversion)
         yield scenario, model, newpastreader, newfuturereader
-        
-def discover_versioned(basedir, variable, version=None, reorder=True, **config):
+
+def discover_versioned_models(basedir, version=None, **config):
     """Find the most recent version, if none specified."""
     if version is None:
         version = '%v'
@@ -270,6 +279,10 @@ def discover_versioned(basedir, variable, version=None, reorder=True, **config):
         pasttemplate = os.path.join(pastdir, "%d", version + '.nc4')
         futuretemplate = os.path.join(futuredir, "%d", version + '.nc4')
 
+        yield scenario, model, pasttemplate, futuretemplate
+        
+def discover_versioned(basedir, variable, version=None, reorder=True, **config):
+    for scenario, model, pasttemplate, futuretemplate in discover_versioned_models(basedir, version, **config):
         precheck_past = DailyWeatherReader.precheck(pasttemplate, 1981, 'hierid', variable)
         if precheck_past:
             print "Skipping %s %s (past): %s" % (scenario, model, precheck_past)
@@ -288,15 +301,17 @@ def discover_versioned(basedir, variable, version=None, reorder=True, **config):
             
         yield scenario, model, pastreader, futurereader
 
-def discover_versioned_yearly(basedir, variable, version=None, reorder=True, **config):
-    """Find the most recent version, if none specified."""
-    if version is None:
-        version = '%v'
+def discover_versioned_binned(basedir, variable, dim, version=None, reorder=True, **config):
+    post_process = lambda x: RegionReorderWeatherReader(x) if reorder else lambda x: x
     
-    for scenario, model, pastdir, futuredir in discover_models(basedir, **config):
-        pasttemplate = os.path.join(pastdir, "%d", version + '.nc4')
-        futuretemplate = os.path.join(futuredir, "%d", version + '.nc4')
+    for scenario, model, pasttemplate, futuretemplate in discover_versioned_models(basedir, version, **config):
+        pastreader = MonthlyDimensionedWeatherReader(pasttemplate, 1981, 'hierid', variable, dim)
+        futurereader = MonthlyDimensionedWeatherReader(futuretemplate, 2006, 'hierid', variable, dim)
 
+        yield scenario, model, post_process(pastreader), post_process(futurereader)
+
+def discover_versioned_yearly(basedir, variable, version=None, reorder=True, **config):
+    for scenario, model, pasttemplate, futuretemplate in discover_versioned_models(basedir, version, **config):
         if reorder:
             pastreader = RegionReorderWeatherReader(YearlyDayLikeWeatherReader(pasttemplate, 1981, 'hierid', variable))
             futurereader = RegionReorderWeatherReader(YearlyDayLikeWeatherReader(futuretemplate, 2006, 'hierid', variable))

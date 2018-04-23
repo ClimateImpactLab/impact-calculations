@@ -1,6 +1,7 @@
 timerate: month
+grid-weight: cropwt
 rolling-years: 2
-climate: [ tasmax, edd, prmm ] # , prmm-poly-2, prmm-poly-3, prmm-poly-4
+climate: [ tasmax, edd, pr, pr-poly-2 ]
 models:
   - csvvs: "social/parameters/agriculture/soy/*08.csvv"
     within-season: "social/baselines/agriculture/world-combo-201710-growing-seasons-soy.csv"
@@ -19,13 +20,15 @@ models:
           gdd-8-30: edd.bin(8) - edd.bin(30) [C day]
           kdd-30: edd.bin(30) [C day]
         functionalform: coefficients
+	beta-limits:
+	  gdd-8-30: 0, inf
+	  kdd-30: -inf, 0
       precip:
         description: Precipitation-driven yield rate for soybeans
         depenunit: log kg / Ha
         indepunit: mm
-        variable: prmm
+        variable: pr
         functionalform: polynomial
-        allow-raising: yes
     calculation:
       - Sum:
         - YearlySumIrregular:
