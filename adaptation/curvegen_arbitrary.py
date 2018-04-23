@@ -49,13 +49,13 @@ class SumCoefficientsCurveGenerator(curvegen.CSVVCurveGenerator):
         transdeps = [dep for predname in self.prednames for dep in selfdocumented.get_dependencies(self.ds_transforms[predname], lang)]
 
         if lang == 'latex':
-            elts = {'main': formatting.FormatElement(r"\sum_{k=1}^%d \beta_k x_k" % len(self.prednames), self.depenunit, coeffs + self.prednames + transdeps, is_primitive=True)}
+            elts = {'main': formatting.FormatElement(r"\sum_{k=1}^%d \beta_k x_k" % len(self.prednames), coeffs + self.prednames + transdeps, is_primitive=True)}
         elif lang == 'julia':
-            elts = {'main': formatting.FormatElement("sum(%s)" % ' + '.join(["%s * (%s)" % (coeffreps[ii], transreps[ii]) for ii in range(len(coeffs))]), self.depenunit, coeffs + transdeps, is_primitive=True)}
+            elts = {'main': formatting.FormatElement("sum(%s)" % ' + '.join(["%s * (%s)" % (coeffreps[ii], transreps[ii]) for ii in range(len(coeffs))]), coeffs + transdeps, is_primitive=True)}
 
         for ii in range(len(self.prednames)):
-            elts[self.prednames[ii]] = formatting.ParameterFormatElement(self.prednames[ii], predreps[ii], self.indepunits[ii])
-            elts[coeffs[ii]] = formatting.ParameterFormatElement(coeffs[ii], coeffreps[ii], "%s/%s" % (self.depenunit, self.indepunits[ii]))
+            elts[self.prednames[ii]] = formatting.ParameterFormatElement(self.prednames[ii], predreps[ii])
+            elts[coeffs[ii]] = formatting.ParameterFormatElement(coeffs[ii], coeffreps[ii])
             elts.update(selfdocumented.format_nomain(self.ds_transforms[self.prednames[ii]], lang))
 
         return elts
