@@ -95,10 +95,7 @@ impacts.climtaseff <- ncvar_get(nc.imp, 'climtas_effect') # Sum of adaptive inve
 
 #check whether timesteps in climate file = timesteps in impacts file
 if (length(year.avg) != length(ncvar_get(nc.imp, 'year'))) { 
-  diff <- length(ncvar_get(nc.imp, 'year')) - length(year.avg) # calculate difference where impacts file is always assumed to have 120 time steps (i.e. up to year 2100) while climate file may have < 120 time steps (e.g. up to year 2099 or 2098)
-  impacts.climtaseff <- data.frame(ncvar_get(nc.imp, 'climtas_effect')) #convert matrix to dataframe
-  impacts.climtaseff <- impacts.climtaseff[,1:(ncol(impacts.climtaseff)-diff)] # remove last n columns which correspond to difference 
-  impacts.climtaseff <- as.matrix(impacts.climtaseff) # convert dataframe back to matrix
+  impacts.climtaseff <- impacts.climtaseff[, 1:length(year.avg)] 
 }
 
 rm(nc.imp)
