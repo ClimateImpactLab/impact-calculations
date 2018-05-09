@@ -80,3 +80,14 @@ class SpaceTimeConstantData(SpaceTimeBipartiteData):
     def load(self, year0, year1, model, scenario):
         return self
     
+class SpaceTimeSpatialOnlyData(SpaceTimeBipartiteData):
+    def __init__(self, mapping):
+        super(SpaceTimeSpatialOnlyData, self).__init__(-np.inf, np.inf, mapping.keys())
+        self.mapping = mapping
+
+    def get_time(self, region):
+        return self.mapping[region]
+
+    def load(self, year0, year1, model, scenario):
+        return self
+        
