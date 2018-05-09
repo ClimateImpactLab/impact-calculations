@@ -5,8 +5,17 @@ import population, agecohorts, income_smoothed, spacetime
 
 RE_FLOATING = r"[-+]?[0-9]*\.?[0-9]*"
 RE_NUMBER = RE_FLOATING + r"([eE]" + RE_FLOATING + ")?"
+RE_CSVNAME = r"[\w- ]+"
+RE_CONSTFILE = r"constcsv/(%s?):(%s?):(%s?)" % (RE_CSVNAME, RE_CSVNAME, RE_CSVNAME)
 
 def interpret_halfweight(weighting):
+    match = re.match(RE_CONSTFILE, weighting)
+    if match:
+        df = pd.read_csv(files.configpath(match.group(1)))
+        regions = df[match.group(2)]
+        values = df[match.group(3)]
+        return spacetime.SpaceTimeSpatialOnlyData({regions[ii]: values[ii] for ii in range(len(regions))})
+
     parts = re.split(r"\s*([*/])\s*", weighting)
     if len(parts) > 1:
         halfweight = interpret_halfweight(parts[0])
@@ -32,7 +41,7 @@ def interpret_halfweight(weighting):
 
 def interpret(config):
     assert 'weighting' in config
-    if '/' in config['weighting']:
+    if '/' in config['weighting'] and os.path.exists(files.configpath(config['weighting'])):
         df = pd.read_csv(files.configpath(config['weighting']))
         if 'model' in df:
             df = df[df.model == config['iam']]
