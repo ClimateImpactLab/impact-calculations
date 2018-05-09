@@ -91,6 +91,13 @@ Possible components:
  - Term ` / ` Term: The quotient of two terms (can be chained).  Terms
    are computed sequentially, so *(a b) / (c d)* should be described
    as `a * b / c / d`.
+ - `constcsv/<PATH>:<HIERID>:<VALUE>`: Read the weights from a CSV
+   file, applying constant weights to each region.  `<PATH>` is a
+   relative path from the server shared directory.  `<HIERID>` is the
+   name of the column specifying the names of the impact regions.
+   `<VALUE>` is either a column name, or `sum(<COLUMN>)`, where the
+   latter may be used if more than one row applies to the same impact
+   region.
 
 The `datastore.weights` script also allows these weighting schemes to
 be output in CSV format for each region and year.  To do this, run
