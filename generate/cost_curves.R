@@ -5,6 +5,10 @@
 
 # T. Carleton, 3/13/2017
 
+# UPDATE 04/25/2018: This version checks whether timesteps in the climate file are equivalent to timesteps in the impacts file  
+# Assumption: the impacts file always has 120 time steps (i.e. goes to year 2100) while the climate file may have < 120 time steps (e.g. up to year 2099 or 2098)
+# If found unequal, this code removes the last n columns in the impacts file corresponding to the difference in years
+
 # UPDATE 06/19/2017: This version brings in daily clipped values of marginal temperature effects from James 
 # This version uses AVERAGE temperature exposure rather than ANNUAL
 # This includes TWO VERSIONS OF COSTS: one that cumulates year-to-year costs, and one that estimates costs independently in each year
@@ -88,6 +92,12 @@ year.avg <- ncvar_get(nc.tavg, 'year')
 
 nc.imp <- nc_open(impactspath)
 impacts.climtaseff <- ncvar_get(nc.imp, 'climtas_effect') # Sum of adaptive investments at daily level
+
+#check whether timesteps in climate file = timesteps in impacts file
+if (length(year.avg) != length(ncvar_get(nc.imp, 'year'))) { 
+  impacts.climtaseff <- impacts.climtaseff[, 1:length(year.avg)] 
+}
+
 rm(nc.imp)
 
 if (length(dim(impacts.climtaseff)) == 1) {
