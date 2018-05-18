@@ -43,10 +43,11 @@ class SSPEconomicModel(object):
         dependencies = []
 
         if self.income_model.current_year < maxbaseline:
-            gdppc_baseline = self.income_model.current_income
+            loggdppc_baseline = {region: np.log(self.income_model.current_income[region]) for region in self.income_model.current_income}
         else:
             print "Warning: re-reading baseline income."
-            gdppc_baseline = self.income_model.get_baseline_income(self.model, self.scenario, self.dependencies)
+            gdppcdata = self.income_model.get_baseline_income(self.model, self.scenario, self.dependencies)
+            loggdppc_baseline = {region: np.log(gdppcdata[region]) for region in gdppcdata}
 
         for region, year, value in population.each_future_population(self.model, self.scenario, dependencies):
             if region not in self.pop_future_years:
@@ -60,42 +61,42 @@ class SSPEconomicModel(object):
 
         # Iterate through pop_baseline, since it has all regions
         for region in pop_baseline.keys():
-            yield dict(region=region, gdppc=gdppc_baseline.get(region, None),
+            yield dict(region=region, loggdppc=loggdppc_baseline.get(region, None),
                        popop=self.densities.get(region, None))
 
     def baseline_prepared(self, maxbaseline, numeconyears, func):
         """
-        Return a dictionary {region: {gdppc: gdppc, popop: popop}
+        Return a dictionary {region: {loggdppc: loggdppc, popop: popop}
         """
-        econ_predictors = {} # {region: {gdppc: gdppc, popop: popop}
-        allmeans_gdppc = []
+        econ_predictors = {} # {region: {loggdppc: loggdppc, popop: popop}
+        allmeans_loggdppc = []
         allmeans_popop = []
         for econbaseline in self.baseline_values(maxbaseline): # baseline through maxbaseline
             region = econbaseline['region']
-            gdppc = econbaseline['gdppc']
+            loggdppc = econbaseline['loggdppc']
             popop = econbaseline['popop']
-            if gdppc is None or popop is None:
+            if loggdppc is None or popop is None:
                 if popop is not None:
                     popop = func([popop])
-                if gdppc is not None:
-                    gdppc = func([gdppc])
-                econ_predictors[region] = dict(gdppc=gdppc, popop=popop)
+                if loggdppc is not None:
+                    loggdppc = func([loggdppc])
+                econ_predictors[region] = dict(loggdppc=loggdppc, popop=popop)
             else:
-                allmeans_gdppc.append(gdppc)
+                allmeans_loggdppc.append(loggdppc)
                 allmeans_popop.append(popop)
-                econ_predictors[region] = dict(gdppc=func([gdppc]), popop=func([popop]))
+                econ_predictors[region] = dict(loggdppc=func([loggdppc]), popop=func([popop]))
 
-        econ_predictors['mean'] = dict(gdppc=np.mean(allmeans_gdppc), popop=np.mean(allmeans_popop)) # don't use mean popop-- all should have
+        econ_predictors['mean'] = dict(loggdppc=np.mean(allmeans_loggdppc), popop=np.mean(allmeans_popop)) # don't use mean popop-- all should have
         for region in econ_predictors:
-            if econ_predictors[region]['gdppc'] is None:
-                econ_predictors[region]['gdppc'] = func([econ_predictors['mean']['gdppc']])
+            if econ_predictors[region]['loggdppc'] is None:
+                econ_predictors[region]['loggdppc'] = func([econ_predictors['mean']['loggdppc']])
             if econ_predictors[region]['popop'] is None:
                 econ_predictors[region]['popop'] = func([econ_predictors['mean']['popop']])
 
         return econ_predictors
 
-    def get_gdppc_year(self, region, year):
-        return self.income_model.get_income(region, year)
+    def get_loggdppc_year(self, region, year):
+        return np.log(self.income_model.get_income(region, year))
 
     def get_popop_year(self, region, year):
         if region not in self.pop_future_years:
