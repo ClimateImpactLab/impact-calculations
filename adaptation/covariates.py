@@ -50,38 +50,38 @@ class EconomicCovariator(Covariator):
         econpreds = self.econ_predictors.get(region, None)
 
         if econpreds is None:
-            gdppc = self.econ_predictors['mean']['gdppc']
+            loggdppc = self.econ_predictors['mean']['loggdppc']
         else:
-            gdppc = econpreds['gdppc'].get()
+            loggdppc = econpreds['loggdppc'].get()
 
         if econpreds is None:
             density = self.econ_predictors['mean']['popop']
         else:
             density = econpreds['popop'].get()
 
-        return dict(gdppc=gdppc, popop=density)
+        return dict(loggdppc=loggdppc, popop=density)
 
     def get_current(self, region):
         econpreds = self.get_econ_predictors(region)
-        return dict(loggdppc=np.log(econpreds['gdppc']),
+        return dict(loggdppc=econpreds['loggdppc'],
                     logpopop=np.log(econpreds['popop']))
 
     def get_update(self, region, year, ds):
         assert year < 10000
 
         if region in self.econ_predictors:
-            gdppc = self.economicmodel.get_gdppc_year(region, year)
-            if gdppc is not None and year > self.startupdateyear:
-                self.econ_predictors[region]['gdppc'].update(gdppc)
+            loggdppc = self.economicmodel.get_loggdppc_year(region, year)
+            if loggdppc is not None and year > self.startupdateyear:
+                self.econ_predictors[region]['loggdppc'].update(loggdppc)
 
             popop = self.economicmodel.get_popop_year(region, year)
             if popop is not None and year > self.startupdateyear:
                 self.econ_predictors[region]['popop'].update(popop)
 
-        gdppc = self.get_econ_predictors(region)['gdppc']
+        loggdppc = self.get_econ_predictors(region)['loggdppc']
         popop = self.get_econ_predictors(region)['popop']
 
-        return dict(loggdppc=np.log(gdppc), logpopop=np.log(popop), year=year)
+        return dict(loggdppc=loggdppc, logpopop=np.log(popop), year=year)
 
 class BinnedEconomicCovariator(EconomicCovariator):
     def __init__(self, economicmodel, maxbaseline, limits, config={}):
