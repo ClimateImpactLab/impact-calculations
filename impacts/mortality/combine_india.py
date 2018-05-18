@@ -65,12 +65,12 @@ for batch, clim_scenario, clim_model, econ_scenario, econ_model, targetdir in ag
                         if years[tt] >= 2015:
                             covariator.get_update(regions[ii], years[tt], None)
 
-                        if covars['gdppc'] <= POOR_THRESHOLD:
+                        if np.exp(covars['loggdppc']) <= POOR_THRESHOLD:
                             dstvalues[tt, ii] = srcvalues_poor[tt, ii]
-                        elif covars['gdppc'] >= RICH_THRESHOLD:
+                        elif np.exp(covars['loggdppc']) >= RICH_THRESHOLD:
                             dstvalues[tt, ii] = srcvalues_rich[tt, ii]
                         else:
-                            richness = (covars['gdppc'] - POOR_THRESHOLD) / (RICH_THRESHOLD - POOR_THRESHOLD)
+                            richness = (np.exp(covars['loggdppc']) - POOR_THRESHOLD) / (RICH_THRESHOLD - POOR_THRESHOLD)
                             dstvalues[tt, ii] = srcvalues_poor[tt, ii] * (1 - richness) + srcvalues_rich[tt, ii] * richness
                             
                 agglib.copy_timereg_variable(writer, reader_rich.variables['rebased'], 'rebased', dstvalues, "(indiamerge)")
@@ -105,12 +105,12 @@ for batch, clim_scenario, clim_model, econ_scenario, econ_model, targetdir in ag
 
                             if tt == 0:
                                 dstvalues[tt, ii] = 0
-                            elif covars['gdppc'] <= POOR_THRESHOLD:
+                            elif np.exp(covars['loggdppc']) <= POOR_THRESHOLD:
                                 dstvalues[tt, ii] = 0
-                            elif covars['gdppc'] >= RICH_THRESHOLD:
+                            elif np.exp(covars['loggdppc']) >= RICH_THRESHOLD:
                                 dstvalues[tt, ii] = dstvalues[tt - 1, ii] + (srcvalues_rich[tt, ii] - srcvalues_rich[tt - 1, ii])
                             else:
-                                richness = (covars['gdppc'] - POOR_THRESHOLD) / (RICH_THRESHOLD - POOR_THRESHOLD)
+                                richness = (np.exp(covars['loggdppc']) - POOR_THRESHOLD) / (RICH_THRESHOLD - POOR_THRESHOLD)
                                 dstvalues[tt, ii] = dstvalues[tt - 1, ii] + (srcvalues_rich[tt, ii] - srcvalues_rich[tt - 1, ii]) * richness
                         
                     agglib.copy_timereg_variable(writer, reader_rich.variables[key], key, dstvalues, "(indiamerge)")
