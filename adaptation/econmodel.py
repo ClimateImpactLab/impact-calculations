@@ -96,7 +96,10 @@ class SSPEconomicModel(object):
         return econ_predictors
 
     def get_loggdppc_year(self, region, year):
-        return np.log(self.income_model.get_income(region, year))
+        gdppc = self.income_model.get_income(region, year)
+        if gdppc is None:
+            return None
+        return np.log(gdppc)
 
     def get_popop_year(self, region, year):
         if region not in self.pop_future_years:
