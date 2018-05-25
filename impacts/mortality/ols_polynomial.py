@@ -14,10 +14,17 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     # Don't collapse: already collapsed in allmodels
     #csvvfile.collapse_bang(csvv, qvals.get_seed())
 
-    order = len(csvv['gamma']) / 3
+    ## Temperature effect
+    tasgammas = filter(lambda predname: 'tas' in predname, csvv['prednames'])
+    
+    order = len(tasgammas) / 3
     curr_curvegen = curvegen_known.PolynomialCurveGenerator(['C'] + ['C^%d' % pow for pow in range(2, order+1)],
-                                                           '100,000 * death/population', 'tas', order, csvv)
+                                                           '100,000 * death/population', 'tas', order, subset(csvv, tasgammas))
     weathernames = ['tas', 'tas-poly-2', 'tas-poly-3', 'tas-poly-4', 'tas-poly-5'][:order]
+
+    ## Precipitation effect
+    prgammas = filter(lambda predname: 'tas' not in predname, csvv['prednames'])
+    ##### NOTE: ONLY INCORPORATED PREC TO HERE: WAITING ON FINAL SPEC.
     
     baselineloggdppcs = {}
     for region in weatherbundle.regions:
