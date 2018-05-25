@@ -6,20 +6,29 @@ import population, agecohorts, income_smoothed, spacetime
 RE_FLOATING = r"[-+]?[0-9]*\.?[0-9]*"
 RE_NUMBER = RE_FLOATING + r"([eE]" + RE_FLOATING + ")?"
 RE_CSVNAME = r"[-\w ]+"
-RE_CONSTFILE = r"constcsv/(%s?):(%s?):(%s?)" % (RE_CSVNAME, RE_CSVNAME, RE_CSVNAME)
+RE_CONSTFILE = r"constcsv/(%s?):(%s?):(%s?)" % (RE_CSVNAME, RE_CSVNAME, RE_CSVNAME) # filename, region column, weight column
 
 def interpret_halfweight(weighting):
     match = re.match(RE_CONSTFILE, weighting)
     if match:
         df = pd.read_csv(files.configpath(match.group(1)))
         regions = df[match.group(2)]
-        submatch = re.match(r"sum\((%s?)\)", match.group(3))
+
+        submatch = re.match(r"sum\((%s?)\)" % RE_CSVNAME, match.group(3))
         if submatch:
             regions = set(regions)
             mapping = {region: df[submatch.group(1)][df[match.group(2)] == region].sum() for region in regions}
-        else:
-            values = df[match.group(3)]
-            mapping = {regions[ii]: values[ii] for ii in range(len(regions))}
+            return spacetime.SpaceTimeSpatialOnlyData(mapping)
+
+        submatch = re.match(r"expt\((%s?), %s\)" % (RE_CSVNAME, RE_NUMBER), match.group(3))
+        if submatch:
+            regions = set(regions)
+            mapping = {region: df[submatch.group(1)][df[match.group(2)] == region].sum() for region in regions}
+            rate = float(submatch.group(2))
+            return spacetime.SpaceTimeTransformedData(mapping, lambda x: x * np.exp(np.arange(200) * rate))
+
+        values = df[match.group(3)]
+        mapping = {regions[ii]: values[ii] for ii in range(len(regions))}
         return spacetime.SpaceTimeSpatialOnlyData(mapping)
 
     parts = re.split(r"\s*([*/])\s*", weighting)
