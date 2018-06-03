@@ -7,21 +7,26 @@ class SpaceTimeData(object):
         self.regions = regions
 
 class SpaceTimeLoadedData(SpaceTimeData):
-    def __init__(self, year0, year1, regions, array, ifmissing=None):
+    def __init__(self, year0, year1, regions, array, ifmissing=None, adm3fallback=False):
         super(SpaceTimeLoadedData, self).__init__(year0, year1, regions)
         self.array = array # as YEAR x REGION
         self.indices = {regions[ii]: ii for ii in range(len(regions))}
+        
         if ifmissing == 'mean':
             self.missing = np.mean(self.array, 1)
         elif ifmissing == 'logmean':
             self.missing = np.exp(np.mean(np.log(self.array), 1))
         else:
             self.missing = None
+
+        self.adm3fallback = adm3fallback
             
     def get_time(self, region):
-        #ii = self.regions.index(region)
         ii = self.indices.get(region, None)
         if ii is None:
+            if self.adm3fallback and len(regions) > 3:
+                return self.get_time(regions[:3])
+            
             return self.missing
         
         return self.array[:, ii]

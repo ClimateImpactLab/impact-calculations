@@ -1,4 +1,4 @@
-import re
+import re, os
 import pandas as pd
 from impactlab_tools.utils import files
 import population, agecohorts, income_smoothed, spacetime
@@ -7,11 +7,21 @@ RE_FLOATING = r"[-+]?[0-9]*\.?[0-9]*"
 RE_NUMBER = RE_FLOATING + r"([eE]" + RE_FLOATING + ")?"
 RE_CSVNAME = r"[-\w ]+"
 RE_CONSTFILE = r"constcsv/(%s?):(%s?):(%s?)" % (RE_CSVNAME, RE_CSVNAME, RE_CSVNAME) # filename, region column, weight column
+RE_YEARLYFILE = r"(%s?):(%s?):(%s?):(%s?)" % (RE_CSVNAME, RE_CSVNAME, RE_CSVNAME, RE_CSVNAME) # filename, region column, year column, weight column
+
+def read_byext(filepath):
+    extension = os.path.splitext(filepath)[1].lower()
+    assert extension in ['csv', 'dta']
+
+    if extension == 'csv':
+        return pd.read_csv(filepath)
+    if extension == 'dta':
+        return pd.read_stata(filepath)
 
 def interpret_halfweight(weighting):
     match = re.match(RE_CONSTFILE, weighting)
     if match:
-        df = pd.read_csv(files.configpath(match.group(1)))
+        df = read_byext(files.configpath(match.group(1)))
         regions = df[match.group(2)]
 
         submatch = re.match(r"sum\((%s?)\)" % RE_CSVNAME, match.group(3))
@@ -20,16 +30,25 @@ def interpret_halfweight(weighting):
             mapping = {region: df[submatch.group(1)][df[match.group(2)] == region].sum() for region in regions}
             return spacetime.SpaceTimeSpatialOnlyData(mapping)
 
-        submatch = re.match(r"expt\((%s?), %s\)" % (RE_CSVNAME, RE_NUMBER), match.group(3))
-        if submatch:
-            regions = set(regions)
-            mapping = {region: df[submatch.group(1)][df[match.group(2)] == region].sum() for region in regions}
-            rate = float(submatch.group(2))
-            return spacetime.SpaceTimeTransformedData(mapping, lambda x: x * np.exp(np.arange(200) * rate))
-
         values = df[match.group(3)]
         mapping = {regions[ii]: values[ii] for ii in range(len(regions))}
         return spacetime.SpaceTimeSpatialOnlyData(mapping)
+
+    match = re.match(RE_YEARLYFILE, weighting)
+    if match:
+        df = read_byext(files.configpath(match.group(1)))
+        regions = np.unique(df[match.group(2)])
+        year0 = np.min(df[match.group(3)])
+        year1 = np.max(df[match.group(3)])
+        array = np.zeros((year1 - year0 + 1, len(regions)))
+        indices = {regions[ii]: ii for ii in range(len(regions))}
+
+        for index, row in df.iterrows():
+            ii = indices[row[match.group(2)]]
+            tt = row[match.group(3)] - year0
+            array[tt, ii] = row[match.group(4)]
+        
+        return spacetime.SpaceTimeLoadedData(year0, year1, regions, array, adm3fallback=True)
 
     parts = re.split(r"\s*([*/])\s*", weighting)
     if len(parts) > 1:
