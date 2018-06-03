@@ -32,7 +32,11 @@ class DynamicIncomeSmoothed(object):
 
         assert year == self.current_year or (self.current_year == baseline_end_year and year < self.current_year), "Year mismatch: %d <> %d" % (year, self.current_year)
 
-        return self.current_income.get(region, None)
+        income = self.current_income.get(region, None)
+        if income is not None:
+            return income
+        
+        return self.current_income['mean']
 
     def reset(self, dependencies):
         if self.current_year == baseline_end_year:
@@ -45,6 +49,8 @@ class DynamicIncomeSmoothed(object):
         baseline_income = {}
         for region, year, value in income.each_gdppc_nightlight(model, scenario, dependencies, income.gdppc_baseline_filepath):
             baseline_income[region] = value
+
+        baseline_income['mean'] = np.mean(baseline_income.values())
 
         return baseline_income
 
