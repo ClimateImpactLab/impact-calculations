@@ -5,6 +5,11 @@
 
 # T. Carleton, 3/13/2017
 
+# UPDATE 05/31/2018: This version eliminates the non-cumulative costs, as they have no grounding in our theoretical framework. 
+# This version also updates the cumulative costs to have the correct expression for the lower bound, again based on updates
+# to our cost theory (T_t-1 - Tref replaced with T_baseyear - Tref for the lower bound object passed from James' daily impacts.)
+# Also allowed the base year for costs to be changed by the user at the top (baseyear defaults to 2015 here).
+
 # UPDATE 04/25/2018: This version checks whether timesteps in the climate file are equivalent to timesteps in the impacts file  
 # Assumption: the impacts file always has 120 time steps (i.e. goes to year 2100) while the climate file may have < 120 time steps (e.g. up to year 2099 or 2098)
 # If found unequal, this code removes the last n columns in the impacts file corresponding to the difference in years
@@ -76,6 +81,9 @@ impactspath <- args[4] # paste0("outputs/", sector, "/", impactsfolder, "/median
 #avgmethod = args[5]
 avgmethod = 'bartlett'
 
+# Base year for costs
+baseyear <- 2015
+
 ##############################################################################################
 # LOAD realized climate variable from single folder
 ##############################################################################################
@@ -124,7 +132,7 @@ if(avgmethod == 'bartlett') {
 for(r in 1:R) { #loop over all regions
     if (sum(is.finite(impacts.climtaseff[r,])) > 0)
       tempdf <- impacts.climtaseff[r,]
-      movingavg[r,] <- movavg(tempdf,30,'w')
+      movingavg[r,] <- movavg(tempdf,15,'w')
   }
 }
 
@@ -143,7 +151,6 @@ print("MOVING AVERAGE OF ADAPTIVE INVESTMENTS CALCULATED")
 
 # Initialize -- region by lb/ub by year
 results <- array(0, dim=c(dim(temps.avg)[1], 2, dim(temps.avg)[2]) )
-results_cum <- array(0, dim=c(dim(temps.avg)[1], 2, dim(temps.avg)[2]) )
 
 # Loop: for each impact region and each year, calculate bounds
 for (r in 1:R){
@@ -155,11 +162,6 @@ for (r in 1:R){
     expect <- slide(tempdf, Var='climvar', NewVar = 'lag', slideBy=-1, reminder=F)
     rm(tempdf)
     
-    # COSTS: "EXACT" VERSION 
-    avg <- as.data.frame(temps.avg[r,])
-    colnames(avg) <- "climcov"
-    avg$diff <- avg$climcov[which(year.avg==2010)] - avg$climcov 
-    
     # COSTS: CUMULATIVE COSTS VERSION
     tempdf <- as.data.frame(temps.avg[r,])
     colnames(tempdf) <- "climcov"
@@ -169,10 +171,8 @@ for (r in 1:R){
     options(warn=0)
 
     # Lower and upper bounds
-    results[r,1,] <-  avg$diff * (expect$climvar[which(year.avg==2010)])  # lower
-    results[r,2,] <-  avg$diff * (expect$climvar) # upper
-    results_cum[r,1,] <-  avg2$diff * (expect$lag) # lower
-    results_cum[r,2,] <-  avg2$diff * (expect$climvar) # upper
+    results[r,1,] <-  avg2$diff * (expect$climvar[which(year.avg==baseyear)]) # lower
+    results[r,2,] <-  avg2$diff * (expect$climvar) # upper
     
     # Clear
     rm(avg, expect)
@@ -188,16 +188,15 @@ for (r in 1:R){
 ###############################################
 
 #Add in costs of zero for initial years
-  baseline <- which(year.avg==2015)
+  baseline <- which(year.avg==baseyear)
   for (a in 1:baseline) {
     results[,,a] <- matrix(0,dim(results)[1], dim(results)[2])
-    results_cum[,,a] <- matrix(0,dim(results_cum)[1], dim(results_cum)[2])
   }
 
 # Cumulative sum over all years for cumulative results
 for (r in 1:R) {
-  results_cum[r,1,] <- cumsum(results_cum[r,1,])
-  results_cum[r,2,] <- cumsum(results_cum[r,2,])
+  results[r,1,] <- cumsum(results[r,1,])
+  results[r,2,] <- cumsum(results[r,2,])
 }
 
 ###############################################
@@ -213,10 +212,8 @@ varyear <- ncvar_def(name = "years",   units="", dim=list(dimtime))
 
 varcosts_lb <- ncvar_def(name = "costs_lb", units="deaths/100000", dim=list(dimregions, dimtime))
 varcosts_ub <- ncvar_def(name = "costs_ub", units="deaths/100000", dim=list(dimregions, dimtime))
-varcosts_lb_cum <- ncvar_def(name = "costs_lb_cum", units="deaths/100000", dim=list(dimregions, dimtime))
-varcosts_ub_cum <- ncvar_def(name = "costs_ub_cum", units="deaths/100000", dim=list(dimregions, dimtime))
 
-vars <- list(varregion, varyear, varcosts_lb, varcosts_ub, varcosts_lb_cum, varcosts_ub_cum)
+vars <- list(varregion, varyear, varcosts_lb, varcosts_ub)
 
 # Filepath for cost output
 outpath <- gsub(".nc4", "-costs.nc4", impactspath)
@@ -229,8 +226,6 @@ ncvar_put(cost_nc, varregion, regions)
 ncvar_put(cost_nc, varyear, year)
 ncvar_put(cost_nc, varcosts_lb, results[,1 ,])
 ncvar_put(cost_nc, varcosts_ub, results[,2 ,])
-ncvar_put(cost_nc, varcosts_lb_cum, results_cum[,1 ,])
-ncvar_put(cost_nc, varcosts_ub_cum, results_cum[,2 ,])
 nc_close(cost_nc)
 
 print("----------- DONE DONE DONE ------------")
