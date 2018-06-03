@@ -5,9 +5,9 @@ import population, agecohorts, income_smoothed, spacetime
 
 RE_FLOATING = r"[-+]?[0-9]*\.?[0-9]*"
 RE_NUMBER = RE_FLOATING + r"([eE]" + RE_FLOATING + ")?"
-RE_CSVNAME = r"[-\w ]+"
-RE_CONSTFILE = r"constcsv/(%s?):(%s?):(%s?)" % (RE_CSVNAME, RE_CSVNAME, RE_CSVNAME) # filename, region column, weight column
-RE_YEARLYFILE = r"(%s?):(%s?):(%s?):(%s?)" % (RE_CSVNAME, RE_CSVNAME, RE_CSVNAME, RE_CSVNAME) # filename, region column, year column, weight column
+RE_CSVNAME = r"[-\w./()]+"
+RE_CONSTFILE = r"constcsv/(%s?):(%s?):(%s?)(\s|$)" % (RE_CSVNAME, RE_CSVNAME, RE_CSVNAME) # filename, region column, weight column
+RE_YEARLYFILE = r"(%s?):(%s?):(%s?):(%s?)(\s|$)" % (RE_CSVNAME, RE_CSVNAME, RE_CSVNAME, RE_CSVNAME) # filename, region column, year column, weight column
 
 def read_byext(filepath):
     extension = os.path.splitext(filepath)[1].lower()
@@ -26,8 +26,9 @@ def interpret_halfweight(weighting):
 
         submatch = re.match(r"sum\((%s?)\)" % RE_CSVNAME, match.group(3))
         if submatch:
-            regions = set(regions)
-            mapping = {region: df[submatch.group(1)][df[match.group(2)] == region].sum() for region in regions}
+            values = df.groupby([match.group(2)])[submatch.group(1)].sum()
+            regions = list(values.index)
+            mapping = {regions[ii]: values[ii] for ii in range(len(regions))}
             return spacetime.SpaceTimeSpatialOnlyData(mapping)
 
         values = df[match.group(3)]
@@ -106,11 +107,14 @@ if __name__ == '__main__':
     
     weighting = sys.argv[1]
     halfweight = interpret_halfweight(weighting)
-    stweight = halfweight.load(1981, 2100, sys.argv[2], sys.argv[3])
+    stweight = halfweight.load(1981, 2100, sys.argv[2] if len(sys.argv) > 2 else None, sys.argv[3] if len(sys.argv) > 3 else None)
 
     writer = csv.writer(sys.stdout)
     writer.writerow(['region', 'year', 'weight'])
     for region in regions:
         weights = stweight.get_time(region)
-        for year in range(1981, 2101):
-            writer.writerow([region, year, weights[year - 1981]])
+        if isinstance(weights, float):
+            writer.writerow([region, "all", weights])
+        else:
+            for year in range(1981, 2101):
+                writer.writerow([region, year, weights[year - 1981]])
