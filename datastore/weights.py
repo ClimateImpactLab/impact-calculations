@@ -5,18 +5,20 @@ import population, agecohorts, income_smoothed, spacetime
 
 RE_FLOATING = r"[-+]?[0-9]*\.?[0-9]*"
 RE_NUMBER = RE_FLOATING + r"([eE]" + RE_FLOATING + ")?"
-RE_CSVNAME = r"[-\w ]+"
-RE_CONSTFILE = r"constcsv/(%s?):(%s?):(%s?)" % (RE_CSVNAME, RE_CSVNAME, RE_CSVNAME)
+RE_CSVNAME = r"[-\w./()]+"
+RE_CONSTFILE = r"constcsv/(%s?):(%s?):(%s?)(\s|$)" % (RE_CSVNAME, RE_CSVNAME, RE_CSVNAME)
 
 def interpret_halfweight(weighting):
     match = re.match(RE_CONSTFILE, weighting)
     if match:
         df = pd.read_csv(files.configpath(match.group(1)))
         regions = df[match.group(2)]
-        submatch = re.match(r"sum\((%s?)\)", match.group(3))
+        submatch = re.match(r"sum\((%s?)\)" % RE_CSVNAME, match.group(3))
         if submatch:
-            regions = set(regions)
-            mapping = {region: df[submatch.group(1)][df[match.group(2)] == region].sum() for region in regions}
+            summed = df.groupby([match.group(2)])[submatch.group(1)].sum()
+            values = summed
+            regions = list(summed.index)
+            mapping = {regions[ii]: values[ii] for ii in range(len(regions))}
         else:
             values = df[match.group(3)]
             mapping = {regions[ii]: values[ii] for ii in range(len(regions))}
@@ -78,11 +80,14 @@ if __name__ == '__main__':
     
     weighting = sys.argv[1]
     halfweight = interpret_halfweight(weighting)
-    stweight = halfweight.load(1981, 2100, sys.argv[2], sys.argv[3])
+    stweight = halfweight.load(1981, 2100, sys.argv[2] if len(sys.argv) > 2 else None, sys.argv[3] if len(sys.argv) > 3 else None)
 
     writer = csv.writer(sys.stdout)
     writer.writerow(['region', 'year', 'weight'])
     for region in regions:
         weights = stweight.get_time(region)
-        for year in range(1981, 2101):
-            writer.writerow([region, year, weights[year - 1981]])
+        if isinstance(weights, float):
+            writer.writerow([region, "all", weights])
+        else:
+            for year in range(1981, 2101):
+                writer.writerow([region, year, weights[year - 1981]])
