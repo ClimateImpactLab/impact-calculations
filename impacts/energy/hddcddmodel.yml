@@ -30,7 +30,9 @@ models:
     calculation:
       - Sum:
         - YearlyApply:
-            model: tas
+            model: tas * step(20, [0, 1])
+        - YearlyApply:
+            model: tas * step(20, [1, 0])
         - YearlyApply:
             model: hdd-20
         - YearlyApply:
