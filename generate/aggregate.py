@@ -219,7 +219,7 @@ if __name__ == '__main__':
         print targetdir
         print econ_model, econ_scenario
 
-        if not statman.claim(targetdir):
+        if not statman.claim(targetdir) and 'targetdir' not in config:
             continue
 
         incomplete = False

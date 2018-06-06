@@ -1,4 +1,5 @@
 import re, os
+import numpy as np
 import pandas as pd
 from impactlab_tools.utils import files
 import population, agecohorts, income_smoothed, spacetime
@@ -11,11 +12,11 @@ RE_YEARLYFILE = r"(%s?):(%s?):(%s?):(%s?)(\s|$)" % (RE_CSVNAME, RE_CSVNAME, RE_C
 
 def read_byext(filepath):
     extension = os.path.splitext(filepath)[1].lower()
-    assert extension in ['csv', 'dta']
+    assert extension in ['.csv', '.dta']
 
-    if extension == 'csv':
+    if extension == '.csv':
         return pd.read_csv(filepath)
-    if extension == 'dta':
+    if extension == '.dta':
         return pd.read_stata(filepath)
 
 def interpret_halfweight(weighting):
@@ -49,9 +50,9 @@ def interpret_halfweight(weighting):
             tt = row[match.group(3)] - year0
             array[tt, ii] = row[match.group(4)]
         
-        return spacetime.SpaceTimeLoadedData(year0, year1, regions, array, adm3fallback=True)
+        return spacetime.SpaceTimeMatrixData(year0, year1, regions, array, ifmissing='mean', adm3fallback=True)
 
-    parts = re.split(r"\s*([*/])\s*", weighting)
+    parts = re.split(r"\s+([*/])\s+", weighting)
     if len(parts) > 1:
         halfweight = interpret_halfweight(parts[0])
         for ii in range(2, len(parts), 2):

@@ -87,17 +87,24 @@ Possible components:
    age-specific population to use.  Use `age0-4` for `*-young`,
    `age5-64` for `*-older` and `age65+` for `*-oldest`.
  - `income`: Income per capita, in PPP USD, as defined by the SSPs.
- - Term ` * ` Term: The product of two terms (can be chained).
- - Term ` / ` Term: The quotient of two terms (can be chained).  Terms
+ - Term ` * ` Term: The product of two terms (can be chained).  There must be spaces the the left and right of the symbol.
+ - Term ` / ` Term: The quotient of two terms (can be chained).  There must be spaces the the left and right of the symbol.  Terms
    are computed sequentially, so *(a b) / (c d)* should be described
    as `a * b / c / d`.
- - `constcsv/<PATH>:<HIERID>:<VALUE>`: Read the weights from a CSV
+ - `constcsv/<PATH>:<HIERID>:<VALUE>`: Read the weights from a CSV or DTA
    file, applying constant weights to each region.  `<PATH>` is a
    relative path from the server shared directory.  `<HIERID>` is the
    name of the column specifying the names of the impact regions.
    `<VALUE>` is either a column name, or `sum(<COLUMN>)`, where the
    latter may be used if more than one row applies to the same impact
    region.
+ - `<PATH>:<HIERID>:<YEAR>:>VALUE>`: As with `constcsv` above, but
+   allowing time-varying weights with the inclusion of a column
+   specifying the year, in `<YEAR>`.  Years prior to the initial year
+   in the file or after the final year will be given the first or last
+   year's value, respectively.  If the file does not contain a hierid
+   for the impact region, it will try to use the one from the
+   country's ADM3 code, and otherwise the mean.
 
 The `datastore.weights` script also allows these weighting schemes to
 be output in CSV format for each region and year.  To do this, run
