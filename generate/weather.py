@@ -333,7 +333,7 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
     def make_historical(weatherbundle, seed):
         futureyear_end = weatherbundle.get_years()[-1]
         pastreaders = [pastreader for pastreader, futurereader in weatherbundle.pastfuturereaders]
-        return HistoricalWeatherBundle(pastreaders, futureyear_end, seed, weatherbundle.scenario, weatherbundle.model)
+        return HistoricalWeatherBundle(pastreaders, futureyear_end, seed, weatherbundle.scenario, weatherbundle.model, transformer=weatherbundle.transformer)
 
 class AmorphousWeatherBundle(WeatherBundle):
     def __init__(self, pastfuturereader_dict, scenario, model, hierarchy='hierarchy.csv', transformer=WeatherTransformer()):
