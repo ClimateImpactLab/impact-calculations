@@ -202,3 +202,23 @@ Here are some of the standard ones:
 * `Sum`: Sum a list of other previous calculations.
 * `Rebase`: Subtract off the average previous result from 2001 - 2010.
 * `Expoonentiate`: Report the exponentiate of the previous result.
+
+### Specifying a model
+
+Typically, each calculation takes as its input the previous
+calculation's output.  In some cases (for certain weather-to-result
+calculations), there need to be several models or specifications
+defined.  This is done by maknig a `specifications` list within a
+model block, naming each specification.  Then those same names are
+used in the calculation, by using the `model:` property.
+
+The model property can take the following forms of objects:
+
+ - A name from the `specifications` list
+ 
+ - The `step()` function which takes three arguments: a variable name,
+   a step limit, and a before and after step function value.  Like
+   `step('tas', 20, [0, 1])`.
+
+ - A product of two of the above, using `A * B`.
+ 
