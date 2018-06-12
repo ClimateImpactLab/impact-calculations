@@ -220,7 +220,9 @@ class RenameReader(WeatherReader):
         super(RenameReader, self).__init__(reader.version, reader.units, reader.time_units)
         self.reader = reader
         self.renamer = renamer
-
+        if isinstance(self.renamer, str):
+            assert len(self.reader.get_dimension()) == 1
+        
     def get_times(self):
         """Returns a list of all times available."""
         return self.reader.get_times()
@@ -234,6 +236,8 @@ class RenameReader(WeatherReader):
         """
         if callable(self.renamer):
             return map(self.renamer, self.reader.get_dimension())
+        elif isinstance(self.renamer, str):
+            return [self.renamer]
         else:
             return self.renamer.keys()
 
@@ -246,6 +250,8 @@ class RenameReader(WeatherReader):
     def read_year(self, year):
         if callable(self.renamer):
             renames = {name: self.renamer(name) for name in self.reader.get_dimension()}
+        elif isinstance(self.renamer, str):
+            renames = {self.reader.get_dimension()[0]: self.renamer}
         else:
             renames = self.renamer
             
