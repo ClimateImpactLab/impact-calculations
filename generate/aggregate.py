@@ -193,6 +193,9 @@ if __name__ == '__main__':
         halfweight_levels = weights.interpret_halfweight(config['weighting'])
         halfweight_aggregate = halfweight_levels
         halfweight_aggregate_denom = None # Same as numerator
+        assert 'levels-weighting' not in config, "Cannot have both a weighting and levels-weighting option."
+        assert 'aggregate-weighting' not in config, "Cannot have both a weighting and aggregate-weighting option."
+        assert 'aggregate-weighting-numerator' not in config, "Cannot have both a weighting and aggregate-weighting-numerator option."
     else:
         # Levels weighting
         if 'levels-weighting' in config:
@@ -204,6 +207,7 @@ if __name__ == '__main__':
         if 'aggregate-weighting' in config:
             halfweight_aggregate = weights.interpret_halfweight(config['aggregate-weighting'])
             halfweight_aggregate_denom = None # Same as numerator
+            assert 'aggregate-weighting-numerator' not in config, "Cannot have both a aggregate-weighting and aggregate-weighting-numerator option."
         else:
             if 'aggregate-weighting-numerator' in config:
                 halfweight_aggregate = weights.interpret_halfweight(config['aggregate-weighting-numerator'])
