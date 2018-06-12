@@ -78,7 +78,7 @@ Basic model configration:
 * `clipping` (required): Should curve values less the region minimum be replaced with the region minimum?  Currently this only supports clipping of curves that are expected to have a minimum.  The default limits for the region-specific temperature at which this can occur are 10C and 25C, but these can be adjusted with `clip-mintemp` and `clip-maxtemp` options.
 
 * `covariates` (required): A list of known covariate names,
-  interpretted by `interpret.specification::get_covriator`.  See the
+  interpretted by `interpret.specification::get_covariator`.  See the
   Covariates Expressions below, for more information.
   
 * `description` (required): A description for the final result of the
@@ -96,6 +96,15 @@ Basic model configration:
   weather parameters will be limited to seasons specified by the given
   CSV file.  The columns of file should include `hierid`,
   `plant_date`, `harvest_date`, `plant_month`, `harvest_month`.
+
+## Climate naming
+
+The `climate.discover::standard_variable` allows a number of
+modifications to standard variable names.
+
+ - A path
+ - A variable followed by `==<version>`
+ - `<name> = ` followed by another standard variable definition
 
 ## Specification configuration:
 

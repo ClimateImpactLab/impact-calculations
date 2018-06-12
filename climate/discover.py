@@ -26,6 +26,12 @@ def standard_variable(name, mytimerate, **config):
                 var = interpret_transform(var, chunk)
             return var
 
+    if ' = ' in name:
+        chunks = name.split(' = ')
+        name = chunks[0].strip()
+        defin = chunks[1].strip()
+        return discover_rename(standard_variable(defin, mytimerate, **config), name)
+        
     version = None
     if '==' in name:
         chunks = name.split('==')
@@ -331,6 +337,7 @@ def discover_makegddkdd(discover_iterator, lower, upper):
         yield scenario, model, GDDKDDReader(pastreader, lower, upper), GDDKDDReader(futurereader, lower, upper)
 
 def discover_rename(discover_iterator, name_dict):
+    """name_dict can be a {new: old} dictionary, a string (if other discover produces only 1 var), or a function."""
     for scenario, model, pastreader, futurereader in discover_iterator:
         yield scenario, model, RenameReader(pastreader, name_dict), RenameReader(futurereader, name_dict)
         
