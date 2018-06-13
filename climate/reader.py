@@ -301,3 +301,34 @@ class HistoricalCycleReader(WeatherReader):
         ds['yyyyddd'].values = ds['yyyyddd'].values % 1000 + year * 1000
         ds['time'].values = pd.date_range('%d-01-01' % year, periods=365)
         return ds
+
+class MapReader(WeatherReader):
+    """Applies a function to all combinations of component readers."""
+    def __init__(self, name, unit, func, *readers):
+        super(MapReader, self).__init__(map(lambda reader: reader.version, readers),
+                                        unit, readers[0].time_units)
+        self.name = name
+        self.func = func
+        self.readers = readers
+        for reader in readers[1:]:
+            assert reader.get_times() == readers[0].get_times()
+        
+    def get_times(self):
+        """Returns a list of all times available."""
+        return self.readers[0].get_times()
+
+    def get_years(self):
+        return self.readers[0].get_years()
+        
+    def get_dimension(self):
+        return [self.name]
+
+    def read_iterator(self):
+        """Yields an xarray Dataset in whatever chunks are convenient."""
+        iterators = map(lambda reader: reader.read_iterator(), self.readers)
+        for ds0 in iterators[0]:
+            dsn = map(lambda iterator: iterator.next(), iterators[1:])
+            allds = [ds0] + dsn
+            alldsvars = map(lambda ds: ds[self.readers.get_dimension()[0]], allds)
+            ds0[self.name] = self.func(*alldsvars)
+            yield ds0

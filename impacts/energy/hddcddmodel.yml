@@ -1,9 +1,9 @@
 timerate: year
 climate:
-  - tas-lo = tas * step(tas, 20, [1, 0])
-  - tas-hi = tas * step(tas, 20, [0, 1])
-  - tas-lo-poly-2 = tas-poly-2 * step(tas, 20, [1, 0])
-  - tas-hi-poly-2 = tas-poly-2 * step(tas, 20, [0, 1])
+  - tas-lo = tas * tas.step(20, [1, 0])
+  - tas-hi = tas * tas.step(20, [0, 1])
+  - tas-lo-poly-2 = tas-poly-2 * tas.step(20, [1, 0])
+  - tas-hi-poly-2 = tas-poly-2 * tas.step(20, [0, 1])
   - tas-cdd-20
   - tas-cdd-20-poly-2
   - tas-hdd-20

@@ -6,7 +6,7 @@ import os, re, copy
 import numpy as np
 from impactlab_tools.utils import files
 from openest.generate import fast_dataset
-from reader import ConversionWeatherReader, RegionReorderWeatherReader, HistoricalCycleReader, RenameReader
+from reader import *
 from dailyreader import DailyWeatherReader, YearlyBinnedWeatherReader, MonthlyBinnedWeatherReader, MonthlyDimensionedWeatherReader
 from yearlyreader import YearlyWeatherReader, YearlyDayLikeWeatherReader
 import pattern_matching
@@ -18,6 +18,27 @@ def standard_variable(name, mytimerate, **config):
         if os.path.exists(files.configpath(name)):
             return discover_versioned(files.configpath(name), os.path.basename(name), **config)
 
+    if ' = ' in name:
+        chunks = name.split(' = ')
+        name = chunks[0].strip()
+        defin = chunks[1].strip()
+        return discover_rename(standard_variable(defin, mytimerate, **config), name)
+
+    assert mytimerate in ['day', 'month', 'year']
+
+    if ' * ' in name:
+        chunks = name.split(' * ')
+        left = chunks[0].strip()
+        right = chunks[1].strip()
+        iterator = discover_map(name, lambda a, b: a * b, standard_variable(left, 'day', **config),
+                                standard_variable(right, 'day', **config))
+        if mytimerate == 'day':
+            return iterator
+        elif mytimerate == 'month':
+            return discover_day2month(iterator, lambda arr, dim: np.sum(arr, axis=dim))
+        elif mytimerate == 'year':
+            return discover_day2year(iterator, lambda arr, dim: np.sum(arr, axis=dim))
+        
     if '.' in name:
         chunks = re_dotsplit.split(name)
         if len(chunks) > 1:
@@ -26,20 +47,12 @@ def standard_variable(name, mytimerate, **config):
                 var = interpret_transform(var, chunk)
             return var
 
-    if ' = ' in name:
-        chunks = name.split(' = ')
-        name = chunks[0].strip()
-        defin = chunks[1].strip()
-        return discover_rename(standard_variable(defin, mytimerate, **config), name)
-        
     version = None
     if '==' in name:
         chunks = name.split('==')
         name = chunks[0]
         version = chunks[1]
         
-    assert mytimerate in ['day', 'month', 'year']
-
     if 'grid-weight' in config:
         timerate_translate = dict(day='daily', month='monthly', year='annual')
         path = files.sharedpath(os.path.join("climate/BCSD/hierid", config['grid-weight'], timerate_translate[mytimerate], name))
@@ -416,6 +429,19 @@ def discover_day2year(discover_iterator, accumfunc):
         return ds
     
     return discover_convert(discover_iterator, time_conversion, ds_conversion)
+
+def discover_map(name, func, *iterators):
+    pastfutures = {} # (scenario, model): (pastreader, futurereader)
+    for iterator in iterators:
+        for scenario, model, pastreader, futurereader in iterator:
+            if (scenario, model) in pastfutures:
+                pastfutures[(scenario, model)].push((pastreader, futurereader))
+            else:
+                pastfutures[(scenario, model)] = [(pastreader, futurereader)]
+
+    for scenario, model in pastfutures:
+        if len(pastfutures[(scenario, model)]) == len(iterators):
+            yield scenario, model, MapReader(name, func, *map(lambda pastfuture: pastfuture[0], pastfutures[(scenario, model)])), MapReader(name, func, *map(lambda pastfuture: pastfuture[1], pastfutures[(scenario, model)]))
 
 def data_vars_time_conversion_year(name, ds, varset, accumfunc):
     if isinstance(ds, fast_dataset.FastDataset):
