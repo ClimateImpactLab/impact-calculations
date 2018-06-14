@@ -36,14 +36,8 @@ def single(bundle_iterator):
             return clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
 
 def random_order(bundle_iterator, config={}):
-    if 'ssp' in config:
-        mydo_econ_scenario_only = config['ssp']
-    else:
-        mydo_econ_scenario_only = do_econ_scenario_only
-    if 'rcp' in config:
-        mydo_clim_scenario_only = config['rcp']
-    else:
-        mydo_clim_scenario_only = do_clim_scenario_only
+    mydo_econ_scenario_only = config.get('ssp', config.get('only-ssp', do_econ_scenario_only))
+    mydo_clim_scenario_only = config.get('rcp', config.get('only-rcp', do_clim_scenario_only))
         
     print "Loading models..."
     allecons = []
