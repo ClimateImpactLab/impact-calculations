@@ -52,7 +52,7 @@ class CSVVCurveGenerator(CurveGenerator):
             else:
                 try:
                     coefficients[predname] = self.constant.get(predname, 0) + np.sum(self.predgammas[predname] * np.array([covariates[covar] for covar in self.predcovars[predname]]))
-                    if predname in self.betalimits:
+                    if predname in self.betalimits and not np.isnan(coefficients[predname]):
                         coefficients[predname] = min(max(self.betalimits[predname][0], coefficients[predname]), self.betalimits[predname][1])
                     
                     if debug:
