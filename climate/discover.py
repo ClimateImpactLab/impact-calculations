@@ -108,7 +108,7 @@ def discover_models(basedir, **config):
     basedir points to directory with both 'historical', 'rcp*'
     Aware configuration options:
      - pattern_matching
-     - only_rcp
+     - rcp or only-rcp
      - only-models
     """
     # Collect the entire complement of models
@@ -118,7 +118,7 @@ def discover_models(basedir, **config):
         if scenario[0:3] != 'rcp':
             continue
 
-        if config.get('rcp_only', scenario) != scenario:
+        if config.get('only-rcp', config.get('rcp', scenario)) != scenario:
             continue
 
         if 'only-models' in config:
