@@ -69,7 +69,10 @@ def make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, d
 
     stweight = get_cached_weight(halfweight, weight_args, years)
     if halfweight_denom:
-        stweight_denom = get_cached_weight(halfweight_denom, weight_args_denom, years)
+        if halfweight_denom == weights.HALFWEIGHT_SUMTO1:
+            stweight_denom = weights.HALFWEIGHT_SUMTO1
+        else:
+            stweight_denom = get_cached_weight(halfweight_denom, weight_args_denom, years)
     else:
         stweight_denom = None # Just use the same weight
 
@@ -92,13 +95,17 @@ def make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, d
             for original in withinregions:
                 weights = stweight.get_time(original)
                 numers += weights * np.nan_to_num(srcvalues[:, original_indices[original]]) * np.isfinite(srcvalues[:, original_indices[original]])
-                if stweight_denom:
-                    weights_denom = stweight_denom.get_time(original)
-                    denoms += weights_denom * np.isfinite(srcvalues[:, original_indices[original]])
-                else:
-                    denoms += weights * np.isfinite(srcvalues[:, original_indices[original]])
+                if stweight_denom != weights.HALFWEIGHT_SUMTO1:
+                    if stweight_denom:
+                        weights_denom = stweight_denom.get_time(original)
+                        denoms += weights_denom * np.isfinite(srcvalues[:, original_indices[original]])
+                    else:
+                        denoms += weights * np.isfinite(srcvalues[:, original_indices[original]])
 
-            dstvalues[:, ii] = numers / denoms
+            if stweight_denom == weights.HALFWEIGHT_SUMTO1:
+                dstvalues[:, ii] = numers
+            else:
+                dstvalues[:, ii] = numers / denoms
 
         agglib.copy_timereg_variable(writer, variable, key, dstvalues, "(aggregated)", unitchange=lambda unit: unit + '/person')
 
