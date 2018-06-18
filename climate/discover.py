@@ -11,6 +11,7 @@ from dailyreader import DailyWeatherReader, YearlyBinnedWeatherReader, MonthlyBi
 from yearlyreader import YearlyWeatherReader, YearlyDayLikeWeatherReader
 import pattern_matching
 
+RE_FLOATING = r"[-+]?[0-9]*\.?[0-9]*"
 re_dotsplit = re.compile("\.(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)")
 
 def standard_variable(name, mytimerate, **config):
@@ -30,7 +31,8 @@ def standard_variable(name, mytimerate, **config):
         chunks = name.split(' * ')
         left = chunks[0].strip()
         right = chunks[1].strip()
-        iterator = discover_map(name, lambda a, b: a * b, standard_variable(left, 'day', **config),
+        iterator = discover_map(name, None,
+                                lambda a, b: a * b, standard_variable(left, 'day', **config),
                                 standard_variable(right, 'day', **config))
         if mytimerate == 'day':
             return iterator
@@ -119,6 +121,16 @@ def interpret_transform(var, transform):
     if transform[:7] == 'gddkdd(':
         lower, upper = tuple(map(float, transform[7:-1].split(',')))
         return discover_makegddkdd(var, lower, upper)
+
+    if transform[:5] == 'step(':
+        match = re.match(r"\s*%s\s*,\s*\[\s*%s\s*,\s*%s\s*\]\s*" % (RE_FLOATING, RE_FLOATING, RE_FLOATING),
+                         transform[5:-1])
+        assert match, "Step function misformed.  Use .step(#, [#, #])."
+        stepval = float(match.group(1))
+        befval = float(match.group(2))
+        aftval = float(match.group(3))
+        return discover_map(transform, None,
+                            lambda xs: (aftval - befval) * (xs - stepval > 0) + befval, var)
     
     assert False, "Cannot interpret transformation %s" % transform
 
@@ -430,7 +442,7 @@ def discover_day2year(discover_iterator, accumfunc):
     
     return discover_convert(discover_iterator, time_conversion, ds_conversion)
 
-def discover_map(name, func, *iterators):
+def discover_map(name, unit, func, *iterators):
     pastfutures = {} # (scenario, model): (pastreader, futurereader)
     for iterator in iterators:
         for scenario, model, pastreader, futurereader in iterator:
@@ -441,7 +453,7 @@ def discover_map(name, func, *iterators):
 
     for scenario, model in pastfutures:
         if len(pastfutures[(scenario, model)]) == len(iterators):
-            yield scenario, model, MapReader(name, func, *map(lambda pastfuture: pastfuture[0], pastfutures[(scenario, model)])), MapReader(name, func, *map(lambda pastfuture: pastfuture[1], pastfutures[(scenario, model)]))
+            yield scenario, model, MapReader(name, unit, func, *map(lambda pastfuture: pastfuture[0], pastfutures[(scenario, model)])), MapReader(name, unit, func, *map(lambda pastfuture: pastfuture[1], pastfutures[(scenario, model)]))
 
 def data_vars_time_conversion_year(name, ds, varset, accumfunc):
     if isinstance(ds, fast_dataset.FastDataset):
