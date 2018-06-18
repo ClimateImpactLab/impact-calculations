@@ -19,7 +19,12 @@ def read_byext(filepath):
     if extension == '.dta':
         return pd.read_stata(filepath)
 
+HALFWEIGHT_SUMTO1 = "Sum to 1"
+
 def interpret_halfweight(weighting):
+    if weighting.lower() == 'sum-to-1':
+        return HALFWEIGHT_SUMTO1
+    
     match = re.match(RE_CONSTFILE, weighting)
     if match:
         df = read_byext(files.configpath(match.group(1)))
