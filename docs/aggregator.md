@@ -10,7 +10,8 @@ IR-level generated response files.  It generates three kinds of files:
 
 If the raw outputs are *y_it*, then the scaling scheme in the levels
 files produces *w_it y_it*, and the aggregation system computes
-*(sum_i w_it y_it) / sum_i w_it*.
+*(sum_i w_it y_it) / sum_i w_it* or *sum_i w_it y_it* (depending on
+the denominator specification).
 
 Aggregation is initiated by calling,
 ```$ ./aggregate.sh configs/<CONFIG-FILE>.yml [N]```
@@ -39,7 +40,9 @@ Required:
    `aggregate-weighting`.  Alternatively-alternatively, the
    aggregation weighting can use different multiplicative factors in
    its numerator and denominator, with `aggregate-weighting-numerator`
-   and `aggregate-weighting-denominator`.
+   and `aggregate-weighting-denominator`.  A special value for
+   `aggregate-weighting-denominator` is `sum-to-1`, which causes no
+   demoninator to be used in the aggregation calculation.
    
 Optional:
 

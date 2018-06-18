@@ -93,14 +93,14 @@ def make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, d
                 withinregions = originals[prefixes[ii]]
 
             for original in withinregions:
-                weights = stweight.get_time(original)
-                numers += weights * np.nan_to_num(srcvalues[:, original_indices[original]]) * np.isfinite(srcvalues[:, original_indices[original]])
+                wws = stweight.get_time(original)
+                numers += wws * np.nan_to_num(srcvalues[:, original_indices[original]]) * np.isfinite(srcvalues[:, original_indices[original]])
                 if stweight_denom != weights.HALFWEIGHT_SUMTO1:
                     if stweight_denom:
                         weights_denom = stweight_denom.get_time(original)
                         denoms += weights_denom * np.isfinite(srcvalues[:, original_indices[original]])
                     else:
-                        denoms += weights * np.isfinite(srcvalues[:, original_indices[original]])
+                        denoms += wws * np.isfinite(srcvalues[:, original_indices[original]])
 
             if stweight_denom == weights.HALFWEIGHT_SUMTO1:
                 dstvalues[:, ii] = numers
