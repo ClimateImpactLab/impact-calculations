@@ -69,7 +69,10 @@ def make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, d
 
     stweight = get_cached_weight(halfweight, weight_args, years)
     if halfweight_denom:
-        stweight_denom = get_cached_weight(halfweight_denom, weight_args_denom, years)
+        if halfweight_denom == weights.HALFWEIGHT_SUMTO1:
+            stweight_denom = weights.HALFWEIGHT_SUMTO1
+        else:
+            stweight_denom = get_cached_weight(halfweight_denom, weight_args_denom, years)
     else:
         stweight_denom = None # Just use the same weight
 
@@ -90,15 +93,19 @@ def make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, d
                 withinregions = originals[prefixes[ii]]
 
             for original in withinregions:
-                weights = stweight.get_time(original)
-                numers += weights * np.nan_to_num(srcvalues[:, original_indices[original]]) * np.isfinite(srcvalues[:, original_indices[original]])
-                if stweight_denom:
-                    weights_denom = stweight_denom.get_time(original)
-                    denoms += weights_denom * np.isfinite(srcvalues[:, original_indices[original]])
-                else:
-                    denoms += weights * np.isfinite(srcvalues[:, original_indices[original]])
+                wws = stweight.get_time(original)
+                numers += wws * np.nan_to_num(srcvalues[:, original_indices[original]]) * np.isfinite(srcvalues[:, original_indices[original]])
+                if stweight_denom != weights.HALFWEIGHT_SUMTO1:
+                    if stweight_denom:
+                        weights_denom = stweight_denom.get_time(original)
+                        denoms += weights_denom * np.isfinite(srcvalues[:, original_indices[original]])
+                    else:
+                        denoms += wws * np.isfinite(srcvalues[:, original_indices[original]])
 
-            dstvalues[:, ii] = numers / denoms
+            if stweight_denom == weights.HALFWEIGHT_SUMTO1:
+                dstvalues[:, ii] = numers
+            else:
+                dstvalues[:, ii] = numers / denoms
 
         agglib.copy_timereg_variable(writer, variable, key, dstvalues, "(aggregated)", unitchange=lambda unit: unit + '/person')
 
@@ -193,6 +200,9 @@ if __name__ == '__main__':
         halfweight_levels = weights.interpret_halfweight(config['weighting'])
         halfweight_aggregate = halfweight_levels
         halfweight_aggregate_denom = None # Same as numerator
+        assert 'levels-weighting' not in config, "Cannot have both a weighting and levels-weighting option."
+        assert 'aggregate-weighting' not in config, "Cannot have both a weighting and aggregate-weighting option."
+        assert 'aggregate-weighting-numerator' not in config, "Cannot have both a weighting and aggregate-weighting-numerator option."
     else:
         # Levels weighting
         if 'levels-weighting' in config:
@@ -204,6 +214,7 @@ if __name__ == '__main__':
         if 'aggregate-weighting' in config:
             halfweight_aggregate = weights.interpret_halfweight(config['aggregate-weighting'])
             halfweight_aggregate_denom = None # Same as numerator
+            assert 'aggregate-weighting-numerator' not in config, "Cannot have both a aggregate-weighting and aggregate-weighting-numerator option."
         else:
             if 'aggregate-weighting-numerator' in config:
                 halfweight_aggregate = weights.interpret_halfweight(config['aggregate-weighting-numerator'])
@@ -219,7 +230,7 @@ if __name__ == '__main__':
         print targetdir
         print econ_model, econ_scenario
 
-        if not statman.claim(targetdir):
+        if not statman.claim(targetdir) and 'targetdir' not in config:
             continue
 
         incomplete = False
