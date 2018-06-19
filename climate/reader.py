@@ -329,6 +329,14 @@ class MapReader(WeatherReader):
         for ds0 in iterators[0]:
             dsn = map(lambda iterator: iterator.next(), iterators[1:])
             allds = [ds0] + dsn
-            alldsvars = map(lambda ds: ds[self.readers.get_dimension()[0]], allds)
+            alldsvars = [allds[ii][self.readers[ii].get_dimension()[0]] for ii in range(len(allds))]
             ds0[self.name] = self.func(*alldsvars)
             yield ds0
+
+    def read_year(self, year):
+        allds = [reader.read_year(year) for reader in self.readers]
+        alldsvars = [allds[ii][self.readers[ii].get_dimension()[0]] for ii in range(len(allds))]
+
+        ds0 = allds[0]
+        ds0[self.name] = self.func(*alldsvars)
+        return ds0

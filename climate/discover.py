@@ -447,7 +447,7 @@ def discover_map(name, unit, func, *iterators):
     for iterator in iterators:
         for scenario, model, pastreader, futurereader in iterator:
             if (scenario, model) in pastfutures:
-                pastfutures[(scenario, model)].push((pastreader, futurereader))
+                pastfutures[(scenario, model)].append((pastreader, futurereader))
             else:
                 pastfutures[(scenario, model)] = [(pastreader, futurereader)]
 

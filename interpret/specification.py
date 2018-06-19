@@ -84,7 +84,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
                     order = max(order, int(match.group(1)))
                     continue
 
-        assert order > 1
+        assert order > 1, "Cannot find more than one power of %s in %s" % (variable, str(csvv['prednames']))
                     
         weathernames = [variable] + ['%s-poly-%d' % (variable, power) for power in range(2, order+1)]
         if 'within-season' in specconf:
