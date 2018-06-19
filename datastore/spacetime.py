@@ -1,4 +1,5 @@
 import numpy as np
+import numpy.matlib
 
 class SpaceTimeData(object):
     def __init__(self, year0, year1, regions):
@@ -7,24 +8,32 @@ class SpaceTimeData(object):
         self.regions = regions
 
 class SpaceTimeLoadedData(SpaceTimeData):
-    def __init__(self, year0, year1, regions, array, ifmissing=None):
+    def __init__(self, year0, year1, regions, array, ifmissing=None, adm3fallback=False):
         super(SpaceTimeLoadedData, self).__init__(year0, year1, regions)
         self.array = array # as YEAR x REGION
         self.indices = {regions[ii]: ii for ii in range(len(regions))}
+        
         if ifmissing == 'mean':
             self.missing = np.mean(self.array, 1)
         elif ifmissing == 'logmean':
             self.missing = np.exp(np.mean(np.log(self.array), 1))
         else:
             self.missing = None
+
+        self.adm3fallback = adm3fallback
             
     def get_time(self, region):
-        #ii = self.regions.index(region)
         ii = self.indices.get(region, None)
         if ii is None:
+            if self.adm3fallback and len(region) > 3:
+                return self.get_time(region[:3])
+            
             return self.missing
         
         return self.array[:, ii]
+
+    def load(self, year0, year1, model, scenario):
+        return self
 
 class SpaceTimeLazyData(SpaceTimeData):
     def __init__(self, year0, year1, regions, get_time):
@@ -42,7 +51,13 @@ class SpaceTimeProductData(SpaceTimeData):
         self.combiner = combiner
 
     def get_time(self, region):
-        return self.combiner(self.spdata1.get_time(region), self.spdata2.get_time(region))
+        datum1 = self.spdata1.get_time(region)
+        datum2 = self.spdata2.get_time(region)
+        if datum1 is None:
+            return None
+        if datum2 is None:
+            return None
+        return self.combiner(datum1, datum2)
 
 class SpaceTimeBipartiteData(SpaceTimeData):
     """Loads the historical data in __init__, and the future data in load()."""
@@ -90,4 +105,36 @@ class SpaceTimeSpatialOnlyData(SpaceTimeBipartiteData):
 
     def load(self, year0, year1, model, scenario):
         return self
-        
+
+class SpaceTimeMatrixData(SpaceTimeData):
+    def __init__(self, year0, year1, regions, array, ifmissing=None, adm3fallback=False):
+        super(SpaceTimeMatrixData, self).__init__(year0, year1, regions)
+        self.array = array # as YEAR x REGION
+        self.ifmissing = ifmissing
+        self.adm3fallback = adm3fallback
+
+    def load(self, year0, year1, model, scenario):
+        if year0 == self.year0 and year1 == self.year1:
+            array = self.array
+        else:
+            array = np.zeros(((year1 - year0 + 1), self.array.shape[1]))
+            if self.year0 > year0:
+                array[:(self.year0 - year0), :] = np.matlib.repmat(self.array[0, :], self.year0 - year0, 1)
+                selfii0 = 0
+                arrayii0 = self.year0 - year0
+            else:
+                selfii0 = year0 - self.year0
+                arrayii0 = 0
+                
+            if self.year1 < year1:
+                array[(year1 - self.year1):, :] = np.matlib.repmat(self.array[-1, :], year1 - self.year1, 1)
+                selfii1 = self.array.shape[0]
+                arrayii1 = array.shape[0] - (year1 - self.year1)
+            else:
+                selfii1 = self.array.shape[0] - (self.year1 - year1)
+                arrayii1 = array.shape[0]
+                
+            array[arrayii0:arrayii1] = self.array[selfii0:selfii1]
+                
+        return SpaceTimeLoadedData(year0, year1, self.regions, array, self.ifmissing, self.adm3fallback)
+    

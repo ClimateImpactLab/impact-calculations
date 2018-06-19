@@ -1,4 +1,5 @@
-import re
+import re, os
+import numpy as np
 import pandas as pd
 from impactlab_tools.utils import files
 import population, agecohorts, income_smoothed, spacetime
@@ -6,25 +7,57 @@ import population, agecohorts, income_smoothed, spacetime
 RE_FLOATING = r"[-+]?[0-9]*\.?[0-9]*"
 RE_NUMBER = RE_FLOATING + r"([eE]" + RE_FLOATING + ")?"
 RE_CSVNAME = r"[-\w./()]+"
-RE_CONSTFILE = r"constcsv/(%s?):(%s?):(%s?)(\s|$)" % (RE_CSVNAME, RE_CSVNAME, RE_CSVNAME)
+RE_CONSTFILE = r"constcsv/(%s?):(%s?):(%s?)(\s|$)" % (RE_CSVNAME, RE_CSVNAME, RE_CSVNAME) # filename, region column, weight column
+RE_YEARLYFILE = r"(%s?):(%s?):(%s?):(%s?)(\s|$)" % (RE_CSVNAME, RE_CSVNAME, RE_CSVNAME, RE_CSVNAME) # filename, region column, year column, weight column
+
+def read_byext(filepath):
+    extension = os.path.splitext(filepath)[1].lower()
+    assert extension in ['.csv', '.dta']
+
+    if extension == '.csv':
+        return pd.read_csv(filepath)
+    if extension == '.dta':
+        return pd.read_stata(filepath)
+
+HALFWEIGHT_SUMTO1 = "Sum to 1"
 
 def interpret_halfweight(weighting):
+    if weighting.lower() == 'sum-to-1':
+        return HALFWEIGHT_SUMTO1
+    
     match = re.match(RE_CONSTFILE, weighting)
     if match:
-        df = pd.read_csv(files.configpath(match.group(1)))
+        df = read_byext(files.configpath(match.group(1)))
         regions = df[match.group(2)]
+
         submatch = re.match(r"sum\((%s?)\)" % RE_CSVNAME, match.group(3))
         if submatch:
-            summed = df.groupby([match.group(2)])[submatch.group(1)].sum()
-            values = summed
-            regions = list(summed.index)
+            values = df.groupby([match.group(2)])[submatch.group(1)].sum()
+            regions = list(values.index)
             mapping = {regions[ii]: values[ii] for ii in range(len(regions))}
-        else:
-            values = df[match.group(3)]
-            mapping = {regions[ii]: values[ii] for ii in range(len(regions))}
+            return spacetime.SpaceTimeSpatialOnlyData(mapping)
+
+        values = df[match.group(3)]
+        mapping = {regions[ii]: values[ii] for ii in range(len(regions))}
         return spacetime.SpaceTimeSpatialOnlyData(mapping)
 
-    parts = re.split(r"\s*([*/])\s*", weighting)
+    match = re.match(RE_YEARLYFILE, weighting)
+    if match:
+        df = read_byext(files.configpath(match.group(1)))
+        regions = np.unique(df[match.group(2)])
+        year0 = np.min(df[match.group(3)])
+        year1 = np.max(df[match.group(3)])
+        array = np.zeros((year1 - year0 + 1, len(regions)))
+        indices = {regions[ii]: ii for ii in range(len(regions))}
+
+        for index, row in df.iterrows():
+            ii = indices[row[match.group(2)]]
+            tt = row[match.group(3)] - year0
+            array[tt, ii] = row[match.group(4)]
+        
+        return spacetime.SpaceTimeMatrixData(year0, year1, regions, array, ifmissing='mean', adm3fallback=True)
+
+    parts = re.split(r"\s+([*/])\s+", weighting)
     if len(parts) > 1:
         halfweight = interpret_halfweight(parts[0])
         for ii in range(2, len(parts), 2):
