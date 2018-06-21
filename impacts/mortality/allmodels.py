@@ -33,12 +33,14 @@ def check_doit(targetdir, basename, suffix):
 def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callback=None, suffix='', profile=False, diagnosefile=False):
     print config['do_only']
 
-    if config['do_only'] is None or config['do_only'] == 'interpolation':
+    if config['do_only'] is None or config['do_only'] in ['interpolation', 'mle']:
         if push_callback is None:
             push_callback = lambda reg, yr, app, predget, mod: None
 
         if 'csvvfile' in config:
             csvvfiles = [files.sharedpath(config['csvvfile'])]
+        elif config['do_only'] is None or config['do_only'] == 'mle':
+            csvvfiles = glob.glob(files.sharedpath("social/parameters/mortality/Replication_2018/MLE_*.csvv"))
         else:
             csvvfiles = glob.glob(files.sharedpath("social/parameters/mortality/Diagnostics_Apr17/*.csvv"))
             
@@ -53,7 +55,7 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
             else:
                 if 'POLY-5' in basename:
                     numpreds = 5
-                elif 'POLY-4' in basename:
+                elif 'POLY-4' in basename or 'poly4' in basename:
                     numpreds = 4
                 else:
                     ValueError("Unknown number of predictors")
