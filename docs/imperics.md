@@ -78,7 +78,7 @@ Basic model configration:
 * `clipping` (required): Should curve values less the region minimum be replaced with the region minimum?  Currently this only supports clipping of curves that are expected to have a minimum.  The default limits for the region-specific temperature at which this can occur are 10C and 25C, but these can be adjusted with `clip-mintemp` and `clip-maxtemp` options.
 
 * `covariates` (required): A list of known covariate names,
-  interpretted by `interpret.specification::get_covriator`.  See the
+  interpretted by `interpret.specification::get_covariator`.  See the
   Covariates Expressions below, for more information.
   
 * `description` (required): A description for the final result of the
@@ -171,6 +171,8 @@ long-run averages (typically with a Bartlett kernel):
 
 Modifications of covariates:
 
+* `clim...`: Yearly average of a weather variable specified in the
+  `climate` list.
 * `seasonal...`: The seasonal prefix only averages the covariate values for the `within-season` span.
 * `*`: Multiplication of two covariates.
 * `^`: A covariate raised to a power.
