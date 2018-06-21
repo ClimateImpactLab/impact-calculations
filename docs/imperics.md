@@ -173,7 +173,8 @@ Modifications of covariates:
 
 * `clim...`: Yearly average of a weather variable specified in the
   `climate` list.
-* `seasonal...`: The seasonal prefix only averages the covariate values for the `within-season` span.
+* `seasonal...`: The seasonal prefix only is like the `clim...` prefix
+  except that it the weather variable values for the `within-season` span.
 * `*`: Multiplication of two covariates.
 * `^`: A covariate raised to a power.
 
