@@ -12,10 +12,7 @@ def preload():
     library.get_data('mortality-deathrates', 'deaths/person')
 
 def get_bundle_iterator(config):
-    return weather.iterate_bundles(discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas"), 'tas', **config),
-                                   discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-2"), 'tas-poly-2', **config),
-                                   discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-3"), 'tas-poly-3', **config),
-                                   discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-4"), 'tas-poly-4', **config), **config)
+    return weather.iterate_bundles(discover_tas_binned(files.sharedpath("climate/BCSD/aggregation/cmip5_bins_new/IR_level"), **config), **config)
 
 def check_doit(targetdir, basename, suffix):
     filepath = os.path.join(targetdir, basename + suffix + '.nc4')
@@ -37,28 +34,14 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
         if push_callback is None:
             push_callback = lambda reg, yr, app, predget, mod: None
 
-        if 'csvvfile' in config:
-            csvvfiles = [files.sharedpath(config['csvvfile'])]
-        else:
-            csvvfiles = glob.glob(files.sharedpath("social/parameters/mortality/Diagnostics_Apr17/*.csvv"))
+        assert 'csvvfile' in config:
+        csvvfiles = [files.sharedpath(config['csvvfile'])]
             
         for filepath in csvvfiles:
             basename = os.path.basename(filepath)[:-5]
             print basename
 
-            if 'CSpline' in basename:
-                numpreds = 5
-                module = 'impacts.mortality.ols_cubic_spline'
-                minpath_suffix = '-splinemins'
-            else:
-                if 'POLY-5' in basename:
-                    numpreds = 5
-                elif 'POLY-4' in basename:
-                    numpreds = 4
-                else:
-                    ValueError("Unknown number of predictors")
-                module = 'impacts.mortality.ols_polynomial'
-                minpath_suffix = '-polymins'
+            module = 'impacts.mortality.ols_binned'
 
             # Split into age groups and lock in q-draw
             csvv = csvvfile.read(filepath)
