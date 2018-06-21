@@ -148,7 +148,10 @@ functional form.
 
 For polynomial form has the following additional configuation options:
 
-* `variable` (required): The name of the variable, or prefix for higher powers.
+* `variable` (required): The name of the weather variable, or prefix
+  for higher powers.
+* `coeffvar` (optional): The name of the CSVV predname, or prefix for
+  higher powers.  Defaults to `variable`.
 * `indepunit` (required): The unit for the independent variable.
 * `allow-raising` (optional): If `yes`, the higher powers of the
   variable will be calculated from the linear form, if the other
