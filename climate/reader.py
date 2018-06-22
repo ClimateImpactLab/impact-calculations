@@ -305,7 +305,7 @@ class HistoricalCycleReader(WeatherReader):
 class MapReader(WeatherReader):
     """Applies a function to all combinations of component readers."""
     def __init__(self, name, unit, func, *readers):
-        super(MapReader, self).__init__(map(lambda reader: reader.version, readers),
+        super(MapReader, self).__init__(max(map(lambda reader: reader.version, readers)),
                                         unit, readers[0].time_units)
         self.name = name
         self.func = func
