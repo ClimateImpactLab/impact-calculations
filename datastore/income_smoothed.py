@@ -80,7 +80,7 @@ class DynamicIncomeSmoothed(object):
         growths = self.growth_country_by_year[:, yearindex]
 
         if year > slowgrowth_after:
-            growths *= .5
+            growths = (growths - 1) * .5 + 1
 
         country_growth = {}
         for country in self.growth_country_by_year.coords['country'].values:
