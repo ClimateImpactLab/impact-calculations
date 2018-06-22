@@ -7,6 +7,8 @@ from impactlab_tools.utils import files
 gdppc_growth_filepath = 'social/baselines/gdppc-growth.csv'
 baseline_end_year = 2010
 
+slowgrowth_after = 2015
+
 class DynamicIncomeSmoothed(object):
     def __init__(self, model, scenario, dependencies):
         self.model = model
@@ -76,6 +78,9 @@ class DynamicIncomeSmoothed(object):
         
         yearindex = (year - baseline_end_year) / 5
         growths = self.growth_country_by_year[:, yearindex]
+
+        if year > slowgrowth_after:
+            growths *= .5
 
         country_growth = {}
         for country in self.growth_country_by_year.coords['country'].values:
