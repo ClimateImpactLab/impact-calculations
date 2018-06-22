@@ -90,12 +90,17 @@ class MeanWeatherCovariator(Covariator):
         self.weatherbundle = weatherbundle
         self.lastyear = {}
 
+        baseline_predictors = {}
+        for region in temp_predictors:
+            baseline_predictors[region] = temp_predictors[region].get()
+        self.baseline_predictors = baseline_predictors
+
     def get_current(self, region):
         #assert region in self.temp_predictors, "Missing " + region
         if self.varindex is None:
-            return {self.weatherbundle.get_dimension()[0]: self.temp_predictors[region].get()}
+            return {self.weatherbundle.get_dimension()[0]: (self.temp_predictors[region].get() + self.baseline_predictors[region]) / 2}
         else:
-            return {self.weatherbundle.get_dimension()[self.varindex]: self.temp_predictors[region].get()}
+            return {self.weatherbundle.get_dimension()[self.varindex]: (self.temp_predictors[region].get() + self.baseline_predictors[region]) / 2}
 
     def get_update(self, region, year, temps):
         """Allow temps = None for dumb farmer who cannot adapt to temperature."""
@@ -113,9 +118,9 @@ class MeanWeatherCovariator(Covariator):
                 self.temp_predictors[region].update(np.mean(temps[:, self.varindex]))
 
         if self.varindex is None:
-            return {self.weatherbundle.get_dimension()[0]: self.temp_predictors[region].get()}
+            return {self.weatherbundle.get_dimension()[0]: (self.temp_predictors[region].get() + self.baseline_predictors[region]) / 2}
         else:
-            return {self.weatherbundle.get_dimension()[self.varindex]: self.temp_predictors[region].get()}
+            return {self.weatherbundle.get_dimension()[self.varindex]: (self.temp_predictors[region].get() + self.baseline_predictors[region]) / 2}
 
 class SeasonalWeatherCovariator(MeanWeatherCovariator):
     def __init__(self, weatherbundle, maxbaseline, day_start, day_end, config={}, varindex=None):
