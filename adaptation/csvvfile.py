@@ -10,9 +10,12 @@ def read(filename):
 
         # Clean up variables
         for variable in variables:
-            fullunit = variable[1]['unit']
-            if ']' in fullunit:
-                variable[1]['unit'] = fullunit[:fullunit.index(']')]
+            if 'unit' in varaible[1]:
+                fullunit = variable[1]['unit']
+                if ']' in fullunit:
+                    variable[1]['unit'] = fullunit[:fullunit.index(']')]
+            else:
+                variable[1]['unit'] = None
 
         data = {'attrs': attrs, 'variables': variables, 'coords': coords}
         

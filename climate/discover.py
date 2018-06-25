@@ -3,10 +3,11 @@ Provides iterators of WeatherReaders (typically a historical and a
 future reader).
 """
 import os, copy
+import numpy as np
 from impactlab_tools.utils import files
 from reader import ConversionWeatherReader, RegionReorderWeatherReader
 from dailyreader import DailyWeatherReader, YearlyBinnedWeatherReader
-from yearlyreader import YearlyWeatherReader, YearlyCollectionWeatherReader, YearlyArrayWeatherReader
+from yearlyreader import YearlyWeatherReader, YearlyCollectionWeatherReader, YearlyArrayWeatherReader, YearlyDayLikeWeatherReader
 import pattern_matching
 
 def standard_variable(name, timerate, **config):
@@ -216,3 +217,26 @@ def discover_versioned(basedir, variable, version=None, reorder=True, **config):
             
         yield scenario, model, pastreader, futurereader
 
+def discover_day2year(discover_iterator, accumfunc):
+    time_conversion = lambda days: np.array([days[0] // 1000])
+    def weatherslice_conversion(weatherslice):
+        return YearlyWeatherSlice.convert(weatherslice, accumfunc)
+        
+    return discover_convert(discover_iterator, time_conversion, weatherslice_conversion)
+
+def discover_versioned_yearly(basedir, variable, version=None, reorder=True, **config):
+    if version is None:
+        version = '%v'
+
+    for scenario, model, pastdir, futuredir in discover_models(basedir, **config):
+        pasttemplate = os.path.join(pastdir, "%d", version + '.nc4')
+        futuretemplate = os.path.join(futuredir, "%d", version + '.nc4')
+
+        if reorder:
+            pastreader = RegionReorderWeatherReader(YearlyDayLikeWeatherReader(pasttemplate, 1981, 'hierid', variable))
+            futurereader = RegionReorderWeatherReader(YearlyDayLikeWeatherReader(futuretemplate, 2006, 'hierid', variable))
+        else:
+            pastreader = YearlyDayLikeWeatherReader(pasttemplate, 1981, 'hierid', variable)
+            futurereader = YearlyDayLikeWeatherReader(futuretemplate, 2006, 'hierid', variable)
+            
+        yield scenario, model, pastreader, futurereader
