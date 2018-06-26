@@ -10,7 +10,7 @@ def read(filename):
 
         # Clean up variables
         for variable in variables:
-            if 'unit' in varaible[1]:
+            if 'unit' in variable[1]:
                 fullunit = variable[1]['unit']
                 if ']' in fullunit:
                     variable[1]['unit'] = fullunit[:fullunit.index(']')]
