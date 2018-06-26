@@ -101,6 +101,8 @@ class YearlyDayLikeWeatherReader(YearlySplitWeatherReader):
         self.regionvar = regionvar
         self.regions = netcdfs.readncdf_single(self.find_templated(year1), regionvar, allow_missing=True)
 
+        self.bins = netcdfs.readncdf_single(self.find_templated(year1), 'bin', allow_missing=True)
+
     def get_times(self):
         return self.get_years()
 
@@ -109,17 +111,21 @@ class YearlyDayLikeWeatherReader(YearlySplitWeatherReader):
         return self.regions
 
     def get_dimension(self):
-        return self.variable
+        if self.bins is None:
+            return [self.variable]
+        else:
+            return [self.variable + str(bin) for bin in self.bins]
 
     def read_iterator(self):
         # Yield data in yearly chunks
+        years = self.get_years()
         for filename in self.file_iterator():
-            yyyyddd, weather = netcdfs.readncdf(filename, self.variable)
-            yield YearlyWeatherSlice(yyyyddd, weather)
+            values = netcdfs.readncdf_single(filename, self.variable)
+            yield YearlyWeatherSlice(years.pop(0), np.expand_dims(values, axis=0))
 
     def read_year(self, year):
-        yyyyddd, weather = netcdfs.readncdf(self.file_for_year(year), self.variable)
-        return YearlyWeatherSlice(yyyyddd, weather)
+        values = netcdfs.readncdf_single(self.file_for_year(year), self.variable)
+        return YearlyWeatherSlice([year], np.expand_dims(values, axis=0))
 
 class RandomYearlyAccess(object):
     def __init__(self, yearlyreader):

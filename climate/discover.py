@@ -8,6 +8,7 @@ from impactlab_tools.utils import files
 from reader import ConversionWeatherReader, RegionReorderWeatherReader
 from dailyreader import DailyWeatherReader, YearlyBinnedWeatherReader
 from yearlyreader import YearlyWeatherReader, YearlyCollectionWeatherReader, YearlyArrayWeatherReader, YearlyDayLikeWeatherReader
+from openest.generate.weatherslice import YearlyWeatherSlice
 import pattern_matching
 
 def standard_variable(name, timerate, **config):
