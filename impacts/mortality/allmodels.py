@@ -12,7 +12,7 @@ def preload():
     library.get_data('mortality-deathrates', 'deaths/person')
 
 def get_bundle_iterator(config):
-    return weather.iterate_bundles(discover_day2year(standard_variable('tas', 'day', **config), lambda arr: np.sum(arr, axis=0)),
+    return weather.iterate_bundles(discover_day2year(standard_variable('tas', 'day', **config), lambda arr: np.mean(arr, axis=0)),
                                    discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/binned_tas"), "tas_bin_day_counts", **config),
                                    **config)
 
