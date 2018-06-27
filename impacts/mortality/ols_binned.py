@@ -19,8 +19,9 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, farmer='full',
 
     # Collect all baselines
     calculation = Transform(
-        YearlyBins('100,000 * death/population', farm_curvegen, "the mortality response curve"),
+        YearlyBins('100,000 * death/population', farm_curvegen, "the mortality response curve",
+                   lambda x: x[1:]), # drop tas, leaving only bins
         '100,000 * death/population', 'deaths/person/year', lambda x: x / 1e5,
         'convert to deaths/person/year', "Divide by 100000 to convert to deaths/person/year.")
 
-    return calculation, [], covariator.get_current_args
+    return calculation, [], covariator.get_current

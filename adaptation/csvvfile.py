@@ -100,6 +100,7 @@ def subset(csvv, toinclude):
         toinclude = np.where(toinclude)[0]
     else:
         toinclude = np.array(toinclude)
+        assert len(csvv['prednames']) > np.max(toinclude), "Too few coefficients: requested index %d but only have %d." % (np.max(toinclude), len(csvv['prednames']))
 
     subcsvv = copy.copy(csvv)
     subcsvv['prednames'] = [csvv['prednames'][ii] for ii in toinclude]
