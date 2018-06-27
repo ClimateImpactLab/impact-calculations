@@ -19,18 +19,18 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config={}, quiet=F
     if isinstance(covar, dict):
         return get_covariator(covar.keys()[0], covar.values()[0], weatherbundle, economicmodel, config=config, quiet=quiet)
     elif covar in ['loggdppc', 'logpopop']:
-        return covariates.EconomicCovariator(economicmodel, 2015, config=config)
+        return covariates.EconomicCovariator(economicmodel, 2015, config=config.get('econcovar', {}))
     elif covar == 'incbin':
-        return covariates.BinnedEconomicCovariator(economicmodel, 2015, args, config=config)
+        return covariates.BinnedEconomicCovariator(economicmodel, 2015, args, config=config.get('econcovar', {}))
     elif covar == 'ir-share':
         return covariates.ConstantCovariator('ir-share', irvalues.load_irweights("social/baselines/agriculture/world-combo-201710-irrigated-area.csv", 'irrigated_share'))
     elif '*' in covar:
         sources = map(lambda x: get_covariator(x.strip(), args, weatherbundle, economicmodel, config=config, quiet=quiet), covar.split('*', 1))
         return covariates.ProductCovariator(sources[0], sources[1])
     elif covar[:8] == 'seasonal':
-        return covariates.SeasonalWeatherCovariator(weatherbundle, 2015, config['within-season'], covar[8:], config)
+        return covariates.SeasonalWeatherCovariator(weatherbundle, 2015, config['within-season'], covar[8:], config.get('climcovar', {}))
     elif covar[:4] == 'clim': # climtas, climcdd-20, etc.
-        return covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, covar[4:], config=config, quiet=quiet), {covar: covar[4:]})
+        return covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, covar[4:], config=config.get('climcovar', {}), quiet=quiet), {covar: covar[4:]})
     elif '^' in covar:
         chunks = covar.split('^', 1)
         return covariates.PowerCovariator(get_covariator(chunks[0].strip(), args, weatherbundle, economicmodel, config=config, quiet=quiet), float(chunks[1]))
