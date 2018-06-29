@@ -1,6 +1,7 @@
 import re
 import numpy as np
 from adaptation import csvvfile, curvegen, curvegen_step, covariates
+from openest.models.curve import StepCurve, OtherClippedCurve
 from openest.generate.stdlib import *
 
 bin_limits = [-np.inf, -13, -8, -3, 2, 7, 12, 17, 22, 27, 32, np.inf]
@@ -17,10 +18,20 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, farmer='full',
                                                       '100,000 * death/population', csvv)
     farm_curvegen = curvegen.FarmerCurveGenerator(curr_curvegen, covariator, farmer)
 
+    climtas_effect_curve = StepCurve(bin_limits, np.array([csvvfile.get_gamma(csvv, tasvar, 'climtas') for tasvar in csvvfile.binnames(bin_limits, 'bins')]))
+
+    def transform_climtas_effect(region, curve):
+        return OtherClippedCurve(curve, climtas_effect_curve, clipy=curr_curvegen.min_betas[region])
+
+    climtas_effect_curvegen = curvegen.TransformCurveGenerator(transform_climtas_effect, farm_curvegen)
+
     # Collect all baselines
     calculation = Transform(
-        YearlyBins('100,000 * death/population', farm_curvegen, "the mortality response curve",
-                   lambda x: x[1:]), # drop tas, leaving only bins
+        AuxillaryResult(
+            YearlyBins('100,000 * death/population', farm_curvegen, "the mortality response curve",
+                       lambda x: x[1:]), # drop tas, leaving only bins
+            YearlyBins('100,000 * death/population', climtas_effect_curvegen, "climtas effect after clipping",
+                       lambda x: x[1:], norecord=True), 'climtas_effect'),
         '100,000 * death/population', 'deaths/person/year', lambda x: x / 1e5,
         'convert to deaths/person/year', "Divide by 100000 to convert to deaths/person/year.")
 
