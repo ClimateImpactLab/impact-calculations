@@ -2,8 +2,6 @@ import numpy as np
 import csvvfile, curvegen
 from openest.models.curve import StepCurve
 
-min_betas = {} # {region: min_beta}
-
 class BinnedStepCurveGenerator(curvegen.CSVVCurveGenerator):
     def __init__(self, xxlimits, indepunits, depenunit, csvv):
         self.xxlimits = xxlimits
