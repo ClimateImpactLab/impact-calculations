@@ -14,6 +14,14 @@ def standardize(config):
     return newconfig
 
 def merge(parent, child):
+    if isinstance(child, dict):
+        result = copy.copy(parent)
+        result.update(child)
+        return result
+
+    if child not in parent:
+        return parent
+
     result = copy.copy(parent)
-    result.update(child)
+    result.update(parent[child])
     return result
