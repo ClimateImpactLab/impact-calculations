@@ -130,7 +130,7 @@ def interpret_transform(var, transform):
         befval = float(match.group(2))
         aftval = float(match.group(3))
         return discover_map(transform, None,
-                            lambda xs: (aftval - befval) * (xs * (stepval > 0)) + befval, var)
+                            lambda xs: (aftval - befval) * (xs > stepval) + befval, var)
     
     assert False, "Cannot interpret transformation %s" % transform
 
