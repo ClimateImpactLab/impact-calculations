@@ -45,7 +45,7 @@ def standard_variable(name, mytimerate, **config):
         chunks = re_dotsplit.split(name)
         if len(chunks) > 1:
             var = standard_variable(chunks[0], mytimerate, **config)
-            for chunk in chunks[2:]:
+            for chunk in chunks[1:]:
                 var = interpret_transform(var, chunk)
             return var
 
@@ -123,14 +123,14 @@ def interpret_transform(var, transform):
         return discover_makegddkdd(var, lower, upper)
 
     if transform[:5] == 'step(':
-        match = re.match(r"\s*%s\s*,\s*\[\s*%s\s*,\s*%s\s*\]\s*" % (RE_FLOATING, RE_FLOATING, RE_FLOATING),
+        match = re.match(r"\s*(%s)\s*,\s*\[\s*(%s)\s*,\s*(%s)\s*\]\s*" % (RE_FLOATING, RE_FLOATING, RE_FLOATING),
                          transform[5:-1])
         assert match, "Step function misformed.  Use .step(#, [#, #])."
         stepval = float(match.group(1))
         befval = float(match.group(2))
         aftval = float(match.group(3))
         return discover_map(transform, None,
-                            lambda xs: (aftval - befval) * (xs - stepval > 0) + befval, var)
+                            lambda xs: (aftval - befval) * (xs * (stepval > 0)) + befval, var)
     
     assert False, "Cannot interpret transformation %s" % transform
 
