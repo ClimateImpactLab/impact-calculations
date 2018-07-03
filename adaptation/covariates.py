@@ -487,7 +487,7 @@ class PowerCovariator(Covariator):
         self.power = power
 
     def make_power(self, covars):
-        return {"%s^%g" % (key, self.power): covars[key] for key in covars}
+        return {"%s^%g" % (key, self.power): covars[key] ** self.power for key in covars}
         
     def get_update(self, region, year, ds):
         covars = self.source.get_update(region, year, ds)
