@@ -170,22 +170,16 @@ class DifferenceCurveGenerator(CurveGenerator):
         return result
 
 class SumByTimeCurveGenerator(CurveGenerator):
-    def __init__(self, csvvcurvegen, coeffrepls, variable):
+    def __init__(self, csvvcurvegen, coeffsuffixes):
         super(SumByTimeCurveGenerator, self).__init__(csvvcurvegen[0].indepunits, csvvcurvegen[0].depenunit)
         curvegens = []
-        for coeffrepl in coeffrepls:
+        for coeffsuffix in coeffsuffixes:
             curvegen = copy.copy(csvvcurvegen)
-            curvegen.predname = curvegen.predname.replace('#', coeffrepl)
+            curvegen.prednames = [predname + "-%s" % coeffsuffix for predname in curvegen.prednames]
             curvegens.append(curvegen)
         
         self.curvegens = curvegens
-        self.variable = variable
 
     def get_curve(self, region, year, **kwargs):
         curves = [curvegen(region, year, **kwargs) for curvegen in self.curvegens]
-        return SumByTimeCurve(curves, self.variable)
-
-TODO:
-1. How is it that poly curve isn't given a dataset
-2. Shouldn't sumbytimecurve pass a dataset to its subs?
-3. Can I use that to maintain the pr-#, pr2-# setup?
+        return SumByTimeCurve(curves)

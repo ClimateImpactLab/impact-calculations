@@ -2,7 +2,7 @@ import re
 from adaptation import csvvfile, curvegen, curvegen_known, curvegen_arbitrary, covariates, constraints
 from datastore import irvalues
 from openest.generate import smart_curve, selfdocumented
-from openest.models.curve import ShiftedCurve, MinimumCurve, ClippedCurve, ZeroInterceptPolynomialCurve
+from openest.models.curve import ShiftedCurve, MinimumCurve, ClippedCurve
 from openest.generate.stdlib import *
 from impactcommon.math import minpoly, minspline
 import calculator, variables, configs
@@ -92,7 +92,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
 
         curr_curvegen = curvegen_known.PolynomialCurveGenerator([indepunit] + ['%s^%d' % (indepunit, pow) for pow in range(2, order+1)],
                                                                 depenunit, variable, order, csvv, predinfix=predinfix,
-                                                                weathernames=weathernames, betalimits=betalimits)
+                                                                weathernames=weathernames, betalimits=betalimits, allow_raising=specconf.get('allow-raising', False))
         minfinder = lambda mintemp, maxtemp: lambda curve: minpoly.findpolymin([0] + curve.ccs, mintemp, maxtemp)
             
     elif specconf['functionalform'] == 'cubic spline':
@@ -119,6 +119,12 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
                                                                          transform_descriptions, indepunits, depenunit,
                                                                          csvv, betalimits=betalimits)
         weathernames = [] # Use curve directly
+    elif specconf['functionalform'] == 'sum-by-time':
+        subspecconf = configs.merge(specconf, specconf['subspec'])
+        csvvcurvegen = create_curvegen(csvv, None, regions, farmer=farmer, specconf=subspecconf) # don't pass covariator, so skip farmer curvegen
+        assert isinstance(csvvcurvegen, CSVVCurveGenerator)
+        curr_curvegen = SumByTimeCurveGenerator(csvvcurvegen, specconf['suffixes'])
+        weathernames = [] # Use curve directly
     else:
         user_failure("Unknown functional form %s." % specconf['functionalform'])
 
@@ -140,9 +146,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
             baselinemins = {region: curvemin for region in regions}
 
     def transform(region, curve):
-        if isinstance(curve, ZeroInterceptPolynomialCurve):
-            final_curve = smart_curve.ZeroInterceptPolynomialCurve(curve.ccs, weathernames, specconf.get('allow-raising', False))
-        elif isinstance(curve, smart_curve.SmartCurve):
+        if isinstance(curve, smart_curve.SmartCurve):
             final_curve = curve
         else:
             final_curve = smart_curve.CoefficientsCurve(curve.ccs, weathernames)
@@ -174,7 +178,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
     elif specconf.get('goodmoney', False):
         final_curvegen = curvegen.TransformCurveGenerator(transform, "Good Money transformation", curr_curvegen)
     else:
-        final_curvegen = curvegen.TransformCurveGenerator(transform, None, curr_curvegen)
+        final_curvegen = curr_curvegen # this must give SmartCurves (otherwise, need a case for a pass through TransformCurveGenerator(transform...)
 
     if covariator:
         final_curvegen = curvegen.FarmerCurveGenerator(final_curvegen, covariator, farmer)
