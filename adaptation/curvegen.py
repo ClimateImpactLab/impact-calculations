@@ -1,3 +1,4 @@
+import copy
 import numpy as np
 from openest.generate.curvegen import *
 from openest.generate import checks, fast_dataset, formatting
@@ -60,7 +61,9 @@ class CSVVCurveGenerator(CurveGenerator):
                 except Exception as e:
                     print "Available covariates:"
                     print covariates
-                    raise e
+                    print "Requested covariates:"
+                    print self.predcovars[predname]
+                    raise
 
         return coefficients
 
@@ -171,7 +174,7 @@ class DifferenceCurveGenerator(CurveGenerator):
 
 class SumByTimeCurveGenerator(CurveGenerator):
     def __init__(self, csvvcurvegen, coeffsuffixes):
-        super(SumByTimeCurveGenerator, self).__init__(csvvcurvegen[0].indepunits, csvvcurvegen[0].depenunit)
+        super(SumByTimeCurveGenerator, self).__init__(csvvcurvegen.indepunits, csvvcurvegen.depenunit)
         curvegens = []
         for coeffsuffix in coeffsuffixes:
             curvegen = copy.copy(csvvcurvegen)
@@ -180,6 +183,6 @@ class SumByTimeCurveGenerator(CurveGenerator):
         
         self.curvegens = curvegens
 
-    def get_curve(self, region, year, **kwargs):
-        curves = [curvegen(region, year, **kwargs) for curvegen in self.curvegens]
+    def get_curve(self, region, year, covariates={}, **kwargs):
+        curves = [curvegen.get_curve(region, year, covariates, **kwargs) for curvegen in self.curvegens]
         return SumByTimeCurve(curves)
