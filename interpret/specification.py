@@ -122,8 +122,8 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
     elif specconf['functionalform'] == 'sum-by-time':
         subspecconf = configs.merge(specconf, specconf['subspec'])
         csvvcurvegen = create_curvegen(csvv, None, regions, farmer=farmer, specconf=subspecconf) # don't pass covariator, so skip farmer curvegen
-        assert isinstance(csvvcurvegen, CSVVCurveGenerator)
-        curr_curvegen = SumByTimeCurveGenerator(csvvcurvegen, specconf['suffixes'])
+        assert isinstance(csvvcurvegen, curvegen.CSVVCurveGenerator)
+        curr_curvegen = curvegen.SumByTimeCurveGenerator(csvvcurvegen, specconf['suffixes'])
         weathernames = [] # Use curve directly
     else:
         user_failure("Unknown functional form %s." % specconf['functionalform'])
