@@ -26,22 +26,25 @@ class CSVVCurveGenerator(CurveGenerator):
         else:
             assert checks.loosematch(csvv['variables']['outcome']['unit'], depenunit), "Dependent units %s does not match %s." % (csvv['variables']['outcome']['unit'], depenunit)
 
+        self.fill_marginals()
+
+    def fill_marginals(self):
         # Preprocessing
         self.constant = {} # {predname: constant}
         self.predcovars = {} # {predname: [covarname]}
         self.predgammas = {} # {predname: np.array}
-        for predname in set(prednames):
+        for predname in set(self.prednames):
             self.predcovars[predname] = []
             self.predgammas[predname] = []
 
-            indices = [ii for ii, xx in enumerate(csvv['prednames']) if xx == predname]
+            indices = [ii for ii, xx in enumerate(self.csvv['prednames']) if xx == predname]
             for index in indices:
-                if csvv['covarnames'][index] == '1':
+                if self.csvv['covarnames'][index] == '1':
                     assert predname not in self.constant
-                    self.constant[predname] = csvv['gamma'][index]
+                    self.constant[predname] = self.csvv['gamma'][index]
                 else:
-                    self.predcovars[predname].append(csvv['covarnames'][index])
-                    self.predgammas[predname].append(csvv['gamma'][index])
+                    self.predcovars[predname].append(self.csvv['covarnames'][index])
+                    self.predgammas[predname].append(self.csvv['gamma'][index])
 
             self.predgammas[predname] = np.array(self.predgammas[predname])
 
@@ -179,6 +182,8 @@ class SumByTimeCurveGenerator(CurveGenerator):
         for coeffsuffix in coeffsuffixes:
             curvegen = copy.copy(csvvcurvegen)
             curvegen.prednames = [predname + "-%s" % coeffsuffix for predname in curvegen.prednames]
+            print curvegen.prednames # XXX
+            curvegen.fill_marginals()
             curvegens.append(curvegen)
         
         self.curvegens = curvegens
