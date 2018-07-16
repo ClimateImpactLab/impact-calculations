@@ -120,10 +120,15 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
                                                                          csvv, betalimits=betalimits)
         weathernames = [] # Use curve directly
     elif specconf['functionalform'] == 'sum-by-time':
-        subspecconf = configs.merge(specconf, specconf['subspec'])
-        csvvcurvegen = create_curvegen(csvv, None, regions, farmer=farmer, specconf=subspecconf) # don't pass covariator, so skip farmer curvegen
-        assert isinstance(csvvcurvegen, curvegen.CSVVCurveGenerator)
-        curr_curvegen = curvegen.SumByTimeCurveGenerator(csvvcurvegen, specconf['suffixes'])
+        csvvcurvegens = []
+        for tt in range(len(specconf['suffixes'])):
+            subspecconf = configs.merge(specconf, specconf['subspec'])
+            subspecconf['final-t'] = tt
+            csvvcurvegen = create_curvegen(csvv, None, regions, farmer=farmer, specconf=subspecconf) # don't pass covariator, so skip farmer curvegen
+            assert isinstance(csvvcurvegen, curvegen.CSVVCurveGenerator)
+            csvvcurvegens.append(csvvcurvegen)
+        
+        curr_curvegen = curvegen.SumByTimeCurveGenerator(csvvcurvegens, specconf['suffixes'])
         weathernames = [] # Use curve directly
     else:
         user_failure("Unknown functional form %s." % specconf['functionalform'])

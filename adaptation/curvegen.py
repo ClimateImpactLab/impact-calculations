@@ -1,7 +1,7 @@
 import copy
 import numpy as np
 from openest.generate.curvegen import *
-from openest.generate import checks, fast_dataset, formatting
+from openest.generate import checks, fast_dataset, formatting, smart_curve
 
 region_curves = {}
 
@@ -176,13 +176,12 @@ class DifferenceCurveGenerator(CurveGenerator):
         return result
 
 class SumByTimeCurveGenerator(CurveGenerator):
-    def __init__(self, csvvcurvegen, coeffsuffixes):
-        super(SumByTimeCurveGenerator, self).__init__(csvvcurvegen.indepunits, csvvcurvegen.depenunit)
+    def __init__(self, csvvcurvegens, coeffsuffixes):
+        super(SumByTimeCurveGenerator, self).__init__(csvvcurvegens[0].indepunits, csvvcurvegens[0].depenunit)
         curvegens = []
-        for coeffsuffix in coeffsuffixes:
-            curvegen = copy.copy(csvvcurvegen)
-            curvegen.prednames = [predname + "-%s" % coeffsuffix for predname in curvegen.prednames]
-            print curvegen.prednames # XXX
+        for tt in range(len(coeffsuffixes)):
+            curvegen = csvvcurvegens[tt]
+            curvegen.prednames = [predname + "-%s" % coeffsuffixes[tt] for predname in curvegen.prednames]
             curvegen.fill_marginals()
             curvegens.append(curvegen)
         
@@ -190,4 +189,4 @@ class SumByTimeCurveGenerator(CurveGenerator):
 
     def get_curve(self, region, year, covariates={}, **kwargs):
         curves = [curvegen.get_curve(region, year, covariates, **kwargs) for curvegen in self.curvegens]
-        return SumByTimeCurve(curves)
+        return smart_curve.SumByTimeCurve(curves)
