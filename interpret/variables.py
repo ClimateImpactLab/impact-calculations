@@ -1,4 +1,4 @@
-import re
+import re, copy
 import numpy as np
 from openest.generate import fast_dataset, selfdocumented
 from datastore import irvalues
@@ -35,6 +35,9 @@ def interpret_wrap_transform(transform, internal):
     assert False, "Unknown transform" + transform
 
 def get_post_process(name, config):
+    if 'final-t' in config:
+        return selfdocumented.DocumentedFunction(lambda ds: post_process(ds, name, config), "Select given time", docargs=[name])
+    
     if 'within-season' in config:
         return selfdocumented.DocumentedFunction(lambda ds: post_process(ds, name, config), "Limit to within season", docargs=[name])
 
@@ -42,6 +45,12 @@ def get_post_process(name, config):
     
 def post_process(ds, name, config):
     dataarr = ds[name]
+
+    if 'final-t' in config:
+        subconfig = copy.copy(config)
+        del subconfig['final-t']
+        before = post_process(ds, name, subconfig)
+        return fast_dataset.FastDataArray([before._values[config['final-t']]], dataarr.original_coords, ds)
     
     if 'within-season' in config:
         if len(dataarr) == 24:
