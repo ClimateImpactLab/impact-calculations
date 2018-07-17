@@ -128,7 +128,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
             assert isinstance(csvvcurvegen, curvegen.CSVVCurveGenerator)
             csvvcurvegens.append(csvvcurvegen)
         
-        curr_curvegen = curvegen.SumByTimeCurveGenerator(csvvcurvegens, specconf['suffixes'])
+        curr_curvegen = curvegen.SumCurveGenerator(csvvcurvegens, specconf['suffixes'])
         weathernames = [] # Use curve directly
     else:
         user_failure("Unknown functional form %s." % specconf['functionalform'])

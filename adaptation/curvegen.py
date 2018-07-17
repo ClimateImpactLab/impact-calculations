@@ -175,9 +175,9 @@ class DifferenceCurveGenerator(CurveGenerator):
         result['main'] = formatting.FormatElement("%s - %s" % (equation_one['main'].repstr, equation_two['main'].repstr), self.one.dependencies + self.two.dependencies)
         return result
 
-class SumByTimeCurveGenerator(CurveGenerator):
+class SumCurveGenerator(CurveGenerator):
     def __init__(self, csvvcurvegens, coeffsuffixes):
-        super(SumByTimeCurveGenerator, self).__init__(csvvcurvegens[0].indepunits, csvvcurvegens[0].depenunit)
+        super(SumCurveGenerator, self).__init__(csvvcurvegens[0].indepunits, csvvcurvegens[0].depenunit)
         curvegens = []
         for tt in range(len(coeffsuffixes)):
             curvegen = csvvcurvegens[tt]
@@ -189,4 +189,4 @@ class SumByTimeCurveGenerator(CurveGenerator):
 
     def get_curve(self, region, year, covariates={}, **kwargs):
         curves = [curvegen.get_curve(region, year, covariates, **kwargs) for curvegen in self.curvegens]
-        return smart_curve.SumByTimeCurve(curves)
+        return smart_curve.SumCurve(curves)

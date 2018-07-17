@@ -50,7 +50,10 @@ def post_process(ds, name, config):
         subconfig = copy.copy(config)
         del subconfig['final-t']
         before = post_process(ds, name, subconfig)
-        return fast_dataset.FastDataArray([before._values[config['final-t']]], dataarr.original_coords, ds)
+        if config['final-t'] < len(before._values):
+            return fast_dataset.FastDataArray(np.array([before._values[config['final-t']]]), dataarr.original_coords, ds)
+        else:
+            return fast_dataset.FastDataArray(np.array([0.]), dataarr.original_coords, ds)
     
     if 'within-season' in config:
         if len(dataarr) == 24:
