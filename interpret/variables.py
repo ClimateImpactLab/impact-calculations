@@ -36,7 +36,7 @@ def interpret_wrap_transform(transform, internal):
 
 def get_post_process(name, config):
     if 'final-t' in config:
-        return selfdocumented.DocumentedFunction(lambda ds: post_process(ds, name, config), "Select given time", docargs=[name])
+        return selfdocumented.DocumentedFunction(lambda ds: post_process(ds, name, config), "Select time %d" % config['final-t'], docargs=[name])
     
     if 'within-season' in config:
         return selfdocumented.DocumentedFunction(lambda ds: post_process(ds, name, config), "Limit to within season", docargs=[name])

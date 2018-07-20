@@ -1,7 +1,7 @@
 import copy
 import numpy as np
 from openest.generate.curvegen import *
-from openest.generate import checks, fast_dataset, formatting, smart_curve
+from openest.generate import checks, fast_dataset, formatting, smart_curve, formattools
 
 region_curves = {}
 
@@ -190,3 +190,8 @@ class SumCurveGenerator(CurveGenerator):
     def get_curve(self, region, year, covariates={}, **kwargs):
         curves = [curvegen.get_curve(region, year, covariates, **kwargs) for curvegen in self.curvegens]
         return smart_curve.SumCurve(curves)
+
+    def format_call(self, lang, *args):
+        elementsets = [curvegen.format_call(lang, *args) for curvegen in self.curvegens]
+        return formattools.join(" + ", elementsets)
+    
