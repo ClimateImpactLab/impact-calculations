@@ -18,7 +18,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
 
         assert len(csvv['covarnames']) == 40
 
-    csvvfile.collapse_bang(csvv, qvals.get_seed())
+    csvvfile.collapse_bang(csvv, qvals.get_seed('csvv'))
 
     curr_curvegen = curvegen_step.BinnedStepCurveGenerator(bin_limits, ['days / year'] * (len(bin_limits) - 1),
                                                       '100,000 * death/population', csvv)
