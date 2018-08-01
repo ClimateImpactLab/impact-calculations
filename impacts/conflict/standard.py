@@ -14,7 +14,7 @@ from openest.models.curve import ZeroInterceptPolynomialCurve
 
 def prepare_csvv(csvvpath, qvals, callback, adm0level):
     data = csvvfile.read(csvvpath)
-    csvvfile.collapse_bang(data, qvals.get_seed())
+    csvvfile.collapse_bang(data, qvals.get_seed('csvv'))
 
     dependencies = [data['attrs']['version']]
 
