@@ -33,7 +33,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
                                                   'colddd_10*(27^3 - tasmax3)*I_{T < 27}': lambda x: -x, 'colddd_10*(27^4 - tasmax4)*I_{T < 27}': lambda x: -x}),
                                              covariates.EconomicCovariator(economicmodel, 2015, config=config.get('econcovar', {}))])
 
-    csvvfile.collapse_bang(csvv, qvals.get_seed())
+    csvvfile.collapse_bang(csvv, qvals.get_seed('csvv'))
 
     order = len(set(csvv['prednames'])) - 1 # -1 because of belowzero
     print "Order", order
