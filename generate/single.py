@@ -30,7 +30,7 @@ weatherbundle = weather.get_weatherbundle(clim_scenario, clim_model, variable_ge
 filter_region = config.get('filter-region', None)
 
 if 'historical' in config and config['historical']:
-    weatherbundle = weather.HistoricalWeatherBundle.make_historical(weatherbundle, pvals['histclim'].get_seed())
+    weatherbundle = weather.HistoricalWeatherBundle.make_historical(weatherbundle, pvals['histclim'].get_seed('yearorder'))
     pvals.lock()
 
 print "Loading economics..."
@@ -41,7 +41,7 @@ csvvpath = config['csvvpath']
 basename = os.path.basename(csvvpath)[:-5]
 
 csvv = csvvfile.read(files.configpath(csvvpath))
-csvvfile.collapse_bang(csvv, pvals[basename].get_seed())
+csvvfile.collapse_bang(csvv, pvals[basename].get_seed('csvv'))
 
 if 'csvvsubset' in config:
     indices = interpret.read_range(config['csvvsubset'])

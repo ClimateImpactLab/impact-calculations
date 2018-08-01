@@ -62,7 +62,7 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
 
             # Split into age groups and lock in q-draw
             csvv = csvvfile.read(filepath)
-            csvvfile.collapse_bang(csvv, pvals[basename].get_seed())
+            csvvfile.collapse_bang(csvv, pvals[basename].get_seed('csvv'))
 
             agegroups = ['young', 'older', 'oldest']
             for ageii in range(len(agegroups)):
