@@ -6,6 +6,8 @@ climate:
   - tas-hi-poly-2 = tas-poly-2 * tas.step(20, [0, 1])
   - tas-lo-20 = 20 * tas.step(20, [1, 0])
   - tas-hi-20 = 20 * tas.step(20, [0, 1])
+  - tas-lo-20-poly-2 = 400 * tas.step(20, [1, 0])
+  - tas-hi-20-poly-2 = 400 * tas.step(20, [0, 1])
   - tas-cdd-20
   - tas-cdd-20-poly-2
   - tas-hdd-20
@@ -39,14 +41,12 @@ models:
         indepunit: C
         functionalform: polynomial
         variable: tas-lo-20
-        allow-raising: true
         coeffvar: tas
       tas-hi-20:
         description: Uninteracted term.
         indepunit: C
         functionalform: polynomial
         variable: tas-hi-20
-        allow-raising: true
         coeffvar: tas
       hdd-20:
         description: Below 20C days.
@@ -63,15 +63,19 @@ models:
         - YearlyApply:
             label: tas-lo
             model: tas-lo
-        - YearlyApply:
-            label: tas-lo-20
-            model: tas-lo-20
+        - ConstantScale:
+            - YearlyApply:
+                label: tas-lo-20
+                model: tas-lo-20
+            - -1.0
         - YearlyApply:
             label: tas-hi
             model: tas-hi
-        - YearlyApply:
-            label: tas-hi-20
-            model: tas-hi-20
+        - ConstantScale:
+            - YearlyApply:
+                label: tas-hi-20
+                model: tas-hi-20
+            - -1.0
         - YearlyApply:
             label: hdd-20
             model: hdd-20

@@ -11,6 +11,9 @@ def prepare_argument(name, argument, models, argtype, extras={}):
     if argtype == arguments.calculationss:
         assert isinstance(argument, list)
         return [create_calcstep(argii.keys()[0], argii.values()[0], models, None, extras=extras) for argii in argument]
+
+    if argtype == arguments.calculation:
+        return create_calcstep(argument.keys()[0], argument.values()[0], models, None, extras=extras)
     
     return argument
 
@@ -62,7 +65,10 @@ def create_calcstep(name, args, models, subcalc, extras={}):
     savedargs = {}
     for argtype in cls.describe()['arguments']:
         if argtype == arguments.calculation:
-            arglist.append(subcalc)
+            if subcalc is not None:
+                arglist.append(subcalc)
+            else:
+                arglist.append(prepare_argument(argtype.name, get_argument(argtype.name), models, argtype, extras=extras))
         elif argtype == arguments.calculationss and len(cls.describe()['arguments']) == 1 and isinstance(args, list):
             # Special case for list of subcalcs
             arglist.append(prepare_argument(argtype.name, args, models, argtype, extras=extras))
