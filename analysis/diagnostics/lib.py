@@ -156,7 +156,7 @@ def get_adm0_regionindices(adm0):
 def get_weather(weathertemplate, years, shapenum=None, show_all_years=[], variable='tas'):
     weather = {}
     for year in years:
-        filepath = weathertemplate.format('historical' if year < 2006 else 'rcp85', year)
+        filepath = weathertemplate.format(rcp='historical' if year < 2006 else 'rcp85', variable=variable, year=year)
         assert os.path.exists(filepath), "Cannot find %s" % filepath
         rootgrp = Dataset(filepath, 'r', format='NETCDF4')
         if isinstance(shapenum, str):
