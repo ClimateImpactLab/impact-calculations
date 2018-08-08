@@ -6,6 +6,7 @@ import helpers.header as headre
 from openest.generate.weatherslice import DailyWeatherSlice, YearlyWeatherSlice
 from climate import netcdfs
 from datastore import irregions
+import pvalses
 
 def iterate_bundles(*iterators_readers, **config):
     """
@@ -251,7 +252,7 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
 
         # Generate the full list of past years
         self.pastyears = []
-        if seed is None:
+        if seed is None or isinstance(seed, pvalses.SingleSDDictionary):
             # Cycle in year order
             year = self.pastyear_start
             pastyear = self.pastyear_start

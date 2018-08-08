@@ -1,6 +1,8 @@
 import csv, copy, re
 import numpy as np
+from scipy.stats import norm
 import metacsv
+from generate import pvalses
 from scipy.stats import multivariate_normal
 import csvvfile_legacy
 
@@ -63,6 +65,11 @@ def collapse_bang(data, seed):
     """collapse_bang draws from the multivariate uncertainty in the parameters of a CSVV, and changes those values accordingly."""
     if seed == None:
         data['gammavcv'] = None
+    elif isinstance(seed, pvalses.PvalsDictionary):
+        for ii in range(len(data['gamma'])):
+            print ii, norm.ppf(seed[ii]) * np.sqrt(data['gammavcv'][ii, ii])
+            data['gamma'][ii] = data['gamma'][ii] + norm.ppf(seed[ii]) * np.sqrt(data['gammavcv'][ii, ii])
+        data['gammavcv'] = None # this will cause errors if used again
     else:
         np.random.seed(seed)
         data['gamma'] = multivariate_normal.rvs(data['gamma'], data['gammavcv'])

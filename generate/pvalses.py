@@ -47,7 +47,10 @@ class ConstantPvals:
     def __iter__(self):
         yield ('all', self.value)
 
-class ConstantDictionary:
+class PvalsDictionary(object):
+    pass
+        
+class ConstantDictionary(PvalsDictionary):
     def __init__(self, value):
         self.value = value
 
@@ -82,7 +85,7 @@ class OnDemandRandomPvals:
         for key in self.dicts:
             yield (key, self.dicts[key].values)
 
-class OnDemandRandomDictionary:
+class OnDemandRandomDictionary(PvalsDictionary):
     def __init__(self):
         self.values = {}
         self.locked = False
@@ -113,6 +116,38 @@ class OnDemandRandomDictionary:
 
         return seed
 
+class SingleSDPvals:
+    def __init__(self, gamma, quantile):
+        self.gamma = gamma
+        self.quantile = quantile
+
+    def lock(self):
+        pass
+
+    def __getitem__(self, name):
+        return SingleSDDictionary(self.gamma, self.quantile)
+
+    def __iter__(self):
+        yield ('gamma', self.gamma)
+        yield ('quantile', self.quantile)
+
+class SingleSDDictionary(PvalsDictionary):
+    def __init__(self, gamma, quantile):
+        self.gamma = gamma
+        self.quantile = quantile
+
+    def lock(self):
+        pass
+            
+    def __getitem__(self, name):
+        if name == self.gamma:
+            return self.quantile
+        else:
+            return 0.5
+
+    def get_seed(self, plus=0):
+        return self # collapse_bang can handle this
+    
 def get_pval_file(targetdir):
     return os.path.join(targetdir, "pvals.yml")
 
