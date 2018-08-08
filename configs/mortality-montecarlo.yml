@@ -1,6 +1,6 @@
 module: mortality
 mode: montecarlo
-outputdir: outputs/mortality/impacts-crypto
+outputdir: outputs/mortality/impacts-darwin
 do_only: interpolation
 do_farmers: true
 # gcm: MIROC-ESM

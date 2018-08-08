@@ -40,7 +40,7 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
         if 'csvvfile' in config:
             csvvfiles = [files.sharedpath(config['csvvfile'])]
         else:
-            csvvfiles = glob.glob(files.sharedpath("social/parameters/mortality/Diagnostics_Apr17/*.csvv"))
+            csvvfiles = glob.glob(files.sharedpath("social/parameters/mortality/mortality_nonFGLS_22052018/*.csvv"))
             
         for filepath in csvvfiles:
             basename = os.path.basename(filepath)[:-5]
