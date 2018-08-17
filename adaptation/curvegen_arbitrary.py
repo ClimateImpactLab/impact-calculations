@@ -19,6 +19,11 @@ class CoefficientsCurveGenerator(curvegen.CSVVCurveGenerator):
         mycoeffs = self.get_curve_parameters(region, year, covariates)
         return self.curvefunc(mycoeffs)
 
+class ParameterHolderCurve(curve.UnivariateCurve):
+    def __init__(self, params):
+        super(ParameterHolderCurve, self).__init__([-np.inf, np.inf])
+        self.params = params
+    
 class MLECoefficientsCurveGenerator(CoefficientsCurveGenerator):
     def get_coefficients(self, covariates, debug=False):
         coefficients = {} # {predname: beta * exp(gamma z)}
@@ -34,3 +39,4 @@ class MLECoefficientsCurveGenerator(CoefficientsCurveGenerator):
                     raise e
 
         return coefficients
+
