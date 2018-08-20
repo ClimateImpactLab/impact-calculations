@@ -220,7 +220,9 @@ class RenameReader(WeatherReader):
         super(RenameReader, self).__init__(reader.version, reader.units, reader.time_units)
         self.reader = reader
         self.renamer = renamer
-
+        if isinstance(self.renamer, str):
+            assert len(self.reader.get_dimension()) == 1
+        
     def get_times(self):
         """Returns a list of all times available."""
         return self.reader.get_times()
@@ -234,6 +236,8 @@ class RenameReader(WeatherReader):
         """
         if callable(self.renamer):
             return map(self.renamer, self.reader.get_dimension())
+        elif isinstance(self.renamer, str):
+            return [self.renamer]
         else:
             return self.renamer.keys()
 
@@ -246,6 +250,8 @@ class RenameReader(WeatherReader):
     def read_year(self, year):
         if callable(self.renamer):
             renames = {name: self.renamer(name) for name in self.reader.get_dimension()}
+        elif isinstance(self.renamer, str):
+            renames = {self.reader.get_dimension()[0]: self.renamer}
         else:
             renames = self.renamer
             
@@ -295,3 +301,43 @@ class HistoricalCycleReader(WeatherReader):
         ds['yyyyddd'].values = ds['yyyyddd'].values % 1000 + year * 1000
         ds['time'].values = pd.date_range('%d-01-01' % year, periods=365)
         return ds
+
+class MapReader(WeatherReader):
+    """Applies a function to all combinations of component readers."""
+    def __init__(self, name, unit, func, *readers):
+        super(MapReader, self).__init__(max(map(lambda reader: reader.version, readers)),
+                                        unit, readers[0].time_units)
+        self.name = name
+        self.func = func
+        self.readers = readers
+        for reader in readers[1:]:
+            assert reader.get_times() == readers[0].get_times()
+        
+    def get_times(self):
+        """Returns a list of all times available."""
+        return self.readers[0].get_times()
+
+    def get_years(self):
+        return self.readers[0].get_years()
+        
+    def get_dimension(self):
+        return [self.name]
+
+    def read_iterator(self):
+        """Yields an xarray Dataset in whatever chunks are convenient."""
+        iterators = map(lambda reader: reader.read_iterator(), self.readers)
+        for ds0 in iterators[0]:
+            dsn = map(lambda iterator: iterator.next(), iterators[1:])
+            allds = [ds0] + dsn
+            alldsvars = [allds[ii][self.readers[ii].get_dimension()[0]] for ii in range(len(allds))]
+            origvar = self.readers[0].get_dimension()[0]
+            ds0[origvar] = self.func(*alldsvars)
+            yield ds0.rename({origvar: self.name})
+
+    def read_year(self, year):
+        allds = [reader.read_year(year) for reader in self.readers]
+        alldsvars = [allds[ii][self.readers[ii].get_dimension()[0]] for ii in range(len(allds))]
+        ds0 = allds[0]
+        origvar = self.readers[0].get_dimension()[0]
+        ds0[origvar] = self.func(*alldsvars)
+        return ds0.rename({origvar: self.name})

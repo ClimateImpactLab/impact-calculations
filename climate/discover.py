@@ -6,11 +6,12 @@ import os, re, copy
 import numpy as np
 from impactlab_tools.utils import files
 from openest.generate import fast_dataset
-from reader import ConversionWeatherReader, RegionReorderWeatherReader, HistoricalCycleReader, RenameReader
+from reader import *
 from dailyreader import DailyWeatherReader, YearlyBinnedWeatherReader, MonthlyBinnedWeatherReader, MonthlyDimensionedWeatherReader
 from yearlyreader import YearlyWeatherReader, YearlyDayLikeWeatherReader
 import pattern_matching
 
+RE_FLOATING = r"[-+]?[0-9]*\.?[0-9]*"
 re_dotsplit = re.compile("\.(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)")
 
 def standard_variable(name, mytimerate, **config):
@@ -18,11 +19,33 @@ def standard_variable(name, mytimerate, **config):
         if os.path.exists(files.configpath(name)):
             return discover_versioned(files.configpath(name), os.path.basename(name), **config)
 
+    if ' = ' in name:
+        chunks = name.split(' = ')
+        name = chunks[0].strip()
+        defin = chunks[1].strip()
+        return discover_rename(standard_variable(defin, mytimerate, **config), name)
+
+    assert mytimerate in ['day', 'month', 'year']
+
+    if ' * ' in name:
+        chunks = name.split(' * ')
+        left = chunks[0].strip()
+        right = chunks[1].strip()
+        iterator = discover_map(name, None,
+                                lambda a, b: a * b, standard_variable(left, 'day', **config),
+                                standard_variable(right, 'day', **config))
+        if mytimerate == 'day':
+            return iterator
+        elif mytimerate == 'month':
+            return discover_day2month(iterator, lambda arr, dim: np.sum(arr, axis=dim))
+        elif mytimerate == 'year':
+            return discover_day2year(iterator, lambda arr, dim: np.sum(arr, axis=dim))
+        
     if '.' in name:
         chunks = re_dotsplit.split(name)
         if len(chunks) > 1:
             var = standard_variable(chunks[0], mytimerate, **config)
-            for chunk in chunks[2:]:
+            for chunk in chunks[1:]:
                 var = interpret_transform(var, chunk)
             return var
 
@@ -32,8 +55,6 @@ def standard_variable(name, mytimerate, **config):
         name = chunks[0]
         version = chunks[1]
         
-    assert mytimerate in ['day', 'month', 'year']
-
     if 'grid-weight' in config:
         timerate_translate = dict(day='daily', month='monthly', year='annual')
         path = files.sharedpath(os.path.join("climate/BCSD/hierid", config['grid-weight'], timerate_translate[mytimerate], name))
@@ -100,6 +121,16 @@ def interpret_transform(var, transform):
     if transform[:7] == 'gddkdd(':
         lower, upper = tuple(map(float, transform[7:-1].split(',')))
         return discover_makegddkdd(var, lower, upper)
+
+    if transform[:5] == 'step(':
+        match = re.match(r"\s*(%s)\s*,\s*\[\s*(%s)\s*,\s*(%s)\s*\]\s*" % (RE_FLOATING, RE_FLOATING, RE_FLOATING),
+                         transform[5:-1])
+        assert match, "Step function misformed.  Use .step(#, [#, #])."
+        stepval = float(match.group(1))
+        befval = float(match.group(2))
+        aftval = float(match.group(3))
+        return discover_map(transform, None,
+                            lambda xs: (aftval - befval) * (xs > stepval) + befval, var)
     
     assert False, "Cannot interpret transformation %s" % transform
 
@@ -331,6 +362,7 @@ def discover_makegddkdd(discover_iterator, lower, upper):
         yield scenario, model, GDDKDDReader(pastreader, lower, upper), GDDKDDReader(futurereader, lower, upper)
 
 def discover_rename(discover_iterator, name_dict):
+    """name_dict can be a {new: old} dictionary, a string (if other discover produces only 1 var), or a function."""
     for scenario, model, pastreader, futurereader in discover_iterator:
         yield scenario, model, RenameReader(pastreader, name_dict), RenameReader(futurereader, name_dict)
         
@@ -409,6 +441,19 @@ def discover_day2year(discover_iterator, accumfunc):
         return ds
     
     return discover_convert(discover_iterator, time_conversion, ds_conversion)
+
+def discover_map(name, unit, func, *iterators):
+    pastfutures = {} # (scenario, model): (pastreader, futurereader)
+    for iterator in iterators:
+        for scenario, model, pastreader, futurereader in iterator:
+            if (scenario, model) in pastfutures:
+                pastfutures[(scenario, model)].append((pastreader, futurereader))
+            else:
+                pastfutures[(scenario, model)] = [(pastreader, futurereader)]
+
+    for scenario, model in pastfutures:
+        if len(pastfutures[(scenario, model)]) == len(iterators):
+            yield scenario, model, MapReader(name, unit, func, *map(lambda pastfuture: pastfuture[0], pastfutures[(scenario, model)])), MapReader(name, unit, func, *map(lambda pastfuture: pastfuture[1], pastfutures[(scenario, model)]))
 
 def data_vars_time_conversion_year(name, ds, varset, accumfunc):
     if isinstance(ds, fast_dataset.FastDataset):

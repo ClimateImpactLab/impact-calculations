@@ -67,31 +67,32 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
     if specconf['functionalform'] == 'polynomial':
         variable = specconf['variable']
         indepunit = specconf['indepunit']
+        coeffvar = specconf.get('coeffvar', variable)
         
         order = 0
         predinfix = ''
         for predname in csvv['prednames']:
-            if predname == variable:
+            if predname == coeffvar:
                 order = max(order, 1)
             else:
-                match = re.match(variable + r'(\d+)', predname)
+                match = re.match(coeffvar + r'(\d+)', predname)
                 if match:
                     order = max(order, int(match.group(1)))
                     continue
-                match = re.match(variable + r'-poly-(\d+)', predname)
+                match = re.match(coeffvar + r'-poly-(\d+)', predname)
                 if match:
                     predinfix = '-poly-'
                     order = max(order, int(match.group(1)))
                     continue
 
-        assert order > 1
+        assert order > 1, "Cannot find more than one power of %s in %s" % (coeffvar, str(csvv['prednames']))
                     
         weathernames = [variable] + ['%s-poly-%d' % (variable, power) for power in range(2, order+1)]
         if 'within-season' in specconf:
             weathernames = [variables.get_post_process(name, specconf) for name in weathernames]
 
         curr_curvegen = curvegen_known.PolynomialCurveGenerator([indepunit] + ['%s^%d' % (indepunit, pow) for pow in range(2, order+1)],
-                                                                depenunit, variable, order, csvv, predinfix=predinfix,
+                                                                depenunit, coeffvar, order, csvv, predinfix=predinfix,
                                                                 weathernames=weathernames, betalimits=betalimits)
         minfinder = lambda mintemp, maxtemp: lambda curve: minpoly.findpolymin([0] + curve.ccs, mintemp, maxtemp)
             

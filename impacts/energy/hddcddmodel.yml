@@ -1,5 +1,13 @@
 timerate: year
-climate: [ tas, tas-poly-2, tas-cdd-20, tas-cdd-20-poly-2, tas-hdd-20, tas-hdd-20-poly-2 ]
+climate:
+  - tas-lo = tas * tas.step(20, [1, 0])
+  - tas-hi = tas * tas.step(20, [0, 1])
+  - tas-lo-poly-2 = tas-poly-2 * tas.step(20, [1, 0])
+  - tas-hi-poly-2 = tas-poly-2 * tas.step(20, [0, 1])
+  - tas-cdd-20
+  - tas-cdd-20-poly-2
+  - tas-hdd-20
+  - tas-hdd-20-poly-2
 models:
   - csvvs: "social/parameters/energy/projection3/*.csvv"
     covariates:
@@ -12,11 +20,18 @@ models:
     description: Change in energy usage driven by a single day's mean temperature
     depenunit: kWh/pc
     specifications:
-      tas:
+      tas-lo:
         description: Uninteracted term.
         indepunit: C
         functionalform: polynomial
-        variable: tas
+        variable: tas-lo
+        coeffvar: tas
+      tas-hi:
+        description: Uninteracted term.
+        indepunit: C
+        functionalform: polynomial
+        variable: tas-hi
+        coeffvar: tas
       hdd-20:
         description: Below 20C days.
         indepunit: C
@@ -30,7 +45,9 @@ models:
     calculation:
       - Sum:
         - YearlyApply:
-            model: tas
+            model: tas-lo
+        - YearlyApply:
+            model: tas-hi
         - YearlyApply:
             model: hdd-20
         - YearlyApply:

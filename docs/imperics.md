@@ -97,6 +97,15 @@ Basic model configration:
   CSV file.  The columns of file should include `hierid`,
   `plant_date`, `harvest_date`, `plant_month`, `harvest_month`.
 
+## Climate naming
+
+The `climate.discover::standard_variable` allows a number of
+modifications to standard variable names.
+
+ - A path
+ - A variable followed by `==<version>`
+ - `<name> = ` followed by another standard variable definition
+
 ## Specification configuration:
 
 The specification configuration can be specified by the following two
@@ -139,7 +148,10 @@ functional form.
 
 For polynomial form has the following additional configuation options:
 
-* `variable` (required): The name of the variable, or prefix for higher powers.
+* `variable` (required): The name of the weather variable, or prefix
+  for higher powers.
+* `coeffvar` (optional): The name of the CSVV predname, or prefix for
+  higher powers.  Defaults to `variable`.
 * `indepunit` (required): The unit for the independent variable.
 * `allow-raising` (optional): If `yes`, the higher powers of the
   variable will be calculated from the linear form, if the other
@@ -205,3 +217,23 @@ Here are some of the standard ones:
 * `Sum`: Sum a list of other previous calculations.
 * `Rebase`: Subtract off the average previous result from 2001 - 2010.
 * `Expoonentiate`: Report the exponentiate of the previous result.
+
+### Specifying a model
+
+Typically, each calculation takes as its input the previous
+calculation's output.  In some cases (for certain weather-to-result
+calculations), there need to be several models or specifications
+defined.  This is done by maknig a `specifications` list within a
+model block, naming each specification.  Then those same names are
+used in the calculation, by using the `model:` property.
+
+The model property can take the following forms of objects:
+
+ - A name from the `specifications` list
+ 
+ - The `step()` function which takes three arguments: a variable name,
+   a step limit, and a before and after step function value.  Like
+   `step('tas', 20, [0, 1])`.
+
+ - A product of two of the above, using `A * B`.
+ 
