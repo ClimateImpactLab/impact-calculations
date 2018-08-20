@@ -31,9 +31,15 @@ def standard_variable(name, mytimerate, **config):
         chunks = name.split(' * ')
         left = chunks[0].strip()
         right = chunks[1].strip()
-        iterator = discover_map(name, None,
-                                lambda a, b: a * b, standard_variable(left, 'day', **config),
-                                standard_variable(right, 'day', **config))
+
+        leftnumber = re.match("^%s$" % RE_FLOATING, left)
+        if leftnumber:
+            left = float(left)
+            iterator = discover_map(name, None, lambda b: left * b, standard_variable(right, 'day', **config))
+        else:
+            iterator = discover_map(name, None,
+                                    lambda a, b: a * b, standard_variable(left, 'day', **config),
+                                    standard_variable(right, 'day', **config))
         if mytimerate == 'day':
             return iterator
         elif mytimerate == 'month':
