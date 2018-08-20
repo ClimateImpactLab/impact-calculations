@@ -1,6 +1,7 @@
-import yaml, copy
+import yaml, copy, sys
 from openest.generate import stdlib, arguments
 from generate import caller
+import curves
 
 def prepare_argument(name, argument, models, argtype, extras={}):
     if argtype in [arguments.model, arguments.curvegen, arguments.curve_or_curvegen]:
@@ -48,9 +49,10 @@ def create_calcstep(name, args, models, subcalc, extras={}):
         if 'model' in args:
             # Set this up as the default model
             models = copy.copy(models)
-            models['default'] = models[args['model']]
+            argmodel, argextras = curves.interpret(args['model'], models, extras)
+            models['default'] = argmodel
             extras = copy.copy(extras)
-            extras.update(extras[args['model']])
+            extras.update(argextras)
             args = copy.copy(args)
             del args['model']
             return create_calcstep(name, args, models, subcalc, extras)
@@ -105,10 +107,11 @@ def create_calcstep(name, args, models, subcalc, extras={}):
 
     try:
         return cls(*tuple(arglist))
-    except Exception as ex:
+    except:
+        t, v, tb = sys.exc_info()
         print cls
         print arglist
-        raise ex
+        raise t, v, tb
 
 def sample_sequence(calculation, region):
     application = calculation.apply(region)
