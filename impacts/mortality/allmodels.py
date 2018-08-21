@@ -12,9 +12,15 @@ def preload():
     library.get_data('mortality-deathrates', 'deaths/person')
 
 def get_bundle_iterator(config):
-    return weather.iterate_bundles(discover_day2year(standard_variable('tas', 'day', **config), lambda arr: np.mean(arr, axis=0)),
-                                   discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/binned_tas"), "tas_bin_day_counts", **config),
-                                   **config)
+    if config['specification'] == 'polynomial':
+        return weather.iterate_bundles(discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas"), 'tas', **config),
+                                       discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-2"), 'tas-poly-2', **config),
+                                       discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-3"), 'tas-poly-3', **config),
+                                       discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-4"), 'tas-poly-4', **config), **config)
+    if config['specification'] == 'bins':
+        return weather.iterate_bundles(discover_day2year(standard_variable('tas', 'day', **config), lambda arr: np.mean(arr, axis=0)),
+                                       discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/binned_tas"), "tas_bin_day_counts", **config),
+                                       **config)
 
 def check_doit(targetdir, basename, suffix):
     filepath = os.path.join(targetdir, basename + suffix + '.nc4')
@@ -36,22 +42,30 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
         if push_callback is None:
             push_callback = lambda reg, yr, app, predget, mod: None
 
-        if 'csvvfile' in config:
-            csvvfiles = [files.sharedpath(config['csvvfile'])]
-        else:
-            csvvfiles = glob.glob(files.sharedpath("social/parameters/mortality/Replication_2018/*bins*.csvv"))
+        csvvfiles = glob.glob(files.sharedpath(config['csvvfile']))
+        specification = config['specification']
             
         for filepath in csvvfiles:
             basename = os.path.basename(filepath)[:-5]
             print basename
-
-            numpreds = 10
-            module = 'impacts.mortality.ols_binned'
-            minpath_suffix = '-binmins'
-
+            
             # Split into age groups and lock in q-draw
             csvv = csvvfile.read(filepath)
             csvvfile.collapse_bang(csvv, pvals[basename].get_seed())
+
+            if specification == 'cubicspline':
+                numpreds = 5
+                module = 'impacts.mortality.ols_cubic_spline'
+                minpath_suffix = '-splinemins'
+            elif specification == 'polynomial':
+                numpreds = len(csvv['prednames']) / 9
+                assert numpreds * 9 == len(csvv['prednames'])
+                module = 'impacts.mortality.ols_polynomial'
+                minpath_suffix = '-polymins'
+            else:
+                numpreds = 10
+                module = 'impacts.mortality.ols_binned'
+                minpath_suffix = '-binmins'
 
             agegroups = ['young', 'older', 'oldest']
             for ageii in range(len(agegroups)):
