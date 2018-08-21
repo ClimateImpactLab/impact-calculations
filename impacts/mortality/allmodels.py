@@ -13,7 +13,8 @@ def preload():
 
 def get_bundle_iterator(config):
     return weather.iterate_bundles(discover_day2year(standard_variable('tas', 'day', **config), lambda arr: np.mean(arr, axis=0)),
-                                   discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/binned_tas"), "tas_bin_day_counts", **config),
+                                   discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/" + config['hddvar']), config['hddvar'], **config),
+                                   discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/" + config['cddvar']), config['cddvar'], **config),
                                    **config)
 
 def check_doit(targetdir, basename, suffix):
@@ -36,22 +37,23 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
         if push_callback is None:
             push_callback = lambda reg, yr, app, predget, mod: None
 
-        if 'csvvfile' in config:
-            csvvfiles = [files.sharedpath(config['csvvfile'])]
-        else:
-            csvvfiles = glob.glob(files.sharedpath("social/parameters/mortality/Replication_2018/*bins*.csvv"))
-            
+        csvvfiles = glob.glob(files.sharedpath(config['csvvfile']))
+        specification = config['specification']
+        
         for filepath in csvvfiles:
             basename = os.path.basename(filepath)[:-5]
             print basename
 
-            numpreds = 10
-            module = 'impacts.mortality.ols_binned'
-            minpath_suffix = '-binmins'
-
             # Split into age groups and lock in q-draw
             csvv = csvvfile.read(filepath)
             csvvfile.collapse_bang(csvv, pvals[basename].get_seed())
+
+            if specification == 'bins':
+                numpreds = 10
+                module = 'impacts.mortality.ols_binned'
+                minpath_suffix = '-binmins'
+            elif specification == 'hddcdd':
+                pass
 
             agegroups = ['young', 'older', 'oldest']
             for ageii in range(len(agegroups)):
