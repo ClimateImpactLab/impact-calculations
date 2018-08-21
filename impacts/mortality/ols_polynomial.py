@@ -11,26 +11,31 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
                                                 covariates.EconomicCovariator(economicmodel, 2015, config=config.get('econcovar', {}))])
 
     # Don't collapse: already collapsed in allmodels
-    #csvvfile.collapse_bang(csvv, qvals.get_seed())
+    #csvvfile.collapse_bang(csvv, qvals.get_seed('csvv'))
 
     order = len(csvv['gamma']) / 3
     curr_curvegen = curvegen_known.PolynomialCurveGenerator(['C'] + ['C^%d' % pow for pow in range(2, order+1)],
                                                            '100,000 * death/population', 'tas', order, csvv)
 
-    baselineloggdppcs = {}
-    for region in weatherbundle.regions:
-        baselineloggdppcs[region] = covariator.get_current(region)['loggdppc']
+    if config.get('clipping', 'both') in ['both', 'clip']:
+        baselineloggdppcs = {}
+        for region in weatherbundle.regions:
+            baselineloggdppcs[region] = covariator.get_current(region)['loggdppc']
     
-    # Determine minimum value of curve between 10C and 25C
-    baselinecurves, baselinemins = constraints.get_curve_minima(weatherbundle.regions, curr_curvegen, covariator, 10, 25,
-                                                                lambda region, curve: minpoly.findpolymin([0] + curve.ccs, 10, 25))
+        # Determine minimum value of curve between 10C and 25C
+        baselinecurves, baselinemins = constraints.get_curve_minima(weatherbundle.regions, curr_curvegen, covariator, 10, 25,
+                                                                    lambda region, curve: minpoly.findpolymin([0] + curve.ccs, 10, 25))
 
     def transform(region, curve):
+        if config.get('clipping', 'both') == 'none':
+            return SelectiveInputCurve(CoefficientsCurve(curve.ccs, curve, lambda x: x[:, :order]), range(order))
+            
         coeff_curve = SelectiveInputCurve(CoefficientsCurve(curve.ccs, curve, lambda x: x[:, :order]), range(order))
 
         fulladapt_curve = ShiftedCurve(coeff_curve, -curve(baselinemins[region]))
-        # Alternative: Turn off Goodmoney
-        #return ClippedCurve(fulladapt_curve)
+        if config.get('clipping', 'both') == 'clip':
+            # Alternative: Turn off Goodmoney
+            return ClippedCurve(fulladapt_curve)
 
         covars = covariator.get_current(region)
         covars['loggdppc'] = baselineloggdppcs[region]
@@ -51,6 +56,9 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     climtas_effect_curve = ZeroInterceptPolynomialCurve([-np.inf, np.inf], 365 * np.array([csvvfile.get_gamma(csvv, tasvar, 'climtas') for tasvar in ['tas', 'tas2', 'tas3', 'tas4', 'tas5'][:order]])) # x 365, to undo / 365 later
 
     def transform_climtas_effect(region, curve):
+        if config.get('clipping', 'both') == 'none':
+            return SelectiveInputCurve(CoefficientsCurve(climtas_effect_curve.ccs, climtas_effect_curve, lambda x: x[:, :order]), range(order))
+        
         climtas_coeff_curve = SelectiveInputCurve(CoefficientsCurve(climtas_effect_curve.ccs, climtas_effect_curve, lambda x: x[:, :order]), range(order))
         shifted_curve = ShiftedCurve(climtas_coeff_curve, -climtas_effect_curve(baselinemins[region]))
         return OtherClippedCurve(curve, shifted_curve)
