@@ -15,6 +15,7 @@ def read(filename):
                 if ']' in fullunit:
                     variable[1]['unit'] = fullunit[:fullunit.index(']')]
             else:
+                print "WARNING: Missing unit for variable %s." % variable
                 variable[1]['unit'] = None
 
         data = {'attrs': attrs, 'variables': variables, 'coords': coords}
