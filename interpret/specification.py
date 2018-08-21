@@ -18,7 +18,7 @@ def prepare(specconf, csvv, weatherbundle, economicmodel, qvals):
     user_assert('functionalform' in specconf, "Specification configuration missing 'functionalform' string.")
     user_assert('description' in specconf, "Specification configuration missing 'description' string.")
     
-    csvvfile.collapse_bang(csvv, qvals.get_seed())
+    csvvfile.collapse_bang(csvv, qvals.get_seed('csvv'))
 
     covariators = []
     for covar in specconf['covariates']:

@@ -14,7 +14,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
                                                 covariates.EconomicCovariator(economicmodel, 2015, config=config.get('econcovar', {}))])
 
     # Don't collapse: already collapsed in allmodels
-    #csvvfile.collapse_bang(csvv, qvals.get_seed())
+    #csvvfile.collapse_bang(csvv, qvals.get_seed('csvv'))
 
     curr_curvegen = curvegen_known.CubicSplineCurveGenerator(['C'] + ['C^3'] * (len(knots) - 2),
                                                              '100,000 * death/population', 'spline_variables-',

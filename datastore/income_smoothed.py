@@ -7,6 +7,8 @@ from impactlab_tools.utils import files
 gdppc_growth_filepath = 'social/baselines/gdppc-growth.csv'
 baseline_end_year = 2010
 
+slowgrowth_after = 2200
+
 class DynamicIncomeSmoothed(object):
     def __init__(self, model, scenario, dependencies):
         self.model = model
@@ -77,6 +79,9 @@ class DynamicIncomeSmoothed(object):
         yearindex = (year - baseline_end_year) / 5
         growths = self.growth_country_by_year[:, yearindex]
 
+        if year > slowgrowth_after:
+            growths = (growths - 1) * .5 + 1
+
         country_growth = {}
         for country in self.growth_country_by_year.coords['country'].values:
             country_growth[country] = growths.sel(country=country).values
@@ -104,7 +109,10 @@ class SpaceTimeLoadedData(spacetime.SpaceTimeLoadedData):
     
 if __name__ == '__main__':
     dependencies = []
-    income = DynamicIncomeSmoothed('low', 'SSP4', dependencies)
+    income = DynamicIncomeSmoothed('high', 'SSP3', dependencies)
 
-    for year in range(2000, 2020):
-        print year, income.get_income('ARG.22.469', year)
+    print "year,ZWE.2.2,ABW,XYZ.1.2"
+    for year in range(2010, 2099):
+        print ','.join(map(str, [year, income.get_income('ZWE.2.2', year), income.get_income('ABW', year),
+                                 income.get_income('XYZ.1.2', year)]))
+        
