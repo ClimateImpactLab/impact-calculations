@@ -90,17 +90,27 @@ class MeanWeatherCovariator(Covariator):
         self.weatherbundle = weatherbundle
         self.lastyear = {}
 
-        baseline_predictors = {}
-        for region in temp_predictors:
-            baseline_predictors[region] = temp_predictors[region].get()
-        self.baseline_predictors = baseline_predictors
+        if config.get('slowadapt', 'none') in ['both', 'temperature']:
+            self.slowadapt = True
+            baseline_predictors = {}
+            for region in temp_predictors:
+                baseline_predictors[region] = temp_predictors[region].get()
+            self.baseline_predictors = baseline_predictors
+        else:
+            self.slowadapt = False
 
     def get_current(self, region):
         #assert region in self.temp_predictors, "Missing " + region
-        if self.varindex is None:
-            return {self.weatherbundle.get_dimension()[0]: (self.temp_predictors[region].get() + self.baseline_predictors[region]) / 2}
+        if self.slowadapt:
+            if self.varindex is None:
+                return {self.weatherbundle.get_dimension()[0]: (self.temp_predictors[region].get() + self.baseline_predictors[region]) / 2}
+            else:
+                return {self.weatherbundle.get_dimension()[self.varindex]: (self.temp_predictors[region].get() + self.baseline_predictors[region]) / 2}
         else:
-            return {self.weatherbundle.get_dimension()[self.varindex]: (self.temp_predictors[region].get() + self.baseline_predictors[region]) / 2}
+            if self.varindex is None:
+                return {self.weatherbundle.get_dimension()[0]: self.temp_predictors[region].get()}
+            else:
+                return {self.weatherbundle.get_dimension()[self.varindex]: self.temp_predictors[region].get()}
 
     def get_update(self, region, year, temps):
         """Allow temps = None for dumb farmer who cannot adapt to temperature."""
@@ -117,10 +127,16 @@ class MeanWeatherCovariator(Covariator):
             else:
                 self.temp_predictors[region].update(np.mean(temps[:, self.varindex]))
 
-        if self.varindex is None:
-            return {self.weatherbundle.get_dimension()[0]: (self.temp_predictors[region].get() + self.baseline_predictors[region]) / 2}
+        if self.slowadapt:
+            if self.varindex is None:
+                return {self.weatherbundle.get_dimension()[0]: (self.temp_predictors[region].get() + self.baseline_predictors[region]) / 2}
+            else:
+                return {self.weatherbundle.get_dimension()[self.varindex]: (self.temp_predictors[region].get() + self.baseline_predictors[region]) / 2}
         else:
-            return {self.weatherbundle.get_dimension()[self.varindex]: (self.temp_predictors[region].get() + self.baseline_predictors[region]) / 2}
+            if self.varindex is None:
+                return {self.weatherbundle.get_dimension()[0]: self.temp_predictors[region].get()}
+            else:
+                return {self.weatherbundle.get_dimension()[self.varindex]: self.temp_predictors[region].get()}
 
 class SeasonalWeatherCovariator(MeanWeatherCovariator):
     def __init__(self, weatherbundle, maxbaseline, day_start, day_end, config={}, varindex=None):
