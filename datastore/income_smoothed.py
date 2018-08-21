@@ -104,7 +104,10 @@ class SpaceTimeLoadedData(spacetime.SpaceTimeLoadedData):
     
 if __name__ == '__main__':
     dependencies = []
-    income = DynamicIncomeSmoothed('low', 'SSP4', dependencies)
+    income = DynamicIncomeSmoothed('high', 'SSP3', dependencies)
 
-    for year in range(2000, 2020):
-        print year, income.get_income('ARG.22.469', year)
+    print "year,ZWE.2.2,ABW,XYZ.1.2"
+    for year in range(2010, 2099):
+        print ','.join(map(str, [year, income.get_income('ZWE.2.2', year), income.get_income('ABW', year),
+                                 income.get_income('XYZ.1.2', year)]))
+        
