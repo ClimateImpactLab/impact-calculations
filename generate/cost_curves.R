@@ -102,8 +102,11 @@ nc.imp <- nc_open(impactspath)
 impacts.climtaseff <- ncvar_get(nc.imp, 'climtas_effect') # Sum of adaptive investments at daily level
 
 #check whether timesteps in climate file = timesteps in impacts file
-if (length(year.avg) != length(ncvar_get(nc.imp, 'year'))) { 
-  impacts.climtaseff <- impacts.climtaseff[, 1:length(year.avg)] 
+if (length(year.avg) != length(ncvar_get(nc.imp, 'year'))) {
+  if (length(dim(impacts.climtaseff)) == 2)
+    impacts.climtaseff <- impacts.climtaseff[, 1:length(year.avg)]
+  else
+    impacts.climtaseff <- impacts.climtaseff[1:length(year.avg)]    
 }
 
 rm(nc.imp)

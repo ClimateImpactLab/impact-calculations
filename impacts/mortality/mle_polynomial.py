@@ -21,11 +21,6 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     covariator2 = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, config=config.get('climcovar', {}), varindex=0), {'climtas': 'tas'}),
                                                  covariates.EconomicCovariator(economicmodel, 2015, config=config.get('econcovar', {}))])
 
-    order = len(csvv['gamma']) / 3
-    curr_curvegen = curvegen_arbitrary.MLECoefficientsCurveGenerator(lambda coeffs: ZeroInterceptPolynomialCurve(coeffs)
-                                                                     ['C'] + ['C^%d' % pow for pow in range(2, order+1)],
-                                                                     '100,000 * death/population', 'tas', order, csvv)
-
     curr_curvegen = curvegen_known.PolynomialCurveGenerator(['C'] + ['C^%d' % pow for pow in range(2, order+1)],
                                                             '100,000 * death/population', 'tas', order, csvv)
 

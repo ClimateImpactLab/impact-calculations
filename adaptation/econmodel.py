@@ -7,6 +7,9 @@ from datastore import population, popdensity, income_smoothed
 def iterate_econmodels(config={}):
     modelscenarios = set() # keep track of model-scenario pairs
 
+    if config.get('slowadapt', 'none') in ['income', 'both']:
+        income_smoothed.slowgrowth_after = 2015
+    
     dependencies = []
     with open(files.sharedpath('social/baselines/gdppc-merged-baseline.csv'), 'r') as fp:
         reader = csv.reader(header.deparse(fp, dependencies))
