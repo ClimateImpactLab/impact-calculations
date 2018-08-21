@@ -7,7 +7,7 @@ from impactlab_tools.utils import files
 gdppc_growth_filepath = 'social/baselines/gdppc-growth.csv'
 baseline_end_year = 2010
 
-slowgrowth_after = 2015
+slowgrowth_after = 2200
 
 class DynamicIncomeSmoothed(object):
     def __init__(self, model, scenario, dependencies):
