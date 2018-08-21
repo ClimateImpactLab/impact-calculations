@@ -62,6 +62,11 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
                 assert numpreds * 9 == len(csvv['prednames'])
                 module = 'impacts.mortality.ols_polynomial'
                 minpath_suffix = '-polymins'
+            elif specification == 'mle':
+                numpreds = len(csvv['prednames']) / 9
+                assert numpreds * 9 == len(csvv['prednames'])
+                module = 'impacts.mortality.mle_polynomial'
+                minpath_suffix = '-polymins'
             else:
                 numpreds = 10
                 module = 'impacts.mortality.ols_binned'
