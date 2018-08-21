@@ -12,7 +12,7 @@ class CSVVCurveGenerator(CurveGenerator):
             if predname not in csvv['variables']:
                 print "WARNING: Predictor %s definition not found in CSVV." % predname
             else:
-                if 'unit' in csvv['variables'][predname]:
+                if 'unit' in csvv['variables'][predname] and csvv['variables'][predname]['unit'] is not None:
                     assert csvv['variables'][predname]['unit'] == indepunits[ii], "Units error for %s: %s <> %s" % (predname, csvv['variables'][predname]['unit'], indepunits[ii])
 
         if 'outcome' not in csvv['variables']:

@@ -66,7 +66,6 @@ def splinepush_callback(region, year, application, get_predictors, model):
     with open(filepath, 'a') as fp:
         writer = csv.writer(fp)
         predictors = get_predictors(region)
-
         writer.writerow([region, year, model] + [predictors[covar] for covar in covars])
 
 def polypush_callback(region, year, application, get_predictors, model):
@@ -168,7 +167,7 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
     if config['mode'] not in ['writesplines', 'writepolys', 'diagnostic'] or config.get('do_historical', False):
         # Generate historical baseline
         print "Historical"
-        historybundle = weather.HistoricalWeatherBundle.make_historical(weatherbundle, None if config['mode'] == 'median' else pvals['histclim'].get_seed())
+        historybundle = weather.HistoricalWeatherBundle.make_historical(weatherbundle, None if config['mode'] == 'median' else pvals['histclim'].get_seed('yearorder'))
         pvals.lock()
 
         mod.produce(targetdir, historybundle, economicmodel, pvals, config, suffix='-histclim')

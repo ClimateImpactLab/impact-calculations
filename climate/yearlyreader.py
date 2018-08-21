@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import netcdfs
-from reader import WeatherReader
+from reader import WeatherReader, YearlySplitWeatherReader
 from openest.generate.weatherslice import YearlyWeatherSlice
 
 class YearlyWeatherReader(WeatherReader):
@@ -92,6 +92,40 @@ class YearlyArrayWeatherReader(YearlyWeatherReader):
 
         for ii in range(len(years)):
             yield YearlyWeatherSlice([years[ii]], np.expand_dims(yyrrvv[ii, :, :], axis=0))
+
+class YearlyDayLikeWeatherReader(YearlySplitWeatherReader):
+    """Exposes yearly weather data, split into yearly files."""
+
+    def __init__(self, template, year1, regionvar, variable):
+        super(YearlyDayLikeWeatherReader, self).__init__(template, year1, variable)
+        self.regionvar = regionvar
+        self.regions = netcdfs.readncdf_single(self.find_templated(year1), regionvar, allow_missing=True)
+
+        self.bins = netcdfs.readncdf_single(self.find_templated(year1), 'bin', allow_missing=True)
+
+    def get_times(self):
+        return self.get_years()
+
+    def get_regions(self):
+        """Returns a list of all regions available."""
+        return self.regions
+
+    def get_dimension(self):
+        if self.bins is None:
+            return [self.variable]
+        else:
+            return [self.variable + str(bin) for bin in self.bins]
+
+    def read_iterator(self):
+        # Yield data in yearly chunks
+        years = self.get_years()
+        for filename in self.file_iterator():
+            values = netcdfs.readncdf_single(filename, self.variable)
+            yield YearlyWeatherSlice(years.pop(0), np.expand_dims(values, axis=0))
+
+    def read_year(self, year):
+        values = netcdfs.readncdf_single(self.file_for_year(year), self.variable)
+        return YearlyWeatherSlice([year], np.expand_dims(values, axis=0))
 
 class RandomYearlyAccess(object):
     def __init__(self, yearlyreader):
