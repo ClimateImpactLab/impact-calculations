@@ -23,7 +23,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     covariator2 = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, config=config.get('climcovar', {}), varindex=0), {'climtas': 'tas_sum'}, {'climtas': lambda x: x / 365}),
                                                  covariates.EconomicCovariator(economicmodel, 2015, config=config.get('econcovar', {}))])
 
-    csvvfile.collapse_bang(csvv, qvals.get_seed())
+    csvvfile.collapse_bang(csvv, qvals.get_seed('csvv'))
 
     curr_curvegen = curvegen_arbitrary.MLECoefficientsCurveGenerator(lambda coeffs: CubicSplineCurve(knots, coeffs),
                                                         ['C'] + ['C^3'] * (len(knots) - 2),

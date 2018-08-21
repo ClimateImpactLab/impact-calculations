@@ -4,7 +4,7 @@ from openest.generate.stdlib import *
 from impactcommon.math import minpoly
 
 def prepare_raw(csvv, weatherbundle, economicmodel, qvals):
-    csvvfile.collapse_bang(csvv, qvals.get_seed())
+    csvvfile.collapse_bang(csvv, qvals.get_seed('csvv'))
 
     order = len(csvv['gamma'])
     poly_curvegen = curvegen_known.PolynomialCurveGenerator(['C'] + ['C^%d' % pow for pow in range(2, order+1)],
