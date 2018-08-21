@@ -30,7 +30,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
                                                                                  weatherbundle.is_historical(), config=config.get('climcovar', {})),
                                               covariates.EconomicCovariator(economicmodel, 2015, config=config.get('econcovar', {}))])
 
-    csvvfile.collapse_bang(csvv, qvals.get_seed())
+    csvvfile.collapse_bang(csvv, qvals.get_seed('csvv'))
 
     subcsvv = csvvfile.subset(csvv, ['tasmax', 'tasmax2', 'tasmax3', 'tasmax4'])
 

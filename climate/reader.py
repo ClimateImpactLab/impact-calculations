@@ -109,7 +109,7 @@ class ConversionWeatherReader(WeatherReader):
         return self.time_conversion(self.reader.get_times())
 
     def get_years(self):
-        return list(self.get_times()) # for now, assume converted to years
+        return self.reader.get_years()
         
     def get_dimension(self):
         """Returns a list of length K, describing the number of elements
