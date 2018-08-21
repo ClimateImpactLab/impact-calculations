@@ -4,7 +4,7 @@ from impactlab_tools.utils import files
 from adaptation import csvvfile
 from generate import weather, effectset, caller, checks, agglib
 from openest.generate.weatherslice import YearlyWeatherSlice
-from climate.discover import discover_versioned, discover_variable
+from climate.discover import discover_versioned_yearly, discover_day2year, standard_variable
 from datastore import agecohorts
 
 def preload():
@@ -12,10 +12,15 @@ def preload():
     library.get_data('mortality-deathrates', 'deaths/person')
 
 def get_bundle_iterator(config):
-    return weather.iterate_bundles(discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas"), 'tas', **config),
-                                   discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-2"), 'tas-poly-2', **config),
-                                   discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-3"), 'tas-poly-3', **config),
-                                   discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-4"), 'tas-poly-4', **config), **config)
+    if config['specification'] == 'polynomial':
+        return weather.iterate_bundles(discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas"), 'tas', **config),
+                                       discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-2"), 'tas-poly-2', **config),
+                                       discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-3"), 'tas-poly-3', **config),
+                                       discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-4"), 'tas-poly-4', **config), **config)
+    if config['specification'] == 'bins':
+        return weather.iterate_bundles(discover_day2year(standard_variable('tas', 'day', **config), lambda arr: np.mean(arr, axis=0)),
+                                       discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/binned_tas"), "tas_bin_day_counts", **config),
+                                       **config)
 
 def check_doit(targetdir, basename, suffix):
     filepath = os.path.join(targetdir, basename + suffix + '.nc4')
@@ -37,32 +42,30 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
         if push_callback is None:
             push_callback = lambda reg, yr, app, predget, mod: None
 
-        if 'csvvfile' in config:
-            csvvfiles = [files.sharedpath(config['csvvfile'])]
-        else:
-            csvvfiles = glob.glob(files.sharedpath("social/parameters/mortality/Diagnostics_Apr17/*.csvv"))
+        csvvfiles = glob.glob(files.sharedpath(config['csvvfile']))
+        specification = config['specification']
             
         for filepath in csvvfiles:
             basename = os.path.basename(filepath)[:-5]
             print basename
-
-            if 'CSpline' in basename:
-                numpreds = 5
-                module = 'impacts.mortality.ols_cubic_spline'
-                minpath_suffix = '-splinemins'
-            else:
-                if 'POLY-5' in basename:
-                    numpreds = 5
-                elif 'POLY-4' in basename:
-                    numpreds = 4
-                else:
-                    ValueError("Unknown number of predictors")
-                module = 'impacts.mortality.ols_polynomial'
-                minpath_suffix = '-polymins'
-
+            
             # Split into age groups and lock in q-draw
             csvv = csvvfile.read(filepath)
             csvvfile.collapse_bang(csvv, pvals[basename].get_seed('csvv'))
+
+            if specification == 'cubicspline':
+                numpreds = 5
+                module = 'impacts.mortality.ols_cubic_spline'
+                minpath_suffix = '-splinemins'
+            elif specification == 'polynomial':
+                numpreds = len(csvv['prednames']) / 9
+                assert numpreds * 9 == len(csvv['prednames'])
+                module = 'impacts.mortality.ols_polynomial'
+                minpath_suffix = '-polymins'
+            else:
+                numpreds = 10
+                module = 'impacts.mortality.ols_binned'
+                minpath_suffix = '-binmins'
 
             agegroups = ['young', 'older', 'oldest']
             for ageii in range(len(agegroups)):
@@ -110,73 +113,3 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
             except Exception as ex:
                 print "TO FIX: Combining failed."
                 traceback.print_exc()
-
-    if 'csvvfile' not in config:
-        produce_india(targetdir, weatherbundle, economicmodel, pvals, config, suffix=suffix, diagnosefile=diagnosefile)
-        produce_external(targetdir, weatherbundle, economicmodel, pvals, config, suffix=suffix)
-
-def produce_india(targetdir, weatherbundle, economicmodel, pvals, config, suffix='', diagnosefile=False):
-    for filepath in glob.glob(files.sharedpath("social/parameters/mortality/India/*.csvv")):
-        basename = os.path.basename(filepath)[:-5]
-        print basename
-
-        if 'cubic_splines' in basename:
-            numpreds = 5
-            module = 'impacts.mortality.ols_cubic_spline_india'
-            minpath_suffix = '-splinemins'
-        else:
-            if 'POLY-5' in basename:
-                numpreds = 5
-            elif 'POLY-4' in basename:
-                numpreds = 4
-            else:
-                ValueError("Unknown number of predictors")
-            module = 'impacts.mortality.ols_polynomial_india'
-            minpath_suffix = '-polymins'
-
-        if check_doit(targetdir, basename, suffix):
-            print "India result"
-            try:
-                calculation, dependencies = caller.call_prepare_interp(filepath, module, weatherbundle, economicmodel, pvals[basename], config=config)
-
-                effectset.generate(targetdir, basename + suffix, weatherbundle, calculation, "India-model mortality impacts for all ages.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, diagnosefile=diagnosefile.replace('.csv', '-' + basename + '.csv') if diagnosefile else False)
-            except Exception as ex:
-                print ex
-
-def produce_external(targetdir, weatherbundle, economicmodel, pvals, config, suffix=''):
-    if config['do_only'] is None or config['do_only'] == 'acp':
-        # ACP response
-        calculation, dependencies = caller.call_prepare('impacts.mortality.external.ACRA_mortality_temperature', weatherbundle, economicmodel, pvals['ACRA_mortality_temperature'], config=config)
-        effectset.generate(targetdir, "ACPMortality" + suffix, weatherbundle, calculation, "Mortality using the ACP response function.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config)
-
-
-    if config['do_only'] is None or config['do_only'] == 'country':
-        # Other individual estimates
-        for gcpid in ['DM2009_USA_national_mortality_all', 'BCDGS2013_USA_national_mortality_all', 'BCDGS2013_USA_national_mortality_65plus', 'GHA2003_BRA_national_mortality_all', 'GHA2003_BRA_national_mortality_65plus', 'B2012_USA_national_mortality_all', 'VSMPMCL2004_FRA_national_mortality_all', 'InternalAnalysis_BRA_national_mortality_all', 'InternalAnalysis_BRA_national_mortality_65plus', 'InternalAnalysis_MEX_national_mortality_all', 'InternalAnalysis_MEX_national_mortality_65plus', 'InternalAnalysis_CHN_national_mortality_all', 'InternalAnalysis_FRA_national_mortality_all', 'InternalAnalysis_FRA_national_mortality_65plus', 'InternalAnalysis_IND_national_mortality_all', 'InternalAnalysis_USA_national_mortality_all', 'InternalAnalysis_USA_national_mortality_65plus']:
-            filter_region = None
-            subset = None
-            if country_specific:
-                if 'USA' in gcpid:
-                    filter_region = lambda region: region[0:3] == 'USA'
-                    subset = 'USA'
-                elif 'BRA' in gcpid:
-                    filter_region = lambda region: region[0:3] == 'BRA'
-                    subset = 'BRA'
-                elif 'FRA' in gcpid:
-                    filter_region = lambda region: region[0:3] == 'FRA'
-                    subset = 'FRA'
-                elif 'MEX' in gcpid:
-                    filter_region = lambda region: region[0:3] == 'MEX'
-                    subset = 'MEX'
-                elif 'CHN' in gcpid:
-                    filter_region = lambda region: region[0:3] == 'CHN'
-                    subset = 'CHN'
-                elif 'IND' in gcpid:
-                    filter_region = lambda region: region[0:3] == 'IND'
-                    subset = 'IND'
-                else:
-                    assert False, "Unknown filter region."
-
-            # Removed DG2011_USA_national_mortality_65plus: Amir considers unreliable
-            calculation, dependencies = caller.call_prepare('impacts.mortality.external.' + gcpid, weatherbundle, economicmodel, pvals[gcpid], config=config)
-            effectset.generate(targetdir, gcpid + suffix, weatherbundle, calculation, "See https://bitbucket.org/ClimateImpactLab/socioeconomics/wiki/HealthModels#rst-header-" + gcpid.replace('_', '-').lower() + " for more information.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, filter_region=filter_region, subset=subset)
