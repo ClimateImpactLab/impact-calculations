@@ -66,7 +66,6 @@ def splinepush_callback(region, year, application, get_predictors, model):
     with open(filepath, 'a') as fp:
         writer = csv.writer(fp)
         predictors = get_predictors(region)
-
         writer.writerow([region, year, model] + [predictors[covar] for covar in covars])
 
 def polypush_callback(region, year, application, get_predictors, model):

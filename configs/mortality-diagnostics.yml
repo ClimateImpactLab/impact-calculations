@@ -4,6 +4,7 @@ outputdir: /shares/gcp/outputs/mortality/impacts-crypto
 do_only: interpolation
 do_farmers: false
 csvvfile: social/parameters/mortality/mortality_nonFGLS_22052018/Agespec_interaction_GMFD_POLY-4_TINV_CYA_NW_w1.csvv
+specification: polynomials
 econcovar:
    class: bartlett
    length: 13
