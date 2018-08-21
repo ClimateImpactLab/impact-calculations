@@ -12,10 +12,20 @@ def preload():
     library.get_data('mortality-deathrates', 'deaths/person')
 
 def get_bundle_iterator(config):
-    return weather.iterate_bundles(discover_day2year(standard_variable('tas', 'day', **config), lambda arr: np.mean(arr, axis=0)),
-                                   discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/" + config['hddvar']), config['hddvar'], **config),
-                                   discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/" + config['cddvar']), config['cddvar'], **config),
-                                   **config)
+    if config['specification'] == 'polynomial':
+        return weather.iterate_bundles(discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas"), 'tas', **config),
+                                       discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-2"), 'tas-poly-2', **config),
+                                       discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-3"), 'tas-poly-3', **config),
+                                       discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-4"), 'tas-poly-4', **config), **config)
+    if config['specification'] == 'bins':
+        return weather.iterate_bundles(discover_day2year(standard_variable('tas', 'day', **config), lambda arr: np.mean(arr, axis=0)),
+                                       discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/binned_tas"), "tas_bin_day_counts", **config),
+                                       **config)
+    if config['specification'] == 'hddcdd':
+        return weather.iterate_bundles(discover_day2year(standard_variable('tas', 'day', **config), lambda arr: np.mean(arr, axis=0)),
+                                       discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/" + config['hddvar']), config['hddvar'], **config),
+                                       discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/" + config['cddvar']), config['cddvar'], **config),
+                                       **config)
 
 def check_doit(targetdir, basename, suffix):
     filepath = os.path.join(targetdir, basename + suffix + '.nc4')
@@ -33,7 +43,7 @@ def check_doit(targetdir, basename, suffix):
 def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callback=None, suffix='', profile=False, diagnosefile=False):
     print config['do_only']
 
-    if config['do_only'] is None or config['do_only'] == 'interpolation':
+    if config['do_only'] is None or config['do_only'] in ['interpolation', 'mle']:
         if push_callback is None:
             push_callback = lambda reg, yr, app, predget, mod: None
 
@@ -46,14 +56,30 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
 
             # Split into age groups and lock in q-draw
             csvv = csvvfile.read(filepath)
-            csvvfile.collapse_bang(csvv, pvals[basename].get_seed())
+            csvvfile.collapse_bang(csvv, pvals[basename].get_seed('csvv'))
 
-            if specification == 'bins':
+            if specification == 'cubicspline':
+                numpreds = 5
+                module = 'impacts.mortality.ols_cubic_spline'
+                minpath_suffix = '-splinemins'
+            elif specification == 'polynomial':
+                numpreds = len(csvv['prednames']) / 9
+                assert numpreds * 9 == len(csvv['prednames'])
+                module = 'impacts.mortality.ols_polynomial'
+                minpath_suffix = '-polymins'
+            elif specification == 'mle':
+                numpreds = len(csvv['prednames']) / 9
+                assert numpreds * 9 == len(csvv['prednames'])
+                module = 'impacts.mortality.mle_polynomial'
+                minpath_suffix = '-polymins'
+            elif specification == 'bins':
                 numpreds = 10
                 module = 'impacts.mortality.ols_binned'
                 minpath_suffix = '-binmins'
             elif specification == 'hddcdd':
-                pass
+                numpreds = 2
+                module = 'impacts.mortality.ols_hddcdd'
+                minpath_suffix = None
 
             agegroups = ['young', 'older', 'oldest']
             for ageii in range(len(agegroups)):

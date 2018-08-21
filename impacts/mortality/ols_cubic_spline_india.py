@@ -6,7 +6,7 @@ from impactcommon.math import minspline
 knots = [-10, 0, 10, 20, 28, 33]
 
 def prepare_raw(csvv, weatherbundle, economicmodel, qvals):
-    csvvfile.collapse_bang(csvv, qvals.get_seed())
+    csvvfile.collapse_bang(csvv, qvals.get_seed('csvv'))
 
     orig_curvegen = curvegen_known.CubicSplineCurveGenerator(['C'] + ['C^3'] * (len(knots) - 2),
                                                               '100000 * death/population', 'spline_variables-',
