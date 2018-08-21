@@ -10,9 +10,13 @@ def read(filename):
 
         # Clean up variables
         for variable in variables:
-            fullunit = variable[1]['unit']
-            if ']' in fullunit:
-                variable[1]['unit'] = fullunit[:fullunit.index(']')]
+            if 'unit' in variable[1]:
+                fullunit = variable[1]['unit']
+                if ']' in fullunit:
+                    variable[1]['unit'] = fullunit[:fullunit.index(']')]
+            else:
+                print "WARNING: Missing unit for variable %s." % variable
+                variable[1]['unit'] = None
 
         data = {'attrs': attrs, 'variables': variables, 'coords': coords}
         
@@ -97,6 +101,7 @@ def subset(csvv, toinclude):
         toinclude = np.where(toinclude)[0]
     else:
         toinclude = np.array(toinclude)
+        assert len(csvv['prednames']) > np.max(toinclude), "Too few coefficients: requested index %d but only have %d." % (np.max(toinclude), len(csvv['prednames']))
 
     subcsvv = copy.copy(csvv)
     subcsvv['prednames'] = [csvv['prednames'][ii] for ii in toinclude]

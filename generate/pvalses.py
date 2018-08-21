@@ -57,7 +57,7 @@ class ConstantDictionary:
     def __getitem__(self, name):
         return self.value
 
-    def get_seed(self, plus=0):
+    def get_seed(self, name, plus=0):
         return None # for MC, have this also increment state
 
 class OnDemandRandomPvals:
@@ -98,19 +98,19 @@ class OnDemandRandomDictionary:
 
         return value
 
-    def get_seed(self, plus=0):
+    def get_seed(self, name, plus=0):
+        fullname = "seed-%s" % name
         if self.locked:
-            if 'seed' not in self.values:
+            if fullname not in self.values:
                 print "WARNING: Missing seed in locked MC.  Assuming median."
                 return None
-            return self.values['seed'][0] + plus
+            return self.values[fullname] + plus
+
+        if fullname in self.values:
+            return self.values[fullname]
 
         seed = int(time.time()) + plus
-        if 'seed' in self.values:
-            self.values['seed'].append(seed)
-        else:
-            self.values['seed'] = [seed]
-
+        self.values[fullname] = seed
         return seed
 
 def get_pval_file(targetdir):
