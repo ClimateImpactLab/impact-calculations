@@ -4,7 +4,7 @@ from impactlab_tools.utils import files
 from adaptation import csvvfile
 from generate import weather, effectset, caller, checks, agglib
 from openest.generate.weatherslice import YearlyWeatherSlice
-from climate.discover import discover_versioned_yearly, discover_day2year, standard_variable
+from climate.discover import discover_versioned, discover_versioned_yearly, discover_day2year, standard_variable
 from datastore import agecohorts
 
 def preload():
@@ -12,6 +12,7 @@ def preload():
     library.get_data('mortality-deathrates', 'deaths/person')
 
 def get_bundle_iterator(config):
+    assert 'specification' in config
     if config['specification'] == 'polynomial':
         return weather.iterate_bundles(discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas"), 'tas', **config),
                                        discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-2"), 'tas-poly-2', **config),
@@ -26,6 +27,7 @@ def get_bundle_iterator(config):
                                        discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/" + config['hddvar']), config['hddvar'], **config),
                                        discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/" + config['cddvar']), config['cddvar'], **config),
                                        **config)
+    raise ValueError("Unknown specification: %s" % config['specification'])
 
 def check_doit(targetdir, basename, suffix):
     filepath = os.path.join(targetdir, basename + suffix + '.nc4')
