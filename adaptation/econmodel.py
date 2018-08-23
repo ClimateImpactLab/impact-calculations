@@ -45,18 +45,19 @@ class SSPEconomicModel(object):
         Return a dictionary {region: {loggdppc: loggdppc, popop: popop}
         """
         # Prepare population future
-        for region, year, value in population.each_future_population(self.model, self.scenario, dependencies):
+        for region, year, value in population.each_future_population(self.model, self.scenario, self.dependencies):
             if region not in self.pop_future_years:
                 self.pop_future_years[region] = {}
 
             self.pop_future_years[region][year] = value
 
         # Prepare population baseline
-        pop_baseline = population.population_baseline_data(2000, 2010, dependencies)
+        pop_baseline = population.population_baseline_data(2000, 2015, self.dependencies)
 
         # Prepare densitiy factor
         self.densities = popdensity.load_popop()
-
+        mean_density = np.mean(self.densities.values())
+        
         econ_predictors = {} # {region: {loggdppc: loggdppc, popop: popop}
 
         # Iterate through pop_baseline, since it has all regions
@@ -65,7 +66,7 @@ class SSPEconomicModel(object):
             gdppcs = self.income_model.get_timeseries(region)
             baseline_gdppcs = gdppcs[:maxbaseline - self.income_model.get_startyear() + 1]
             # Get the popop value
-            popop = self.densities.get(region, None)
+            popop = self.densities.get(region, mean_density)
             # Pass it into the func
             econ_predictors[region] = dict(loggdppc=func(np.log(baseline_gdppcs)), popop=func([popop]))
         
