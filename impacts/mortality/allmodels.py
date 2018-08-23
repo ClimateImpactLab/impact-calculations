@@ -22,11 +22,15 @@ def get_bundle_iterator(config):
         return weather.iterate_bundles(discover_day2year(standard_variable('tas', 'day', **config), lambda arr: np.mean(arr, axis=0)),
                                        discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/binned_tas"), "tas_bin_day_counts", **config),
                                        **config)
-    if config['specification'] == 'hddcdd':
-        return weather.iterate_bundles(discover_day2year(standard_variable('tas', 'day', **config), lambda arr: np.mean(arr, axis=0)),
-                                       discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/" + config['hddvar']), config['hddvar'], **config),
-                                       discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/" + config['cddvar']), config['cddvar'], **config),
-                                       **config)
+    if config['specification'] == 'linear':
+        assert 'terms' in config
+        discovers = [discover_day2year(standard_variable('tas', 'day', **config), lambda arr: np.mean(arr, axis=0))]
+        for label in config['terms']:
+            assert 'variable' in config['terms'][label]
+            variable = config['terms'][label]['variable']
+            discovers.append(discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/" + variable), variable, **config))
+        
+        return weather.iterate_bundles(*tuple(discovers), **config)
     raise ValueError("Unknown specification: %s" % config['specification'])
 
 def check_doit(targetdir, basename, suffix):
@@ -78,16 +82,17 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
                 numpreds = 10
                 module = 'impacts.mortality.ols_binned'
                 minpath_suffix = '-binmins'
-            elif specification == 'hddcdd':
-                numpreds = 2
-                module = 'impacts.mortality.ols_hddcdd'
+            elif specification == 'linear':
+                numpreds = len(config['terms'])
+                module = 'impacts.mortality.ols_linear'
                 minpath_suffix = None
 
             agegroups = ['young', 'older', 'oldest']
             for ageii in range(len(agegroups)):
                 subcsvv = csvvfile.subset(csvv, 3 * numpreds * ageii + np.arange(3 * numpreds))
                 subbasename = basename + '-' + agegroups[ageii]
-                caller.callinfo = dict(minpath=os.path.join(targetdir, subbasename + minpath_suffix + '.csv'))
+                if minpath_suffix is not None:
+                    caller.callinfo = dict(minpath=os.path.join(targetdir, subbasename + minpath_suffix + '.csv'))
 
                 # Full Adaptation
                 if check_doit(targetdir, subbasename, suffix):
