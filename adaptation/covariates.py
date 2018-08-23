@@ -44,6 +44,7 @@ class EconomicCovariator(Covariator):
         econpreds = self.econ_predictors.get(region, None)
 
         if econpreds is None:
+            print "ERROR: Missing econpreds for %s." % region
             loggdppc = self.econ_predictors['mean']['loggdppc']
         else:
             loggdppc = econpreds['loggdppc'].get()
