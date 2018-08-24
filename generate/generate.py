@@ -68,8 +68,12 @@ def push_callback(region, year, application, get_predictors, model):
                 variables.append((covar, vardefs[covar]))
             else:
                 variables.append((covar, "Unknown variable; append social/variables.yml"))
-
-        metacsv.to_header(filepath, attrs=OrderedDict([('oneline', "Yearly covariates by region and year"), ('version', config['module'] + config['outputdir'][config['outputdir'].rindex('-'):]), ('author', "James R."), ('contact', "jrising@berkeley.edu"), ('dependencies', [model + '.nc4'])]), variables=OrderedDict(variables))
+                
+        if '-' in config['outputdir']:
+            version = config['module'] + config['outputdir'][config['outputdir'].rindex('-'):]
+        else:
+            version = config['module'] + config['outputdir']
+        metacsv.to_header(filepath, attrs=OrderedDict([('oneline', "Yearly covariates by region and year"), ('version', version), ('author', "James R."), ('contact', "jrising@berkeley.edu"), ('dependencies', [model + '.nc4'])]), variables=OrderedDict(variables))
         with open(filepath, 'a') as fp:
             writer = csv.writer(fp)
             writer.writerow(['region', 'year', 'model'] + covarnames)
