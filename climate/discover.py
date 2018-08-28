@@ -50,9 +50,17 @@ def standard_variable(name, mytimerate, **config):
     if '.' in name:
         chunks = re_dotsplit.split(name)
         if len(chunks) > 1:
-            var = standard_variable(chunks[0], mytimerate, **config)
+            var = standard_variable(chunks[0], 'day', **config)
             for chunk in chunks[1:]:
                 var = interpret_transform(var, chunk)
+
+            if mytimerate == 'day':
+                return var
+            elif mytimerate == 'month':
+                return discover_day2month(var, lambda arr, dim: np.sum(arr, axis=dim))
+            elif mytimerate == 'year':
+                return discover_day2year(var, lambda arr, dim: np.sum(arr, axis=dim))
+            
             return var
 
     version = None
