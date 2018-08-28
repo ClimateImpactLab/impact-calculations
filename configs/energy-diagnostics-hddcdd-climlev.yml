@@ -1,0 +1,12 @@
+module: impacts/energy/hddcddmodel-climlev.yml
+mode: writecalcs
+outputdir: /shares/gcp/outputs/energy/impacts-rover
+do_farmers: true
+do_historical: true
+singledir: climate_level-081918
+econcovar:
+   class: mean
+   length: 15
+climcovar:
+   class: mean
+   length: 15
