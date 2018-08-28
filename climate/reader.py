@@ -339,15 +339,10 @@ class MapReader(WeatherReader):
         alldsvars = [allds[ii][self.readers[ii].get_dimension()[0]] for ii in range(len(allds))]
         origvar = self.readers[0].get_dimension()[0]
 
-        print "Before" # XXY
-        print alldsvars[0]
-
         result = self.func(*alldsvars)
         if isinstance(result, np.ndarray):
             ds0[origvar] = (ds0[origvar].dims, result)
         else:
-            print "After"
-            print result
             ds0[origvar] = result
             
         return ds0.rename({origvar: self.name})
