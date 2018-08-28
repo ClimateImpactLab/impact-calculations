@@ -329,15 +329,25 @@ class MapReader(WeatherReader):
         for ds0 in iterators[0]:
             dsn = map(lambda iterator: iterator.next(), iterators[1:])
             allds = [ds0] + dsn
-            alldsvars = [allds[ii][self.readers[ii].get_dimension()[0]] for ii in range(len(allds))]
-            origvar = self.readers[0].get_dimension()[0]
-            ds0[origvar] = self.func(*alldsvars)
-            yield ds0.rename({origvar: self.name})
+            yield self.prepare_ds(ds0, allds)
 
     def read_year(self, year):
         allds = [reader.read_year(year) for reader in self.readers]
+        return self.prepare_ds(allds[0], allds)
+
+    def prepare_ds(self, ds0, allds):
         alldsvars = [allds[ii][self.readers[ii].get_dimension()[0]] for ii in range(len(allds))]
-        ds0 = allds[0]
         origvar = self.readers[0].get_dimension()[0]
-        ds0[origvar] = self.func(*alldsvars)
+
+        print "Before" # XXY
+        print alldsvars[0]
+
+        result = self.func(*alldsvars)
+        if isinstance(result, np.ndarray):
+            ds0[origvar] = (ds0[origvar].dims, result)
+        else:
+            print "After"
+            print result
+            ds0[origvar] = result
+            
         return ds0.rename({origvar: self.name})
