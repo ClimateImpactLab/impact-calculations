@@ -12,8 +12,24 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, farmer='full',
 
     terms = config['terms'].values()
 
+    if config.get('clipping', 'both') == 'both':
+        baselineloggdppcs = {}
+        for region in weatherbundle.regions:
+            baselineloggdppcs[region] = covariator.get_current(region)['loggdppc']
+    
     def clip_transform(region, curve):
-        coeffs = map(lambda coeff: max(coeff, 0), curve.params)
+        if config.get('clipping', 'both') == 'none':
+            coeffs = curve.params
+        else:
+            coeffs = map(lambda coeff: max(coeff, 0), curve.params)
+
+            if config.get('clipping', 'both') == 'both':
+                covars = covariator.get_current(region)
+                covars['loggdppc'] = baselineloggdppcs[region]
+                noincadapt_curve = curr_curvegen.get_curve(region, None, covars)
+
+                coeffs = [min(coeffs[ii], max(noincadapt_curve.params[ii], 0)) for ii in range(len(coeffs))]
+            
         return CoefficientsCurve(coeffs, lambda x: np.nan)
 
     def clip_transform_climtas(region, curve):
@@ -25,7 +41,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, farmer='full',
     climtas_curvegen = curvegen.TransformCurveGenerator(clip_transform_climtas, farm_curvegen)
 
     getters = [lambda region, year, temps, curve: curve.coeffs[0], lambda region, year, temps, curve: curve.coeffs[1], lambda region, year, temps, curve: curve.coeffs[2], lambda region, year, temps, curve: curve.coeffs[3]]
-    changers = [lambda region, x: x[1], lambda region, x: x[2], lambda region, x: x[3], lambda region, x: x[4]]
+    changers = [lambda region, x: x[1], lambda region, x: x[2], lambda region, x: x[3], lambda region, x: x[4]] # start with 1, so not use tas
     
     main_calcs = []
     climtas_calcs = []

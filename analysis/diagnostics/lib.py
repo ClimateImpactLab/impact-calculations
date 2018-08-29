@@ -97,7 +97,7 @@ def get_gamma(csvv, predname, covarname):
 
     return None
 
-def show_coefficient(csvv, preds, year, coefname, covartrans):
+def show_coefficient(csvv, preds, year, coefname, covartrans, calconly=False):
     predyear = year - 1 if year > 2015 else year
 
     terms = []
@@ -112,6 +112,9 @@ def show_coefficient(csvv, preds, year, coefname, covartrans):
             else:
                 terms.append(str(csvv['gamma'][ii]) + " * " + str(excind(preds, predyear, csvv['covarnames'][ii])))
 
+    if calconly:
+        return ' + '.join(terms)
+    
     show_julia(' + '.join(terms))
 
 def show_coefficient_mle(csvv, preds, year, coefname, covartrans):
@@ -163,15 +166,22 @@ def get_weather(weathertemplate, years, shapenum=None, show_all_years=[], variab
             regions = rootgrp.variables['hierid'][:]
             regions = [''.join([region[ii] for ii in range(len(region)) if region[ii] is not np.ma.masked]) for region in regions]
             shapenum = regions.index(shapenum)
-            
-        data = rootgrp.variables[variable][:, shapenum]
-        rootgrp.close()
 
-        if year in show_all_years:
-            print str(year) + ': ' + ','.join(map(str, data))
+        if len(rootgrp.variables[variable].shape) == 2:
+            data = rootgrp.variables[variable][:, shapenum]
         else:
-            print str(year) + ': ' + ','.join(map(str, data[:10])) + '...'
+            data = rootgrp.variables[variable][shapenum]
+
+        if len(rootgrp.variables[variable].shape) == 2:
+            if year in show_all_years:
+                print str(year) + ': ' + ','.join(map(str, data))
+            else:
+                print str(year) + ': ' + ','.join(map(str, data[:10])) + '...'
+        else:
+            print "%d: %f" % (year, data)
+            
         weather[year] = data
+        rootgrp.close()
 
     return weather
 
