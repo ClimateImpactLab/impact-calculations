@@ -64,7 +64,8 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
             
         coeff_curve = SelectiveInputCurve(CoefficientsCurve(curve.ccs, curve, lambda x: x[:, :order]), range(order))
 
-        fulladapt_curve = ShiftedCurve(coeff_curve, -curve(baselinemins[region]))
+        baselevel = curve(baselinemins[region])
+        fulladapt_curve = ShiftedCurve(coeff_curve, -baselevel)
         if config.get('clipping', 'both') == 'clip':
             # Alternative: Turn off Goodmoney
             return ClippedCurve(fulladapt_curve)
@@ -73,7 +74,8 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
         covars['loggdppc'] = baselineloggdppcs[region]
         noincadapt_unshifted_curve = curr_curvegen.get_curve(region, None, covars, recorddiag=False)
         coeff_noincadapt_unshifted_curve = SelectiveInputCurve(CoefficientsCurve(noincadapt_unshifted_curve.ccs, noincadapt_unshifted_curve, lambda x: x[:, :order]), range(order))
-        noincadapt_curve = ShiftedCurve(coeff_noincadapt_unshifted_curve, -noincadapt_unshifted_curve(baselinemins[region]))
+        noincadapt_baselevel = noincadapt_unshifted_curve(baselinemins[region])
+        noincadapt_curve = ShiftedCurve(coeff_noincadapt_unshifted_curve, -noincadapt_baselevel)
 
         # Alternative: allow no anti-adaptation
         #noincadapt_curve = ShiftedCurve(baselinecurves[region], -baselinecurves[region](baselinemins[region]))
@@ -84,7 +86,8 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
             return ClippedCurve(goodmoney_curve)
 
         xxlimits, levels = derivative_clipping(curve.ccs, baselinemins[region])
-        return MaximumCurve(ClippedCurve(goodmoney_curve), StepCurve(xxlimits, levels))
+        noincadapt_xxlimits, noincadapt_levels = derivative_clipping(noincadapt_unshifted_curve.ccs, baselinemins[region])
+        return MaximumCurve(ClippedCurve(goodmoney_curve), MinimumCurve(StepCurve(xxlimits, levels - baselevel), StepCurve(noincadapt_xxlimits, noincadapt_levels - noincadapt_baselevel)))
 
     clip_curvegen = curvegen.TransformCurveGenerator(transform, curr_curvegen)
     farm_curvegen = curvegen.FarmerCurveGenerator(clip_curvegen, covariator, farmer)
