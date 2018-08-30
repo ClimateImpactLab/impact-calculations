@@ -22,14 +22,14 @@ models:
     specifications:
       tas-hi:
         description: Uninteracted term.
-        indepunit: C
         functionalform: coefficients
-        variable: tas-hi
+        variables:
+          - tas-hi [0, 1]
       tas-lo:
         description: Uninteracted term.
-        indepunit: C
         functionalform: coefficients
-        variable: tas-lo
+        variables:
+          - tas-lo [1, 0]
       tas:
         description: Uninteracted term.
         indepunit: C

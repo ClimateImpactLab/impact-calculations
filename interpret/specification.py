@@ -110,8 +110,13 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
         indepunits = []
         transform_descriptions = []
         for name in specconf['variables']:
-            match = re.match(r"^(.+?)\s+\[(.+?)\]$", specconf['variables'][name])
-            assert match is not None, "Could not find unit in %s" % specconf['variables'][name]
+            if isinstance(specconf['variables'], list):
+                match = re.match(r"^(.+?)\s+\[(.+?)\]$", name)
+                assert match is not None, "Could not find unit in %s" % name
+                name = match.group(1)
+            else:
+                match = re.match(r"^(.+?)\s+\[(.+?)\]$", specconf['variables'][name])
+                assert match is not None, "Could not find unit in %s" % specconf['variables'][name]
             ds_transforms[name] = variables.interpret_ds_transform(match.group(1), specconf)
             transform_descriptions.append(match.group(1))
             indepunits.append(match.group(2))
