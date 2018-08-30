@@ -6,38 +6,6 @@ from openest.generate.stdlib import *
 from openest.generate import diagnostic
 from impactcommon.math import minpoly
 
-def derivative_clipping(ccs, mintemp):
-    derivcoeffs = np.array(ccs) * np.arange(1, len(ccs) + 1) # Construct the derivative
-    roots = filter(np.isreal, np.roots(derivcoeffs[::-1])) # only consider real roots
-    
-    deriv2coeffs = derivcoeffs[1:] * np.arange(1, len(derivcoeffs)) # Second derivative
-    direction = np.polyval(deriv2coeffs[::-1], roots)
-    rootvals = np.polyval(([0] + ccs)[::-1], roots)
-
-    alllimits = set([-np.inf, np.inf])
-    levels = [] # min level for each span
-    spans = [] # list of tuples with spans
-    for ii in range(len(roots)):
-        if direction[ii] < 0: # ignore if turning back up
-            levels.append(rootvals[ii])
-            if roots[ii] < mintemp:
-                spans.append((-np.inf, roots[ii]))
-                alllimits.update([-np.inf, roots[ii]])
-            else:
-                spans.append((roots[ii], np.inf))
-                alllimits.update([roots[ii], np.inf])
-            
-    xxlimits = np.sort(list(alllimits))
-    yy = []
-    for ii in range(len(xxlimits) - 1):
-        level = -np.inf
-        for jj in range(len(spans)):
-            if spans[jj][0] <= xxlimits[ii] and spans[jj][1] >= xxlimits[ii+1]:
-                level = max(level, levels[jj])
-        yy.append(level)
-
-    return xxlimits, yy
-
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', config={}):
     covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, config=config.get('climcovar', {}), varindex=0), {'climtas': 'tas'}),
                                                 covariates.EconomicCovariator(economicmodel, 2015, config=config.get('econcovar', {}))])
@@ -79,12 +47,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
         #noincadapt_curve = ShiftedCurve(baselinecurves[region], -baselinecurves[region](baselinemins[region]))
 
         goodmoney_curve = MinimumCurve(fulladapt_curve, noincadapt_curve)
-
-        if not config.get('derivclip', False):
-            return ClippedCurve(goodmoney_curve)
-
-        xxlimits, levels = derivative_clipping(curve.ccs, baselinemins[region])
-        return MaximumCurve(ClippedCurve(goodmoney_curve), StepCurve(xxlimits, levels))
+        return ClippedCurve(goodmoney_curve)
 
     clip_curvegen = curvegen.TransformCurveGenerator(transform, curr_curvegen)
     farm_curvegen = curvegen.FarmerCurveGenerator(clip_curvegen, covariator, farmer)
@@ -98,13 +61,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
         
         climtas_coeff_curve = SelectiveInputCurve(CoefficientsCurve(climtas_effect_curve.ccs, climtas_effect_curve, lambda x: x[:, :order]), range(order))
         shifted_curve = ShiftedCurve(climtas_coeff_curve, -climtas_effect_curve(baselinemins[region]))
-
-        if not config.get('derivclip', False):
-            return OtherClippedCurve(curve, shifted_curve)
-
-        xxlimits, levels = derivative_clipping(curve.ccs, baselinemins[region])
-        xxlimits, levels = break_at_crossing(xxlimits, levels)
-        return OtherClippedCurve(curve, MinimumCurve(shifted_curve, StepCurve(xxlimits, np.isfinite(levels))))
+        return OtherClippedCurve(curve, shifted_curve)
 
     climtas_effect_curvegen = curvegen.TransformCurveGenerator(transform_climtas_effect, farm_curvegen)
 
@@ -117,9 +74,3 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
                             'convert to deaths/person/year', "Divide by 100000 to convert to deaths/person/year.")
 
     return calculation, [], covariator.get_current
-
-if __name__ == '__main__':
-    print derivative_clipping([12, -2, -4, 1], 0) # W-curve
-    print derivative_clipping([-2, -12, 2, 1], 2) # W-curve, but only a problem to left
-    print derivative_clipping([-36, 42, -20, 3], 3) # U all above 0
-    print derivative_clipping([22, 6, -2, 1], 0) # U sloping down at min
