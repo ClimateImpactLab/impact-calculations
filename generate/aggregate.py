@@ -300,29 +300,6 @@ if __name__ == '__main__':
                             else:
                                 tavgpath = '/shares/gcp/outputs/temps/%s/%s/climtas.nc4' % (clim_scenario, clim_model)
                                 impactspath = os.path.join(targetdir, filename)
-                                gammapath = '/shares/gcp/social/parameters/mortality/Diagnostics_Apr17/' + filename.replace('.nc4', '.csvv')
-                                gammapath = gammapath.replace('-young', '').replace('-older', '').replace('-oldest', '')
-
-                                if 'POLY-4' in filename:
-                                    numpreds = 4
-                                    minpath = os.path.join(targetdir, filename.replace('.nc4', '-polymins.csv'))
-                                elif 'POLY-5' in filename:
-                                    numpreds = 5
-                                    minpath = os.path.join(targetdir, filename.replace('.nc4', '-polymins.csv'))
-                                elif 'CSpline' in filename:
-                                    numpreds = 5
-                                    minpath = os.path.join(targetdir, filename.replace('.nc4', '-splinemins.csv'))
-                                else:
-                                    ValueError('Unknown functional form')
-                                
-                                if '-young' in filename:
-                                    gammarange = '1:%s' % (numpreds * 3)
-                                elif '-older' in filename:
-                                    gammarange = '%s:%s' % (numpreds * 3 + 1, numpreds * 6)
-                                elif '-oldest' in filename:
-                                    gammarange = '%s:%s' % (numpreds * 6 + 1, numpreds * 9)
-                                else:
-                                    continue # Cannot calculate costs
                                 
                                 print costs_command % (tavgpath, clim_scenario, clim_model, impactspath)
                                 os.system(costs_command % (tavgpath, clim_scenario, clim_model, impactspath))
