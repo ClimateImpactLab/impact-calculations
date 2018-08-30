@@ -6,6 +6,55 @@ from openest.generate.stdlib import *
 from openest.generate import diagnostic
 from impactcommon.math import minpoly
 
+class UShapedCurve(UnivariateCurve):
+    def __init__(self, curve, mintemp, gettas):
+        super(UShapedCurve, self).__init__(curve.xx)
+        self.curve = curve
+        self.mintemp = mintemp
+        self.gettas = gettas
+
+    def __call__(self, xs):
+        values = self.curve(xs)
+        tas = self.gettas(xs)
+        order = np.argsort(tas)
+        lowvalues = values[order[tas < self.mintemp]]
+        lowdiffs = np.diff(lowvalues)
+        lowdiffs[lowdiffs > 0] = 0
+        lowvalues2 = lowdiffs[-1] + np.cumsum(lowdiffs[::-1]) # flips the order, but no matter
+        highvalues = values[order[tas >= self.mintemp]]
+        highdiffs = np.diff(highvalues)
+        highdiffs[highdiffs < 0] = 0
+        highvalues2 = highvalues[0] + np.cumsum(highdiffs)
+
+        return np.concatenate((lowvalues2, [lowvalues[-1], highvalues[0]], highvalues2))
+
+# Return 0 when clipped
+class UShapedClipping(UnivariateCurve):
+    def __init__(self, curve, mintemp, gettas):
+        super(UShapedCurve, self).__init__(curve.xx)
+        self.curve = curve
+        self.mintemp = mintemp
+        self.gettas = gettas
+
+    def __call__(self, xs):
+        values = self.curve(xs)
+        tas = self.gettas(xs)
+        order = np.argsort(tas)
+
+        lowindexes = order[tas < self.mintemp]
+        lowvalues = values[lowindexes]
+        lowdiffs = np.diff(lowvalues)
+
+        highindexes = order[tas >= self.mintemp]
+        highvalues = values[highindexes]
+        highdiffs = np.diff(highvalues)
+
+        unclipped = np.ones(len(values))
+        unclipped[lowindexes[:-1][lowdiffs > 0]] = 0
+        unclipped[highindexes[1:][highdiffs < 0]] = 0
+        
+        return unclipped
+    
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', config={}):
     covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, config=config.get('climcovar', {}), varindex=0), {'climtas': 'tas'}),
                                                 covariates.EconomicCovariator(economicmodel, 2015, config=config.get('econcovar', {}))])
@@ -47,7 +96,11 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
         #noincadapt_curve = ShiftedCurve(baselinecurves[region], -baselinecurves[region](baselinemins[region]))
 
         goodmoney_curve = MinimumCurve(fulladapt_curve, noincadapt_curve)
-        return ClippedCurve(goodmoney_curve)
+
+        if not config.get('derivclip', False):
+            return ClippedCurve(goodmoney_curve)
+
+        return UShapedCurve(ClippedCurve(goodmoney_curve), baselinemins[region], lambda xs: xs[:, 0])
 
     clip_curvegen = curvegen.TransformCurveGenerator(transform, curr_curvegen)
     farm_curvegen = curvegen.FarmerCurveGenerator(clip_curvegen, covariator, farmer)
@@ -61,7 +114,11 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
         
         climtas_coeff_curve = SelectiveInputCurve(CoefficientsCurve(climtas_effect_curve.ccs, climtas_effect_curve, lambda x: x[:, :order]), range(order))
         shifted_curve = ShiftedCurve(climtas_coeff_curve, -climtas_effect_curve(baselinemins[region]))
-        return OtherClippedCurve(curve, shifted_curve)
+
+        if not config.get('derivclip', False):
+            return OtherClippedCurve(curve, shifted_curve)
+
+        return OtherClippedCurve(ProductCurve(curve, UShapedClipping(curve, baselinemins[region], lambda xs: xs[:, 0])), shifted_curve)
 
     climtas_effect_curvegen = curvegen.TransformCurveGenerator(transform_climtas_effect, farm_curvegen)
 
