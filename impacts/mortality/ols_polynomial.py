@@ -18,15 +18,12 @@ class UShapedCurve(UnivariateCurve):
         tas = self.gettas(xs)
         order = np.argsort(tas)
         lowvalues = values[order[tas < self.mintemp]]
-        lowdiffs = np.diff(lowvalues)
-        lowdiffs[lowdiffs > 0] = 0
-        lowvalues2 = lowdiffs[-1] + np.cumsum(lowdiffs[::-1]) # flips the order, but no matter
-        highvalues = values[order[tas >= self.mintemp]]
-        highdiffs = np.diff(highvalues)
-        highdiffs[highdiffs < 0] = 0
-        highvalues2 = highvalues[0] + np.cumsum(highdiffs)
+        lowvalues2 = np.maximum.accumulate(lowvalues[::-1])
 
-        return np.concatenate((lowvalues2, [lowvalues[-1], highvalues[0]], highvalues2))
+        highvalues = values[order[tas >= self.mintemp]]
+        highvalues2 = np.maximum.accumulate(highvalues)
+
+        return np.concatenate((lowvalues2, highvalues2))
 
 # Return 0 when clipped
 class UShapedClipping(UnivariateCurve):
@@ -43,15 +40,17 @@ class UShapedClipping(UnivariateCurve):
 
         lowindexes = order[tas < self.mintemp]
         lowvalues = values[lowindexes]
-        lowdiffs = np.diff(lowvalues)
+        lowvalues2 = np.maximum.accumulate(lowvalues[::-1])
+        lowdiffs = np.diff(lowvalues2)[::-1]
 
         highindexes = order[tas >= self.mintemp]
         highvalues = values[highindexes]
-        highdiffs = np.diff(highvalues)
+        highvalues2 = np.maximum.accumulate(highvalues)
+        highdiffs = np.diff(highvalues2)
 
         unclipped = np.ones(len(values))
-        unclipped[lowindexes[:-1][lowdiffs > 0]] = 0
-        unclipped[highindexes[1:][highdiffs < 0]] = 0
+        unclipped[lowindexes[:-1][lowdiffs != 0]] = 0
+        unclipped[highindexes[1:][highdiffs != 0]] = 0
         
         return unclipped
     
@@ -131,3 +130,13 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
                             'convert to deaths/person/year', "Divide by 100000 to convert to deaths/person/year.")
 
     return calculation, [], covariator.get_current
+
+if __name__ == '__main__':
+    curve = ZeroInterceptPolynomialCurve([-np.inf, np.inf], [-2, -12, 2, 1])
+    ucurve = UShapedCurve(curve, -1, lambda x: x)
+
+    xx = np.arange(-6, 4)
+    print xx
+    print curve(xx)
+    print ucurve(xx)
+    
