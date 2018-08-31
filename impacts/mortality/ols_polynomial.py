@@ -1,7 +1,7 @@
 import csv, copy
 import numpy as np
 from adaptation import csvvfile, curvegen, curvegen_known, covariates, constraints
-from openest.models.curve import ZeroInterceptPolynomialCurve, ClippedCurve, ShiftedCurve, MinimumCurve, OtherClippedCurve, SelectiveInputCurve, CoefficientsCurve
+from openest.models.curve import ZeroInterceptPolynomialCurve, ClippedCurve, ShiftedCurve, MinimumCurve, OtherClippedCurve, SelectiveInputCurve, CoefficientsCurve, ProductCurve
 from openest.generate.stdlib import *
 from openest.generate import diagnostic
 from impactcommon.math import minpoly
@@ -31,7 +31,7 @@ class UShapedCurve(UnivariateCurve):
 # Return 0 when clipped
 class UShapedClipping(UnivariateCurve):
     def __init__(self, curve, mintemp, gettas):
-        super(UShapedCurve, self).__init__(curve.xx)
+        super(UShapedClipping, self).__init__(curve.xx)
         self.curve = curve
         self.mintemp = mintemp
         self.gettas = gettas
