@@ -5,8 +5,12 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     # specconf here is the model containing 'specification' and 'calculation' keys
     assert 'calculation' in specconf
     assert 'specifications' in specconf
-    
-    csvvfile.collapse_bang(csvv, qvals.get_seed('csvv'))
+
+    if config.get('report-variance', False):
+        csvv['gamma'] = np.zeros(len(csvv['gamma'])) # So no mistaken results
+    else:
+        csvvfile.collapse_bang(csvv, qvals.get_seed('csvv'))
+        
     covariator = specification.create_covariator(specconf, weatherbundle, economicmodel, config, quiet=config.get('quiet', False))
 
     models = {}
