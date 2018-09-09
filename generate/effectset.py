@@ -112,7 +112,14 @@ def write_ncdf(targetdir, basename, weatherbundle, calculation, description, cal
         
     for region, year, results in simultaneous_application(weatherbundle, calculation, regions=my_regions, push_callback=push_callback):
         for col in range(len(results)):
-            columndata[col][year - yeardata[0], region_indices[region]] = results[col]
+            if deltamethod:
+                variance = 0
+                for ii in range(len(results[col])):
+                    for jj in range(len(results[col])):
+                        variance += vcv[ii, jj] * results[col][ii] * results[col][jj]
+                columndata[col][year - yeardata[0], region_indices[region]] = variance
+            else:
+                columndata[col][year - yeardata[0], region_indices[region]] = results[col]
         if diagnosefile:
             diagnostic.finish(region, year, group='output')
 
