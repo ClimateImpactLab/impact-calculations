@@ -10,6 +10,7 @@ class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
         super(PolynomialCurveGenerator, self).__init__(prednames, indepunits * order, depenunit, csvv, betalimits=betalimits)
         self.diagprefix = diagprefix
         self.weathernames = weathernames
+        self.deltamethod = deltamethod
 
     def get_curve(self, region, year, covariates={}, recorddiag=True, **kwargs):
         coefficients = self.get_coefficients(covariates)
