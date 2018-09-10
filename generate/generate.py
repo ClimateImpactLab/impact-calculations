@@ -11,6 +11,8 @@ from interpret import configs
 from impactlab_tools.utils import files, paralog
 import cProfile, pstats, StringIO, metacsv
 
+from impacts.mortality import ols_polynomial # XXY
+
 config = configs.standardize(files.get_allargv_config())
 
 CLAIM_TIMEOUT = 12*60*60
@@ -82,6 +84,12 @@ def push_callback(region, year, application, get_predictors, model):
         writer = csv.writer(fp)
         predictors = get_predictors(region)
         writer.writerow([region, year, model] + [predictors[covar] for covar in covars])
+
+    with open("uclip-values.csv", 'a') as fp: # XXY
+        fp.write("%d,%d,%d\n" % (year, ols_polynomial.uclip_count, ols_polynomial.uclip_total))
+
+    ols_polynomial.uclip_count = 0 # XXY
+    ols_polynomial.uclip_total = 0
 
 mode_iterators = {'median': iterate_median, 'montecarlo': iterate_montecarlo, 'single': iterate_single, 'profile': iterate_nosideeffects, 'diagnostic': iterate_nosideeffects}
 

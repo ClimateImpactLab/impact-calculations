@@ -6,6 +6,9 @@ from openest.generate.stdlib import *
 from openest.generate import diagnostic
 from impactcommon.math import minpoly
 
+uclip_count = 0 # XXY
+uclip_total = 0
+
 class UShapedCurve(UnivariateCurve):
     def __init__(self, curve, mintemp, gettas):
         super(UShapedCurve, self).__init__(curve.xx)
@@ -14,14 +17,19 @@ class UShapedCurve(UnivariateCurve):
         self.gettas = gettas
 
     def __call__(self, xs):
+        global uclip_count, uclip_total
+    
         values = self.curve(xs)
         tas = self.gettas(xs)
         order = np.argsort(tas)
-        lowvalues = values[order[tas < self.mintemp]]
-        lowvalues2 = np.maximum.accumulate(lowvalues[::-1])
+        lowvalues = values[order[tas < self.mintemp]][::-1]
+        lowvalues2 = np.maximum.accumulate(lowvalues)
 
         highvalues = values[order[tas >= self.mintemp]]
         highvalues2 = np.maximum.accumulate(highvalues)
+
+        uclip_count = uclip_count + np.sum(np.array(lowvalues) != lowvalues2) + np.sum(np.array(highvalues) != highvalues2) # XXY
+        uclip_total = uclip_total + len(lowvalues2) + len(highvalues2)
 
         return np.concatenate((lowvalues2, highvalues2))
 
