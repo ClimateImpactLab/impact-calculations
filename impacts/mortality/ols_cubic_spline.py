@@ -24,9 +24,9 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     for region in weatherbundle.regions:
         baselineloggdppcs[region] = covariator.get_current(region)['loggdppc']
 
-    # Determine minimum value of curve between 10C and 25C
-    baselinecurves, baselinemins = constraints.get_curve_minima(weatherbundle.regions, curr_curvegen, covariator, 10, 25,
-                                                                lambda region, curve: minspline.findsplinemin(knots, curve.coeffs, 10, 25))
+    # Determine minimum value of curve between 10C and 30C
+    baselinecurves, baselinemins = constraints.get_curve_minima(weatherbundle.regions, curr_curvegen, covariator, 10, 30,
+                                                                lambda region, curve: minspline.findsplinemin(knots, curve.coeffs, 10, 30))
 
     def transform(region, curve):
         fulladapt_curve = ShiftedCurve(SelectiveInputCurve(curve, [0]), -curve(baselinemins[region]))

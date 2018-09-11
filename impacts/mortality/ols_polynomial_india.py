@@ -11,8 +11,8 @@ def prepare_raw(csvv, weatherbundle, economicmodel, qvals):
                                                             '100000 * death/population', 'tas', order, csvv)
     curve = poly_curvegen.get_curve('global', 2000, {})
 
-    # Determine minimum value of curve between 10C and 25C
-    curvemin = minpoly.findpolymin([0] + curve.ccs, 10, 25)
+    # Determine minimum value of curve between 10C and 30C
+    curvemin = minpoly.findpolymin([0] + curve.ccs, 10, 30)
 
     coeff_curve = SelectiveInputCurve(CoefficientsCurve(curve.ccs), range(order))
     shifted_curve = ShiftedCurve(coeff_curve, -curve(curvemin))
