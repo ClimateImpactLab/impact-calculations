@@ -64,10 +64,12 @@ class EconomicCovariator(Covariator):
     def get_current(self, region):
         econpreds = self.get_econ_predictors(region)
         return dict(loggdppc=econpreds['loggdppc'],
-                    logpopop=np.log(econpreds['popop']))
+                    logpopop=np.log(econpreds['popop']),
+                    year=self.lastyear.get(region, self.startupdateyear))
 
     def get_update(self, region, year, ds):
         assert year < 10000
+        self.lastyear[region] = year
 
         if region in self.econ_predictors:
             loggdppc = self.economicmodel.get_loggdppc_year(region, year)
@@ -463,7 +465,7 @@ class ProductCovariator(Covariator):
 
     def make_product(self, covars1, covars2):
         combos = itertools.product(covars1.keys(), covars2.keys())
-        result = {"%s*%s" % (key1, key2): covars1[key1] * covars2[key2] for key1, key2 in combos if key1 != 'year' and key2 != 'year'}
+        result = {"%s*%s" % (key1, key2): covars1[key1] * covars2[key2] for key1, key2 in combos}
         if 'year' in covars1:
             result['year'] = covars1['year']
         if 'year' in covars2:
