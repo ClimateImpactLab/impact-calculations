@@ -14,8 +14,8 @@ def prepare_raw(csvv, weatherbundle, economicmodel, qvals):
 
     curve = orig_curvegen.get_curve('global', 2000, {})
     
-    # Determine minimum value of curve between 10C and 25C
-    curvemin = minspline.findsplinemin(knots, curve.coeffs, 10, 25)
+    # Determine minimum value of curve between 10C and 30C
+    curvemin = minspline.findsplinemin(knots, curve.coeffs, 10, 30)
 
     shifted_curve = ShiftedCurve(SelectiveInputCurve(curve, [0]), -curve(curvemin))
     clipped_curve = ClippedCurve(shifted_curve)
