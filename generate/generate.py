@@ -85,12 +85,13 @@ def push_callback(region, year, application, get_predictors, model):
         predictors = get_predictors(region)
         writer.writerow([region, year, model] + [predictors[covar] for covar in covars])
 
-    with open("uclip-values.csv", 'a') as fp: # XXY
-        fp.write("%d,%d,%d\n" % (year, ols_polynomial.uclip_count, ols_polynomial.uclip_total))
+    if region == 'USA.14.608':
+        with open("uclip-values.csv", 'a') as fp: # XXY
+            fp.write("%d,%d,%d\n" % (year, ols_polynomial.uclip_count, ols_polynomial.uclip_total))
 
-    ols_polynomial.uclip_count = 0 # XXY
-    ols_polynomial.uclip_total = 0
-
+        ols_polynomial.uclip_count = 0 # XXY
+        ols_polynomial.uclip_total = 0
+        
 mode_iterators = {'median': iterate_median, 'montecarlo': iterate_montecarlo, 'single': iterate_single, 'profile': iterate_nosideeffects, 'diagnostic': iterate_nosideeffects}
 
 assert config['mode'] in mode_iterators.keys()
