@@ -22,10 +22,13 @@ class UShapedCurve(UnivariateCurve):
         values = self.curve(xs)
         tas = self.gettas(xs)
         order = np.argsort(tas)
-        lowvalues = values[order[tas < self.mintemp]][::-1]
+        orderedtas = tas[order]
+        orderedvalues = values[order]
+
+        lowvalues = orderedvalues[orderedtas < self.mintemp][::-1]
         lowvalues2 = np.maximum.accumulate(lowvalues)
 
-        highvalues = values[order[tas >= self.mintemp]]
+        highvalues = orderedvalues[orderedtas >= self.mintemp]
         highvalues2 = np.maximum.accumulate(highvalues)
 
         uclip_count = uclip_count + np.sum(np.array(lowvalues) != lowvalues2) + np.sum(np.array(highvalues) != highvalues2) # XXY
