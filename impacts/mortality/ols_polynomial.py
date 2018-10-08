@@ -17,10 +17,13 @@ class UShapedCurve(UnivariateCurve):
         values = self.curve(xs)
         tas = self.gettas(xs)
         order = np.argsort(tas)
-        lowvalues = values[order[tas < self.mintemp]]
+        orderedtas = tas[order]
+        orderedvalues = values[order]
+
+        lowvalues = orderedvalues[orderedtas < self.mintemp]
         lowvalues2 = np.maximum.accumulate(lowvalues[::-1])
 
-        highvalues = values[order[tas >= self.mintemp]]
+        highvalues = orderedvalues[orderedtas >= self.mintemp]
         highvalues2 = np.maximum.accumulate(highvalues)
 
         return np.concatenate((lowvalues2, highvalues2))
