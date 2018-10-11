@@ -48,6 +48,9 @@ def generate(targetdir, basename, weatherbundle, calculation, description, calcu
 
     if filter_region is None:
         filter_region = config.get('filter-region', None)
+
+    if config.get('deltamethod', False):
+        calculation.enable_deltamethod()
     
     return write_ncdf(targetdir, basename, weatherbundle, calculation, description, calculation_dependencies, filter_region=filter_region, push_callback=push_callback, subset=subset, diagnosefile=diagnosefile)
 
@@ -112,7 +115,7 @@ def write_ncdf(targetdir, basename, weatherbundle, calculation, description, cal
         
     for region, year, results in simultaneous_application(weatherbundle, calculation, regions=my_regions, push_callback=push_callback):
         for col in range(len(results)):
-            if deltamethod:
+            if calculation.deltamethod:
                 variance = 0
                 for ii in range(len(results[col])):
                     for jj in range(len(results[col])):
