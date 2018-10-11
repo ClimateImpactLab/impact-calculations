@@ -10,7 +10,6 @@ class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
         super(PolynomialCurveGenerator, self).__init__(prednames, indepunits * order, depenunit, csvv, betalimits=betalimits)
         self.diagprefix = diagprefix
         self.weathernames = weathernames
-        self.deltamethod = deltamethod
 
     def get_curve(self, region, year, covariates={}, recorddiag=True, **kwargs):
         coefficients = self.get_coefficients(covariates)
@@ -26,19 +25,13 @@ class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
 
         return ZeroInterceptPolynomialCurve([-np.inf, np.inf], yy)
 
-    def get_lincom_terms_simple(self, predictors={}, covariates={}):
-        # Return in the order of the CSVV
-        terms = []
-        for ii in range(len(self.csvv['prednames'])):
-            predname = self.csvv['prednames'][ii]
-            if predname not in predictors._variables.keys():
-                predname = predname[:-1] + '-poly-' + predname[-1]
+    def get_lincom_terms_simple_each(self, predname, covarname, predictors, covariates={}):
+        if predname not in predictors._variables.keys():
+            predname = predname[:-1] + '-poly-' + predname[-1]
                 
-            pred = predictors[predname]._values
-            covar = covariates[self.csvv['covarnames'][ii]] if self.csvv['covarnames'][ii] != '1' else 1
-            terms.append(pred * covar)
-
-        return np.array(terms)
+        pred = np.sum(predictors[predname]._values)
+        covar = covariates[self.csvv['covarnames'][ii]] if self.csvv['covarnames'][ii] != '1' else 1
+        return pred * covar
 
     def get_csvv_coeff(self):
         return self.csvv['gamma']
