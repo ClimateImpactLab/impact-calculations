@@ -37,23 +37,17 @@ class UShapedClipping(UnivariateCurve):
         self.gettas = gettas
 
     def __call__(self, xs):
-        values = self.curve(xs)
+        increasingvalues = self.curve(xs) # these are ordered as low..., high...
+        increasingplateaus = np.diff(increasingvalues) == 0
+
+        # Re-organize to original tas
         tas = self.gettas(xs)
         order = np.argsort(tas)
-
-        lowindexes = order[tas < self.mintemp]
-        lowvalues = values[lowindexes]
-        lowvalues2 = np.maximum.accumulate(lowvalues[::-1])
-        lowdiffs = np.diff(lowvalues2)[::-1]
-
-        highindexes = order[tas >= self.mintemp]
-        highvalues = values[highindexes]
-        highvalues2 = np.maximum.accumulate(highvalues)
-        highdiffs = np.diff(highvalues2)
-
-        unclipped = np.ones(len(values))
-        unclipped[lowindexes[:-1][lowdiffs != 0]] = 0
-        unclipped[highindexes[1:][highdiffs != 0]] = 0
+        orderedtas = tas[order]
+        increasingorder = np.concatenate((order[orderedtas < self.mintemp][::-1], order[orderedtas >= self.mintemp]))
+        
+        unclipped = np.ones(len(tas))
+        unclipped[increasingorder] = np.concatenate(([1], 1 - increasingplateaus))
         
         return unclipped
     
