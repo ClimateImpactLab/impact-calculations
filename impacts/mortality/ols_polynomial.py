@@ -28,11 +28,12 @@ class UShapedCurve(UnivariateCurve):
 
         return np.concatenate((lowvalues2, highvalues2))
 
-# Return 0 when clipped
+# Return tmarginal evaluated at the innermost edge of plateaus
 class UShapedClipping(UnivariateCurve):
-    def __init__(self, curve, mintemp, gettas):
+    def __init__(self, curve, tmarginal_curve, mintemp, gettas):
         super(UShapedClipping, self).__init__(curve.xx)
         self.curve = curve
+        self.tmarginal_curve = tmarginal_curve
         self.mintemp = mintemp
         self.gettas = gettas
 
@@ -44,12 +45,20 @@ class UShapedClipping(UnivariateCurve):
         tas = self.gettas(xs)
         order = np.argsort(tas)
         orderedtas = tas[order]
-        increasingorder = np.concatenate((order[orderedtas < self.mintemp][::-1], order[orderedtas >= self.mintemp]))
-        
-        unclipped = np.ones(len(tas))
-        unclipped[increasingorder] = np.concatenate(([1], 1 - increasingplateaus))
-        
-        return unclipped
+
+        # Replace temperatures with innermost plateau points
+        lowincreasingtas = orderedtas[orderedtas < self.mintemp][::-1] # T values decreasing
+        lowincreasingtas[np.concatenate(([T], increasingplateaus[:len(lowincreasingtas)-1]))] = np.inf
+        highincreasingtas = orderedtas[orderedtas >= self.mintemp] # T values increasing
+        highincreasingtas[np.concatenate(([T], increasingplateaus[-len(highincreasingtas)+1:]))] = -np.inf
+
+        lowincreasingevaltas = np.minimum.accumulate(lowincreasingtas)
+        highincreasingevaltas = np.maximum.accumulate(highincreasingtas)
+
+        increasingresults = np.concatenate((self.tmarginal_curve(lowincreasingevaltas), self.tmarginal_curve(highincreasingevaltas))) # ordered low..., high...
+        increasingresults[increasingvalues == 0] = 0 # replace truly clipped with 0
+
+        return increasingresults
     
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', config={}):
     covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, config=config.get('climcovar', {}), varindex=0), {'climtas': 'tas'}),
@@ -114,7 +123,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
         if not config.get('derivclip', False):
             return OtherClippedCurve(curve, shifted_curve)
 
-        return OtherClippedCurve(ProductCurve(curve, UShapedClipping(curve, baselinemins[region], lambda xs: xs[:, 0])), shifted_curve)
+        return UShapedClipping(curve, shifted_curve, baselinemins[region], lambda xs: xs[:, 0])
 
     climtas_effect_curvegen = curvegen.TransformCurveGenerator(transform_climtas_effect, farm_curvegen)
 
