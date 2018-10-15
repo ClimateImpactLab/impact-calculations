@@ -41,22 +41,24 @@ class UShapedClipping(UnivariateCurve):
         increasingvalues = self.curve(xs) # these are ordered as low..., high...
         increasingplateaus = np.diff(increasingvalues) == 0
 
-        # Re-organize to original tas
         tas = self.gettas(xs)
         order = np.argsort(tas)
         orderedtas = tas[order]
 
-        # Replace temperatures with innermost plateau points
-        lowincreasingtas = orderedtas[orderedtas < self.mintemp][::-1] # T values decreasing
-        lowincreasingtas[np.concatenate(([T], increasingplateaus[:len(lowincreasingtas)-1]))] = np.inf
-        highincreasingtas = orderedtas[orderedtas >= self.mintemp] # T values increasing
-        highincreasingtas[np.concatenate(([T], increasingplateaus[-len(highincreasingtas)+1:]))] = -np.inf
+        n_below = sum(orderedtas < self.mintemp)
+        
+        lowindicesofordered = np.arange(n_below)[::-1] # [N-1 ... 0]
+        if len(lowindicesofordered) > 1:
+            lowindicesofordered[np.concatenate(([False], increasingplateaus[:len(lowindicesofordered)-1]))] = n_below
+            lowindicesofordered = np.minimum.accumulate(lowindicesofordered)
+        
+        highindicesofordered = np.arange(sum(orderedtas >= self.mintemp)) + n_below # [N ... T-1]
+        if len(highindicesofordered) > 1:
+            highindicesofordered[np.concatenate(([False], increasingplateaus[-len(highindicesofordered)+1:]))] = n_below
+            highindicesofordered = np.maximum.accumulate(highindicesofordered)
 
-        lowincreasingevaltas = np.minimum.accumulate(lowincreasingtas)
-        highincreasingevaltas = np.maximum.accumulate(highincreasingtas)
-
-        increasingresults = np.concatenate((self.tmarginal_curve(lowincreasingevaltas), self.tmarginal_curve(highincreasingevaltas))) # ordered low..., high...
-        increasingresults[increasingvalues == 0] = 0 # replace truly clipped with 0
+        increasingresults = np.concatenate((self.tmarginal_curve(xs[order[lowindicesofordered], :]), self.tmarginal_curve(xs[order[highindicesofordered], :]))) # ordered low..., high...
+        increasingresults[increasingvalues <= 0] = 0 # replace truly clipped with 0
 
         return increasingresults
     
