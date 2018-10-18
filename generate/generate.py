@@ -46,7 +46,6 @@ def iterate_single():
         config['rcp_only'] = loadmodels.single_clim_scenario
     if 'only-models' not in config:
         config['only-models'] = [loadmodels.single_clim_model]
-
     clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel = loadmodels.single(mod.get_bundle_iterator(config))
     pvals = pvalses.ConstantPvals(.5)
 
