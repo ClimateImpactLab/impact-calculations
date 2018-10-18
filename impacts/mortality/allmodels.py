@@ -31,6 +31,11 @@ def get_bundle_iterator(config):
             discovers.append(discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/" + variable), variable, **config))
         
         return weather.iterate_bundles(*tuple(discovers), **config)
+    if config['specification'] == 'hddcdd':
+        return weather.iterate_bundles(discover_day2year(standard_variable('tas', 'day', **config), lambda arr: np.mean(arr, axis=0)),
+                                       discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/" + config['hddvar']), config['hddvar'], **config),
+                                       discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/" + config['cddvar']), config['cddvar'], **config),
+                                       **config)
     raise ValueError("Unknown specification: %s" % config['specification'])
 
 def check_doit(targetdir, basename, suffix):
