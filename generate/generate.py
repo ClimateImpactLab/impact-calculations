@@ -14,6 +14,8 @@ import cProfile, pstats, StringIO, metacsv
 
 config = configs.standardize(files.get_allargv_config())
 
+print "Initializing..."
+
 CLAIM_TIMEOUT = 12*60*60
 do_single = False
 
