@@ -24,6 +24,8 @@ def iterate_bundles(*iterators_readers, **config):
     else:
         transformer = WeatherTransformer()
 
+    print "Loading weather..."
+        
     if len(iterators_readers) == 1:
         for scenario, model, pastreader, futurereader in iterators_readers[0]:
             if 'gcm' in config and config['gcm'] != model:

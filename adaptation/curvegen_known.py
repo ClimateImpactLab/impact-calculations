@@ -30,7 +30,7 @@ class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
             predname = predname[:-1] + '-poly-' + predname[-1]
                 
         pred = np.sum(predictors[predname]._values)
-        covar = covariates[self.csvv['covarnames'][ii]] if self.csvv['covarnames'][ii] != '1' else 1
+        covar = covariates[covarname] if covarname != '1' else 1
         return pred * covar
 
     def get_csvv_coeff(self):
