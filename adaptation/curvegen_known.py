@@ -28,7 +28,7 @@ class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
     def get_lincom_terms_simple_each(self, predname, covarname, predictors, covariates={}):
         if predname not in predictors._variables.keys():
             predname = predname[:-1] + '-poly-' + predname[-1]
-                
+            
         pred = np.sum(predictors[predname]._values)
         covar = covariates[covarname] if covarname != '1' else 1
         return pred * covar
