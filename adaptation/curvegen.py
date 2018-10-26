@@ -82,7 +82,10 @@ class CSVVCurveGenerator(CurveGenerator):
         for ii in range(len(self.csvv['prednames'])):
             predname = self.csvv['prednames'][ii]
             covarname = self.csvv['covarnames'][ii]
-            term = self.get_lincom_terms_simple_each(predname, covarname, predictors, covariates)
+            if predname in self.prednames:
+                term = self.get_lincom_terms_simple_each(predname, covarname, predictors, covariates)
+            else:
+                term = 0.0
             terms.append(term)
 
         return np.array(terms)
