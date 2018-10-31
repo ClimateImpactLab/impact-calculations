@@ -8,6 +8,7 @@ class BinnedStepCurveGenerator(curvegen.CSVVCurveGenerator):
         prednames = csvvfile.binnames(xxlimits, 'bins')
         super(BinnedStepCurveGenerator, self).__init__(prednames, indepunits, depenunit, csvv)
         self.min_betas = {}
+        self.min_binks = {}
 
     def get_curve(self, region, year, covariates={}):
         coefficients = self.get_coefficients(covariates)
@@ -17,6 +18,10 @@ class BinnedStepCurveGenerator(curvegen.CSVVCurveGenerator):
 
         if min_beta is None:
             self.min_betas[region] = np.minimum(0, np.nanmin(np.array(yy)[4:-2]))
+            if self.min_betas[region] == 0:
+                self.min_binks[region] = 4 + np.where(np.isnan(np.array(yy)[4:-2]))
+            else:
+                self.min_binks[region] = 4 + np.where(self.min_betas == np.nanmin(np.array(yy)[4:-2]))
         else:
             yy = np.maximum(min_beta, yy)
 
