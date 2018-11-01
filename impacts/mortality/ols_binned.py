@@ -1,6 +1,7 @@
 import re
 import numpy as np
 from adaptation import csvvfile, curvegen, curvegen_step, covariates
+from interpret import configs
 from openest.models.curve import StepCurve, OtherClippedCurve
 from openest.generate.stdlib import *
 
@@ -15,8 +16,8 @@ def u_shaped_curve(curve, min_bink):
     return StepCurve(curve.xxlimits, yy)
 
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, farmer='full', config={}):
-    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, config=config.get('climcovar', {}), varindex=0), {'climtas': 'tas'}),
-                                                covariates.EconomicCovariator(economicmodel, 2015, config=config.get('econcovar', {}))])
+    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, config=configs.merge(config, 'climcovar'), varindex=0), {'climtas': 'tas'}),
+                                                covariates.EconomicCovariator(economicmodel, 2015, config=configs.merge(config, 'econcovar'))])
 
     # Don't collapse: already collapsed in allmodels
     #csvvfile.collapse_bang(csvv, qvals.get_seed())
