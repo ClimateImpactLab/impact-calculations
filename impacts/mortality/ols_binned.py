@@ -7,14 +7,12 @@ from openest.generate.stdlib import *
 bin_limits = [-np.inf, -13, -8, -3, 2, 7, 12, 17, 22, 27, 32, np.inf]
 
 def u_shaped_curve(curve, min_bink):
-    yy = curve.yy
+    yy = np.array(curve.yy)
     yy[np.isnan(yy)] = 0
     yy[min_bink:] = np.maximum.accumulate(yy[min_bink:])
     yy[:(min_bink+1)] = np.maximum.accumulate(yy[:(min_bink+1)][::-1])[::-1]
 
     return StepCurve(curve.xxlimits, yy)
-
-def u_
 
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, farmer='full', config={}):
     covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, config=config.get('climcovar', {}), varindex=0), {'climtas': 'tas'}),
@@ -23,22 +21,24 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, farmer='full',
     # Don't collapse: already collapsed in allmodels
     #csvvfile.collapse_bang(csvv, qvals.get_seed())
 
-    curr_curvegen = curvegen_step.BinnedStepCurveGenerator(bin_limits, ['days / year'] * (len(bin_limits) - 1),
+    step_curvegen = curvegen_step.BinnedStepCurveGenerator(bin_limits, ['days / year'] * (len(bin_limits) - 1),
                                                       '100,000 * death/population', csvv)
     if config.get('derivclip', False):
-        curr_curvegen = curvegen.TransformCurveGenerator(lambda region, curve: u_shaped_curve(curve, curr_curvegen.min_binks[region]))
-            
+        curr_curvegen = curvegen.TransformCurveGenerator(lambda region, curve: u_shaped_curve(curve, step_curvegen.min_binks[region]), step_curvegen)
+    else:
+        curr_curvegen = step_curvegen
+        
     farm_curvegen = curvegen.FarmerCurveGenerator(curr_curvegen, covariator, farmer)
 
     climtas_effect_curve = StepCurve(bin_limits, np.array([csvvfile.get_gamma(csvv, tasvar, 'climtas') for tasvar in csvvfile.binnames(bin_limits, 'bins')]))
 
     def transform_climtas_effect(region, curve):
         if not config.get('derivclip', False):
-            return OtherClippedCurve(curve, climtas_effect_curve, clipy=curr_curvegen.min_betas[region])
+            return OtherClippedCurve(curve, climtas_effect_curve, clipy=step_curvegen.min_betas[region])
 
         # Copy marginal effects across plateau'd bins
-        min_bink = curr_curvegen.min_binks[region]
-        
+        min_bink = step_curvegen.min_binks[region]
+
         platright = curve.yy[min_bink:-1] == curve.yy[(min_bink+1):]
         indexesright = np.arange(min_bink + 1, len(curve.yy))
         indexesright[platright] = 0
@@ -53,7 +53,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, farmer='full',
         
         uclip_climtas_effect_curve = StepCurve(bin_limits, climtas_effect_curve.yy[indexes])
         
-        return OtherClippedCurve(curve, uclip_climtas_effect_curve, curr_curvegen.min_betas[region])
+        return OtherClippedCurve(curve, uclip_climtas_effect_curve, step_curvegen.min_betas[region])
 
     climtas_effect_curvegen = curvegen.TransformCurveGenerator(transform_climtas_effect, farm_curvegen)
 
