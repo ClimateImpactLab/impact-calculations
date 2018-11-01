@@ -1,12 +1,13 @@
 import re
 import numpy as np
 from adaptation import csvvfile, curvegen, curvegen_arbitrary, covariates
+from interpret import configs
 from openest.models.curve import StepCurve, OtherClippedCurve, CoefficientsCurve
 from openest.generate.stdlib import *
 
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, farmer='full', config={}):
-    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, config=config.get('climcovar', {}), varindex=0), {'climtas': 'tas'}),
-                                                covariates.EconomicCovariator(economicmodel, 2015, config=config.get('econcovar', {}))])
+    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, config=configs.merge(config, 'climcovar'), varindex=0), {'climtas': 'tas'}),
+                                                covariates.EconomicCovariator(economicmodel, 2015, config=configs.merge(config, 'econcovar'))])
 
     curr_curvegen = curvegen_arbitrary.CoefficientsCurveGenerator(curvegen_arbitrary.ParameterHolderCurve, map(lambda label: config['terms'][label]['unit'], config['terms']), '100,000 * death/population', map(lambda label: config['terms'][label]['coeffvar'], config['terms']), csvv)
 
