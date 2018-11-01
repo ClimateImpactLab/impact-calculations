@@ -1,0 +1,16 @@
+module: mortality
+mode: single
+outputdir: /shares/gcp/outputs/mortality/impacts-cupim-ubins
+do_only: interpolation
+do_farmers: false
+csvvfile: social/parameters/mortality/Replication_2018/Agespec_interaction_response_bins.csvv
+specification: bins
+derivclip: true
+clipping: both # both, none, or clip
+econcovar:
+   class: bartlett
+   length: 13
+climcovar:
+   class: bartlett
+   length: 30
+   
