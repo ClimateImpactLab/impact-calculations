@@ -1,12 +1,12 @@
 module: mortality
 mode: single
-outputdir: /shares/gcp/outputs/mortality/impacts-cupim-ubins
+outputdir: /shares/gcp/outputs/mortality/impacts-cupim
 do_only: interpolation
 do_farmers: false
-csvvfile: social/parameters/mortality/Replication_2018/Agespec_interaction_response_bins.csvv
-specification: bins
-derivclip: true
+csvvfile: social/parameters/mortality/mortality_nonFGLS_22052018/Agespec_interaction_GMFD_POLY-4_TINV_CYA_NW_w1.csvv
+specification: polynomial
 clipping: both # both, none, or clip
+derivclip: true
 econcovar:
    class: bartlett
    length: 13
