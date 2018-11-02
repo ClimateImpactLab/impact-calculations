@@ -18,7 +18,7 @@ def user_assert(check, message):
 def get_covariator(covar, args, weatherbundle, economicmodel, config={}, quiet=False):
     if isinstance(covar, dict):
         return get_covariator(covar.keys()[0], covar.values()[0], weatherbundle, economicmodel, config=config, quiet=quiet)
-    elif covar in ['loggdppc', 'logpopop']:
+    elif covar in ['loggdppc', 'logpopop', 'year']:
         return covariates.EconomicCovariator(economicmodel, 2015, config=configs.merge(config, 'econcovar'))
     elif covar == 'incbin':
         return covariates.BinnedEconomicCovariator(economicmodel, 2015, args, config=configs.merge(config, 'econcovar'))
