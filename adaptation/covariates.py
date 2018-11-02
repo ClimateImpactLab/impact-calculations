@@ -46,10 +46,18 @@ class EconomicCovariator(Covariator):
         self.econ_predictors = economicmodel.baseline_prepared(maxbaseline, self.numeconyears, lambda values: averages.interpret(config, standard_economic_config, values))
         self.economicmodel = economicmodel
 
+        if config.get('slowadapt', 'none') in ['income', 'both']:
+            self.slowgrowth = True
+            self.baseline_loggdppc = {self.econ_predictors[region]['loggdppc'].get() for region in self.econ_predictors}
+            self.baseline_loggdppc['mean'] = np.mean(self.baseline_loggdppc.values())
+        else:
+            self.slowgrowth = False
+
     def get_econ_predictors(self, region):
         econpreds = self.econ_predictors.get(region, None)
 
         if econpreds is None:
+            print "ERROR: Missing econpreds for %s." % region
             loggdppc = self.econ_predictors['mean']['loggdppc']
         else:
             loggdppc = econpreds['loggdppc'].get()
@@ -59,15 +67,24 @@ class EconomicCovariator(Covariator):
         else:
             density = econpreds['popop'].get()
 
+        if self.slowgrowth:
+            # Equivalent to baseline * exp(growth * time / 2)
+            if region in self.baseline_loggdppc:
+                loggdppc = (loggdppc + self.baseline_loggdppc[region]) / 2
+            else:
+                loggdppc = (loggdppc + self.baseline_loggdppc['mean']) / 2
+                
         return dict(loggdppc=loggdppc, popop=density)
 
     def get_current(self, region):
         econpreds = self.get_econ_predictors(region)
         return dict(loggdppc=econpreds['loggdppc'],
-                    logpopop=np.log(econpreds['popop']))
+                    logpopop=np.log(econpreds['popop']),
+                    year=self.lastyear.get(region, self.startupdateyear))
 
     def get_update(self, region, year, ds):
         assert year < 10000
+        self.lastyear[region] = year
 
         if region in self.econ_predictors:
             loggdppc = self.economicmodel.get_loggdppc_year(region, year)
@@ -463,7 +480,7 @@ class ProductCovariator(Covariator):
 
     def make_product(self, covars1, covars2):
         combos = itertools.product(covars1.keys(), covars2.keys())
-        result = {"%s*%s" % (key1, key2): covars1[key1] * covars2[key2] for key1, key2 in combos if key1 != 'year' and key2 != 'year'}
+        result = {"%s*%s" % (key1, key2): covars1[key1] * covars2[key2] for key1, key2 in combos}
         if 'year' in covars1:
             result['year'] = covars1['year']
         if 'year' in covars2:

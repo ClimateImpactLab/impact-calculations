@@ -3,7 +3,9 @@ mode: writepolys
 outputdir: /shares/gcp/outputs/mortality/impacts-crypto
 do_only: interpolation
 do_farmers: false
-csvvfile: social/parameters/mortality/Diagnostics_Apr17/global_interaction_Tmean-POLY-4-AgeSpec.csvv
+csvvfile: social/parameters/mortality/mortality_nonFGLS_22052018/Agespec_interaction_GMFD_POLY-4_TINV_CYA_NW_w1.csvv
+specification: polynomial
+clipping: both # both, none, or clip
 econcovar:
    class: bartlett
    length: 13
