@@ -126,7 +126,9 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
     print targetdir
 
     if pvalses.has_pval_file(targetdir):
-        pvals = pvalses.read_pval_file(targetdir)
+        oldpvals = pvalses.read_pval_file(targetdir)
+        if oldpvals is not None:
+            pvals = oldpvals
     else:
         pvalses.make_pval_file(targetdir, pvals)
 

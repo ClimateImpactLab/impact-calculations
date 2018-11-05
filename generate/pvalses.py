@@ -28,7 +28,7 @@ def interpret(config):
         assert pval > 0 and pval < 1
         return ConstantPvals(pval)
 
-    if isinstance(config['vals'], str):
+    if isinstance(config['pvals'], str):
         return read_pval_file(config['pvals'])
 
     if isinstance(config['pvals'], dict):
@@ -134,6 +134,9 @@ def read_pval_file(path, lock=False):
     with open(path, 'r') as fp:
         pvals = yaml.load(fp)
 
+        if pvals is None:
+            return None
+        
         return load_pvals(pvals, lock=lock)
 
 def load_pvals(pvals, lock=False):
