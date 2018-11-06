@@ -35,7 +35,7 @@ class EconomicCovariator(Covariator):
 
         if config.get('slowadapt', 'none') in ['income', 'both']:
             self.slowgrowth = True
-            self.baseline_loggdppc = {self.econ_predictors[region]['loggdppc'].get() for region in self.econ_predictors}
+            self.baseline_loggdppc = {region: self.econ_predictors[region]['loggdppc'].get() for region in self.econ_predictors}
             self.baseline_loggdppc['mean'] = np.mean(self.baseline_loggdppc.values())
         else:
             self.slowgrowth = False
