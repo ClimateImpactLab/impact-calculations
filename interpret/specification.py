@@ -180,7 +180,8 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
     elif specconf.get('goodmoney', False):
         final_curvegen = curvegen.TransformCurveGenerator(transform, "Good Money transformation", curr_curvegen)
     else:
-        final_curvegen = curvegen.TransformCurveGenerator(transform, None, curr_curvegen)
+        final_curvegen = curvegen.TransformCurveGenerator(transform, "Smart curve transformation", curr_curvegen)
+        final_curvegen.deltamethod_passthrough = True
 
     if covariator:
         final_curvegen = curvegen.FarmerCurveGenerator(final_curvegen, covariator, farmer)
@@ -192,7 +193,10 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     user_assert('calculation' in specconf, "Specification configuration missing 'calculation' list.")
     user_assert('description' in specconf, "Specification configuration missing 'description' list.")
 
-    csvvfile.collapse_bang(csvv, qvals.get_seed('csvv'))
+    if config.get('report-variance', False):
+        csvv['gamma'] = np.zeros(len(csvv['gamma'])) # So no mistaken results
+    else:
+        csvvfile.collapse_bang(csvv, qvals.get_seed('csvv'))
     
     depenunit = specconf['depenunit']
     
