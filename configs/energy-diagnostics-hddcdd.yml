@@ -1,10 +1,9 @@
 module: impacts/energy/hddcddmodel.yml
 mode: writecalcs
 outputdir: /shares/gcp/outputs/energy/impacts-rover
-do_farmers: true
+do_farmers: false
 do_historical: true
 singledir: single-run2_EXTRASUM_FD_FGLS_FE
-deltamethod: yes
 econcovar:
    class: mean
    length: 15
