@@ -5,63 +5,8 @@ from interpret import configs
 from openest.models.curve import ZeroInterceptPolynomialCurve, ClippedCurve, ShiftedCurve, MinimumCurve, OtherClippedCurve, SelectiveInputCurve, CoefficientsCurve, ProductCurve
 from openest.generate.stdlib import *
 from openest.generate import diagnostic
+from openest.curves import ushape_numeric
 from impactcommon.math import minpoly
-
-class UShapedCurve(UnivariateCurve):
-    def __init__(self, curve, mintemp, gettas):
-        super(UShapedCurve, self).__init__(curve.xx)
-        self.curve = curve
-        self.mintemp = mintemp
-        self.gettas = gettas
-
-    def __call__(self, xs):
-        values = self.curve(xs)
-        tas = self.gettas(xs)
-        order = np.argsort(tas)
-        orderedtas = tas[order]
-        orderedvalues = values[order]
-
-        lowvalues = orderedvalues[orderedtas < self.mintemp]
-        lowvalues2 = np.maximum.accumulate(lowvalues[::-1])
-
-        highvalues = orderedvalues[orderedtas >= self.mintemp]
-        highvalues2 = np.maximum.accumulate(highvalues)
-
-        return np.concatenate((lowvalues2, highvalues2))
-
-# Return tmarginal evaluated at the innermost edge of plateaus
-class UShapedClipping(UnivariateCurve):
-    def __init__(self, curve, tmarginal_curve, mintemp, gettas):
-        super(UShapedClipping, self).__init__(curve.xx)
-        self.curve = curve
-        self.tmarginal_curve = tmarginal_curve
-        self.mintemp = mintemp
-        self.gettas = gettas
-
-    def __call__(self, xs):
-        increasingvalues = self.curve(xs) # these are ordered as low..., high...
-        increasingplateaus = np.diff(increasingvalues) == 0
-
-        tas = self.gettas(xs)
-        order = np.argsort(tas)
-        orderedtas = tas[order]
-
-        n_below = sum(orderedtas < self.mintemp)
-        
-        lowindicesofordered = np.arange(n_below)[::-1] # [N-1 ... 0]
-        if len(lowindicesofordered) > 1:
-            lowindicesofordered[np.concatenate(([False], increasingplateaus[:len(lowindicesofordered)-1]))] = n_below
-            lowindicesofordered = np.minimum.accumulate(lowindicesofordered)
-        
-        highindicesofordered = np.arange(sum(orderedtas >= self.mintemp)) + n_below # [N ... T-1]
-        if len(highindicesofordered) > 1:
-            highindicesofordered[np.concatenate(([False], increasingplateaus[-len(highindicesofordered)+1:]))] = n_below
-            highindicesofordered = np.maximum.accumulate(highindicesofordered)
-
-        increasingresults = np.concatenate((self.tmarginal_curve(xs[order[lowindicesofordered], :]), self.tmarginal_curve(xs[order[highindicesofordered], :]))) # ordered low..., high...
-        increasingresults[increasingvalues <= 0] = 0 # replace truly clipped with 0
-
-        return increasingresults
     
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', config={}):
     covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, config=configs.merge(config, 'climcovar'), varindex=0), {'climtas': 'tas'}),
@@ -82,6 +27,8 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
         # Determine minimum value of curve between 10C and 30C
         baselinecurves, baselinemins = constraints.get_curve_minima(weatherbundle.regions, curr_curvegen, covariator, 10, 30,
                                                                     lambda region, curve: minpoly.findpolymin([0] + curve.ccs, 10, 30))
+
+        fillins = np.arange(-40, 50, 1.)
 
     def transform(region, curve):
         if config.get('clipping', 'both') == 'none':
@@ -108,7 +55,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
         if not config.get('derivclip', False):
             return ClippedCurve(goodmoney_curve)
 
-        return UShapedCurve(ClippedCurve(goodmoney_curve), baselinemins[region], lambda xs: xs[:, 0])
+        return ushape_numeric.UShapedCurve(ClippedCurve(goodmoney_curve), baselinemins[region], lambda xs: xs[:, 0], fillins=fillins)
 
     clip_curvegen = curvegen.TransformCurveGenerator(transform, curr_curvegen)
     farm_curvegen = curvegen.FarmerCurveGenerator(clip_curvegen, covariator, farmer)
@@ -126,7 +73,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
         if not config.get('derivclip', False):
             return OtherClippedCurve(curve, shifted_curve)
 
-        return UShapedClipping(curve, shifted_curve, baselinemins[region], lambda xs: xs[:, 0])
+        return ushape_numeric.UShapedClipping(curve, shifted_curve, baselinemins[region], lambda xs: xs[:, 0])
 
     climtas_effect_curvegen = curvegen.TransformCurveGenerator(transform_climtas_effect, farm_curvegen)
 
@@ -142,7 +89,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
 
 if __name__ == '__main__':
     curve = ZeroInterceptPolynomialCurve([-np.inf, np.inf], [-2, -12, 2, 1])
-    ucurve = UShapedCurve(curve, -1, lambda x: x)
+    ucurve = ushape_numeric.UShapedCurve(curve, -1, lambda x: x)
 
     xx = np.arange(-6, 4)
     print xx
