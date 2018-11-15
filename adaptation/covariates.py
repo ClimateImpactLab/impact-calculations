@@ -33,10 +33,18 @@ class EconomicCovariator(Covariator):
         self.econ_predictors = economicmodel.baseline_prepared(maxbaseline, self.numeconyears, lambda values: averages.interpret(config, standard_economic_config, values))
         self.economicmodel = economicmodel
 
+        if config.get('slowadapt', 'none') in ['income', 'both']:
+            self.slowgrowth = True
+            self.baseline_loggdppc = {region: self.econ_predictors[region]['loggdppc'].get() for region in self.econ_predictors}
+            self.baseline_loggdppc['mean'] = np.mean(self.baseline_loggdppc.values())
+        else:
+            self.slowgrowth = False
+
     def get_econ_predictors(self, region):
         econpreds = self.econ_predictors.get(region, None)
 
         if econpreds is None:
+            print "ERROR: Missing econpreds for %s." % region
             loggdppc = self.econ_predictors['mean']['loggdppc']
         else:
             loggdppc = econpreds['loggdppc'].get()
@@ -46,6 +54,13 @@ class EconomicCovariator(Covariator):
         else:
             density = econpreds['popop'].get()
 
+        if self.slowgrowth:
+            # Equivalent to baseline * exp(growth * time / 2)
+            if region in self.baseline_loggdppc:
+                loggdppc = (loggdppc + self.baseline_loggdppc[region]) / 2
+            else:
+                loggdppc = (loggdppc + self.baseline_loggdppc['mean']) / 2
+                
         return dict(loggdppc=loggdppc, popop=density)
 
     def get_current(self, region):

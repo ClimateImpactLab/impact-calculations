@@ -1,14 +1,15 @@
 import re
 import numpy as np
 from adaptation import csvvfile, curvegen, curvegen_step, covariates
+from interpret import configs
 from openest.models.curve import StepCurve, OtherClippedCurve
 from openest.generate.stdlib import *
 
 bin_limits = [-np.inf, -13, -8, -3, 2, 7, 12, 17, 22, 27, 32, np.inf]
 
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, farmer='full', config={}):
-    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, config=config.get('climcovar', {}), varindex=0), {'climtas': 'tas'}),
-                                                covariates.EconomicCovariator(economicmodel, 2015, config=config.get('econcovar', {}))])
+    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, config=configs.merge(config, 'climcovar'), varindex=0), {'climtas': 'tas'}),
+                                                covariates.EconomicCovariator(economicmodel, 2015, config=configs.merge(config, 'econcovar'))])
     print "CSVV Len: %d" % len(csvv['covarnames'])
 
     # Don't collapse: already collapsed in allmodels

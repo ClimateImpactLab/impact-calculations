@@ -31,8 +31,13 @@ def get_bundle_iterator(config):
             discovers.append(discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/" + variable), variable, **config))
         
         return weather.iterate_bundles(*tuple(discovers), **config)
+    if config['specification'] == 'hddcdd':
+        return weather.iterate_bundles(discover_day2year(standard_variable('tas', 'day', **config), lambda arr: np.mean(arr, axis=0)),
+                                       discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/" + config['hddvar']), config['hddvar'], **config),
+                                       discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/" + config['cddvar']), config['cddvar'], **config),
+                                       **config)
     raise ValueError("Unknown specification: %s" % config['specification'])
-
+    
 def check_doit(targetdir, basename, suffix):
     filepath = os.path.join(targetdir, basename + suffix + '.nc4')
     if not os.path.exists(filepath):
@@ -128,7 +133,7 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
                             continue
                     halfweight = agecohorts.SpaceTimeBipartiteData(1981, 2100, None)
                     basenames = [basename + '-' + agegroup + assumption + suffix for agegroup in agegroups]
-                    get_stweights = [lambda year0, year1: halfweight.load(year0, year1, economicmodel.model, economicmodel.scenario, 'age0-4'), lambda year0, year1: halfweight.load(year0, year1, economicmodel.model, economicmodel.scenario, 'age5-64'), lambda year0, year1: halfweight.load(year0, year1, economicmodel.model, economicmodel.scenario, 'age65+')]
+                    get_stweights = [lambda year0, year1: halfweight.load(year0, year1, economicmodel.model, economicmodel.scenario, 'age0-4', shareonly=True), lambda year0, year1: halfweight.load(year0, year1, economicmodel.model, economicmodel.scenario, 'age5-64', shareonly=True), lambda year0, year1: halfweight.load(year0, year1, economicmodel.model, economicmodel.scenario, 'age65+', shareonly=True)]
                     if check_doit(targetdir, basename + '-combined' + assumption, suffix):
                         agglib.combine_results(targetdir, basename + '-combined' + assumption, basenames, get_stweights, "Combined mortality across age-groups for " + basename, suffix=suffix)
             except Exception as ex:

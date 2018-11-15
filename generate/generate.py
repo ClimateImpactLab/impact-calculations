@@ -29,7 +29,7 @@ def iterate_median():
 
 def iterate_montecarlo():
     for batch in itertools.count():
-        for clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in loadmodels.random_order(mod.get_bundle_iterator(config)):
+        for clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in loadmodels.random_order(mod.get_bundle_iterator(config), config):
             pvals = pvalses.OnDemandRandomPvals()
             yield 'batch' + str(batch), pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
 
@@ -126,7 +126,9 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
     print targetdir
 
     if pvalses.has_pval_file(targetdir):
-        pvals = pvalses.read_pval_file(targetdir)
+        oldpvals = pvalses.read_pval_file(targetdir)
+        if oldpvals is not None:
+            pvals = oldpvals
     else:
         pvalses.make_pval_file(targetdir, pvals)
 

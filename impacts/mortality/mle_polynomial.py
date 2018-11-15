@@ -2,6 +2,7 @@ import csv, copy
 import numpy as np
 from adaptation import csvvfile, curvegen, curvegen_arbitrary, curvegen_known, covariates
 from generate import caller
+from interpret import configs
 from openest.models.curve import ZeroInterceptPolynomialCurve
 from openest.generate.stdlib import *
 from openest.generate import diagnostic
@@ -16,10 +17,10 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     updated twice in the calculation.
     """
 
-    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, config=config.get('climcovar', {}), varindex=0), {'climtas': 'tas'}),
-                                                covariates.EconomicCovariator(economicmodel, 2015, config=config.get('econcovar', {}))])
-    covariator2 = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, config=config.get('climcovar', {}), varindex=0), {'climtas': 'tas'}),
-                                                 covariates.EconomicCovariator(economicmodel, 2015, config=config.get('econcovar', {}))])
+    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, config=configs.merge(config, 'climcovar'), varindex=0), {'climtas': 'tas'}),
+                                                covariates.EconomicCovariator(economicmodel, 2015, config=configs.merge(config, 'econcovar'))])
+    covariator2 = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, config=configs.merge(config, 'climcovar'), varindex=0), {'climtas': 'tas'}),
+                                                 covariates.EconomicCovariator(economicmodel, 2015, config=configs.merge(config, 'econcovar'))])
 
     curr_curvegen = curvegen_known.PolynomialCurveGenerator(['C'] + ['C^%d' % pow for pow in range(2, order+1)],
                                                             '100,000 * death/population', 'tas', order, csvv)
