@@ -55,7 +55,8 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
         if not config.get('derivclip', False):
             return ClippedCurve(goodmoney_curve)
 
-        return ushape_numeric.UShapedCurve(ClippedCurve(goodmoney_curve), baselinemins[region], lambda xs: xs[:, 0], fillins=fillins)
+        unicurve = MinimumCurve(ShiftedCurve(curve, -curve(baselinemins[region])), ShiftedCurve(noincadapt_unshifted_curve, -noincadapt_unshifted_curve(baselinemins[region])))
+        return ushape_numeric.UShapedCurve(ClippedCurve(goodmoney_curve), baselinemins[region], lambda xs: xs[:, 0], fillxxs=fillins, fillyys=unicurve(fillins))
 
     clip_curvegen = curvegen.TransformCurveGenerator(transform, curr_curvegen)
     farm_curvegen = curvegen.FarmerCurveGenerator(clip_curvegen, covariator, farmer)
