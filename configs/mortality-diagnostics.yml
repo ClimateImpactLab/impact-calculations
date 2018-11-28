@@ -7,6 +7,7 @@ csvvfile: social/parameters/mortality/mortality_nonFGLS_22052018/Agespec_interac
 specification: polynomial
 clipping: both # both, none, or clip
 derivclip: true
+clip-maxtemp: 30
 econcovar:
    class: bartlett
    length: 13
