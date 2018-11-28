@@ -133,7 +133,7 @@ class FarmerCurveGenerator(DelayedCurveGenerator):
         elif self.farmer == 'full':
             covariates = self.covariator.offer_update(region, year, predictors.transform(lambda x: x / 365)) # because was summed
         elif self.farmer == 'noadapt':
-            assert False, "Don't have this set of covariates."
+            covariates = self.covariator.get_current(region)
         elif self.farmer == 'incadapt':
             covariates = self.covariator.offer_update(region, year, None)
             
