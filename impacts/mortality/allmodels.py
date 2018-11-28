@@ -23,13 +23,25 @@ def check_doit(targetdir, basename, suffix):
         print "REDO: Cannot find", filepath, suffix
         return True
 
-    # Check if has 100 valid years
-    if not checks.check_result_100years(filepath):
+    #Check validity with exception of single impact region
+    checkargs = {}
+    if 'filter-region' in config:
+        checkargs['regioncount'] = 1
+    if not checks.check_result_100years(filepath, **checkargs):
         print "REDO: Incomplete", basename, suffix
+        if deletebad:
+            os.remove(filepath)
         return True
 
     return False
 
+    # Check if has 100 valid years
+    #if not checks.check_result_100years(filepath):
+    #    print "REDO: Incomplete", basename, suffix
+    #    return True
+
+    #return False
+    
 def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callback=None, suffix='', profile=False, diagnosefile=False):
     print config['do_only']
 

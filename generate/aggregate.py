@@ -260,8 +260,12 @@ if __name__ == '__main__':
                             weight_args_aggregate_denom = (econ_model, econ_scenario, agecohorts.age_from_filename(filename) if 'IND_' not in filename else 'total')
                         else:
                             weight_args_aggregate_denom = (econ_model, econ_scenario)
-
-                if not checks.check_result_100years(os.path.join(targetdir, filename), variable=variable):
+		
+		#Added lines to allow for aggregation at the single impact region level
+		checkargs = {}
+    		if 'filter-region' in config:
+       			 checkargs['regioncount'] = 1
+                if not checks.check_result_100years(os.path.join(targetdir, filename), variable=variable, **checkargs):
                     print "Incomplete."
                     incomplete = True
                     continue
