@@ -33,8 +33,8 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
         baseline_loggdppc[region] = covariator.get_current(region)['loggdppc']
 
     # Determine minimum value of curve between 10C and 25C
-    baselinecurves, baselinemins = constraints.get_curve_minima(weatherbundle.regions, curr_curvegen, covariator, 10, 25,
-                                                                lambda region, curve: minpoly.findpolymin([0] + curve.ccs, 10, 25))
+    baselinecurves, baselinemins = constraints.get_curve_minima(weatherbundle.regions, curr_curvegen, covariator, config.get('clip-mintemp', 10), config.get('clip-maxtemp', 25),
+                                                                lambda region, curve: minpoly.findpolymin([0] + curve.ccs, config.get('clip-mintemp', 10), config.get('clip-maxtemp', 25)))
     
     climtas_marginals = curr_curvegen.get_marginals('climtas')
     climtas_marginals = np.array([climtas_marginals[predname] for predname in curr_curvegen.prednames]) # same order as temps
