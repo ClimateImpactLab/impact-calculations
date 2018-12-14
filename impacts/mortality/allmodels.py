@@ -6,6 +6,7 @@ from generate import weather, effectset, caller, checks, agglib
 from openest.generate.weatherslice import YearlyWeatherSlice
 from climate.discover import discover_versioned, discover_variable
 from datastore import agecohorts
+from interpret import configs
 
 def preload():
     from datastore import library
@@ -17,7 +18,7 @@ def get_bundle_iterator(config):
                                    discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-3"), 'tas-poly-3', **config),
                                    discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-4"), 'tas-poly-4', **config), **config)
 
-def check_doit(targetdir, basename, suffix):
+def check_doit(targetdir, config, basename, suffix, deletebad=False):
     filepath = os.path.join(targetdir, basename + suffix + '.nc4')
     if not os.path.exists(filepath):
         print "REDO: Cannot find", filepath, suffix
@@ -83,7 +84,7 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
                 caller.callinfo = dict(minpath=os.path.join(targetdir, subbasename + minpath_suffix + '.csv'))
 
                 # Full Adaptation
-                if check_doit(targetdir, subbasename, suffix):
+                if check_doit(targetdir, config, subbasename, suffix):
                     print "Smart Farmer"
                     calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(subcsvv, module, weatherbundle, economicmodel, pvals[subbasename], config=config)
 
@@ -97,13 +98,13 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
                     pvals[subbasename].lock()
 
                     # Comatose Farmer
-                    if check_doit(targetdir, subbasename + "-noadapt", suffix):
+                    if check_doit(targetdir, config, subbasename + "-noadapt", suffix):
                         calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(subcsvv, module, weatherbundle, economicmodel, pvals[subbasename], farmer='coma', config=config)
 
                         effectset.generate(targetdir, subbasename + "-noadapt" + suffix, weatherbundle, calculation, "Mortality impacts, with interpolation but no adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, subbasename + '-noadapt'))
 
                     # Dumb Farmer
-                    if check_doit(targetdir, subbasename + "-incadapt", suffix):
+                    if check_doit(targetdir, config, subbasename + "-incadapt", suffix):
                         calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(subcsvv, module, weatherbundle, economicmodel, pvals[subbasename], farmer='dumb', config=config)
 
                         effectset.generate(targetdir, subbasename + "-incadapt" + suffix, weatherbundle, calculation, "Mortality impacts, with interpolation and only environmental adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, subbasename + '-incadapt'))
@@ -117,7 +118,7 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
                     halfweight = agecohorts.SpaceTimeBipartiteData(1981, 2100, None)
                     basenames = [basename + '-' + agegroup + assumption + suffix for agegroup in agegroups]
                     get_stweights = [lambda year0, year1: halfweight.load(year0, year1, economicmodel.model, economicmodel.scenario, 'age0-4'), lambda year0, year1: halfweight.load(year0, year1, economicmodel.model, economicmodel.scenario, 'age5-64'), lambda year0, year1: halfweight.load(year0, year1, economicmodel.model, economicmodel.scenario, 'age65+')]
-                    if check_doit(targetdir, basename + '-combined' + assumption, suffix):
+                    if check_doit(targetdir, config, basename + '-combined' + assumption, suffix):
                         agglib.combine_results(targetdir, basename + '-combined' + assumption, basenames, get_stweights, "Combined mortality across age-groups for " + basename, suffix=suffix)
             except Exception as ex:
                 print "TO FIX: Combining failed."
@@ -146,7 +147,7 @@ def produce_india(targetdir, weatherbundle, economicmodel, pvals, config, suffix
             module = 'impacts.mortality.ols_polynomial_india'
             minpath_suffix = '-polymins'
 
-        if check_doit(targetdir, basename, suffix):
+        if check_doit(targetdir, config, basename, suffix):
             print "India result"
             try:
                 calculation, dependencies = caller.call_prepare_interp(filepath, module, weatherbundle, economicmodel, pvals[basename], config=config)
