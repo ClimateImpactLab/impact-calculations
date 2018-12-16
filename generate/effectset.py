@@ -80,7 +80,6 @@ def write_ncdf(targetdir, basename, weatherbundle, calculation, description, cal
     yeardata = weatherbundle.get_years()
 
     infos = calculation.column_info()
-    print calculation.unitses
     columns = []
     # Store all in columndata, for faster feeding in
     columndata = [] # [matrix(year x region)]

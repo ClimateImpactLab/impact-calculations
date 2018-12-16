@@ -1,7 +1,8 @@
 import re
 import pandas as pd
 from impactlab_tools.utils import files
-import population, agecohorts, income_smoothed, spacetime
+from impactcommon.exogenous_economy import gdppc
+import population, agecohorts, spacetime
 
 RE_FLOATING = r"[-+]?[0-9]*\.?[0-9]*"
 RE_NUMBER = RE_FLOATING + r"([eE]" + RE_FLOATING + ")?"
@@ -26,7 +27,7 @@ def interpret_halfweight(weighting):
     if weighting in ['agecohorts'] + agecohorts.columns:
         return agecohorts.SpaceTimeBipartiteData(1981, 2100, None)
     if weighting == 'income':
-        return income_smoothed.SpaceTimeBipartiteData(2000, 2100, None)
+        return spacetime.SpaceTimeBipartiteFromProviderData(gdppc.GDPpcProvider, 2000, 2100, None)
 
     raise ValueError("Unknown weighting.")
 
