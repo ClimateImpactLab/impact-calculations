@@ -78,35 +78,76 @@ def make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, d
 
     nc4writer.make_regions_variable(writer, prefixes, 'aggregated')
 
+    if 'vcv' in reader.variables:
+        vcv = reader.variables['vcv'][:, :]
+        rootgrp.createDimension('coefficient', vcv.shape[0])
+    else:
+        vcv = None
+
     original_indices = {regions[ii]: ii for ii in range(len(regions))}
 
     for key, variable in agglib.iter_timereg_variables(reader):
         dstvalues = np.zeros((len(years), len(prefixes)))
-        srcvalues = variable[:, :]
-        for ii in range(len(prefixes)):
-            numers = np.zeros(srcvalues.shape[0])
-            denoms = np.zeros(srcvalues.shape[0])
+        if vcv is None:
+            srcvalues = variable[:, :]
+            for ii in range(len(prefixes)):
+                numers = np.zeros(srcvalues.shape[0])
+                denoms = np.zeros(srcvalues.shape[0])
 
-            if prefixes[ii] == '':
-                withinregions = regions
-            else:
-                withinregions = originals[prefixes[ii]]
+                if prefixes[ii] == '':
+                    withinregions = regions
+                else:
+                    withinregions = originals[prefixes[ii]]
 
-            for original in withinregions:
-                wws = stweight.get_time(original)
-                numers += wws * np.nan_to_num(srcvalues[:, original_indices[original]]) * np.isfinite(srcvalues[:, original_indices[original]])
-                if stweight_denom != weights.HALFWEIGHT_SUMTO1:
-                    if stweight_denom:
-                        weights_denom = stweight_denom.get_time(original)
-                        denoms += weights_denom * np.isfinite(srcvalues[:, original_indices[original]])
+                for original in withinregions:
+                    wws = stweight.get_time(original)
+                    numers += wws * np.nan_to_num(srcvalues[:, original_indices[original]]) * np.isfinite(srcvalues[:, original_indices[original]])
+                    if stweight_denom != weights.HALFWEIGHT_SUMTO1:
+                        if stweight_denom:
+                            weights_denom = stweight_denom.get_time(original)
+                            denoms += weights_denom * np.isfinite(srcvalues[:, original_indices[original]])
+                        else:
+                            denoms += wws * np.isfinite(srcvalues[:, original_indices[original]])
+
+                if stweight_denom == weights.HALFWEIGHT_SUMTO1:
+                    dstvalues[:, ii] = numers
+                else:
+                    dstvalues[:, ii] = numers / denoms
+        else:
+            coeffvalues = np.zeros((vcv.shape[0], len(years), len(regions)))
+            srcvalues = reader.variables[key + '_bcde'][:, :, :]
+            for ii in range(len(prefixes)):
+                numers = np.zeros(srcvalues.shape[:2]) # coeff, time
+                denoms = np.zeros(srcvalues.shape[:2]) # coeff, time
+
+                if prefixes[ii] == '':
+                    withinregions = regions
+                else:
+                    withinregions = originals[prefixes[ii]]
+
+                for original in withinregions:
+                    wws = stweight.get_time(original)
+                    if stweight_denom != weights.HALFWEIGHT_SUMTO1:
+                        if stweight_denom:
+                            weights_denom = stweight_denom.get_time(original)
+                        else:
+                            weights_denom = wws
+                            
+                    for tt in range(len(years)):
+                        numers[:, tt] += wws[tt] * np.nan_to_num(srcvalues[:, tt, original_indices[original]]) * np.all(np.isfinite(srcvalues[:, tt, original_indices[original]]))
+                        if stweight_denom != weights.HALFWEIGHT_SUMTO1:
+                            denoms += weights_denom[tt] * np.all(np.isfinite(srcvalues[:, tt, original_indices[original]]))
+
+                for tt in range(len(years)):
+                    if stweight_denom == weights.HALFWEIGHT_SUMTO1:
+                        coeffvalues[:, tt, ii] = numers
                     else:
-                        denoms += wws * np.isfinite(srcvalues[:, original_indices[original]])
-
-            if stweight_denom == weights.HALFWEIGHT_SUMTO1:
-                dstvalues[:, ii] = numers
-            else:
-                dstvalues[:, ii] = numers / denoms
-
+                        coeffvalues[:, tt, ii] = numers / denoms
+                    dstvalues[:, ii] = vcv.dot(coeffvalues[:, tt, ii]).dot(coeffvalues[:, tt, ii])
+                    
+            coeffcolumn = writer.createVariable(key + '_bcde', 'f4', ('coefficient', 'year', 'region'))
+            coeffcolumn[:, :, :] = coeffvalues
+                    
         agglib.copy_timereg_variable(writer, variable, key, dstvalues, "(aggregated)", unitchange=lambda unit: unit + '/person')
 
     reader.close()
@@ -171,8 +212,9 @@ def make_levels(targetdir, filename, outfilename, halfweight, weight_args, dimen
             coeffvalues = np.zeros((vcv.shape[0], len(years), len(regions)))
             srcvalues = reader.variables[key + '_bcde'][:, :, :]
             for ii in range(len(regions)):
-                coeffvalues[:, :, ii] = srcvalues[:, :, ii] * stweight.get_time(regions[ii])
+                wws = stweight.get_time(regions[ii])
                 for tt in range(len(years)):
+                    coeffvalues[:, tt, ii] = srcvalues[:, tt, ii] * wws[tt]
                     dstvalues[tt, ii] = vcv.dot(coeffvalues[:, tt, ii]).dot(coeffvalues[:, tt, ii])
 
             coeffcolumn = writer.createVariable(key + '_bcde', 'f4', ('coefficient', 'year', 'region'))
