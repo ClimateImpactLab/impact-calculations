@@ -155,11 +155,28 @@ def make_levels(targetdir, filename, outfilename, halfweight, weight_args, dimen
 
     stweight = get_cached_weight(halfweight, weight_args, years)
 
+    if 'vcv' in reader.variables:
+        vcv = reader.variables['vcv'][:, :]
+        rootgrp.createDimension('coefficient', vcv.shape[0])
+    else:
+        vcv = None
+        
     for key, variable in agglib.iter_timereg_variables(reader):
         dstvalues = np.zeros((len(years), len(regions)))
-        srcvalues = variable[:, :]
-        for ii in range(len(regions)):
-            dstvalues[:, ii] = srcvalues[:, ii] * stweight.get_time(regions[ii])
+        if vcv is None:
+            srcvalues = variable[:, :]
+            for ii in range(len(regions)):
+                dstvalues[:, ii] = srcvalues[:, ii] * stweight.get_time(regions[ii])
+        else:
+            coeffvalues = np.zeros((vcv.shape[0], len(years), len(regions)))
+            srcvalues = reader.variables[key + '_bcde'][:, :, :]
+            for ii in range(len(regions)):
+                coeffvalues[:, :, ii] = srcvalues[:, :, ii] * stweight.get_time(regions[ii])
+                for tt in range(len(years)):
+                    dstvalues[tt, ii] = vcv.dot(coeffvalues[:, tt, ii]).dot(coeffvalues[:, tt, ii])
+
+            coeffcolumn = writer.createVariable(key + '_bcde', 'f4', ('coefficient', 'year', 'region'))
+            coeffcolumn[:, :, :] = coeffvalues
 
         agglib.copy_timereg_variable(writer, variable, key, dstvalues, "(levels)", unitchange=lambda unit: unit.replace('/person', ''))
 
@@ -195,6 +212,7 @@ if __name__ == '__main__':
 
     statman = paralog.StatusManager('aggregate', "generate.aggregate " + sys.argv[1], 'logs', CLAIM_TIMEOUT)
 
+    ## Determine weights
     if 'weighting' in config:
         # Same weighting for levels and aggregate
         halfweight_levels = weights.interpret_halfweight(config['weighting'])
