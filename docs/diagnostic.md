@@ -80,23 +80,20 @@ it and using the normal `generate.sh` script is that it will just
 produce a result for a single region, and output the result to a local
 `temp` directory.
 
-## Covariate Averaging
+# Diagnostic calculations
 
-You can specify in a configuration file the averaging scheme for
-climate and economic covariates.  By default, a 13-year Bartlett
-kernel is used for economic covariates and a 30-year Bartlett for
-climate covariates.  To change these, specify the `class` and `length`
-of the new averaging scheme.  For example, to change to a 25-year
-running average, you would say,
-```
-climcovar:
-    class: mean
-    length: 25
-```
+The projection system can produce LaTeX representations of the
+calculations, as well as versions of the computations in Julia that
+can be run independently of the system.  The `autodoc.sh` can be used
+to generate the Julia calculations, in a standardized diagnostic
+file.  To do so, first generate a single-region diagnostic file, using
+the `diagnostic.sh` script.
 
-The available classes are `mean` (a running average), `median` (a
-running median), `bartlett` (a running triangular kernel), and
-`bucket` (a running Bayesian updating or exponential kernel).  For the
-first three, `length` is the length to the last non-zero term in the
-kernel; for the last, it's the decay-rate of the exponential decay.
-Always use spaces to indent these parameters.
+Then run the `autodoc.sh` script as follows:
+
+```$ ./autodoc.sh configs/<CONFIG-FILE>.yml <ALLCALCS>```
+
+In the above, `<CONFIG-FILE>.yml` should be the same file to generate
+the diagnostic run.  `<ALLCALCS>` should be the path to the
+`allcalcs...` file, which would be contained in a `temp/` directory,
+if produced by the `diagnostic.sh` script.
