@@ -21,12 +21,12 @@ class BinnedStepCurveGenerator(curvegen.CSVVCurveGenerator):
         if min_beta is None:
             firstbin = np.where(np.array(self.xxlimits) > self.clip_mintemp)[0][0] - 1
             lastbin = np.where(np.array(self.xxlimits) < self.clip_maxtemp)[0][-1] + 1
-            
+
             self.min_betas[region] = np.minimum(0, np.nanmin(np.array(yy)[firstbin:lastbin]))
             if self.min_betas[region] == 0:
                 self.min_binks[region] = firstbin + np.where(np.isnan(np.array(yy)[firstbin:lastbin]))[0][0]
             else:
-                self.min_binks[region] = firstbin + np.where(self.min_betas[region] == np.nanmin(np.array(yy)[firstbin:lastbin]))[0][0]
+                self.min_binks[region] = firstbin + np.where(self.min_betas[region] == np.array(yy)[firstbin:lastbin])[0][0]
         else:
             yy = np.maximum(min_beta, yy)
 
