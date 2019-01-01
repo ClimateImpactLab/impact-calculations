@@ -13,9 +13,9 @@ dir = sys.argv[1]
 csvvpath = "/shares/gcp/social/parameters/mortality/mortality_nonFGLS_22052018/Agespec_interaction_GMFD_POLY-4_TINV_CYA_NW_w1.csvv"
 weathertemplate = "/shares/gcp/climate/BCSD/hierid/popwt/daily/{variable}/{rcp}/CCSM4/{year}/1.6.nc4"
 onlymodel = "Agespec_interaction_GMFD_POLY-4_TINV_CYA_NW_w1-oldest"
-adaptsuf = "-noadapt"
+adaptsuf = "" #"-noadapt"
 csvvargs = (2 * 3 * polypower, 3 * 3 * polypower) # (None, None)
-region = 'AFG.1.Ra6a2bba0a271cb4a' #VNM.4.40.R0198d80c4a92cc51' #USA.14.608'
+region = 'USA.5.203' #USA.14.608'
 onlyreg = True #False
 
 lib.show_header("The Covariates File (allpreds):")
