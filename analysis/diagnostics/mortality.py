@@ -14,7 +14,7 @@ csvvpath = "/shares/gcp/social/parameters/mortality/mortality_nonFGLS_22052018/A
 weathertemplate = "/shares/gcp/climate/BCSD/hierid/popwt/daily/{variable}/{rcp}/CCSM4/{year}/1.6.nc4"
 onlymodel = "Agespec_interaction_GMFD_POLY-4_TINV_CYA_NW_w1-oldest"
 csvvargs = (2 * 3 * polypower, 3 * 3 * polypower) # (None, None)
-region = 'VNM.4.40.R0198d80c4a92cc51'
+region = 'AUS.10.1072'
 onlyreg = True #False
 
 lib.show_header("The Covariates File (allpreds):")
