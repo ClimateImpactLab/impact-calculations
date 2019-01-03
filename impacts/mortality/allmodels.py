@@ -91,7 +91,9 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
                 numpreds = len(config['terms'])
                 module = 'impacts.mortality.ols_linear'
                 minpath_suffix = None
-
+            if minpath_suffix is not None and weatherbundle.is_historical():
+                minpath_suffix += "-histclim"
+                
             agegroups = ['young', 'older', 'oldest']
             for ageii in range(len(agegroups)):
                 subcsvv = csvvfile.subset(csvv, 3 * numpreds * ageii + np.arange(3 * numpreds))
