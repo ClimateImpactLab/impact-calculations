@@ -54,8 +54,9 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, farmer='full',
         indexesleft = np.minimum.accumulate(indexesleft[::-1])[::-1]
 
         indexes = np.concatenate((indexesleft, [min_bink], indexesright))
-        
-        uclip_climtas_effect_curve = StepCurve(bin_limits, climtas_effect_curve.yy[indexes])
+
+        yy = np.array(map(lambda y: 0 if y is None else y, climtas_effect_curve.yy))
+        uclip_climtas_effect_curve = StepCurve(bin_limits, yy[indexes])
         
         return OtherClippedCurve(curve, uclip_climtas_effect_curve, step_curvegen.min_betas[region])
 
