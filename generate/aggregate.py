@@ -80,7 +80,7 @@ def make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, d
 
     if 'vcv' in reader.variables:
         vcv = reader.variables['vcv'][:, :]
-        rootgrp.createDimension('coefficient', vcv.shape[0])
+        writer.createDimension('coefficient', vcv.shape[0])
     else:
         vcv = None
 
@@ -114,7 +114,7 @@ def make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, d
                 else:
                     dstvalues[:, ii] = numers / denoms
         else:
-            coeffvalues = np.zeros((vcv.shape[0], len(years), len(regions)))
+            coeffvalues = np.zeros((vcv.shape[0], len(years), len(prefixes)))
             srcvalues = reader.variables[key + '_bcde'][:, :, :]
             for ii in range(len(prefixes)):
                 numers = np.zeros(srcvalues.shape[:2]) # coeff, time
@@ -138,11 +138,11 @@ def make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, d
                         if stweight_denom != weights.HALFWEIGHT_SUMTO1:
                             denoms += weights_denom[tt] * np.all(np.isfinite(srcvalues[:, tt, original_indices[original]]))
 
+                if stweight_denom == weights.HALFWEIGHT_SUMTO1:
+                    coeffvalues[:, :, ii] = numers
+                else:
+                    coeffvalues[:, :, ii] = numers / denoms
                 for tt in range(len(years)):
-                    if stweight_denom == weights.HALFWEIGHT_SUMTO1:
-                        coeffvalues[:, tt, ii] = numers
-                    else:
-                        coeffvalues[:, tt, ii] = numers / denoms
                     dstvalues[:, ii] = vcv.dot(coeffvalues[:, tt, ii]).dot(coeffvalues[:, tt, ii])
                     
             coeffcolumn = writer.createVariable(key + '_bcde', 'f4', ('coefficient', 'year', 'region'))
@@ -198,7 +198,7 @@ def make_levels(targetdir, filename, outfilename, halfweight, weight_args, dimen
 
     if 'vcv' in reader.variables:
         vcv = reader.variables['vcv'][:, :]
-        rootgrp.createDimension('coefficient', vcv.shape[0])
+        writer.createDimension('coefficient', vcv.shape[0])
     else:
         vcv = None
         
