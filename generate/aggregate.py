@@ -81,6 +81,8 @@ def make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, d
     if 'vcv' in reader.variables:
         vcv = reader.variables['vcv'][:, :]
         writer.createDimension('coefficient', vcv.shape[0])
+        vcvvar = writer.createVariable('vcv','f4',('coefficient', 'coefficient'))
+        vcvvar[:, :] = vcv
     else:
         vcv = None
 
@@ -199,6 +201,8 @@ def make_levels(targetdir, filename, outfilename, halfweight, weight_args, dimen
     if 'vcv' in reader.variables:
         vcv = reader.variables['vcv'][:, :]
         writer.createDimension('coefficient', vcv.shape[0])
+        vcvvar = writer.createVariable('vcv','f4',('coefficient', 'coefficient'))
+        vcvvar[:, :] = vcv
     else:
         vcv = None
         
