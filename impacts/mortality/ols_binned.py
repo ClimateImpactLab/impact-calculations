@@ -22,8 +22,11 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, farmer='full',
     # Don't collapse: already collapsed in allmodels
     #csvvfile.collapse_bang(csvv, qvals.get_seed())
 
+    clip_mintemp = config.get('clip-mintemp', 10)
+    clip_maxtemp = config.get('clip-maxtemp', 25)
     step_curvegen = curvegen_step.BinnedStepCurveGenerator(bin_limits, ['days / year'] * (len(bin_limits) - 1),
-                                                      '100,000 * death/population', csvv)
+                                                           '100,000 * death/population', csvv,
+                                                           clip_mintemp, clip_maxtemp)
     if config.get('derivclip', False):
         curr_curvegen = curvegen.TransformCurveGenerator(lambda region, curve: u_shaped_curve(curve, step_curvegen.min_binks[region]), step_curvegen)
     else:
@@ -51,8 +54,9 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, farmer='full',
         indexesleft = np.minimum.accumulate(indexesleft[::-1])[::-1]
 
         indexes = np.concatenate((indexesleft, [min_bink], indexesright))
-        
-        uclip_climtas_effect_curve = StepCurve(bin_limits, climtas_effect_curve.yy[indexes])
+
+        yy = np.array(map(lambda y: 0 if y is None else y, climtas_effect_curve.yy))
+        uclip_climtas_effect_curve = StepCurve(bin_limits, yy[indexes])
         
         return OtherClippedCurve(curve, uclip_climtas_effect_curve, step_curvegen.min_betas[region])
 
