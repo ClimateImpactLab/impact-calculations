@@ -7,6 +7,7 @@ csvvfile: social/parameters/mortality/Replication_2018/Agespec_interaction_respo
 specification: bins
 derivclip: true
 clipping: both # both, none, or clip
+clip-maxtemp: 30
 econcovar:
    class: bartlett
    length: 13
