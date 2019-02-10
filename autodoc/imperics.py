@@ -10,11 +10,11 @@ import lib
 
 ## Configuration
 
-futureyear = 2050
-region = 'USA.14.608' #'IND.21.329.1353'
-
 config = files.get_argv_config()
 allcalcs = sys.argv[2]
+
+region = sys.argv[3] if len(sys.argv) > 3 else 'USA.14.608' #'IND.21.329.1353'
+futureyear = int(sys.argv[4]) if len(sys.argv) > 4 else 2050
 
 ## Starting
 
@@ -138,7 +138,7 @@ for year in [2001, futureyear]:
         elements.update(extraelements)
 
         allparams = {calcs['header'][ii]: calcs['2000'][ii] for ii in range(len(calcs['header']))}
-        allparams.update({calcs['header'][ii]: calcs[str(year)][ii] for ii in range(len(calcs['header'])) if not np.isnan(calcs[str(year)][ii])})
+        allparams.update({calcs['header'][ii]: calcs[str(year - 1)][ii] for ii in range(len(calcs['header'])) if not np.isnan(calcs[str(year - 1)][ii])})
         allparams.update(weather[str(year)])
         allparams.update(extraparams)
 
