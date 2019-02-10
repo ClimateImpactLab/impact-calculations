@@ -66,6 +66,31 @@ class SpaceTimeBipartiteData(SpaceTimeData):
         """Return a SpaceTimeData for the given model and scenario."""
         raise NotImplementedError
 
+class SpaceTimeBipartiteFromProviderData(SpaceTimeData):
+    def __init__(self, Provider, year0, year1, regions):
+        super(SpaceTimeBipartiteFromProviderData, self).__init__(year0, year1, regions)
+
+    def load(self, year0, year1, model, scenario):
+        provider = Provider(model, scenario)
+        return SpaceTimeLazyData(year0, year1, self.regions, lambda region: self.adjustlen(year0, year1, provider.get_startyear(),
+                                                                                           provider.get_timeseries(region)))
+
+    def adjustlen(year0, year1, startyear, series):
+        if startyear < year0:
+            prepared = series[year0 - startyear:]
+        elif startyear > year0:
+            prepared = [series[0]] * (startyear - year0)
+            prepared.extend(series)
+        else:
+            prepared = series
+
+        if year1 - year0 < len(prepared):
+            prepared = prepared[:year1 - year0]
+        elif year1 - year0 > len(prepared):
+            prepared.extend([prepared[-1]] * (year1 - year0 - len(prepared)))
+
+        return prepared
+            
 class SpaceTimeProductBipartiteData(SpaceTimeBipartiteData):
     def __init__(self, year0, year1, regions, spdata1, spdata2, combiner=lambda x, y: x * y):
         super(SpaceTimeProductBipartiteData, self).__init__(year0, year1, regions)

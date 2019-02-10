@@ -10,11 +10,11 @@ import lib
 
 ## Configuration
 
-futureyear = 2050
-region = 'USA.14.608' #'IND.21.329.1353'
-
 config = files.get_argv_config()
 allcalcs = sys.argv[2]
+
+region = sys.argv[3] if len(sys.argv) > 3 else 'USA.14.608' #'IND.21.329.1353'
+futureyear = int(sys.argv[4]) if len(sys.argv) > 4 else 2050
 
 ## Starting
 
@@ -94,11 +94,12 @@ lib.show_header("Outputs:")
 outputs = lib.get_outputs(os.path.join(dir, onlymodel + '.nc4'), [2001, futureyear], shapenum)
 
 ## Computations
-# decide on a covariated variable
-for variable in set([csvv['prednames'][ii] for ii in range(len(csvv['prednames'])) if csvv['covarnames'][ii] != '1']):
-    for year in [2001, futureyear]:
-        lib.show_header("Calculation of %s coefficient in %d (%f reported)" % (variable, year, lib.excind(calcs, year-1, 'coeff-' + variable)))
-        lib.show_coefficient(csvv, calcs, year, variable, betalimits=betalimits.get(variable, None))
+if not config.get('deltamethod'):
+    # decide on a covariated variable
+    for variable in set([csvv['prednames'][ii] for ii in range(len(csvv['prednames'])) if csvv['covarnames'][ii] != '1']):
+        for year in [2001, futureyear]:
+            lib.show_header("Calculation of %s coefficient in %d (%f reported)" % (variable, year, lib.excind(calcs, year-1, 'coeff-' + variable)))
+            lib.show_coefficient(csvv, calcs, year, variable, betalimits=betalimits.get(variable, None))
 
 pvals = pvalses.ConstantPvals(.5)
 calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvvobj, module, weatherbundle, economicmodel, pvals[basename], specconf=specconf, config=configs.merge(config, {'quiet': True}), standard=False)
@@ -144,7 +145,7 @@ for year in [2001, futureyear]:
         elements.update(extraelements)
 
         allparams = {calcs['header'][ii]: calcs['2000'][ii] for ii in range(len(calcs['header']))}
-        allparams.update({calcs['header'][ii]: calcs[str(year)][ii] for ii in range(len(calcs['header'])) if not np.isnan(calcs[str(year)][ii])})
+        allparams.update({calcs['header'][ii]: calcs[str(year - 1)][ii] for ii in range(len(calcs['header'])) if not np.isnan(calcs[str(year - 1)][ii])})
         allparams.update(weather[str(year)])
         allparams.update(extraparams)
 
@@ -169,4 +170,15 @@ for year in [2001, futureyear]:
 ## Final calculation
 
 lib.show_header("Calc. of rebased (%f reported)" % outputs[futureyear]['rebased'])
-lib.show_julia("%f - %f" % (outputs[futureyear][last_label], lib.excind(calcs, 2000, 'baseline')))
+if last_label is not None:
+    lib.show_julia("%f - %f" % (outputs[futureyear][last_label], lib.excind(calcs, 2000, 'baseline')))
+else:
+    elements.update(extraelements)
+    
+    allparams = {calcs['header'][ii]: calcs['2000'][ii] for ii in range(len(calcs['header']))}
+    allparams.update({calcs['header'][ii]: calcs[str(futureyear)][ii] for ii in range(len(calcs['header'])) if not np.all(np.isnan(calcs[str(futureyear)][ii]))})
+    allparams.update(weather[str(futureyear)])
+    allparams.update(extraparams)
+    
+    julia = formatting.format_julia(elements, allparams, include_comments=False)
+    lib.show_julia(julia.split('\n'), clipto=None)

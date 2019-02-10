@@ -14,6 +14,8 @@ import cProfile, pstats, StringIO, metacsv
 
 config = configs.standardize(files.get_allargv_config())
 
+print "Initializing..."
+
 CLAIM_TIMEOUT = 12*60*60
 do_single = False
 
@@ -30,7 +32,7 @@ def iterate_median():
 
 def iterate_montecarlo():
     for batch in itertools.count():
-        for clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in loadmodels.random_order(mod.get_bundle_iterator(config)):
+        for clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in loadmodels.random_order(mod.get_bundle_iterator(config), config):
             pvals = pvalses.OnDemandRandomPvals()
             yield 'batch' + str(batch), pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
 
@@ -41,6 +43,10 @@ def iterate_nosideeffects():
     yield None, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
 
 def iterate_single():
+    if 'only-rcp' not in config:
+        config['only-rcp'] = loadmodels.single_clim_scenario
+    if 'only-models' not in config:
+        config['only-models'] = [loadmodels.single_clim_model]
     clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel = loadmodels.single(mod.get_bundle_iterator(config))
     pvals = pvalses.ConstantPvals(.5)
 
@@ -177,7 +183,9 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
     print targetdir
 
     if pvalses.has_pval_file(targetdir):
-        pvals = pvalses.read_pval_file(targetdir)
+        oldpvals = pvalses.read_pval_file(targetdir)
+        if oldpvals is not None:
+            pvals = oldpvals
     else:
         pvalses.make_pval_file(targetdir, pvals)
 
@@ -207,7 +215,7 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
     if config['mode'] not in ['writesplines', 'writepolys', 'writecalcs', 'diagnostic'] or config.get('do_historical', False):
         # Generate historical baseline
         print "Historical"
-        historybundle = weather.HistoricalWeatherBundle.make_historical(weatherbundle, None if config['mode'] == 'median' else pvals['histclim'].get_seed())
+        historybundle = weather.HistoricalWeatherBundle.make_historical(weatherbundle, None if config['mode'] == 'median' else pvals['histclim'].get_seed('yearorder'))
         pvals.lock()
 
         mod.produce(targetdir, historybundle, economicmodel, pvals, config, suffix='-histclim')

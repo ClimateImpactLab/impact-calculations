@@ -12,7 +12,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
                                                 covariates.EconomicCovariator(economicmodel, 2015, config=config.get('econcovar', {}))])
 
     # Don't collapse: already collapsed in allmodels
-    #csvvfile.collapse_bang(csvv, qvals.get_seed())
+    #csvvfile.collapse_bang(csvv, qvals.get_seed('csvv'))
 
     order = len(csvv['gamma']) / 3
     curr_curvegen = curvegen_known.PolynomialCurveGenerator(['C'] + ['C^%d' % pow for pow in range(2, order+1)],
