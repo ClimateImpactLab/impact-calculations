@@ -1,6 +1,7 @@
-import yaml, copy
+import yaml, copy, sys
 from openest.generate import stdlib, arguments
 from generate import caller
+import curves
 
 def prepare_argument(name, argument, models, argtype, extras={}):
     if argtype in [arguments.model, arguments.curvegen, arguments.curve_or_curvegen]:
@@ -10,6 +11,9 @@ def prepare_argument(name, argument, models, argtype, extras={}):
     if argtype == arguments.calculationss:
         assert isinstance(argument, list)
         return [create_calcstep(argii.keys()[0], argii.values()[0], models, None, extras=extras) for argii in argument]
+
+    if argtype == arguments.calculation:
+        return create_calcstep(argument.keys()[0], argument.values()[0], models, None, extras=extras)
     
     return argument
 
@@ -48,18 +52,23 @@ def create_calcstep(name, args, models, subcalc, extras={}):
         if 'model' in args:
             # Set this up as the default model
             models = copy.copy(models)
-            models['default'] = models[args['model']]
+            argmodel, argextras = curves.interpret(args['model'], models, extras)
+            models['default'] = argmodel
             extras = copy.copy(extras)
-            extras.update(extras[args['model']])
+            extras.update(argextras)
             args = copy.copy(args)
             del args['model']
             return create_calcstep(name, args, models, subcalc, extras)
         
     arglist = []
     kwargs = {}
+    savedargs = {}
     for argtype in cls.describe()['arguments']:
         if argtype == arguments.calculation:
-            arglist.append(subcalc)
+            if subcalc is not None:
+                arglist.append(subcalc)
+            else:
+                arglist.append(prepare_argument(argtype.name, get_argument(argtype.name), models, argtype, extras=extras))
         elif argtype == arguments.calculationss and len(cls.describe()['arguments']) == 1 and isinstance(args, list):
             # Special case for list of subcalcs
             arglist.append(prepare_argument(argtype.name, args, models, argtype, extras=extras))
@@ -68,19 +77,21 @@ def create_calcstep(name, args, models, subcalc, extras={}):
                 arglist.append(models['default'])
             else:
                 arglist.append(prepare_argument(argtype.name, get_argument(argtype.name), models, argtype, extras=extras))
-        elif argtype.name in ['input_unit', 'output_unit'] and argtype.name in kwargs:
-            arglist.append(kwargs[argtype.name])
+        elif argtype.name in ['input_unit', 'output_unit'] and argtype.name in savedargs:
+            arglist.append(savedargs[argtype.name])
         else:
             try:
                 arg = prepare_argument(argtype.name, get_argument(argtype.name), models, argtype, extras=extras)
                 if argtype.name in ['input_unit', 'output_unit'] and ' -> ' in arg:
                     input_unit, output_unit = tuple(arg.split(' -> '))
-                    kwargs['input_unit'] = input_unit
-                    kwargs['output_unit'] = output_unit
-                    arglist.append(kwargs[argtype.name])
+                    savedargs['input_unit'] = input_unit
+                    savedargs['output_unit'] = output_unit
+                    arglist.append(savedargs[argtype.name])
                     continue
+                elif getattr(argtype, 'is_optional', False):
+                    kwargs[argtype.name] = arg
                 else:
-                    arglist.append(arg) # do it, and hope for the best
+                    arglist.append(arg)
             except:
                 if getattr(argtype, 'is_optional', False):
                     continue
@@ -88,9 +99,9 @@ def create_calcstep(name, args, models, subcalc, extras={}):
                     try:
                         arg = get_argument('units')
                         input_unit, output_unit = typle(arg.split(' -> '))
-                        kwargs['input_unit'] = input_unit
-                        kwargs['output_unit'] = output_unit
-                        arglist.append(kwargs[argtype.name])
+                        savedargs['input_unit'] = input_unit
+                        savedargs['output_unit'] = output_unit
+                        arglist.append(savedargs[argtype.name])
                         continue
                     except:
                         if argtype.name in extras:
@@ -104,11 +115,12 @@ def create_calcstep(name, args, models, subcalc, extras={}):
                         raise ValueError("Could not find required argument %s of %s" % (argtype.name, name))
 
     try:
-        return cls(*tuple(arglist))
-    except Exception as ex:
+        return cls(*tuple(arglist), **kwargs)
+    except:
+        t, v, tb = sys.exc_info()
         print cls
         print arglist
-        raise ex
+        raise t, v, tb
 
 def sample_sequence(calculation, region):
     application = calculation.apply(region)

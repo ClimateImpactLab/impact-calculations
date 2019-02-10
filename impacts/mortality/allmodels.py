@@ -3,7 +3,8 @@ import numpy as np
 from impactlab_tools.utils import files
 from adaptation import csvvfile
 from generate import weather, effectset, caller, checks, agglib
-from climate.discover import discover_versioned, discover_variable
+from openest.generate.weatherslice import YearlyWeatherSlice
+from climate.discover import discover_versioned, discover_versioned_yearly, discover_day2year, standard_variable
 from datastore import agecohorts
 
 def preload():
@@ -11,12 +12,24 @@ def preload():
     library.get_data('mortality-deathrates', 'deaths/person')
 
 def get_bundle_iterator(config):
-    return weather.iterate_bundles(discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas"), 'tas'),
-                                   discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-2"), 'tas-poly-2'),
-                                   discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-3"), 'tas-poly-3'),
-                                   discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-4"), 'tas-poly-4'),
-                                   discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-5"), 'tas-poly-5'), **config)
-
+    assert 'specification' in config
+    if config['specification'] == 'polynomial':
+        return weather.iterate_bundles(discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas"), 'tas', **config),
+                                       discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-2"), 'tas-poly-2', **config),
+                                       discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-3"), 'tas-poly-3', **config),
+                                       discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-4"), 'tas-poly-4', **config),
+                                       discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-5"), 'tas-poly-5'), **config)
+    if config['specification'] == 'bins':
+        return weather.iterate_bundles(discover_day2year(standard_variable('tas', 'day', **config), lambda arr: np.mean(arr, axis=0)),
+                                       discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/binned_tas"), "tas_bin_day_counts", **config),
+                                       **config)
+    if config['specification'] == 'hddcdd':
+        return weather.iterate_bundles(discover_day2year(standard_variable('tas', 'day', **config), lambda arr: np.mean(arr, axis=0)),
+                                       discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/" + config['hddvar']), config['hddvar'], **config),
+                                       discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/" + config['cddvar']), config['cddvar'], **config),
+                                       **config)
+    raise ValueError("Unknown specification: %s" % config['specification'])
+    
 def check_doit(targetdir, basename, suffix):
     filepath = os.path.join(targetdir, basename + suffix + '.nc4')
     if not os.path.exists(filepath):
@@ -62,7 +75,7 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
 
             # Split into age groups and lock in q-draw
             csvv = csvvfile.read(filepath)
-            csvvfile.collapse_bang(csvv, pvals[basename].get_seed())
+            csvvfile.collapse_bang(csvv, pvals[basename].get_seed('csvv'))
 
             agegroups = ['young', 'older', 'oldest']
             for ageii in range(len(agegroups)):

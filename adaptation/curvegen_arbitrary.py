@@ -41,6 +41,11 @@ class SumCoefficientsCurveGenerator(curvegen.CSVVCurveGenerator):
 
         return TransformCoefficientsCurve(mycoeffs, [self.ds_transforms[predname] for predname in self.prednames], self.transform_descriptions, self.prednames if recorddiag and diagnostic.is_recording() else None)
 
+    def get_lincom_terms_simple_each(self, predname, covarname, predictors, covariates={}):
+        pred = np.sum(predictors[predname]._values)
+        covar = covariates[self.csvv['covarnames'][ii]] if self.csvv['covarnames'][ii] != '1' else 1
+        return pred * covar
+
     def format_call(self, lang, *args):
         coeffs = [self.diagprefix + predname for predname in self.prednames]
         coeffreps = [formatting.get_parametername(coeff, lang) for coeff in coeffs]

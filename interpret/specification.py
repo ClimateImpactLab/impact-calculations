@@ -18,7 +18,7 @@ def user_assert(check, message):
 def get_covariator(covar, args, weatherbundle, economicmodel, config={}, quiet=False):
     if isinstance(covar, dict):
         return get_covariator(covar.keys()[0], covar.values()[0], weatherbundle, economicmodel, config=config, quiet=quiet)
-    elif covar in ['loggdppc', 'logpopop']:
+    elif covar in ['loggdppc', 'logpopop', 'year']:
         return covariates.EconomicCovariator(economicmodel, 2015, config=configs.merge(config, 'econcovar'))
     elif covar == 'incbin':
         return covariates.BinnedEconomicCovariator(economicmodel, 2015, args, config=configs.merge(config, 'econcovar'))
@@ -67,31 +67,32 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
     if specconf['functionalform'] == 'polynomial':
         variable = specconf['variable']
         indepunit = specconf['indepunit']
+        coeffvar = specconf.get('coeffvar', variable)
         
         order = 0
         predinfix = ''
         for predname in csvv['prednames']:
-            if predname == variable:
+            if predname == coeffvar:
                 order = max(order, 1)
             else:
-                match = re.match(variable + r'(\d+)', predname)
+                match = re.match(coeffvar + r'(\d+)', predname)
                 if match:
                     order = max(order, int(match.group(1)))
                     continue
-                match = re.match(variable + r'-poly-(\d+)', predname)
+                match = re.match(coeffvar + r'-poly-(\d+)', predname)
                 if match:
                     predinfix = '-poly-'
                     order = max(order, int(match.group(1)))
                     continue
 
-        assert order > 1
+        assert order > 1, "Cannot find more than one power of %s in %s" % (coeffvar, str(csvv['prednames']))
                     
         weathernames = [variable] + ['%s-poly-%d' % (variable, power) for power in range(2, order+1)]
         if 'within-season' in specconf:
             weathernames = [variables.get_post_process(name, specconf) for name in weathernames]
 
         curr_curvegen = curvegen_known.PolynomialCurveGenerator([indepunit] + ['%s^%d' % (indepunit, pow) for pow in range(2, order+1)],
-                                                                depenunit, variable, order, csvv, predinfix=predinfix,
+                                                                depenunit, coeffvar, order, csvv, predinfix=predinfix,
                                                                 weathernames=weathernames, betalimits=betalimits, allow_raising=specconf.get('allow-raising', False))
         minfinder = lambda mintemp, maxtemp: lambda curve: minpoly.findpolymin([0] + curve.ccs, mintemp, maxtemp)
             
@@ -109,8 +110,13 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
         indepunits = []
         transform_descriptions = []
         for name in specconf['variables']:
-            match = re.match(r"^(.+?)\s+\[(.+?)\]$", specconf['variables'][name])
-            assert match is not None, "Could not find unit in %s" % specconf['variables'][name]
+            if isinstance(specconf['variables'], list):
+                match = re.match(r"^(.+?)\s+\[(.+?)\]$", name)
+                assert match is not None, "Could not find unit in %s" % name
+                name = match.group(1)
+            else:
+                match = re.match(r"^(.+?)\s+\[(.+?)\]$", specconf['variables'][name])
+                assert match is not None, "Could not find unit in %s" % specconf['variables'][name]
             ds_transforms[name] = variables.interpret_ds_transform(match.group(1), specconf)
             transform_descriptions.append(match.group(1))
             indepunits.append(match.group(2))
@@ -183,7 +189,8 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
     elif specconf.get('goodmoney', False):
         final_curvegen = curvegen.TransformCurveGenerator(transform, "Good Money transformation", curr_curvegen)
     else:
-        final_curvegen = curr_curvegen # this must give SmartCurves (otherwise, need a case for a pass through TransformCurveGenerator(transform...)
+        final_curvegen = curvegen.TransformCurveGenerator(transform, "Smart curve transformation", curr_curvegen)
+        final_curvegen.deltamethod_passthrough = True
 
     if covariator:
         final_curvegen = curvegen.FarmerCurveGenerator(final_curvegen, covariator, farmer)
@@ -195,7 +202,10 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     user_assert('calculation' in specconf, "Specification configuration missing 'calculation' list.")
     user_assert('description' in specconf, "Specification configuration missing 'description' list.")
 
-    csvvfile.collapse_bang(csvv, qvals.get_seed())
+    if config.get('report-variance', False):
+        csvv['gamma'] = np.zeros(len(csvv['gamma'])) # So no mistaken results
+    else:
+        csvvfile.collapse_bang(csvv, qvals.get_seed('csvv'))
     
     depenunit = specconf['depenunit']
     

@@ -125,6 +125,8 @@ def pflt(x):
         return 1.
     if x == 'False' or x == 'false':
         return 0.
+    if x[0] == '[' and x[-1] == ']':
+        return np.array(map(float, x[1:-1].split()))
     return float(x)
     
 def show_coefficient(csvv, preds, year, coefname, covartrans={}, betalimits=None):

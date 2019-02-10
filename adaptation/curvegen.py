@@ -79,6 +79,23 @@ class CSVVCurveGenerator(CurveGenerator):
     def get_curve(self, region, year, covariates={}):
         raise NotImplementedError()
 
+    def get_lincom_terms(self, region, year, predictors):
+        raise NotImplementedError()
+
+    def get_lincom_terms_simple(self, predictors, covariates={}):
+        # Return in the order of the CSVV
+        terms = []
+        for ii in range(len(self.csvv['prednames'])):
+            predname = self.csvv['prednames'][ii]
+            covarname = self.csvv['covarnames'][ii]
+            if predname in self.prednames:
+                term = self.get_lincom_terms_simple_each(predname, covarname, predictors, covariates)
+            else:
+                term = 0.0
+            terms.append(term)
+
+        return np.array(terms)
+    
 class FarmerCurveGenerator(DelayedCurveGenerator):
     """Handles different adaptation assumptions."""
     def __init__(self, curvegen, covariator, farmer='full', save_curve=True):
@@ -122,12 +139,15 @@ class FarmerCurveGenerator(DelayedCurveGenerator):
         elif self.farmer == 'full':
             covariates = self.covariator.offer_update(region, year, predictors.transform(lambda x: x / 365)) # because was summed
         elif self.farmer == 'noadapt':
-            assert False, "Don't have this set of covariates."
+            covariates = self.covariator.get_current(region)
         elif self.farmer == 'incadapt':
             covariates = self.covariator.offer_update(region, year, None)
             
         return self.curvegen.get_lincom_terms_simple(predictors, covariates)
 
+    def get_lincom_terms_simple(self, predictors, covariates={}):
+        raise NotImplementedError()
+    
     def get_csvv_coeff(self):
         return self.curvegen.get_csvv_coeff()
 
