@@ -10,6 +10,8 @@ levels_suffix = '-levels'
 suffix = "-aggregated"
 missing_only = True
 
+debug_aggregate = False #'ARE'
+
 costs_command = "Rscript generate/cost_curves.R \"%s\" \"%s\" \"%s\" \"%s\"" # tavgpath rcp gcm impactspath
 
 CLAIM_TIMEOUT = 24*60*60
@@ -120,7 +122,7 @@ def make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, d
             srcvalues = reader.variables[key + '_bcde'][:, :, :]
             for ii in range(len(prefixes)):
                 numers = np.zeros(srcvalues.shape[:2]) # coeff, time
-                denoms = np.zeros(srcvalues.shape[:2]) # coeff, time
+                denoms = np.zeros(srcvalues.shape[1]) # time
 
                 if prefixes[ii] == '':
                     withinregions = regions
@@ -136,16 +138,31 @@ def make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, d
                             weights_denom = wws
                             
                     for tt in range(len(years)):
+                        if prefixes[ii] == debug_aggregate and tt == len(years) - 1:
+                            print original, wws[tt]
+                            print np.nan_to_num(srcvalues[:, tt, original_indices[original]]) * np.all(np.isfinite(srcvalues[:, tt, original_indices[original]]))
                         numers[:, tt] += wws[tt] * np.nan_to_num(srcvalues[:, tt, original_indices[original]]) * np.all(np.isfinite(srcvalues[:, tt, original_indices[original]]))
                         if stweight_denom != weights.HALFWEIGHT_SUMTO1:
-                            denoms += weights_denom[tt] * np.all(np.isfinite(srcvalues[:, tt, original_indices[original]]))
+                            if prefixes[ii] == debug_aggregate and tt == len(years) - 1:
+                                print weights_denom[tt] * np.all(np.isfinite(srcvalues[:, tt, original_indices[original]]))
+                            denoms[tt] += weights_denom[tt] * np.all(np.isfinite(srcvalues[:, tt, original_indices[original]]))
 
                 if stweight_denom == weights.HALFWEIGHT_SUMTO1:
                     coeffvalues[:, :, ii] = numers
+                    if prefixes[ii] == debug_aggregate:
+                        print "Numerators"
+                        print numers[:, len(years) - 1]
                 else:
-                    coeffvalues[:, :, ii] = numers / denoms
+                    for tt in range(len(years)):
+                        coeffvalues[:, tt, ii] = numers[:, tt] / denoms[tt]
+                        if prefixes[ii] == debug_aggregate and tt == len(years) - 1:
+                            print "Numerators / Denominators"
+                            print numers[:, tt]
+                            print numers[:, tt] / denoms[tt]
                 for tt in range(len(years)):
-                    dstvalues[:, ii] = vcv.dot(coeffvalues[:, tt, ii]).dot(coeffvalues[:, tt, ii])
+                    dstvalues[tt, ii] = vcv.dot(coeffvalues[:, tt, ii]).dot(coeffvalues[:, tt, ii])
+                    if prefixes[ii] == debug_aggregate and tt == len(years) - 1:
+                        print dstvalues[tt, ii]
                     
             coeffcolumn = writer.createVariable(key + '_bcde', 'f4', ('coefficient', 'year', 'region'))
             coeffcolumn[:, :, :] = coeffvalues
@@ -294,10 +311,12 @@ if __name__ == '__main__':
         print targetdir
         print econ_model, econ_scenario
 
-        if not statman.claim(targetdir) and 'targetdir' not in config:
+        if not isinstance(debug_aggregate, str) and not statman.claim(targetdir) and 'targetdir' not in config:
             continue
 
         incomplete = False
+        if isinstance(debug_aggregate, str):
+            incomplete = True
 
         for filename in os.listdir(targetdir):
             if filename[-4:] == '.nc4' and suffix not in filename and costs_suffix not in filename and levels_suffix not in filename:
@@ -351,7 +370,7 @@ if __name__ == '__main__':
                     # Aggregate impacts
                     if halfweight_aggregate:
                         outfilename = fullfile(filename, suffix, config)
-                        if not missing_only or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable=variable, regioncount=5665) or not os.path.exists(os.path.join(targetdir, outfilename)):
+                        if isinstance(debug_aggregate, str) or not missing_only or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable=variable, regioncount=5665) or not os.path.exists(os.path.join(targetdir, outfilename)):
                             make_aggregates(targetdir, filename, outfilename, halfweight_aggregate, weight_args_aggregate, halfweight_denom=halfweight_aggregate_denom, weight_args_denom=weight_args_aggregate_denom)
 
                     if '-noadapt' not in filename and '-incadapt' not in filename and 'histclim' not in filename and 'indiamerge' not in filename:
