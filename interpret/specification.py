@@ -53,7 +53,7 @@ def create_covariator(specconf, weatherbundle, economicmodel, config={}, quiet=F
 
     return covariator
         
-def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
+def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}, getcsvvcurve=False):
     user_assert('depenunit' in specconf, "Specification configuration missing 'depenunit' string.")
     user_assert('functionalform' in specconf, "Specification configuration missing 'functionalform' string.")
     if specconf['functionalform'] in ['polynomial', 'cubicspline']:
@@ -130,8 +130,8 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
         for tt in range(len(specconf['suffixes'])):
             subspecconf = configs.merge(specconf, specconf['subspec'])
             subspecconf['final-t'] = tt
-            csvvcurvegen = create_curvegen(csvv, None, regions, farmer=farmer, specconf=subspecconf) # don't pass covariator, so skip farmer curvegen
-            assert isinstance(csvvcurvegen, curvegen.CSVVCurveGenerator)
+            csvvcurvegen = create_curvegen(csvv, None, regions, farmer=farmer, specconf=subspecconf, getcsvvcurve=True) # don't pass covariator, so skip farmer curvegen
+            assert isinstance(csvvcurvegen, curvegen.CSVVCurveGenerator), "Error: Curve-generator resulted in a " + str(csvvcurvegen.__class__)
             csvvcurvegens.append(csvvcurvegen)
         
         curr_curvegen = curvegen.SumCurveGenerator(csvvcurvegens, specconf['suffixes'])
@@ -139,6 +139,9 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
     else:
         user_failure("Unknown functional form %s." % specconf['functionalform'])
 
+    if getcsvvcurve:
+        return curr_curvegen
+        
     if specconf.get('goodmoney', False):
         baselineloggdppcs = {}
         for region in regions:
