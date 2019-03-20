@@ -14,7 +14,16 @@ def interpret_ds_transform(name, config):
         return selfdocumented.DocumentedFunction(lambda ds: internal_left(ds) - internal_right(ds),
                                                  name, lambda x, y: x - y,
                                                  [internal_left, internal_right])
-    
+
+    if ' * ' in name:
+        chunks = name.split(' * ', 1)
+        internal_left = interpret_ds_transform(chunks[0], config)
+        internal_right = interpret_ds_transform(chunks[1], config)
+
+        return selfdocumented.DocumentedFunction(lambda ds: internal_left(ds) * internal_right(ds),
+                                                 name, lambda x, y: x * y,
+                                                 [internal_left, internal_right])
+
     if '.' in name:
         chunks = re_dotsplit.split(name)
         if len(chunks) > 1:
