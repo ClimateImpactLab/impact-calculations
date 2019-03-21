@@ -127,11 +127,11 @@ class FarmerCurveGenerator(DelayedCurveGenerator):
 
         return curve
 
-    def get_lincom_terms(self, region, year, predictors={}):
+    def get_lincom_terms(self, region, year, predictors={}, origds=None):
         if year < 2015:
             covariates = self.covariator.get_current(region)
         elif self.farmer == 'full':
-            covariates = self.covariator.offer_update(region, year, predictors.transform(lambda x: x / 365)) # because was summed
+            covariates = self.covariator.offer_update(region, year, origds) # don't use summed
         elif self.farmer == 'noadapt':
             covariates = self.covariator.get_current(region)
         elif self.farmer == 'incadapt':
