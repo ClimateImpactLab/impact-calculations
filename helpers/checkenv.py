@@ -2,13 +2,13 @@ print "Checking climate data..."
 
 from climate import discover
 
-discoverer = discover.standard_variable('tas', 'daily')
+discoverer = discover.standard_variable('tas', 'day')
 assert discoverer, "Cannot find TAS dataset."
 
 readerset = discoverer.next()
 assert readerset, "Cannot load TAS dataset."
 
-scenario, mode, pastreader, futurereader = readerset:
+scenario, mode, pastreader, futurereader = readerset
 assert pastreader.read_year(2000), "Cannot read TAS dataset."
     
 print "Checking socioeconomic data..."
@@ -22,5 +22,10 @@ readerset = discoverer.next()
 assert readerset, "Cannot load economic dataset."
 
 model, scenario, economicmodel = readerset
-assert economicmodel.get_gdppc_year('IND.33.542.2153', 2000), "Cannot read economic dataset."
+assert economicmodel.get_loggdppc_year('IND.33.542.2153', 2000), "Cannot read economic dataset."
+
+from impactlab_tools.utils import versions
+import json
+
+print json.dumps(versions.check_version(['self', 'numpy', 'scipy', 'metacsv', 'impact-calculations', 'impactlab-tools', 'open-estimate']), indent=4)
 
