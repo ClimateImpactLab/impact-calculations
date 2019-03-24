@@ -27,5 +27,5 @@ assert economicmodel.get_loggdppc_year('IND.33.542.2153', 2000), "Cannot read ec
 from impactlab_tools.utils import versions
 import json
 
-print json.dumps(versions.check_version(['self', 'numpy', 'scipy', 'metacsv', 'impactlab-tools', 'open-estimate']), indent=4)
+print json.dumps(versions.check_version(['self', 'numpy', 'scipy', 'netCDF4', 'metacsv', 'impactlab-tools', 'open-estimate']), indent=4)
 
