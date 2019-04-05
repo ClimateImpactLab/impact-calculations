@@ -94,10 +94,10 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}, getcs
             assert order > 1, "Cannot find more than one power of %sN%s in %s" % (coeffvar, suffix, str(csvv['prednames']))
         else:
             assert order > 1, "Cannot find more than one power of %s in %s" % (coeffvar, str(csvv['prednames']))
-            
+        
         weathernames = [variable] + ['%s-poly-%d' % (variable, power) for power in range(2, order+1)]
-        if 'within-season' in specconf:
-            weathernames = [variables.get_post_process(name, specconf) for name in weathernames]
+        if variables.needs_interpret(variable, specconf):
+            weathernames = [variables.interpret_ds_transform(name, specconf) for name in weathernames]
 
         curr_curvegen = curvegen_known.PolynomialCurveGenerator([indepunit] + ['%s^%d' % (indepunit, pow) for pow in range(2, order+1)],
                                                                 depenunit, coeffvar, order, csvv, predinfix=predinfix,

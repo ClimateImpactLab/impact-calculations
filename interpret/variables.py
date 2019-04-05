@@ -5,6 +5,13 @@ from datastore import irvalues
 
 re_dotsplit = re.compile("\.(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)")
 
+def needs_interpret(name, config):
+    if ' - ' in name or ' * ' in name or '.' in name:
+        return True
+    if 'final-t' in config or 'within-season' in config:
+        return True
+    return False
+
 def interpret_ds_transform(name, config):
     if ' - ' in name:
         chunks = name.split(' - ', 1)
