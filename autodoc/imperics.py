@@ -69,7 +69,7 @@ with open(os.path.join("/shares/gcp/regions/hierarchy-flat.csv"), 'r') as fp:
         if row[0] == region:
             shapenum = int(row[header.index('agglomid')]) - 1
             break
-        
+
 lib.show_header("CSVV:")
 csvv = lib.get_csvv(csvvpath)
 csvvobj = csvvfile.read(csvvpath)
@@ -91,10 +91,10 @@ for variable in weather['2001']:
         print "%s: %s..." % (year, ','.join(map(str, weather[year][variable][:10])))
             
 lib.show_header("Outputs:")
-outputs = lib.get_outputs(os.path.join(dir, onlymodel + '.nc4'), [2001, futureyear], shapenum)
+outputs = lib.get_outputs(os.path.join(dir, onlymodel + '.nc4'), [2001, futureyear], shapenum, deltamethod=config.get('deltamethod', False))
 
 ## Computations
-if not config.get('deltamethod'):
+if not config.get('deltamethod', False):
     # decide on a covariated variable
     for variable in set([csvv['prednames'][ii] for ii in range(len(csvv['prednames'])) if csvv['covarnames'][ii] != '1']):
         for year in [2001, futureyear]:
@@ -115,7 +115,11 @@ formatting.functions_known['Extract bin from weather'] = formatting.ParameterFor
 extraparams = {'extract-bin': "(weather, bin) -> weather[:, bin_edges .== bin]"}
 if 'within-season' in specconf:
     extraparams['season-weather'] = "(x) -> (length(size(x)) == 2 ? (size(x)[1] <= 24 ? x[%d:%d, :] : x[%d:%d, :]) : (length(x) <= 24 ? x[%d:%d] : x[%d:%d]))" % (season_months[0], season_months[1], season_doys[0], season_doys[1], season_months[0], season_months[1], season_doys[0], season_doys[1])
-
+if config.get('deltamethod', False):
+    pass
+    # for ii in range(len(csvv['prednames'])):
+    #     extraparams[
+    
 extraelements = {'bin-edges': formatting.ParameterFormatElement('refTemp', "bin_edges"),
                  'edd': formatting.ParameterFormatElement('edd', "edd")}
 
@@ -134,11 +138,12 @@ for year in [2001, futureyear]:
         used_outputs.add(label)
 
         lib.show_header("Calculation of %s in %d (%f reported)" % (label, year, outputs[year][label]))
+        print elements
 
         elements.update(extraelements)
 
         allparams = {calcs['header'][ii]: calcs['2000'][ii] for ii in range(len(calcs['header']))}
-        allparams.update({calcs['header'][ii]: calcs[str(year - 1)][ii] for ii in range(len(calcs['header'])) if not np.isnan(calcs[str(year - 1)][ii])})
+        allparams.update({calcs['header'][ii]: calcs[str(year - 1)][ii] for ii in range(len(calcs['header'])) if isinstance(calcs[str(year - 1)][ii], np.ndarray) or not np.isnan(calcs[str(year - 1)][ii])})
         allparams.update(weather[str(year)])
         allparams.update(extraparams)
 
@@ -164,7 +169,10 @@ for year in [2001, futureyear]:
 
 lib.show_header("Calc. of rebased (%f reported)" % outputs[futureyear]['rebased'])
 if last_label is not None:
-    lib.show_julia("%f - %f" % (outputs[futureyear][last_label], lib.excind(calcs, 2000, 'baseline')))
+    if not config.get('deltamethod', False):
+        lib.show_julia("%f - %f" % (outputs[futureyear][last_label], lib.excind(calcs, 2000, 'baseline')))
+    else:
+        lib.show_julia(lib.get_julia(outputs[futureyear][last_label]) + " - " + lib.get_julia(lib.excind(calcs, 2000, 'baseline')))
 else:
     elements.update(extraelements)
     
