@@ -97,6 +97,8 @@ class FarmerCurveGenerator(DelayedCurveGenerator):
         self.covariator = covariator
         self.farmer = farmer
         self.save_curve = save_curve
+        self.lincom_last_covariates = {}
+        self.lincom_last_year = {}
 
     def get_next_curve(self, region, year, *args, **kwargs):
         if year < 2015:
@@ -128,15 +130,28 @@ class FarmerCurveGenerator(DelayedCurveGenerator):
         return curve
 
     def get_lincom_terms(self, region, year, predictors={}, origds=None):
-        if year < 2015:
-            covariates = self.covariator.get_current(region)
-        elif self.farmer == 'full':
-            covariates = self.covariator.offer_update(region, year, origds) # don't use summed
-        elif self.farmer == 'noadapt':
-            covariates = self.covariator.get_current(region)
-        elif self.farmer == 'incadapt':
-            covariates = self.covariator.offer_update(region, year, None)
-            
+        # Get last covariates
+        if self.lincom_last_year.get(region, None) == year:
+            covariates = self.lincom_last_covariates[region]
+        else:
+            if region not in self.lincom_last_covariates:
+                covariates = self.covariator.get_current(region)
+            else:
+                covariates = self.lincom_last_covariates[region]
+
+            # Prepare next covariates
+            if year < 2015:
+                nextcovariates = self.covariator.get_current(region)
+            elif self.farmer == 'full':
+                nextcovariates = self.covariator.offer_update(region, year, origds) # don't use summed
+            elif self.farmer == 'noadapt':
+                nextcovariates = self.covariator.get_current(region)
+            elif self.farmer == 'incadapt':
+                nextcovariates = self.covariator.offer_update(region, year, None)
+
+            self.lincom_last_covariates[region] = nextcovariates
+            self.lincom_last_year[region] = year
+        
         return self.curvegen.get_lincom_terms_simple(predictors, covariates)
 
     def get_lincom_terms_simple(self, predictors, covariates={}):
