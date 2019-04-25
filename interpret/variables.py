@@ -13,6 +13,15 @@ def needs_interpret(name, config):
     return False
 
 def interpret_ds_transform(name, config):
+    if ' ** ' in name:
+        chunks = name.split(' ** ', 1)
+        internal_left = interpret_ds_transform(chunks[0], config)
+        internal_right = interpret_ds_transform(chunks[1], config)
+
+        return selfdocumented.DocumentedFunction(lambda ds: internal_left(ds) * internal_right(ds),
+                                                 name, lambda x, y: x * y,
+                                                 [internal_left, internal_right])
+
     if ' - ' in name:
         chunks = name.split(' - ', 1)
         internal_left = interpret_ds_transform(chunks[0], config)
@@ -60,6 +69,7 @@ def get_post_process(name, config):
     return selfdocumented.DocumentedFunction(lambda ds: ds[name], "Extract from weather", docfunc=lambda x: x, docargs=[name])
     
 def post_process(ds, name, config):
+    print ds
     dataarr = ds[name]
 
     if 'final-t' in config:
