@@ -69,17 +69,21 @@ def get_post_process(name, config):
     return selfdocumented.DocumentedFunction(lambda ds: ds[name], "Extract from weather", docfunc=lambda x: x, docargs=[name])
     
 def post_process(ds, name, config):
-    print ds
     dataarr = ds[name]
 
     if 'final-t' in config:
         subconfig = copy.copy(config)
         del subconfig['final-t']
         before = post_process(ds, name, subconfig)
-        if config['final-t'] < len(before._values):
-            return fast_dataset.FastDataArray(np.array([before._values[config['final-t']]]), dataarr.original_coords, ds)
+        if config['final-t'] < before._values.shape[dataarr.original_coords.index('time')]:
+            return before.isel(time=config['final-t'])
+            # return fast_dataset.FastDataArray(np.array([before._values[config['final-t']]]), dataarr.original_coords, ds)
         else:
-            return fast_dataset.FastDataArray(np.array([0.]), dataarr.original_coords, ds)
+            new_coords = list(dataarr.original_coords)
+            new_shape = list(before._values.shape)
+            del new_shape[new_coords.index('time')]
+            del new_coords[new_coords.index('time')]
+            return fast_dataset.FastDataArray(np.zeros(tuple(new_shape)), new_coords, ds)
     
     if 'within-season' in config:
         if len(dataarr) == 24:
