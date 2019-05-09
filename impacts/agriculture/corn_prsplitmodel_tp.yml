@@ -1,0 +1,67 @@
+timerate: month
+weight: cropwt
+rolling-years: 2
+climate: [ tasmax, edd, pr, pr-poly-2 ]
+models:
+  - csvvs: "social/parameters/agriculture/corn/corn_global_t-tbar_pbar_lnincbr_ir_tp_binp-tbar_pbar_lnincbr_ir_tp_temp_precip_ir_fe-A1TT_A0Y_clus-A1_A0Y-190301.csvv"
+    within-season: "social/baselines/agriculture/world-combo-201710-growing-seasons-corn-1stseason.csv"
+    clipping: false
+    covariates:
+      - loggdppc
+      - seasonaltasmax
+      - seasonalpr
+      - ir-share
+      - seasonaltasmax*seasonalpr
+    description: Yield rate for corn
+    specifications:
+      gddkdd:
+        functionalform: coefficients
+        description: Temperature-driven yield rate for corn
+        depenunit: log kg / Ha
+        variables:
+          gdd-8-29: edd.bin(8) - edd.bin(29) [C day]
+          kdd-29: edd.bin(29) [C day]
+        beta-limits:
+          gdd-8-29: 0, inf
+          kdd-29: -inf, 0
+      precip:
+        functionalform: sum-by-time
+        description: Precipitation-driven yield rate for corn
+        depenunit: log kg / Ha
+        indepunit: mm
+        suffixes: [1, 2, 3, 4, 5, 6, 7, 8, 9, r, r, r]
+        subspec:
+          variable: pr
+          functionalform: polynomial
+      gddprecip:
+        functionalform: sum-by-time
+        description: Interaction between temperature and precipitation
+        depenunit: log kg / Ha
+        suffixes: [1, 2, 3, 4, 5, 6, 7, 8, 9, r, r, r]
+        indepunit: C mm day
+        subspec:
+          functionalform: polynomial
+          coeffvar: gdd-8-29*pr
+          variable: edd.bin(8) - edd.bin(29) ** pr
+      kddprecip:
+        functionalform: sum-by-time
+        description: Interaction between temperature and precipitation
+        depenunit: log kg / Ha
+        suffixes: [1, 2, 3, 4, 5, 6, 7, 8, 9, r, r, r]
+        indepunit: C mm day
+        subspec:
+          functionalform: polynomial
+          coeffvar: kdd-8-29*pr
+          variable: edd.bin(29) * pr
+    calculation:
+      - Sum:
+        - YearlySumIrregular:
+            model: gddkdd
+        - YearlySumIrregular:
+            model: precip
+        - YearlySumIrregular:
+            model: gddprecip
+        - YearlySumIrregular:
+            model: kddprecip
+      - Rebase
+      - Exponentiate
