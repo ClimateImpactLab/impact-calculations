@@ -81,6 +81,13 @@ def write_ncdf(targetdir, basename, weatherbundle, calculation, description, cal
     years = nc4writer.make_years_variable(rootgrp)
     regions = nc4writer.make_regions_variable(rootgrp, my_regions, subset)
 
+    if deltamethod_vcv is not False:
+        rootgrp.createDimension('coefficient', deltamethod_vcv.shape[0])
+
+        vcv = rootgrp.createVariable('vcv', 'f4', ('coefficient', 'coefficient'))
+        vcv.long_title = "Variance covariance matrix"
+        vcv[:, :] = deltamethod_vcv
+    
     yeardata = weatherbundle.get_years()
 
     infos = calculation.column_info()
@@ -103,6 +110,13 @@ def write_ncdf(targetdir, basename, weatherbundle, calculation, description, cal
         columns.append(column)
         columndata.append(np.zeros((len(yeardata), len(my_regions))) * np.nan)
 
+        if deltamethod_vcv is not False:
+            column = rootgrp.createVariable(myname + '_bcde', 'f4', ('coefficient', 'year', 'region'))
+            column.long_title = infos[ii]['title'] + " by coefficient deltamethod evaluation"
+
+            columns.append(column)
+            columndata.append(np.zeros((deltamethod_vcv.shape[0], len(yeardata), len(my_regions))) * np.nan)
+
     nc4writer.make_str_variable(rootgrp, 'operation', 'orderofoperations', list(reversed(usednames)),
                                 "Order of the operations applied to the input weather data.")
 
@@ -120,7 +134,8 @@ def write_ncdf(targetdir, basename, weatherbundle, calculation, description, cal
                 for ii in range(len(results[col])):
                     for jj in range(len(results[col])):
                         variance += deltamethod_vcv[ii, jj] * results[col][ii] * results[col][jj]
-                columndata[col][year - yeardata[0], region_indices[region]] = variance
+                columndata[2 * col][year - yeardata[0], region_indices[region]] = variance
+                columndata[2 * col + 1][:, year - yeardata[0], region_indices[region]] = results[col]
             else:
                 columndata[col][year - yeardata[0], region_indices[region]] = results[col]
         if diagnosefile:
@@ -130,7 +145,11 @@ def write_ncdf(targetdir, basename, weatherbundle, calculation, description, cal
         diagnostic.close()
 
     for col in range(len(results)):
-        columns[col][:, :] = columndata[col]
+        if deltamethod_vcv is not False:
+            columns[2 * col][:, :] = columndata[2 * col]
+            columns[2 * col + 1][:, :, :] = columndata[2 * col + 1]
+        else:
+            columns[col][:, :] = columndata[col]
 
     rootgrp.close()
 
