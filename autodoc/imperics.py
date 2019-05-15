@@ -115,10 +115,6 @@ formatting.functions_known['Extract bin from weather'] = formatting.ParameterFor
 extraparams = {'extract-bin': "(weather, bin) -> weather[:, bin_edges .== bin]"}
 if 'within-season' in specconf:
     extraparams['season-weather'] = "(x) -> (length(size(x)) == 2 ? (size(x)[1] <= 24 ? x[%d:%d, :] : x[%d:%d, :]) : (length(x) <= 24 ? x[%d:%d] : x[%d:%d]))" % (season_months[0], season_months[1], season_doys[0], season_doys[1], season_months[0], season_months[1], season_doys[0], season_doys[1])
-if config.get('deltamethod', False):
-    pass
-    # for ii in range(len(csvv['prednames'])):
-    #     extraparams[
     
 extraelements = {'bin-edges': formatting.ParameterFormatElement('refTemp', "bin_edges"),
                  'edd': formatting.ParameterFormatElement('edd', "edd")}
@@ -138,7 +134,6 @@ for year in [2001, futureyear]:
         used_outputs.add(label)
 
         lib.show_header("Calculation of %s in %d (%f reported)" % (label, year, outputs[year][label]))
-        print elements
 
         elements.update(extraelements)
 
