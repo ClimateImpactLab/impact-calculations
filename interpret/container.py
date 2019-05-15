@@ -111,7 +111,7 @@ def produce_csvv(basename, csvv, module, specconf, targetdir, weatherbundle, eco
         if profile:
             return
         
-        if config.get('do_farmers', False) and not weatherbundle.is_historical():
+        if config.get('do_farmers', False) and (not weatherbundle.is_historical() or config['do_farmers'] == 'always'):
             # Lock in the values
             pvals[basename].lock()
 
