@@ -24,3 +24,25 @@ included in the generate configuration file.
  - `csvvfile`: A path to a CSVV file to be used for the coefficients.
    This can be given as a subpath from the data directory; e.g.,
    `social/parameters/mortality/.../....csv`.
+ 
+## Covariate Averaging
+
+You can specify in a configuration file the averaging scheme for
+climate and economic covariates.  By default, a 13-year Bartlett
+kernel is used for economic covariates and a 30-year Bartlett for
+climate covariates.  To change these, specify the `class` and `length`
+of the new averaging scheme.  For example, to change to a 25-year
+running average, you would say,
+```
+climcovar:
+    class: mean
+    length: 25
+```
+
+The available classes are `mean` (a running average), `median` (a
+running median), `bartlett` (a running triangular kernel), and
+`bucket` (a running Bayesian updating or exponential kernel).  For the
+first three, `length` is the length to the last non-zero term in the
+kernel; for the last, it's the decay-rate of the exponential decay.
+Always use spaces to indent these parameters.
+
