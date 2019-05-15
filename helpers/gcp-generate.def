@@ -1,0 +1,39 @@
+Bootstrap: debootstrap
+OSVersion: xenial
+MirrorURL: http://us.archive.ubuntu.com/ubuntu/
+
+%post
+    mkdir /global
+    mkdir /global/scratch
+    mkdir /shares
+    mkdir /shares/gcp
+
+    apt-get -y update
+    apt-get -y install software-properties-common
+    apt-add-repository universe
+    apt-get -y update
+    apt-get -y install python2.7 git
+    apt-get -y install python-pip netcdf-bin
+    apt-get -y install libnetcdf-c++4
+    ##python-netcdf libnetcdfc++4 libnetcdf-dev
+    apt-get -y install libhdf5-serial-dev libffi-dev
+
+    pip install numpy
+    pip install scipy
+    pip install xarray
+    pip install h5py
+    pip install netcdf4
+    pip install metacsv
+    pip install statsmodels
+
+    git clone https://github.com/ClimateImpactLab/impactlab-tools.git
+    cd impactlab-tools
+    python setup.py install
+
+%runscript
+    cd impact-common
+    python setup.py develop --user
+    cd ../open-estimate
+    python setup.py develop --user
+    cd ../impact-calculations
+    python -m generate.generate "$@"

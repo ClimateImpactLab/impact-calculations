@@ -310,7 +310,9 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
                 allds = fast_dataset.merge((allds, ds)) #xr.merge((allds, ds))
 
             # Correct the time - should generalize
-            if allds['time'][0] < 10000:
+            if isinstance(allds['time'][0], np.datetime64):
+                allds['time']._values = np.array(map(lambda date: str(year) + str(date)[4:], allds['time']._values))
+            elif allds['time'][0] < 10000:
                 allds['time']._values += year - pastyear # YYYY
             elif allds['time'][0] < 1000000:
                 allds['time']._values += (year - pastyear) * 100 # YYYYMM

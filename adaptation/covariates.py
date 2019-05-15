@@ -159,8 +159,8 @@ class SubspanWeatherCovariator(MeanWeatherCovariator):
         self.day_end = day_end
         self.all_values = None
 
-        self.mustr = "%smu%d-%d" % (self.weatherbundle.get_dimension()[0], self.day_start, self.day_end)
-        self.sigmastr = "%ssigma%d-%d" % (self.weatherbundle.get_dimension()[0], self.day_start, self.day_end)
+        self.mustr = "%smu%d-%d" % (variable, self.day_start, self.day_end)
+        self.sigmastr = "%ssigma%d-%d" % (variable, self.day_start, self.day_end)
 
     def get_current(self, region):
         if self.all_values is None:
@@ -171,9 +171,9 @@ class SubspanWeatherCovariator(MeanWeatherCovariator):
                 print year
                 for region in self.weatherbundle.regions:
                     if region not in self.all_values:
-                        self.all_values[region] = ds[self.variable].sel(region=region).values[self.day_start:self.day_end]
+                        self.all_values[region] = np.squeeze(ds[self.variable].sel(region=region).values[self.day_start:self.day_end])
                     else:
-                        self.all_values[region] = np.concatenate((self.all_values[region], ds[self.variable].sel(region=region).values[self.day_start:self.day_end]))
+                        self.all_values[region] = np.concatenate((self.all_values[region], np.squeeze(ds[self.variable].sel(region=region).values[self.day_start:self.day_end])))
 
         mu = np.mean(self.all_values[region])
         sigma = np.std(self.all_values[region])
@@ -181,8 +181,11 @@ class SubspanWeatherCovariator(MeanWeatherCovariator):
         return {self.mustr: mu, self.sigmastr: sigma}
 
     def get_update(self, region, year, ds):
+        if self.all_values is None:
+            self.get_current(region)
+            
         if ds is not None and year > self.startupdateyear:
-            self.all_values[region] = np.concatenate((self.all_values[region][(self.day_end - self.day_start):], ds[self.variable][self.day_start:self.day_end]))
+            self.all_values[region] = np.concatenate((self.all_values[region][(self.day_end - self.day_start):], np.squeeze(ds[self.variable][self.day_start:self.day_end])))
 
         mu = np.mean(self.all_values[region])
         sigma = np.std(self.all_values[region])

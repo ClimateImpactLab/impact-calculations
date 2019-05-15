@@ -326,10 +326,7 @@ if __name__ == '__main__':
                     
                 print filename
 
-                if filename == 'covariates.nc4':
-                    variable = 'loggdppc'
-                else:
-                    variable = 'rebased'
+                variable = config.get('check-variable', 'rebased')
 
                 if 'weighting' in config and config['weighting'] == 'agecohorts':
                     weight_args_levels = (econ_model, econ_scenario, agecohorts.age_from_filename(filename) if 'IND_' not in filename else 'total')
