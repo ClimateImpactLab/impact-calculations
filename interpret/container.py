@@ -16,9 +16,6 @@ def get_bundle_iterator(config):
     for variable in config['climate']:
         discoverers.append(standard_variable(variable, timerate, **config))
 
-    if len(discoverers) == 1:
-        return discoverers[0]
-
     return weather.iterate_bundles(*discoverers, **config)
 
 def check_doit(targetdir, basename, suffix, config, deletebad=False):
@@ -61,12 +58,12 @@ def get_modules_csvv(config):
     for model, csvvs, module, specconf in get_modules(config):
         if isinstance(csvvs, list):
             for csvv in csvvs:
-                for filepath in glob.glob(files.sharedpath(csvv)):
+                for filepath in glob.glob(files.configpath(csvv)):
                     yield model, filepath, module, specconf
         else:
-            filepaths = glob.glob(files.sharedpath(csvvs))
+            filepaths = glob.glob(files.configpath(csvvs))
             if not filepaths:
-                warnings.warn("Cannot find any files that match %s" % files.sharedpath(csvvs))
+                warnings.warn("Cannot find any files that match %s" % files.configpath(csvvs))
                 
             for filepath in filepaths:
                 yield model, filepath, module, specconf
