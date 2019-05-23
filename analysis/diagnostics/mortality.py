@@ -41,19 +41,13 @@ csvv = lib.get_csvv(csvvpath, *csvvargs)
 
 lib.show_header("Weather:")
 lib.show_header(" tas:")
-weather = lib.get_weather(weathertemplate, range(2001, 2011) + [futureyear], region)
+weather = lib.get_weather(weathertemplate, range(2001, 2011) + [futureyear-1, futureyear], region)
 lib.show_header(" tas^2:")
-weather2 = lib.get_weather(weathertemplate, range(2001, 2011) + [futureyear], region, variable='tas-poly-2')
+weather2 = lib.get_weather(weathertemplate, range(2001, 2011) + [futureyear-1, futureyear], region, variable='tas-poly-2')
 lib.show_header(" tas^3:")
-weather3 = lib.get_weather(weathertemplate, range(2001, 2011) + [futureyear], region, variable='tas-poly-3')
+weather3 = lib.get_weather(weathertemplate, range(2001, 2011) + [futureyear-1, futureyear], region, variable='tas-poly-3')
 lib.show_header(" tas^4:")
-weather4 = lib.get_weather(weathertemplate, range(2001, 2011) + [futureyear], region, variable='tas-poly-4')
-
-# print "tas = c(" + ', '.join(map(lambda x: "%.3f" % x, weather[2099])) + ')'
-# print "tas2 = c(" + ', '.join(map(lambda x: "%.3f" % x, weather2[2099])) + ')'
-# print "tas3 = c(" + ', '.join(map(lambda x: "%.3f" % x, weather3[2099])) + ')'
-# print "tas4 = c(" + ', '.join(map(lambda x: "%.3f" % x, weather4[2099])) + ')'
-# exit()
+weather4 = lib.get_weather(weathertemplate, range(2001, 2011) + [futureyear-1, futureyear], region, variable='tas-poly-4')
 
 lib.show_header("Outputs:")
 outputs = lib.get_outputs(os.path.join(dir, onlymodel + '.nc4'), range(2001, 2011) + [futureyear-1, futureyear], shapenum if not onlyreg else 0)
@@ -110,7 +104,7 @@ lines = ["weather_%d = [%s]" % (futureyear, ','.join(["%.12g" % weday for weday 
          "weather2_%d = [%s]" % (futureyear, ','.join(["%.12g" % weday for weday in weather2[futureyear]])),
          "weather3_%d = [%s]" % (futureyear, ','.join(["%.12g" % weday for weday in weather3[futureyear]])),
          "weather4_%d = [%s]" % (futureyear, ','.join(["%.12g" % weday for weday in weather4[futureyear]])),
-         "eff0(weather) = ([%s]' * weather) / 100000" % ', '.join(["%.12g" % lib.excind(calcs, futureyear, coeff) for coeff in coefflist]),
+         "eff0(weather) = ([%s]' * weather) / 100000" % ', '.join(["%.12g" % lib.excind(calcs, futureyear-1, coeff) for coeff in coefflist]),
          "effadj(weather, weather2, weather3, weather4) = eff0([weather'; weather2'; weather3'; weather4']) - eff0(%.12g .^ (1:%d))[1]" % (lib.excind(mintemps, 2009, 'analytic'), polypower),
          "efffin(weather, weather2, weather3, weather4) = effadj(weather, weather2, weather3, weather4) .* (effadj(weather, weather2, weather3, weather4) .> 0)",
          "original = efffin(weather_%d, weather2_%d, weather3_%d, weather4_%d)" % (futureyear, futureyear, futureyear, futureyear),
