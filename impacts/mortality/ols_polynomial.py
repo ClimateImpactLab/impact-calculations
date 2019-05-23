@@ -2,11 +2,12 @@ import csv, copy
 import numpy as np
 from adaptation import csvvfile, curvegen, curvegen_known, covariates, constraints
 from interpret import configs
-from openest.models.curve import ZeroInterceptPolynomialCurve, ClippedCurve, ShiftedCurve, MinimumCurve, OtherClippedCurve, SelectiveInputCurve, CoefficientsCurve
+from openest.models.curve import ZeroInterceptPolynomialCurve, ClippedCurve, ShiftedCurve, MinimumCurve, OtherClippedCurve, SelectiveInputCurve, CoefficientsCurve, ProductCurve
 from openest.generate.stdlib import *
 from openest.generate import diagnostic
+from openest.curves import ushape_numeric
 from impactcommon.math import minpoly
-
+    
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', config={}):
     covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, config=configs.merge(config, 'climcovar'), varindex=0), {'climtas': 'tas'}),
                                                 covariates.EconomicCovariator(economicmodel, 2015, config=configs.merge(config, 'econcovar'))])
@@ -24,8 +25,10 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
             baselineloggdppcs[region] = covariator.get_current(region)['loggdppc']
     
         # Determine minimum value of curve between 10C and 25C
-        baselinecurves, baselinemins = constraints.get_curve_minima(weatherbundle.regions, curr_curvegen, covariator, 10, 25,
-                                                                    lambda region, curve: minpoly.findpolymin([0] + curve.ccs, 10, 25))
+        baselinecurves, baselinemins = constraints.get_curve_minima(weatherbundle.regions, curr_curvegen, covariator, config.get('clip-mintemp', 10), config.get('clip-maxtemp', 25),
+                                                                    lambda region, curve: minpoly.findpolymin([0] + curve.ccs, config.get('clip-mintemp', 10), config.get('clip-maxtemp', 25)))
+
+        fillins = np.arange(-40, 50, 1.)
 
     def transform(region, curve):
         if config.get('clipping', 'both') == 'none':
@@ -48,7 +51,12 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
         #noincadapt_curve = ShiftedCurve(baselinecurves[region], -baselinecurves[region](baselinemins[region]))
 
         goodmoney_curve = MinimumCurve(fulladapt_curve, noincadapt_curve)
-        return ClippedCurve(goodmoney_curve)
+
+        if not config.get('derivclip', False):
+            return ClippedCurve(goodmoney_curve)
+
+        unicurve = MinimumCurve(ShiftedCurve(curve, -curve(baselinemins[region])), ShiftedCurve(noincadapt_unshifted_curve, -noincadapt_unshifted_curve(baselinemins[region])))
+        return ushape_numeric.UShapedCurve(ClippedCurve(goodmoney_curve), baselinemins[region], lambda xs: xs[:, 0], fillxxs=fillins, fillyys=unicurve(fillins))
 
     clip_curvegen = curvegen.TransformCurveGenerator(transform, curr_curvegen)
     farm_curvegen = curvegen.FarmerCurveGenerator(clip_curvegen, covariator, farmer)
@@ -62,7 +70,11 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
         
         climtas_coeff_curve = SelectiveInputCurve(CoefficientsCurve(climtas_effect_curve.ccs, climtas_effect_curve, lambda x: x[:, :order]), range(order))
         shifted_curve = ShiftedCurve(climtas_coeff_curve, -climtas_effect_curve(baselinemins[region]))
-        return OtherClippedCurve(curve, shifted_curve)
+
+        if not config.get('derivclip', False):
+            return OtherClippedCurve(curve, shifted_curve)
+
+        return ushape_numeric.UShapedClipping(curve, shifted_curve, baselinemins[region], lambda xs: xs[:, 0])
 
     climtas_effect_curvegen = curvegen.TransformCurveGenerator(transform_climtas_effect, farm_curvegen)
 
@@ -75,3 +87,13 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
                             'convert to deaths/person/year', "Divide by 100000 to convert to deaths/person/year.")
 
     return calculation, [], covariator.get_current
+
+if __name__ == '__main__':
+    curve = ZeroInterceptPolynomialCurve([-np.inf, np.inf], [-2, -12, 2, 1])
+    ucurve = ushape_numeric.UShapedCurve(curve, -1, lambda x: x)
+
+    xx = np.arange(-6, 4)
+    print xx
+    print curve(xx)
+    print ucurve(xx)
+    
