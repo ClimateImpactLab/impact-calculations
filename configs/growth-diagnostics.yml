@@ -1,0 +1,5 @@
+module: impacts/growth/constant.yml
+mode: montecarlo
+outputdir: /shares/gcp/outputs/growth/impacts-sandpuppy
+do_farmers: no
+do_historical: true
