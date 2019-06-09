@@ -50,6 +50,13 @@ def standard_variable(name, mytimerate, **config):
     if '.' in name:
         chunks = re_dotsplit.split(name)
         if len(chunks) > 1:
+            if chunks[0][-1] == '-':
+                var = standard_variable(chunks[0][:-1], mytimerate, **config)
+                for chunk in chunks[1:]:
+                    var = interpret_transform(var, chunk)
+
+                return var
+
             var = standard_variable(chunks[0], 'day', **config)
             for chunk in chunks[1:]:
                 var = interpret_transform(var, chunk)
@@ -125,8 +132,11 @@ def standard_variable(name, mytimerate, **config):
                 return discover_day2year(standard_variable(name, 'day', **config), lambda arr, dim: np.sum(arr, axis=dim))
             if name in ["%s%d" % (var, ii) for var in polyedvars_daily]:
                 return discover_day2year(standard_variable(name, 'day', **config), lambda arr, dim: np.sum(arr, axis=dim))
+        if name == 'meantas':
+            return discover_rename(
+                discover_day2year(standard_variable('tas', 'day', **config), lambda arr, dim: np.mean(arr, axis=dim)), {'tas': 'meantas'})
             
-    raise ValueError("Unknown variable: " + name)
+    raise ValueError("Unknown variable: " + name + ' at ' + mytimerate)
 
 def interpret_transform(var, transform):
     if transform == 'histclim':
@@ -145,9 +155,63 @@ def interpret_transform(var, transform):
         aftval = float(match.group(3))
         return discover_map(transform, None,
                             lambda xs: (aftval - befval) * (xs > stepval) + befval, var)
+
+    if transform == 'country':
+        def ds_conversion(ds):
+            subcountries = np.array(map(lambda region: region[:3], ds.region.values))
+            countries = np.unique(subcountries)
+            def get_subcountryii(country):
+                return np.nonzero(subcountries == country)[0]
+            vars_only = ds.variables.keys()
+            for name in ds.coords:
+                if name in vars_only:
+                    vars_only.remove(name)
+            used_coords = ds.coords
+            ds = fast_dataset.FastDataset({name: data_vars_space_conversion(countries, get_subcountryii, name, ds, 'vars', np.mean) for name in vars_only},
+                                      coords={name: data_vars_space_conversion(countries, get_subcountryii, name, ds, 'coords', np.mean) for name in used_coords},
+                                      attrs=ds.attrs)
+            return ds
+
+        return discover_convert(var, None, ds_conversion)
     
     assert False, "Cannot interpret transformation %s" % transform
 
+def data_vars_space_conversion(newregions, get_oldii, name, ds, varset, accumfunc):
+    if isinstance(ds, fast_dataset.FastDataset):
+        if varset == 'vars':
+            vardef = ds.original_data_vars[name]
+        elif varset == 'coords':
+            vardef = ds.original_coords[name]
+        else:
+            assert False, "Unknown varset."
+    else:
+        if varset == 'vars':
+            vardef = (ds.variables[name].dims, ds.variables[name].values)
+        elif varset == 'coords':
+            vardef = ds.coords[name]
+        else:
+            assert False, "Unknown varset."
+            
+    if isinstance(vardef, tuple):
+        dimnum = vardef[0].index('region')
+
+        myshape = list(vardef[1].shape)
+        myshape[dimnum] = len(newregions)
+        result = np.zeros(tuple(myshape))
+        for ii in range(len(newregions)):
+            beforeindex = [slice(None)] * len(vardef[0])
+            beforeindex[dimnum] = get_oldii(newregions[ii])
+            afterindex = [slice(None)] * len(vardef[0])
+            afterindex[dimnum] = ii
+            result[tuple(afterindex)] = accumfunc(vardef[1][tuple(beforeindex)], dimnum)
+
+        return (vardef[0], result)
+
+    if name != 'region':
+        return vardef
+
+    return np.array(newregions)
+    
 def discover_models(basedir, **config):
     """
     basedir points to directory with both 'historical', 'rcp*'
@@ -379,7 +443,7 @@ def discover_rename(discover_iterator, name_dict):
     """name_dict can be a {new: old} dictionary, a string (if other discover produces only 1 var), or a function."""
     for scenario, model, pastreader, futurereader in discover_iterator:
         yield scenario, model, RenameReader(pastreader, name_dict), RenameReader(futurereader, name_dict)
-        
+
 def discover_day2month(discover_iterator, accumfunc):
     #time_conversion = lambda days: np.unique(np.floor((days % 1000) / 30.4167)) # Should just give 0 - 11
     time_conversion = lambda days: np.arange(12)
