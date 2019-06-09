@@ -272,6 +272,7 @@ if __name__ == '__main__':
     from datastore import population, agecohorts
 
     config = files.get_allargv_config()
+    regioncount = config.get('region-count', 24378)
 
     statman = paralog.StatusManager('aggregate', "generate.aggregate " + sys.argv[1], 'logs', CLAIM_TIMEOUT)
 
@@ -352,7 +353,7 @@ if __name__ == '__main__':
                         else:
                             weight_args_aggregate_denom = (econ_model, econ_scenario)
 
-                if not checks.check_result_100years(os.path.join(targetdir, filename), variable=variable):
+                if not checks.check_result_100years(os.path.join(targetdir, filename), variable=variable, regioncount=regioncount):
                     print "Incomplete."
                     incomplete = True
                     continue
@@ -361,7 +362,7 @@ if __name__ == '__main__':
                     # Generate total deaths
                     if halfweight_levels:
                         outfilename = fullfile(filename, levels_suffix, config)
-                        if not missing_only or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable=variable) or not os.path.exists(os.path.join(targetdir, outfilename)):
+                        if not missing_only or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable=variable, regioncount=regioncount) or not os.path.exists(os.path.join(targetdir, outfilename)):
                             make_levels(targetdir, filename, outfilename, halfweight_levels, weight_args_levels)
 
                     # Aggregate impacts
