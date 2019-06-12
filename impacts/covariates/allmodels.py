@@ -6,6 +6,8 @@ from openest.generate.curvegen import RecursiveInstantaneousCurveGenerator
 from openest.generate.daily import ApplyCurve
 from openest.models.curve import FlatCurve
 
+do_singleyear = True
+
 def preload():
     pass
 
@@ -14,15 +16,22 @@ def get_bundle_iterator():
                                    discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'pr'))
 
 def produce(targetdir, weatherbundle, economicmodel, pvals, config, result_callback=None, push_callback=None, suffix='', profile=False, diagnosefile=False):
-    predgen = covariates.CombinedCovariator([covariates.MeanWeatherCovariator(weatherbundle, 2015, varindex=0),
-                                             covariates.SeasonalWeatherCovariator(weatherbundle, 2015, 0, 90, 0, varindex=0),
-                                             covariates.SeasonalWeatherCovariator(weatherbundle, 2015, 180, 270, 0, varindex=0),
-                                             covariates.SeasonalWeatherCovariator(weatherbundle, 2015, 0, 90, 0, varindex=1),
-                                             covariates.SeasonalWeatherCovariator(weatherbundle, 2015, 180, 270, 0, varindex=1),
-                                             covariates.EconomicCovariator(economicmodel, 2015)]) # NOTE: recent change (files not refreshed)
+    if do_singleyear:
+        covar_config = dict(length=1)
+    else:
+        covar_config = {}
+
+    predgen = covariates.CombinedCovariator([covariates.MeanWeatherCovariator(weatherbundle, 2015, config=covar_config, varindex=0),
+                                             covariates.SeasonalWeatherCovariator(weatherbundle, 2015, 0, 90, 0, config=covar_config, varindex=0),
+                                             covariates.SeasonalWeatherCovariator(weatherbundle, 2015, 180, 270, 0, config=covar_config, varindex=0),
+                                             covariates.SeasonalWeatherCovariator(weatherbundle, 2015, 0, 90, 0, config=covar_config, varindex=1),
+                                             covariates.SeasonalWeatherCovariator(weatherbundle, 2015, 180, 270, 0, config=covar_config, varindex=1),
+                                             covariates.EconomicCovariator(economicmodel, 2015, config=covar_config)]) # NOTE: recent change (files not refreshed)
+
     covars = ['tas', 'tasmu0-90', 'tassigma0-90', 'tasmu180-270', 'tassigma180-270', 'prmu0-90', 'prsigma0-90',
               'prmu180-270', 'prsigma180-270', 'loggdppc', 'logpopop']
 
+    ## Note: this is old, and idea of Adaptable Curves has been removed
     curvegen = RecursiveInstantaneousCurveGenerator(None, None, predgen, lambda predictors: FlatCurve([predictors[covar] for covar in covars]))
     calculation = ApplyCurve(curvegen, ['C', 'C', 'C', 'C', 'C', 'm', 'm', 'm', 'm', 'logUSD', 'loppk'], covars,
                              ['Mean yearly temperature', 'Mean winter temperature', 'Winter temperature range', 'Mean summer temperature', 'Summer temperature range', 'Mean winter precipitation', 'Winter precipitation range', 'Mean summer precipitation', 'Summer precipitation range', 'log GDP per capita', 'Log population-weighted population density'],
