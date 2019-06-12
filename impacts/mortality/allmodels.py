@@ -37,15 +37,18 @@ def get_bundle_iterator(config):
                                        discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/" + config['cddvar']), config['cddvar'], **config),
                                        **config)
     raise ValueError("Unknown specification: %s" % config['specification'])
-    
-def check_doit(targetdir, basename, suffix):
+
+def check_doit(targetdir, basename, suffix, config):
     filepath = os.path.join(targetdir, basename + suffix + '.nc4')
     if not os.path.exists(filepath):
         print "REDO: Cannot find", filepath, suffix
         return True
 
     # Check if has 100 valid years
-    if not checks.check_result_100years(filepath):
+    checkargs = {}
+    if 'filter-region' in config:
+        checkargs['regioncount'] = 1
+    if not checks.check_result_100years(filepath, **checkargs):
         print "REDO: Incomplete", basename, suffix
         return True
 
@@ -93,7 +96,7 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
                 minpath_suffix = None
             if minpath_suffix is not None and weatherbundle.is_historical():
                 minpath_suffix += "-histclim"
-                
+
             agegroups = ['young', 'older', 'oldest']
             for ageii in range(len(agegroups)):
                 subcsvv = csvvfile.subset(csvv, 3 * numpreds * ageii + np.arange(3 * numpreds))
@@ -102,7 +105,7 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
                     caller.callinfo = dict(minpath=os.path.join(targetdir, subbasename + minpath_suffix + '.csv'))
 
                 # Full Adaptation
-                if check_doit(targetdir, subbasename, suffix):
+                if check_doit(targetdir, subbasename, suffix, config):
                     print "Smart Farmer"
                     calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(subcsvv, module, weatherbundle, economicmodel, pvals[subbasename], config=config)
 
@@ -116,13 +119,13 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
                     pvals[subbasename].lock()
 
                     # Comatose Farmer
-                    if check_doit(targetdir, subbasename + "-noadapt", suffix):
+                    if check_doit(targetdir, subbasename + "-noadapt", suffix, config):
                         calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(subcsvv, module, weatherbundle, economicmodel, pvals[subbasename], farmer='coma', config=config)
 
                         effectset.generate(targetdir, subbasename + "-noadapt" + suffix, weatherbundle, calculation, "Mortality impacts, with interpolation but no adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, subbasename + '-noadapt'))
 
                     # Dumb Farmer
-                    if check_doit(targetdir, subbasename + "-incadapt", suffix):
+                    if check_doit(targetdir, subbasename + "-incadapt", suffix, config):
                         calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(subcsvv, module, weatherbundle, economicmodel, pvals[subbasename], farmer='dumb', config=config)
 
                         effectset.generate(targetdir, subbasename + "-incadapt" + suffix, weatherbundle, calculation, "Mortality impacts, with interpolation and only environmental adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, subbasename + '-incadapt'))
@@ -136,7 +139,7 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
                     halfweight = agecohorts.SpaceTimeBipartiteData(1981, 2100, None)
                     basenames = [basename + '-' + agegroup + assumption + suffix for agegroup in agegroups]
                     get_stweights = [lambda year0, year1: halfweight.load(year0, year1, economicmodel.model, economicmodel.scenario, 'age0-4', shareonly=True), lambda year0, year1: halfweight.load(year0, year1, economicmodel.model, economicmodel.scenario, 'age5-64', shareonly=True), lambda year0, year1: halfweight.load(year0, year1, economicmodel.model, economicmodel.scenario, 'age65+', shareonly=True)]
-                    if check_doit(targetdir, basename + '-combined' + assumption, suffix):
+                    if check_doit(targetdir, basename + '-combined' + assumption, suffix, config):
                         agglib.combine_results(targetdir, basename + '-combined' + assumption, basenames, get_stweights, "Combined mortality across age-groups for " + basename, suffix=suffix)
             except Exception as ex:
                 print "TO FIX: Combining failed."
