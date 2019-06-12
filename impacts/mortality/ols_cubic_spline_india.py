@@ -5,7 +5,7 @@ from impactcommon.math import minspline
 
 knots = [-10, 0, 10, 20, 28, 33]
 
-def prepare_raw(csvv, weatherbundle, economicmodel, qvals):
+def prepare_raw(csvv, weatherbundle, economicmodel, qvals, config={}):
     csvvfile.collapse_bang(csvv, qvals.get_seed('csvv'))
 
     orig_curvegen = curvegen_known.CubicSplineCurveGenerator(['C'] + ['C^3'] * (len(knots) - 2),
@@ -15,7 +15,7 @@ def prepare_raw(csvv, weatherbundle, economicmodel, qvals):
     curve = orig_curvegen.get_curve('global', 2000, {})
     
     # Determine minimum value of curve between 10C and 25C
-    curvemin = minspline.findsplinemin(knots, curve.coeffs, 10, 25)
+    curvemin = minspline.findsplinemin(knots, curve.coeffs, config.get('clip-mintemp', 10), config.get('clip-maxtemp', 25))
 
     shifted_curve = ShiftedCurve(SelectiveInputCurve(curve, [0]), -curve(curvemin))
     clipped_curve = ClippedCurve(shifted_curve)
