@@ -6,6 +6,8 @@ from openest.generate.curvegen import FunctionCurveGenerator
 from openest.generate.daily import ApplyCurve
 from openest.models.curve import FlatCurve
 
+do_singleyear = True
+
 def preload():
     pass
 
@@ -14,12 +16,17 @@ def get_bundle_iterator(config):
                                    discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'pr'))
 
 def produce(targetdir, weatherbundle, economicmodel, pvals, config, result_callback=None, push_callback=None, suffix='', profile=False, diagnosefile=False):
-    predgen = covariates.CombinedCovariator([covariates.MeanWeatherCovariator(weatherbundle, 2015, 'tas'),
-                                             covariates.SubspanWeatherCovariator(weatherbundle, 2015, 0, 90, 'tas'),
-                                             covariates.SubspanWeatherCovariator(weatherbundle, 2015, 180, 270, 'tas'),
-                                             covariates.SubspanWeatherCovariator(weatherbundle, 2015, 0, 90, 'pr'),
-                                             covariates.SubspanWeatherCovariator(weatherbundle, 2015, 180, 270, 'pr'),
-                                             covariates.EconomicCovariator(economicmodel, 2015)])
+    if do_singleyear:
+        covar_config = dict(length=1)
+    else:
+        covar_config = {}
+
+    predgen = covariates.CombinedCovariator([covariates.MeanWeatherCovariator(weatherbundle, 2015, 'tas', config),
+                                             covariates.SubspanWeatherCovariator(weatherbundle, 2015, 0, 90, 'tas', config),
+                                             covariates.SubspanWeatherCovariator(weatherbundle, 2015, 180, 270, 'tas', config),
+                                             covariates.SubspanWeatherCovariator(weatherbundle, 2015, 0, 90, 'pr', config),
+                                             covariates.SubspanWeatherCovariator(weatherbundle, 2015, 180, 270, 'pr', config),
+                                             covariates.EconomicCovariator(economicmodel, 2015, config)])
     covars = ['tas', 'tasmu0-90', 'tassigma0-90', 'tasmu180-270', 'tassigma180-270', 'prmu0-90', 'prsigma0-90',
               'prmu180-270', 'prsigma180-270', 'loggdppc', 'logpopop']
 
