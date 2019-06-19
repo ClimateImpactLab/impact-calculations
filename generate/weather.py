@@ -323,8 +323,9 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
         return alldims
 
     @staticmethod
-    def make_historical(weatherbundle, seed):
-        futureyear_end = weatherbundle.get_years()[-1]
+    def make_historical(weatherbundle, seed, futureyear_end=None):
+        if futureyear_end is None:
+            futureyear_end = weatherbundle.get_years()[-1]
         pastreaders = [pastreader for pastreader, futurereader in weatherbundle.pastfuturereaders]
         return HistoricalWeatherBundle(pastreaders, futureyear_end, seed, weatherbundle.scenario, weatherbundle.model)
 
