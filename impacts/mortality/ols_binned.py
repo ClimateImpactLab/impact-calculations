@@ -16,8 +16,8 @@ def u_shaped_curve(curve, min_bink):
     return StepCurve(curve.xxlimits, yy)
 
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, farmer='full', config={}):
-    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, config=configs.merge(config, 'climcovar'), varindex=0), {'climtas': 'tas'}),
-                                                covariates.EconomicCovariator(economicmodel, 2015, config=configs.merge(config, 'econcovar'))])
+    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, config.get('endbaseline', 2015), config=configs.merge(config, 'climcovar'), varindex=0), {'climtas': 'tas'}),
+                                                covariates.EconomicCovariator(economicmodel, config.get('endbaseline', 2015), config=configs.merge(config, 'econcovar'))])
 
     # Don't collapse: already collapsed in allmodels
     #csvvfile.collapse_bang(csvv, qvals.get_seed())
@@ -32,7 +32,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, farmer='full',
     else:
         curr_curvegen = step_curvegen
         
-    farm_curvegen = curvegen.FarmerCurveGenerator(curr_curvegen, covariator, farmer)
+    farm_curvegen = curvegen.FarmerCurveGenerator(curr_curvegen, covariator, farmer, endbaseline=config.get('endbaseline', 2015))
 
     climtas_effect_curve = StepCurve(bin_limits, np.array([csvvfile.get_gamma(csvv, tasvar, 'climtas') for tasvar in csvvfile.binnames(bin_limits, 'bins')]))
 

@@ -2,6 +2,8 @@ import subprocess, csv, os
 import numpy as np
 from netCDF4 import Dataset
 
+endbaseline = 2015
+
 def show_header(text):
     print "\n\033[1m" + text + "\033[0m"
 
@@ -98,7 +100,7 @@ def get_gamma(csvv, predname, covarname):
     return None
 
 def show_coefficient(csvv, preds, year, coefname, covartrans, calconly=False):
-    predyear = year - 1 if year > 2015 else year
+    predyear = year - 1 if year > endbaseline else year
 
     terms = []
     for ii in range(len(csvv['gamma'])):
@@ -118,7 +120,7 @@ def show_coefficient(csvv, preds, year, coefname, covartrans, calconly=False):
     show_julia(' + '.join(terms))
 
 def show_coefficient_mle(csvv, preds, year, coefname, covartrans):
-    predyear = year - 1 if year > 2015 else year
+    predyear = year - 1 if year > endbaseline else year
 
     terms = []
     for ii in range(len(csvv['gamma'])):
