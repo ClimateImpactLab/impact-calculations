@@ -11,8 +11,8 @@ from impactcommon.math import minspline
 knots = [-10, 0, 10, 20, 28, 33]
 
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', config={}):
-    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, config=configs.merge(config, 'climcovar'), varindex=0), {'climtas': 'tas'}),
-                                                covariates.EconomicCovariator(economicmodel, 2015, config=configs.merge(config, 'econcovar'))])
+    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, config.get('endbaseline', 2015), config=configs.merge(config, 'climcovar'), varindex=0), {'climtas': 'tas'}),
+                                                covariates.EconomicCovariator(economicmodel, config.get('endbaseline', 2015), config=configs.merge(config, 'econcovar'))])
 
     # Don't collapse: already collapsed in allmodels
     #csvvfile.collapse_bang(csvv, qvals.get_seed('csvv'))
@@ -46,7 +46,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
         return ClippedCurve(goodmoney_curve)
 
     clip_curvegen = curvegen.TransformCurveGenerator(transform, curr_curvegen)
-    farm_curvegen = curvegen.FarmerCurveGenerator(clip_curvegen, covariator, farmer)
+    farm_curvegen = curvegen.FarmerCurveGenerator(clip_curvegen, covariator, farmer, endbaseline=config.get('endbaseline', 2015))
 
     # Generate the marginal income curve
     climtas_effect_curve = CubicSplineCurve(knots, 365 * np.array([csvvfile.get_gamma(csvv, tasvar, 'climtas') for tasvar in ['spline_variables-0', 'spline_variables-1', 'spline_variables-2', 'spline_variables-3', 'spline_variables-4']])) # x 365, to undo / 365 later

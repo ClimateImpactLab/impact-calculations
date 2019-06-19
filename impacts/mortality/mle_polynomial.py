@@ -25,7 +25,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     curr_curvegen = curvegen_known.PolynomialCurveGenerator(['C'] + ['C^%d' % pow for pow in range(2, order+1)],
                                                             '100,000 * death/population', 'tas', order, csvv)
 
-    farm_curvegen = curvegen.FarmerCurveGenerator(curr_curvegen, covariator, farmer)
+    farm_curvegen = curvegen.FarmerCurveGenerator(curr_curvegen, covariator, farmer, endbaseline=config.get('endbaseline', 2015))
 
     # Generating all curves, for baseline
     baseline_loggdppc = {}
@@ -56,7 +56,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     negcurr_curvegen = curvegen_arbitrary.MLECoefficientsCurveGenerator(lambda coeffs: ZeroInterceptPolynomialCurve(coeffs)
                                                                         ['C'] + ['C^%d' % pow for pow in range(2, order+1)],
                                                                         '100,000 * death/population', 'tas', order, negcsvv)
-    negfarm_curvegen = curvegen.FarmerCurveGenerator(negcurr_curvegen, covariator2, farmer, save_curve=False)
+    negfarm_curvegen = curvegen.FarmerCurveGenerator(negcurr_curvegen, covariator2, farmer, save_curve=False, endbaseline=config.get('endbaseline', 2015))
     baseeffect = YearlyCoefficients('100,000 * death/population', negfarm_curvegen, 'offset to normalize to 20 C', coeff_getter_negative, weather_change=lambda region, temps: 365 * np.array(CubicSplineCurve(knots, np.zeros(len(knots)-1)).get_terms(baselinemins[region])))
 
     # Collect all baselines
