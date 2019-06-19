@@ -23,9 +23,9 @@ def interpret_halfweight(weighting):
     if match:
         return spacetime.SpaceTimeConstantData(float(match.group(1)))
     if weighting == 'population':
-        return population.SpaceTimeBipartiteData(1981, 2100, None)
+        return population.SpaceTimeBipartiteData(1950, 2100, None)
     if weighting in ['agecohorts'] + agecohorts.columns:
-        return agecohorts.SpaceTimeBipartiteData(1981, 2100, None)
+        return agecohorts.SpaceTimeBipartiteData(1950, 2100, None)
     if weighting == 'income':
         return spacetime.SpaceTimeBipartiteFromProviderData(gdppc.GDPpcProvider, 2000, 2100, None)
 
@@ -64,11 +64,11 @@ if __name__ == '__main__':
     
     weighting = sys.argv[1]
     halfweight = interpret_halfweight(weighting)
-    stweight = halfweight.load(1981, 2100, sys.argv[2], sys.argv[3])
+    stweight = halfweight.load(1950, 2100, sys.argv[2], sys.argv[3])
 
     writer = csv.writer(sys.stdout)
     writer.writerow(['region', 'year', 'weight'])
     for region in regions:
         weights = stweight.get_time(region)
-        for year in range(1981, 2101):
-            writer.writerow([region, year, weights[year - 1981]])
+        for year in range(1950, 2101):
+            writer.writerow([region, year, weights[year - 1950]])

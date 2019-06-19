@@ -80,7 +80,7 @@ def discover_tas_binned(basedir, **config):
         pasttemplate = os.path.join(pastdir, 'tas/tas_Bindays_aggregated_historical_r1i1p1_' + model + '_%d.nc')
         futuretemplate = os.path.join(futuredir, 'tas/tas_Bindays_aggregated_' + scenario + '_r1i1p1_' + model + '_%d.nc')
 
-        pastreader = YearlyBinnedWeatherReader(pasttemplate, 1981, 'DayNumber')
+        pastreader = YearlyBinnedWeatherReader(pasttemplate, config.get('startyear', 1981), 'DayNumber')
         futurereader = YearlyBinnedWeatherReader(futuretemplate, 2006, 'DayNumber')
 
         yield scenario, model, pastreader, futurereader
@@ -91,7 +91,7 @@ def discover_variable(basedir, variable, withyear=True, **config):
             pasttemplate = os.path.join(pastdir, variable, variable + '_day_aggregated_historical_r1i1p1_' + model + '_%d.nc')
             futuretemplate = os.path.join(futuredir, variable, variable + '_day_aggregated_' + scenario + '_r1i1p1_' + model + '_%d.nc')
 
-            pastreader = DailyWeatherReader(pasttemplate, 1981, variable)
+            pastreader = DailyWeatherReader(pasttemplate, config.get('startyear', 1981), variable)
             futurereader = DailyWeatherReader(futuretemplate, 2006, variable)
 
             yield scenario, model, pastreader, futurereader
@@ -110,8 +110,8 @@ def discover_derived_variable(basedir, variable, suffix, withyear=True, **config
             pasttemplate = os.path.join(pastdir, variable + '_' + suffix, variable + '_day_aggregated_historical_r1i1p1_' + model + '_%d.nc')
             futuretemplate = os.path.join(futuredir, variable + '_' + suffix, variable + '_day_aggregated_' + scenario + '_r1i1p1_' + model + '_%d.nc')
 
-            if os.path.exists(pasttemplate % (1981)) and os.path.exists(futuretemplate % (2006)):
-                pastreader = DailyWeatherReader(pasttemplate, 1981, variable)
+            if os.path.exists(pasttemplate % (config.get('startyear', 1981))) and os.path.exists(futuretemplate % (2006)):
+                pastreader = DailyWeatherReader(pasttemplate, config.get('startyear', 1981), variable)
                 futurereader = DailyWeatherReader(futuretemplate, 2006, variable)
 
                 yield scenario, model, pastreader, futurereader
@@ -210,10 +210,10 @@ def discover_versioned(basedir, variable, version=None, reorder=True, **config):
         futuretemplate = os.path.join(futuredir, "%d", version + '.nc4')
 
         if reorder:
-            pastreader = RegionReorderWeatherReader(DailyWeatherReader(pasttemplate, 1981, variable))
+            pastreader = RegionReorderWeatherReader(DailyWeatherReader(pasttemplate, config.get('startyear', 1981), variable))
             futurereader = RegionReorderWeatherReader(DailyWeatherReader(futuretemplate, 2006, variable))
         else:
-            pastreader = DailyWeatherReader(pasttemplate, 1981, variable)
+            pastreader = DailyWeatherReader(pasttemplate, config.get('startyear', 1981), variable)
             futurereader = DailyWeatherReader(futuretemplate, 2006, variable)
             
         yield scenario, model, pastreader, futurereader
@@ -234,10 +234,10 @@ def discover_versioned_yearly(basedir, variable, version=None, reorder=True, **c
         futuretemplate = os.path.join(futuredir, "%d", version + '.nc4')
 
         if reorder:
-            pastreader = RegionReorderWeatherReader(YearlyDayLikeWeatherReader(pasttemplate, 1981, 'hierid', variable))
+            pastreader = RegionReorderWeatherReader(YearlyDayLikeWeatherReader(pasttemplate, config.get('startyear', 1981), 'hierid', variable))
             futurereader = RegionReorderWeatherReader(YearlyDayLikeWeatherReader(futuretemplate, 2006, 'hierid', variable))
         else:
-            pastreader = YearlyDayLikeWeatherReader(pasttemplate, 1981, 'hierid', variable)
+            pastreader = YearlyDayLikeWeatherReader(pasttemplate, config.get('startyear', 1981), 'hierid', variable)
             futurereader = YearlyDayLikeWeatherReader(futuretemplate, 2006, 'hierid', variable)
             
         yield scenario, model, pastreader, futurereader
