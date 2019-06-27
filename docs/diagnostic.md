@@ -54,19 +54,8 @@ Optional:
    results, `acp` for the ACP specification, and `country` for the
    country-specific models.
 
- - `do_farmers`: true or false; if true, alternative assumptions of
-   adaptation (income-only and no-adaptation) will be generated.
-
- - `do_historical`: true or false; by default, historical climate
-   results are not produced with the diagnostic run, but setting this
-   to `true` will produce them.
-
  - `do_fillin`: true or false; if true, an existing single folder is
    not deleted and only new files are added.
-
- - `csvvfile`: A path to a CSVV file to be used for the coefficients.
-   This can be given as a subpath from the data directory; e.g.,
-   `social/parameters/mortality/.../....csv`.
 
  - `singledir`: The name of the single batch directory; default:
    `single`.
