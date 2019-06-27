@@ -227,6 +227,6 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     calculation = calculator.create_postspecification(specconf['calculation'], {'default': final_curvegen}, None, extras=extras)
         
     if covariator is None:
-        return calculation, [], lambda: {}
+        return calculation, [], lambda region: {}
     else:
         return calculation, [], covariator.get_current

@@ -120,7 +120,13 @@ class ConversionWeatherReader(WeatherReader):
 
     def get_years(self):
         return self.reader.get_years() # for now, assume no changes to years
-        
+
+    def get_regions(self):
+        """Returns a list of all regions available."""
+        ds = next(self.reader.read_iterator())
+        ds2 = self.ds_conversion(ds)
+        return ds2.region
+
     def get_dimension(self):
         """Returns a list of length K, describing the number of elements
         describing the weather in each region and time period.
@@ -132,6 +138,12 @@ class ConversionWeatherReader(WeatherReader):
         """
         for ds in self.reader.read_iterator():
             yield self.ds_conversion(ds)
+
+    def read_iterator_to(self, maxyear):
+        for ds in self.reader.read_iterator():
+            yield self.ds_conversion(ds)
+            if int(ds['time.year'][0]) >= maxyear:
+                break
 
     def read_year(self, year):
         return self.ds_conversion(self.reader.read_year(year))
