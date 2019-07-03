@@ -118,7 +118,25 @@ class BinnedEconomicCovariator(EconomicCovariator):
     def get_update(self, region, year, ds):
         covars = super(BinnedEconomicCovariator, self).get_update(region, year, ds)
         return self.add_bins(covars)
-    
+
+class ShiftedEconomicCovariator(EconomicCovariator):
+    def __init__(self, economicmodel, maxbaseline, config={}):
+        super(ShiftedEconomicCovariator, self).__init__(economicmodel, maxbaseline, config=config)
+        assert 'loggdppc-delta' in config, "Must define loggdppc-delta to use loggdppc-shifted."
+        self.delta = config['loggdppc-delta']
+
+    def add_shifted(self, covars):
+        covars['loggdppc-shifted'] = covars['loggdppc'] - self.delta
+        return covars
+        
+    def get_current(self, region):
+        covars = super(ShiftedEconomicCovariator, self).get_current(region)
+        return self.add_shifted(covars)
+
+    def get_update(self, region, year, ds):
+        covars = super(ShiftedEconomicCovariator, self).get_update(region, year, ds)
+        return self.add_shifted(covars)
+
 class MeanWeatherCovariator(Covariator):
     def __init__(self, weatherbundle, maxbaseline, variable, config={}, quiet=False):
         super(MeanWeatherCovariator, self).__init__(maxbaseline)
