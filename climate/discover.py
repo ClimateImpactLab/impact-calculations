@@ -80,6 +80,8 @@ def standard_variable(name, mytimerate, **config):
         timerate_translate = dict(day='daily', month='monthly', year='annual')
         path = files.sharedpath(os.path.join("climate/BCSD/hierid", config['grid-weight'], timerate_translate[mytimerate], name))
         if os.path.exists(path):
+            if config.get('show-source', False):
+                print path
             return discover_versioned(path, name, version=version, **config)
 
         print "WARNING: Cannot find new-style climate data %s, by %s, weighted by %s." % (name, mytimerate, config['grid-weight'])
@@ -88,6 +90,8 @@ def standard_variable(name, mytimerate, **config):
         polyedvars = ['tas', 'tasmax']
     
         if name in polyedvars:
+            if config.get('show-source', False):
+                print files.sharedpath("climate/BCSD/hierid/popwt/daily/" + name)
             return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/" + name), name, version=version, **config)
         for ii in range(2, 10):
             if name in ["%s-poly-%d" % (var, ii) for var in polyedvars]:
