@@ -71,9 +71,7 @@ def get_post_process(name, config):
 def post_process(ds, name, config):
     dataarr = ds[name]
 
-    assert not ('final-t' in config and 'within-season' in config)
-
-    if 'final-t' in config:
+    if 'final-t' in config: # also handles 'final-t' + 'within-season' case recursively
         subconfig = copy.copy(config)
         del subconfig['final-t']
         before = post_process(ds, name, subconfig)
