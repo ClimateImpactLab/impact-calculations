@@ -65,7 +65,10 @@ class SSPEconomicModel(object):
         for region in pop_baseline.keys():
             # Get the income timeseries
             gdppcs = self.income_model.get_timeseries(region)
-            baseline_gdppcs = gdppcs[:maxbaseline - self.income_model.get_startyear()]
+            if maxbaseline < self.income_model.get_startyear():
+                baseline_gdppcs = [gdppcs[0]]
+            else:
+                baseline_gdppcs = gdppcs[:maxbaseline - self.income_model.get_startyear()]
             # Get the popop value
             popop = self.densities.get(region, mean_density)
             # Pass it into the func
