@@ -97,6 +97,8 @@ outputs = lib.get_outputs(os.path.join(dir, onlymodel + '.nc4'), [2001, futureye
 if not config.get('deltamethod', False):
     # decide on a covariated variable
     for variable in set([csvv['prednames'][ii] for ii in range(len(csvv['prednames'])) if csvv['covarnames'][ii] != '1']):
+        if variable == '':
+            continue
         for year in [2001, futureyear]:
             lib.show_header("Calculation of %s coefficient in %d (%f reported)" % (variable, year, lib.excind(calcs, year-1, 'coeff-' + variable)))
             lib.show_coefficient(csvv, calcs, year, variable, betalimits=betalimits.get(variable, None))
@@ -114,11 +116,11 @@ for tt in range(24):
      formatting.functions_known['Select time %d' % tt] = formatting.ParameterFormatElement("get-t-%d" % tt, "gett%d" % tt)
 formatting.functions_known['Extract bin from weather'] = formatting.ParameterFormatElement('extract-bin', 'getbin', dependencies=['bin-edges', 'edd'])
 
-extraparams = {'extract-bin': "(weather, bin) -> weather[:, bin_edges .== bin]"}
+extraparams = {'extract-bin': "(weather, bin) -> length(size(weather)) == 2 ? weather[:, bin_edges .== bin] : weather[bin_edges .== bin]"}
 if 'within-season' in specconf:
     extraparams['season-weather'] = "(x) -> (length(size(x)) == 2 ? (size(x)[1] <= 24 ? x[%d:%d, :] : x[%d:%d, :]) : (length(x) <= 24 ? x[%d:%d] : x[%d:%d]))" % (season_months[0], season_months[1], season_doys[0], season_doys[1], season_months[0], season_months[1], season_doys[0], season_doys[1])
     for tt in range(24):
-        extraparams['get-t-%d' % tt] = '(x) -> (seasonx = (length(size(x)) == 2 ? (size(x)[1] <= 24 ? x[%d:%d, :] : x[%d:%d, :]) : (length(x) <= 24 ? x[%d:%d] : x[%d:%d])); length(seasonx) >= %d ? seasonx[%d] : 0)' % (season_months[0], season_months[1], season_doys[0], season_doys[1], season_months[0], season_months[1], season_doys[0], season_doys[1], tt+1, tt+1)
+        extraparams['get-t-%d' % tt] = '(x) -> (seasonx = (length(size(x)) == 2 ? (size(x)[1] <= 24 ? x[%d:%d, :] : x[%d:%d, :]) : (length(x) <= 24 ? x[%d:%d] : x[%d:%d])); length(size(seasonx)) == 2 ? (size(seasonx)[1] >= %d ? seasonx[%d, :] : zeros(size(seasonx)[2])) : (length(seasonx) >= %d ? seasonx[%d] : 0))' % (season_months[0], season_months[1], season_doys[0], season_doys[1], season_months[0], season_months[1], season_doys[0], season_doys[1], tt+1, tt+1, tt+1, tt+1)
 else:
     for tt in range(24):
         extraparams['get-t-%d' % tt] = '(x) -> length(x) >= %d ? x[%d] : 0' % (tt+1, tt+1)
@@ -148,7 +150,7 @@ for year in [2001, futureyear]:
         allparams.update({calcs['header'][ii]: calcs[str(year - 1)][ii] for ii in range(len(calcs['header'])) if isinstance(calcs[str(year - 1)][ii], np.ndarray) or not np.isnan(calcs[str(year - 1)][ii])})
         allparams.update(weather[str(year)])
         allparams.update(extraparams)
-
+        
         julia = formatting.format_julia(elements, allparams, include_comments=False)
         lib.show_julia(julia.split('\n'), clipto=None)
 

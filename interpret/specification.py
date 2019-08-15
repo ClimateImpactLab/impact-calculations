@@ -200,7 +200,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}, getcs
     elif specconf.get('goodmoney', False):
         final_curvegen = curvegen.TransformCurveGenerator(transform, "Good Money transformation", curr_curvegen)
     else:
-        final_curvegen = curvegen.TransformCurveGenerator(transform, "Smart curve transformation", curr_curvegen)
+        final_curvegen = curvegen.TransformCurveGenerator(transform, None, curr_curvegen) # smart curve transform
         final_curvegen.deltamethod_passthrough = True
 
     if covariator:
