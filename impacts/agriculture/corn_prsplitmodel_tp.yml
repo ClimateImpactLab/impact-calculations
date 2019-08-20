@@ -1,7 +1,7 @@
 timerate: month
-weight: cropwt
+grid-weight: cropwt
 rolling-years: 2
-climate: [ tasmax, edd, pr, pr-poly-2 ]
+climate: [ tasmax, edd, pr, pr-poly-2 = pr-monthsum-poly-2 ]
 models:
   - csvvs: "social/parameters/agriculture/corn/corn_global_t-tbar_pbar_lnincbr_ir_tp_binp-tbar_pbar_lnincbr_ir_tp_temp_precip_ir_fe-A1TT_A0Y_clus-A1_A0Y-190301.csvv"
     within-season: "social/baselines/agriculture/world-combo-201710-growing-seasons-corn-1stseason.csv"
