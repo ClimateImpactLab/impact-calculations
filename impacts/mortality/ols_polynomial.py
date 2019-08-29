@@ -1,4 +1,5 @@
 import csv, copy
+from datetime import date
 import numpy as np
 from adaptation import csvvfile, curvegen, curvegen_known, covariates, constraints
 from interpret import configs
@@ -79,8 +80,20 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     climtas_effect_curvegen = curvegen.TransformCurveGenerator(transform_climtas_effect, farm_curvegen)
 
     # Produce the final calculation
+
+    if config.get('filter', 'jun-aug'):
+        def weather_change(region, x):
+            x2 = np.copy(x)
+            # 1950 is a non-leap year
+            x2[0:(date(1950, 6, 1) - date(1950, 1, 1)).days] = np.nan
+            x2[(date(1950, 9, 1) - date(1950, 1, 1)).days:] = np.nan
+            return x2
+    else:
+        weather_change = lambda region, x: x
+        
     calculation = Transform(AuxillaryResult(YearlyAverageDay('100,000 * death/population', farm_curvegen,
-                                                             "the mortality response curve"),
+                                                             "the mortality response curve",
+                                                             weather_change),
                                             YearlyAverageDay('100,000 * death/population', climtas_effect_curvegen,
                                                              "climtas effect after clipping", norecord=True), 'climtas_effect'),
                             '100,000 * death/population', 'deaths/person/year', lambda x: 365 * x / 1e5,
