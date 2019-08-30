@@ -1,0 +1,11 @@
+numpy
+xarray
+netCDF4
+gspread
+statsmodels
+scipy
+oauth2client
+impactcommon
+impactlab-tools
+openest
+metacsv
