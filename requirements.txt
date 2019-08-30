@@ -5,6 +5,7 @@ gspread
 statsmodels
 scipy
 oauth2client
+click
 impactcommon
 impactlab-tools
 openest

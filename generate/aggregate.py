@@ -23,6 +23,9 @@ targetdirfilter = lambda targetdir: True #'rcp85' in targetdir #'SSP3' in target
 # Dictionary of (halfweight, weight_args, minyear, maxyear) => population
 cached_weights = {}
 
+def main(config):
+    raise NotImplementedError
+
 def get_cached_weight(halfweight, weight_args, years):
     global cached_weights
 
