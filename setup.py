@@ -11,7 +11,12 @@ setup(name='impactcalculations',
       long_description=open('README.md').read(),
       long_description_content_type='text/markdown',
       install_requires=['numpy', 'xarray', 'netCDF4', 'gspread', 'statsmodels',
-                        'scipy', 'oauth2client', 'impactcommon',
+                        'scipy', 'oauth2client', 'click', 'impactcommon',
                         'impactlab-tools', 'openest', 'metacsv'],
       tests_require=['pytest'],
+      entry_points={
+            'console_scripts': [
+                  'impactcalculations = cli:impactcalculations_cli',
+            ]
+      },
       )
