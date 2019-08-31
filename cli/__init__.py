@@ -42,7 +42,7 @@ def generate(confpath, conf):
     help='Generate diagnostic impact projection run from configuration file'
 )
 @click.argument('confpath', type=click.Path())
-def diagnose(confpath):
+def diagnostic(confpath):
     """Run the impact projection diagnostic system with configuration path"""
     file_configs = get_file_config(confpath)
 
