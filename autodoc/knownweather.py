@@ -4,11 +4,10 @@ List all known weather datasets
 
 import os, importlib, yaml
 from generate import loadmodels, weather
-from interpret import configs
 from climate.discover import standard_variable
 from impactlab_tools.utils import files
 
-config = configs.standardize(files.get_allargv_config())
+config = files.get_allargv_config()
 config['show-source'] = True
 
 mod = importlib.import_module("interpret.container")

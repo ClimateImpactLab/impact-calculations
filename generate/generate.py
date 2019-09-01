@@ -7,12 +7,11 @@ from collections import OrderedDict
 import loadmodels
 import weather, pvalses, timing
 from adaptation import curvegen
-from interpret import configs
 from openest.generate import diagnostic
 from impactlab_tools.utils import files, paralog
 import cProfile, pstats, StringIO, metacsv
 
-config = configs.standardize(files.get_allargv_config())
+config = files.get_allargv_config()
 
 print "Initializing..."
 

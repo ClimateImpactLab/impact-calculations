@@ -5,7 +5,6 @@ from impactlab_tools.utils import files
 from generate import weather, server, effectset, caller, checks
 from adaptation import csvvfile
 from climate.discover import discover_variable, discover_derived_variable, standard_variable
-from interpret import configs
 
 def preload():
     pass
@@ -74,7 +73,7 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
 
     for model, csvvpath, module, specconf in get_modules_csvv(config):
         basename = os.path.basename(csvvpath)[:-5]
-        produce_csvv(basename, csvvpath, module, specconf, targetdir, weatherbundle, economicmodel, pvals, configs.merge(config, model), push_callback, suffix, profile, diagnosefile)
+        produce_csvv(basename, csvvpath, module, specconf, targetdir, weatherbundle, economicmodel, pvals, config.merge(model), push_callback, suffix, profile, diagnosefile)
         if profile:
             return
 

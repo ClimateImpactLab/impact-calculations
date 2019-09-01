@@ -1,4 +1,4 @@
-from interpret import specification, configs, calculator
+from interpret import specification, calculator
 from adaptation import csvvfile
 
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', specconf={}, config={}):
@@ -16,7 +16,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     models = {}
     extras = {}
     for key in specconf['specifications']:
-        modelspecconf = configs.merge(specconf, specconf['specifications'][key])
+        modelspecconf = specconf['specifications'][key]
         model = specification.create_curvegen(csvv, covariator, weatherbundle.regions,
                                               farmer=farmer, specconf=modelspecconf)
         modelextras = dict(output_unit=modelspecconf['depenunit'], units=modelspecconf['depenunit'],
