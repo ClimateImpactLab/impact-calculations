@@ -229,3 +229,6 @@ for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, ec
     
     if do_single:
         break
+
+if not config.accessed_all_keys('children'):
+    print "WARNING: Not all keys in the configuration dictionary were used!"
