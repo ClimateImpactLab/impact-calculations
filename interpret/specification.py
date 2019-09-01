@@ -5,7 +5,7 @@ from openest.generate import smart_curve, selfdocumented
 from openest.models.curve import ShiftedCurve, MinimumCurve, ClippedCurve, ZeroInterceptPolynomialCurve
 from openest.generate.stdlib import *
 from impactcommon.math import minpoly, minspline
-import calculator, variables, configs
+import calculator, variables
 
 def user_failure(message):
     print "ERROR: " + message
@@ -19,9 +19,9 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config={}, quiet=F
     if isinstance(covar, dict):
         return get_covariator(covar.keys()[0], covar.values()[0], weatherbundle, economicmodel, config=config, quiet=quiet)
     elif covar in ['loggdppc', 'logpopop', 'year']:
-        return covariates.EconomicCovariator(economicmodel, 2015, config=configs.merge(config, 'econcovar'))
+        return covariates.EconomicCovariator(economicmodel, 2015, config=config['econcovar'])
     elif covar == 'incbin':
-        return covariates.BinnedEconomicCovariator(economicmodel, 2015, args, config=configs.merge(config, 'econcovar'))
+        return covariates.BinnedEconomicCovariator(economicmodel, 2015, args, config=config['econcovar'])
     elif covar == 'loggdppc-shifted':
         return covariates.ShiftedEconomicCovariator(economicmodel, 2015, config)
     elif covar == 'ir-share':
@@ -30,9 +30,9 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config={}, quiet=F
         sources = map(lambda x: get_covariator(x.strip(), args, weatherbundle, economicmodel, config=config, quiet=quiet), covar.split('*', 1))
         return covariates.ProductCovariator(sources[0], sources[1])
     elif covar[:8] == 'seasonal':
-        return covariates.SeasonalWeatherCovariator(weatherbundle, 2015, config['within-season'], covar[8:], config=configs.merge(config, 'climcovar'))
+        return covariates.SeasonalWeatherCovariator(weatherbundle, 2015, config['within-season'], covar[8:], config=config['climcovar'])
     elif covar[:4] == 'clim': # climtas, climcdd-20, etc.
-        return covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, covar[4:], config=configs.merge(config, 'climcovar'), quiet=quiet), {covar: covar[4:]})
+        return covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, covar[4:], config=config['climcovar'], quiet=quiet), {covar: covar[4:]})
     elif '^' in covar:
         chunks = covar.split('^', 1)
         return covariates.PowerCovariator(get_covariator(chunks[0].strip(), args, weatherbundle, economicmodel, config=config, quiet=quiet), float(chunks[1]))
@@ -43,7 +43,7 @@ def create_covariator(specconf, weatherbundle, economicmodel, config={}, quiet=F
     if 'covariates' in specconf:
         covariators = []
         for covar in specconf['covariates']:
-            fullconfig = configs.merge(config, specconf)
+            fullconfig = config.merge(specconf)
             covariators.append(get_covariator(covar, None, weatherbundle, economicmodel, config=fullconfig, quiet=quiet))
             
         if len(covariators) == 1:

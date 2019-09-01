@@ -1,7 +1,7 @@
 import sys, os, csv, importlib, yaml
 import numpy as np
 from impactlab_tools.utils import files
-from interpret import container, configs
+from interpret import container
 from generate import caller, loadmodels, pvalses
 from adaptation import csvvfile
 from openest.generate import formatting
@@ -75,7 +75,7 @@ csvv = lib.get_csvv(csvvpath)
 csvvobj = csvvfile.read(csvvpath)
 
 lib.show_header("Weather:")
-clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel = loadmodels.single(container.get_bundle_iterator(configs.merge(config, {'only-models': [gcm]})))
+clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel = loadmodels.single(container.get_bundle_iterator(config.merge({'only-models': [gcm]})))
 
 weather = {}
 for year, ds in weatherbundle.yearbundles(futureyear + 2):
@@ -102,7 +102,7 @@ if not config.get('deltamethod', False):
             lib.show_coefficient(csvv, calcs, year, variable, betalimits=betalimits.get(variable, None))
 
 pvals = pvalses.ConstantPvals(.5)
-calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvvobj, module, weatherbundle, economicmodel, pvals[basename], specconf=specconf, config=configs.merge(config, {'quiet': True}), standard=False)
+calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvvobj, module, weatherbundle, economicmodel, pvals[basename], specconf=specconf, config=config.merge({'quiet': True}), standard=False)
 
 formatting.format_reset()
 

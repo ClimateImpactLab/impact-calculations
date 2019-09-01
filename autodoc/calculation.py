@@ -2,12 +2,12 @@ import glob
 from impactlab_tools.utils import files
 from openest.generate import formatting
 from generate import caller, loadmodels, pvalses
-from interpret import calculator, specification, container, configs
+from interpret import calculator, specification, container
 from adaptation import csvvfile
 
 config = files.get_allargv_config()
 if 'models' in config:
-    config = configs.merge(config, config['models'][0])
+    config = config['models'][0]
     csvvs = files.configpath(config['csvvs'])
     csvvpath = glob.glob(csvvs)[0]
     csvv = csvvfile.read(csvvpath)
