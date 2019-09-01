@@ -448,3 +448,6 @@ if __name__ == '__main__':
 
         statman.release(targetdir, "Incomplete" if incomplete else "Complete")
         os.system("chmod g+rw " + os.path.join(targetdir, "*"))
+
+    if not config.accessed_all_keys('children'):
+        print "WARNING: Not all keys in the configuration dictionary were used!"
