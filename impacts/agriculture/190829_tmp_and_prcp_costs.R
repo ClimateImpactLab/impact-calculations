@@ -44,60 +44,21 @@ library(dplyr)
 library(DataCombine)
 library(zoo)
 library(abind)
-#library(rPython)
-#source("generate/stochpower.R")
 
 #####################
 is.local <- T
 if(is.local) {
-  # Tamma's paths
-  tavgpath = "~/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/climtas.nc4"
-  tannpath = "~/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/poly/"
-  outpath = "~/Tamma-Shackleton/GCP/adaptation_costs/data/poly_dailyclip"
-  impactspath <- "/Users/tammacarleton/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/poly_dailyclip/global_interaction_Tmean-POLY-4-AgeSpec-oldest.nc4"
-  gammapath = "~/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/poly_dailyclip/global_interaction_Tmean-POLY-4-AgeSpec.csvv"
-  gammarange = 25:36 #oldest! 
-  minpath <- "~/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/poly_dailyclip/global_interaction_Tmean-POLY-4-AgeSpec-oldest-polymins.csv"
-  model <- 'poly'
-  powers <- 4
-  avgmethod = 'bartlett'
-}
-if(is.local) {
   # Andy's paths
   tavgpath <- 'C:/Users/Andy Hultgren/Documents/ARE/GSR/GCP/Ag/Projections/single-corn-190326/corn_prsplitmodel-allcalcs-corn_global_t-tbar_pbar_lnincbr_ir_tp_binp-tbar_pbar_lnincbr_ir_tp-190326.csv'
-  #tannpath <- 'C:/Users/Andy Hultgren/Documents/ARE/GSR/GCP/Ag/Projections/adaptation_costs_test/climate-data/edd_monthly'
   outpath <- 'C:/Users/Andy Hultgren/Documents/ARE/GSR/GCP/Ag/Projections/single-corn-190326/output'
-  #impactspath <- 'C:/Users/Andy Hultgren/Documents/ARE/GSR/GCP/Ag/Projections/adaptation_costs_test/impacts-mealy/corn_global_t-tbar_pbar_lnincbr_ir_tp_binp-tbar_pbar_lnincbr_ir_tp_time_invariant_fe-A1TT_A0Y_clus-A1_A0Y-190326.nc4'
   gammapath <- 'C:/Users/Andy Hultgren/Documents/ARE/GSR/GCP/Ag/Projections/single-corn-190326/csvv/corn_global_t-tbar_pbar_lnincbr_ir_tp_binp-tbar_pbar_lnincbr_ir_tp_time_invariant_fe-A1TT_A0Y_clus-A1_A0Y-190326.csvv'
-  #gammarange <- 25:36 #oldest! 
-  #minpath <- "~/Dropbox/Tamma-Shackleton/GCP/adaptation_costs/data/poly_dailyclip/global_interaction_Tmean-POLY-4-AgeSpec-oldest-polymins.csv"
-  #model <- 'poly'
-  #powers <- 4
-  #avgmethod <- 'bartlett'
+  
+  # Set this to TRUE if outputting marginal effects of climate terms for diagnostics / development.  Otherwise set to FALSE.
+  compute_marginals <- TRUE
+  
 }
 #####################
 
-###############################################
-# Set up
-###############################################
-
-if (1==0) {
-  # Mortality code
-  
-  args <- commandArgs(trailingOnly=T)
-  
-  # Filepath for climate covariates and annual temperatures by region-year through 2100
-  tavgpath = args[1] # outputs/temps/RCP/GCM/climtas.nc4
-  rcp = args[2]
-  climmodel = args[3]
-  
-  # Filepath for impacts
-  impactspath <- args[4] # paste0("outputs/", sector, "/", impactsfolder, "/median-clipped/rcp", rcp, "/", climmodel, "/high/SSP4/moratlity_cubic_splines_2factors_", climdata, "_031617.nc4")
-  
-  # Averaging method
-  #avgmethod = args[5]
-  avgmethod = 'bartlett'
-}
 
 
 ##############################################################################################
@@ -107,9 +68,6 @@ if (1==0) {
 if(is.local) {
   # Andy's setup for ag costs
   df.tavg <- read.csv(tavgpath, skip=42)
-  # temps.avg <- df.tavg$seasonaltasmax #average temperatures
-  # regions <- df.tavg$region
-  # year.avg <- df.tavg$year
   
 } else {
   # OPEN THE NETCDF - average temps
@@ -120,34 +78,6 @@ if(is.local) {
   
 }
 
-##############################################################################################
-# LOAD ADAPTIVE INVESTMENTS TERM -- FROM JAMES' OUTPUT
-##############################################################################################
-
-if (1==0) {
-  # Mortality needs this due to its various forms of clipping. 
-  # For ag, I don't use this term, so skip it.
-  nc.imp <- nc_open(impactspath)
-  impacts.climtaseff <- ncvar_get(nc.imp, 'climtas_effect') # Sum of adaptive investments at daily level
-  
-  #check whether timesteps in climate file = timesteps in impacts file
-  if (length(year.avg) != length(ncvar_get(nc.imp, 'year'))) { 
-    impacts.climtaseff <- impacts.climtaseff[, 1:length(year.avg)] 
-  }
-  
-  rm(nc.imp)
-  
-  if (length(dim(impacts.climtaseff)) == 1) {
-    extended <- matrix(0, 1, length(impacts.climtaseff))
-    extended[1,] <- impacts.climtaseff
-    impacts.climtaseff <- extended
-    temps.avg <- temps.avg[regions == 'IND.33.542.2153',, drop=F]
-    regions <- c('IND.33.542.2153')
-  }
-  
-  print("IMPACTS LOADED")
-  
-}
 
 ##############################################################################################
 # Generate a moving average of the adaptive investments term
@@ -189,45 +119,11 @@ df.tavg <- df.tavg %>%
 
 # View(df.tavg[ df.tavg$region=='BRA.13.1818.3664', ])
 
-# Mortality code
-if (1==0) {
-  # 15-year moving average 
-  movingavg <- array(NA, dim=dim(impacts.climtaseff))
-  
-  R <- dim(impacts.climtaseff)[1]
-  
-  if(avgmethod == 'bartlett') {
-    # BARTLETT KERNEL
-    for(r in 1:R) { #loop over all regions
-      if (sum(is.finite(impacts.climtaseff[r,])) > 0)
-        tempdf <- impacts.climtaseff[r,]
-      movingavg[r,] <- movavg(tempdf,30,'w')
-    }
-  }
-  
-  if(avgmethod=='movingavg') {
-    for(r in 1:R) { #loop over all regions
-      if (sum(is.finite(impacts.climtaseff[r,])) > 0)
-        movingavg[r,] <- ave(impacts.climtaseff[r,], FUN=function(x) rollmean(x, k=15, fill="extend"))
-    }
-  }
-  
-}
-
-
-print("MOVING AVERAGE OF ADAPTIVE INVESTMENTS CALCULATED")
 
 ###############################################
 # For each region-year, calculate lower and upper bounds
 ###############################################
 
-# For ag, calculate the costs by multiplying out the actual necessary coefficients, and using realized gdd, kdd, and prcp.
-# !!!!!!!!! CHECK WITH JAMES TO MAKE SURE THIS IS APPROPRIATE !!!!!!!!!!!!!!!!!!!
-
-
-#clim.vars <- c('gdd-8-29', 'kdd-29', 'pr-1','pr2-1','pr-2','pr2-2', 'pr-3','pr2-3','pr-4','pr2-4',
-#               'pr-5','pr2-5','pr-6','pr2-6','pr-7','pr2-7','pr-8', 'pr2-8', 'pr-9', 'pr2-9', 'pr-r', 'pr2-r')
-#cov.vars <- c('1', 'seasonaltasmax', 'seasonalpr', 'loggdppc', 'ir-share', 'seasonaltasmax*seasonalpr')
 
 
 # Read in the regression coefficients from the .csvv file and grab three rows:
@@ -274,6 +170,43 @@ kdd.clip.filter <- ( 0 >
 # Set NA values to zero
 gdd.clip.filter[is.na(gdd.clip.filter)] <- 0
 kdd.clip.filter[is.na(kdd.clip.filter)] <- 0
+
+
+if (compute_marginals) {
+  
+  # For diagnostic purposes, compute the lower bound marginal effects of climate
+  # Naming convention: marginal.[covariate].[temp or prcp]   
+  # E.g., marginal.tbar.temp is the marginal effect of Tbar through the temperature terms (gdd and kdd)
+  
+  df.tavg$marginal.tbar.temp <- ( df.tavg$avggdd.2010 * gdd.clip.filter *
+                                    ( get.coeff('gdd-8-29','seasonaltasmax') + get.coeff('gdd-8-29','seasonaltasmax*seasonalpr')*df.tavg$seasonalpr.2010 ) +
+                                  df.tavg$avgkdd.2010 * kdd.clip.filter *
+                                    ( get.coeff('kdd-29','seasonaltasmax') + get.coeff('kdd-29','seasonaltasmax*seasonalpr')*df.tavg$seasonalpr.2010 )
+                                )
+  
+  # Note: this term incorrect due to approximation used for avgpr.2010
+  df.tavg$marginal.tbar.prcp <- ( df.tavg$avgpr.2010 * 
+                                    ( get.coeff('pr-r','seasonaltasmax') + get.coeff('pr-r','seasonaltasmax*seasonalpr')*df.tavg$seasonalpr.2010 ) +
+                                  df.tavg$avgpr2.2010 *
+                                    ( get.coeff('pr2-r','seasonaltasmax') + get.coeff('pr2-r','seasonaltasmax*seasonalpr')*df.tavg$seasonalpr.2010 )
+                                )
+  
+  
+  df.tavg$marginal.pbar.temp <- ( df.tavg$avggdd.2010 * gdd.clip.filter *
+                                    ( get.coeff('gdd-8-29','seasonalpr') + get.coeff('gdd-8-29','seasonaltasmax*seasonalpr')*df.tavg$seasonaltasmax.2010 ) +
+                                  df.tavg$avgkdd.2010 * kdd.clip.filter *
+                                    ( get.coeff('kdd-29','seasonalpr') + get.coeff('kdd-29','seasonaltasmax*seasonalpr')*df.tavg$seasonaltasmax.2010 )
+                                )
+  
+  # Note: this term incorrect due to approximation used for avgpr.2010
+  df.tavg$marginal.pbar.prcp <- ( df.tavg$avgpr.2010 * 
+                                    ( get.coeff('pr-r','seasonalpr') + get.coeff('pr-r','seasonaltasmax*seasonalpr')*df.tavg$seasonaltasmax.2010 ) +
+                                  df.tavg$avgpr2.2010 *
+                                    ( get.coeff('pr2-r','seasonalpr') + get.coeff('pr2-r','seasonaltasmax*seasonalpr')*df.tavg$seasonaltasmax.2010 )
+                                )
+  
+}
+
 
 
 # Temperature response adaptation costs to changing Tbar
@@ -425,6 +358,16 @@ df.tavg <- df.tavg %>%
 columns.to.keep <- c( 'region', 'year', 'adpt.cost.tmp.lower.cuml', 'adpt.cost.tmp.upper.cuml', 
                       'adpt.cost.prcp.lower.cuml', 'adpt.cost.prcp.upper.cuml', 'adpt.cost.upper.cuml', 'adpt.cost.lower.cuml' )
 
+
+if (compute_marginals) {
+  
+  # James also needs seasonaltasmax and seasonalpr for diagnostics, as well as the marginal effects of climate
+  columns.to.keep <- c( 'region', 'year', 'seasonaltasmax', 'seasonalpr', 'adpt.cost.tmp.lower.cuml', 'adpt.cost.tmp.upper.cuml', 
+                        'adpt.cost.prcp.lower.cuml', 'adpt.cost.prcp.upper.cuml', 'adpt.cost.upper.cuml', 'adpt.cost.lower.cuml',
+                        'marginal.tbar.temp', 'marginal.tbar.prcp', 'marginal.pbar.temp', 'marginal.pbar.prcp')
+}
+
+
 df.tavg <- df.tavg[ , columns.to.keep ]
 
 # Write to .csv
@@ -436,102 +379,5 @@ write.csv( df.tavg, file=paste0(outpath, '/corn_single_190326_costs.csv'), row.n
 
 
 
-
-if (1 == 0) {
-  # Mortality
-  
-  # Initialize -- region by lb/ub by year
-  results <- array(0, dim=c(dim(temps.avg)[1], 2, dim(temps.avg)[2]) )
-  results_cum <- array(0, dim=c(dim(temps.avg)[1], 2, dim(temps.avg)[2]) )
-  
-  # Loop: for each impact region and each year, calculate bounds
-  for (r in 1:R){
-    
-    options(warn=-1)
-    # Need a lag variable of the expected value of adaptive investments term
-    tempdf <- as.data.frame(movingavg[r,])
-    colnames(tempdf) <- "climvar"
-    expect <- slide(tempdf, Var='climvar', NewVar = 'lag', slideBy=-1, reminder=F)
-    rm(tempdf)
-    
-    # COSTS: "EXACT" VERSION 
-    avg <- as.data.frame(temps.avg[r,])
-    colnames(avg) <- "climcov"
-    avg$diff <- avg$climcov[which(year.avg==2010)] - avg$climcov 
-    
-    # COSTS: CUMULATIVE COSTS VERSION
-    tempdf <- as.data.frame(temps.avg[r,])
-    colnames(tempdf) <- "climcov"
-    avg2 <- slide(tempdf, Var="climcov", NewVar = 'lag', slideBy=-1, reminder=F)
-    avg2$diff <- avg2$lag - avg2$climcov
-    rm(tempdf)
-    options(warn=0)
-    
-    # Lower and upper bounds
-    results[r,1,] <-  avg$diff * (expect$climvar[which(year.avg==2010)])  # lower
-    results[r,2,] <-  avg$diff * (expect$climvar) # upper
-    results_cum[r,1,] <-  avg2$diff * (expect$lag) # lower
-    results_cum[r,2,] <-  avg2$diff * (expect$climvar) # upper
-    
-    # Clear
-    rm(avg, expect)
-    
-    # Track progress
-    if (r/1000 == round(r/1000)) {
-      print(paste0("------- REGION ", r, " FINISHED ------------"))
-    }
-  }
-  
-  ###############################################
-  # CLIP, ADD ZEROs AT START, CUMULATIVELY SUM
-  ###############################################
-  
-  #Add in costs of zero for initial years
-  baseline <- which(year.avg==2015)
-  for (a in 1:baseline) {
-    results[,,a] <- matrix(0,dim(results)[1], dim(results)[2])
-    results_cum[,,a] <- matrix(0,dim(results_cum)[1], dim(results_cum)[2])
-  }
-  
-  # Cumulative sum over all years for cumulative results
-  for (r in 1:R) {
-    results_cum[r,1,] <- cumsum(results_cum[r,1,])
-    results_cum[r,2,] <- cumsum(results_cum[r,2,])
-  }
-  
-  ###############################################
-  # Export as net CDF
-  ###############################################
-  
-  year <- year.avg
-  dimregions <- ncdim_def("region", units="" ,1:R)
-  dimtime <- ncdim_def("year",  units="", year)
-  
-  varregion <- ncvar_def(name = "regions",  units="", dim=list(dimregions))
-  varyear <- ncvar_def(name = "years",   units="", dim=list(dimtime))
-  
-  varcosts_lb <- ncvar_def(name = "costs_lb", units="deaths/100000", dim=list(dimregions, dimtime))
-  varcosts_ub <- ncvar_def(name = "costs_ub", units="deaths/100000", dim=list(dimregions, dimtime))
-  varcosts_lb_cum <- ncvar_def(name = "costs_lb_cum", units="deaths/100000", dim=list(dimregions, dimtime))
-  varcosts_ub_cum <- ncvar_def(name = "costs_ub_cum", units="deaths/100000", dim=list(dimregions, dimtime))
-  
-  vars <- list(varregion, varyear, varcosts_lb, varcosts_ub, varcosts_lb_cum, varcosts_ub_cum)
-  
-  # Filepath for cost output
-  outpath <- gsub(".nc4", "-costs.nc4", impactspath)
-  
-  cost_nc <- nc_create(outpath, vars)
-  
-  print("CREATED NEW NETCDF FILE")
-  
-  ncvar_put(cost_nc, varregion, regions)
-  ncvar_put(cost_nc, varyear, year)
-  ncvar_put(cost_nc, varcosts_lb, results[,1 ,])
-  ncvar_put(cost_nc, varcosts_ub, results[,2 ,])
-  ncvar_put(cost_nc, varcosts_lb_cum, results_cum[,1 ,])
-  ncvar_put(cost_nc, varcosts_ub_cum, results_cum[,2 ,])
-  nc_close(cost_nc)
-  
-}
 
 print("----------- DONE DONE DONE ------------")
