@@ -174,35 +174,35 @@ kdd.clip.filter[is.na(kdd.clip.filter)] <- 0
 
 if (compute_marginals) {
   
-  # For diagnostic purposes, compute the lower bound marginal effects of climate
+  # For diagnostic purposes, compute the upper bound marginal effects of climate
   # Naming convention: marginal.[covariate].[temp or prcp]   
   # E.g., marginal.tbar.temp is the marginal effect of Tbar through the temperature terms (gdd and kdd)
   
-  df.tavg$marginal.tbar.temp <- ( df.tavg$avggdd.2010 * gdd.clip.filter *
-                                    ( get.coeff('gdd-8-29','seasonaltasmax') + get.coeff('gdd-8-29','seasonaltasmax*seasonalpr')*df.tavg$seasonalpr.2010 ) +
-                                  df.tavg$avgkdd.2010 * kdd.clip.filter *
-                                    ( get.coeff('kdd-29','seasonaltasmax') + get.coeff('kdd-29','seasonaltasmax*seasonalpr')*df.tavg$seasonalpr.2010 )
+  df.tavg$marginal.tbar.temp <- ( df.tavg$avggdd.lag * gdd.clip.filter *
+                                    ( get.coeff('gdd-8-29','seasonaltasmax') + get.coeff('gdd-8-29','seasonaltasmax*seasonalpr')*df.tavg$seasonalpr ) +
+                                  df.tavg$avgkdd.lag * kdd.clip.filter *
+                                    ( get.coeff('kdd-29','seasonaltasmax') + get.coeff('kdd-29','seasonaltasmax*seasonalpr')*df.tavg$seasonalpr )
                                 )
   
-  # Note: this term incorrect due to approximation used for avgpr.2010
-  df.tavg$marginal.tbar.prcp <- ( df.tavg$avgpr.2010 * 
-                                    ( get.coeff('pr-r','seasonaltasmax') + get.coeff('pr-r','seasonaltasmax*seasonalpr')*df.tavg$seasonalpr.2010 ) +
-                                  df.tavg$avgpr2.2010 *
-                                    ( get.coeff('pr2-r','seasonaltasmax') + get.coeff('pr2-r','seasonaltasmax*seasonalpr')*df.tavg$seasonalpr.2010 )
+  # Note: this term incorrect due to approximation used for avgpr
+  df.tavg$marginal.tbar.prcp <- ( df.tavg$avgpr.lag * 
+                                    ( get.coeff('pr-r','seasonaltasmax') + get.coeff('pr-r','seasonaltasmax*seasonalpr')*df.tavg$seasonalpr ) +
+                                  df.tavg$avgpr2.lag *
+                                    ( get.coeff('pr2-r','seasonaltasmax') + get.coeff('pr2-r','seasonaltasmax*seasonalpr')*df.tavg$seasonalpr )
                                 )
   
   
-  df.tavg$marginal.pbar.temp <- ( df.tavg$avggdd.2010 * gdd.clip.filter *
-                                    ( get.coeff('gdd-8-29','seasonalpr') + get.coeff('gdd-8-29','seasonaltasmax*seasonalpr')*df.tavg$seasonaltasmax.2010 ) +
-                                  df.tavg$avgkdd.2010 * kdd.clip.filter *
-                                    ( get.coeff('kdd-29','seasonalpr') + get.coeff('kdd-29','seasonaltasmax*seasonalpr')*df.tavg$seasonaltasmax.2010 )
+  df.tavg$marginal.pbar.temp <- ( df.tavg$avggdd.lag * gdd.clip.filter *
+                                    ( get.coeff('gdd-8-29','seasonalpr') + get.coeff('gdd-8-29','seasonaltasmax*seasonalpr')*df.tavg$seasonaltasmax ) +
+                                  df.tavg$avgkdd.lag * kdd.clip.filter *
+                                    ( get.coeff('kdd-29','seasonalpr') + get.coeff('kdd-29','seasonaltasmax*seasonalpr')*df.tavg$seasonaltasmax )
                                 )
   
-  # Note: this term incorrect due to approximation used for avgpr.2010
-  df.tavg$marginal.pbar.prcp <- ( df.tavg$avgpr.2010 * 
-                                    ( get.coeff('pr-r','seasonalpr') + get.coeff('pr-r','seasonaltasmax*seasonalpr')*df.tavg$seasonaltasmax.2010 ) +
-                                  df.tavg$avgpr2.2010 *
-                                    ( get.coeff('pr2-r','seasonalpr') + get.coeff('pr2-r','seasonaltasmax*seasonalpr')*df.tavg$seasonaltasmax.2010 )
+  # Note: this term incorrect due to approximation used for avgpr
+  df.tavg$marginal.pbar.prcp <- ( df.tavg$avgpr.lag * 
+                                    ( get.coeff('pr-r','seasonalpr') + get.coeff('pr-r','seasonaltasmax*seasonalpr')*df.tavg$seasonaltasmax ) +
+                                  df.tavg$avgpr2.lag *
+                                    ( get.coeff('pr2-r','seasonalpr') + get.coeff('pr2-r','seasonaltasmax*seasonalpr')*df.tavg$seasonaltasmax )
                                 )
   
 }
