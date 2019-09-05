@@ -107,7 +107,8 @@ class BinnedEconomicCovariator(EconomicCovariator):
         self.limits = limits
 
     def add_bins(self, covars):
-        incbin = np.digitize(covars['loggdppc'], self.limits) # starts at 1
+        bin_limits = np.array(self.limits, dtype='float')
+        incbin = np.digitize(covars['loggdppc'], bin_limits) # starts at 1
         for ii in range(1, len(self.limits)):
             covars['incbin' + str(ii)] = (incbin == ii)
         return covars
