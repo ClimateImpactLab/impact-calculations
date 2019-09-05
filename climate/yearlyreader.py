@@ -28,7 +28,7 @@ class YearlyWeatherReader(WeatherReader):
         return self.regions
 
     def get_dimension(self):
-        return self.variable
+        return self.variables
 
     def read_iterator(self):
         ds = xr.open_dataset(self.filepath)
@@ -67,7 +67,7 @@ class YearlyDayLikeWeatherReader(YearlySplitWeatherReader):
         return self.regions
 
     def get_dimension(self):
-        return self.variable
+        return self.variables
 
     def read_iterator(self):
         # Yield data in yearly chunks
@@ -84,7 +84,7 @@ class YearlyDayLikeWeatherReader(YearlySplitWeatherReader):
         ds.rename({self.regionvar: 'region'}, inplace=True)
         ds['time'] = np.array([year])
         ds.set_coords(['time'])
-        ds[self.variable[0]] = ds[self.variable[0]].expand_dims('time', 0)
+        ds[self.variables[0]] = ds[self.variables[0]].expand_dims('time', 0)
         ds.load() # Collect all data now
         return ds
 

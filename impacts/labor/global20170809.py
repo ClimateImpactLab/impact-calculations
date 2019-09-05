@@ -51,11 +51,11 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     lt27_covars = ['colddd_10*(27 - tasmax)*I_{T < 27}'] + ['colddd_10*(27^%d - tasmax%d)*I_{T < 27}' % (term, term) for term in range(2, order+1)]
     lt27_curvegen = shift_curvegen(curvegen_known.PolynomialCurveGenerator(['C'] + ['C^%d' % pow for pow in range(2, order+1)],
                                                                            'minutes worked by individual', 'tasmax', order,
-                                                                           csvvfile.filtered(csvv, lambda pred, covar: pred != 'belowzero' and 'I_{T >= 27}' not in covar), diagsuffix='lt27-'), *lt27_covars)
+                                                                           csvvfile.filtered(csvv, lambda pred, covar: pred != 'belowzero' and 'I_{T >= 27}' not in covar), diagprefix='lt27-'), *lt27_covars)
     gt27_covars = ['hotdd_30*(tasmax - 27)*I_{T >= 27}'] + ['hotdd_30*(tasmax%d - 27^%d)*I_{T >= 27}' % (term, term) for term in range(2, order+1)]
     gt27_curvegen = shift_curvegen(curvegen_known.PolynomialCurveGenerator(['C'] + ['C^%d' % pow for pow in range(2, order+1)],
                                                                            'minutes worked by individual', 'tasmax', order,
-                                                                           csvvfile.filtered(csvv, lambda pred, covar: pred != 'belowzero' and 'I_{T < 27}' not in covar), diagsuffix='gt27-'), *gt27_covars)
+                                                                           csvvfile.filtered(csvv, lambda pred, covar: pred != 'belowzero' and 'I_{T < 27}' not in covar), diagprefix='gt27-'), *gt27_covars)
 
     def make_piecewise(region, lt27_curve, gt27_curve):
         return PiecewiseCurve([lt27_curve, gt27_curve], [-np.inf, 27, np.inf], lambda x: x[:, 0])
