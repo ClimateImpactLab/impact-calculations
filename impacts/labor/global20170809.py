@@ -58,7 +58,10 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
                                                                            csvvfile.filtered(csvv, lambda pred, covar: pred != 'belowzero' and 'I_{T < 27}' not in covar), diagprefix='gt27-'), *gt27_covars)
 
     def make_piecewise(region, lt27_curve, gt27_curve):
-        return PiecewiseCurve([lt27_curve, gt27_curve], [-np.inf, 27, np.inf], lambda x: x[:, 0])
+        def showx(x):
+            print x
+            return x[:, 0]
+        return PiecewiseCurve([lt27_curve, gt27_curve], [-np.inf, 27, np.inf], showx)#lambda x: x[:, 0])
     
     piece_curvegen = curvegen.TransformCurveGenerator(make_piecewise, "Piecewise join < 27 and > 27 curves", lt27_curvegen, gt27_curvegen)
 
