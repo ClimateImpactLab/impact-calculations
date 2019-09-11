@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 setup(name='impactcalculations',
       version='0.1',
       description='Launch impact projection calculations.',
-      url='https://bitbucket.org/ClimateImpactLab/impact-calculations',
+      url='https://gitlab.com/ClimateImpactLab/Impacts/impact-calculations',
       author='Impacts Team',
       packages=find_packages(),
       license='GNU v. 3',
