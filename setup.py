@@ -16,7 +16,7 @@ setup(name='impactcalculations',
       tests_require=['pytest'],
       entry_points={
             'console_scripts': [
-                  'impactprojection = cli:impactcalculations_cli',
+                  'imperics = cli:impactcalculations_cli',
             ]
       },
       )
