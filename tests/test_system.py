@@ -24,40 +24,34 @@ _here = os.path.abspath(os.path.dirname(__file__))
 class TestSingleEnergy(unittest.TestCase):
     """Check diagnostic projection run for energy sector"""
 
-    def setUp(self):
-        """Pre-test setup sets self.results_nc4 to output xr.Dataset we want to check"""
-        self.results_nc4 = None
+    @classmethod
+    def setUpClass(cls):
+        """Pre-test setup sets cls.results_nc4 to output xr.Dataset we want to check"""
+        cls.results_nc4 = None
+        # This is a hack because the projection run scripts can only be launched
+        # from the root of the impact-calculations directory.
+        # I don't have a way around this as py2.7 unittest doesn't have mocks.
         this_cwd = os.getcwd()
-        conf_path = os.path.join(_here, 'configs', 'single-energy.yml')
-        cmd_path = os.path.join(_here, os.pardir, 'diagnostic.sh')
+        conf_path = os.path.abspath(os.path.join(_here, 'configs', 'single-energy.yml'))
+        cmd_path = 'diagnostic.sh'  # Must be run as PWD
         resultspath_fragment = ['temp', 'single', 'rcp85', 'CCSM4', 'high',
                                 'SSP3',
                                 'FD_FGLS_inter_climGMFD_Exclude_all-issues_break2_semi-parametric_poly2_OTHERIND_other_energy_TINV_clim_income_spline_lininter.nc4']
-        tempdir = None
-
-        # Test and dump results in temp directory, gather results, then
-        # return to CWD and delete temp directory.
+        
+        os.chdir(os.path.join(_here, os.pardir))
         try:
-            tempdir = tempfile.mkdtemp()
+            # This is going to *clobber* anything in the 
+            # "impact-calculations/temp" directory.
 
-            # We need to link to configs directory as can't mock
-            # with unittest in py2.7. This is a ghetto hack workaround.
-            confdir_path = os.path.join(_here, os.pardir, 'configs')
-            os.symlink(confdir_path, os.path.join(tempdir, 'configs'))
-            # shutil.copy2(confdir_path, os.path.join(tempdir, 'configs'))
-
-            os.chdir(tempdir)
             # !!Not secure!!
-            return_code = subprocess.call(['sh', str(cmd_path), str(conf_path)],
-                                          shell=True)
+            return_code = subprocess.call(['sh', str(cmd_path), str(conf_path)])
             assert return_code == 0, 'command did not return code 0'
 
-            resultspath = os.path.join(tempdir, *resultspath_fragment)
-            self.results_nc4 = xr.open_dataset(resultspath)
+            resultspath = os.path.join(*resultspath_fragment)
+            cls.results_nc4 = xr.open_dataset(resultspath)
 
         finally:
             os.chdir(this_cwd)
-            shutil.rmtree(tempdir)
 
     def test_rebased(self):
         """Smoke test shape & (head, tail) values of 'rebased' in results_nc4"""
