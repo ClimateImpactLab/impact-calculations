@@ -15,7 +15,7 @@ class WeatherTransformer(object):
     def get_years(self, years):
         return years
 
-def iterate_bundles(*iterators_readers, **config):
+def iterate_bundles(*iterators_readers, config={}):
     """
     Return bundles for each RCP and model.
     """

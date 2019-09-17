@@ -11,7 +11,7 @@ def get_bundle_iterator(config):
     return weather.iterate_bundles(discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tasmax"), 'tasmax', reorder=reorder),
                                    discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tasmax-poly-2"), 'tasmax-poly-2', reorder=reorder),
                                    discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tasmax-poly-3"), 'tasmax-poly-3', reorder=reorder),
-                                   discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tasmax-poly-4"), 'tasmax-poly-4', reorder=reorder))
+                                   discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tasmax-poly-4"), 'tasmax-poly-4', reorder=reorder), config=config)
 
 do_clipping = [True] # [True, False]
 do_csvv_grep = None #'Poly2'
