@@ -13,9 +13,9 @@ def get_bundle_iterator(config):
     timerate = config.get('timerate', 'day')
     discoverers = []
     for variable in config['climate']:
-        discoverers.append(standard_variable(variable, timerate, **config))
+        discoverers.append(standard_variable(variable, timerate, config))
 
-    return weather.iterate_bundles(*discoverers, **config)
+    return weather.iterate_bundles(*discoverers, config=config)
 
 def check_doit(targetdir, basename, suffix, config, deletebad=False):
     filepath = os.path.join(targetdir, basename + suffix + '.nc4')

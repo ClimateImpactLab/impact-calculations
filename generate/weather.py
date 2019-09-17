@@ -15,10 +15,12 @@ class WeatherTransformer(object):
     def get_years(self, years):
         return years
 
-def iterate_bundles(*iterators_readers, **config):
+def iterate_bundles(*iterators_readers, **configs):
     """
     Return bundles for each RCP and model.
+    configs is expected to only include {config: config}
     """
+    config = configs['config']
     if 'rolling-years' in config:
         transformer = RollingYearTransfomer(config['rolling-years'])
     else:
@@ -93,7 +95,11 @@ class WeatherBundle(object):
     def load_regions(self, reader=None):
         """Load the rows of hierarchy.csv associated with all known regions."""
         if reader is not None:
-            self.regions = reader.get_regions()
+            try:
+                self.regions = reader.get_regions()
+            except Exception as ex:
+                print "WARNING: failure to read regions for " + str(reader.__class__)
+                self.regions = irregions.load_regions(self.hierarchy, self.dependencies)
         else:
             self.regions = irregions.load_regions(self.hierarchy, self.dependencies)
 

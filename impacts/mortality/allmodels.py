@@ -14,20 +14,20 @@ def preload():
 def get_bundle_iterator(config):
     assert 'specification' in config
     if config['specification'] == 'polynomial':
-        return weather.iterate_bundles(discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas"), 'tas', **config),
-                                       discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-2"), 'tas-poly-2', **config),
-                                       discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-3"), 'tas-poly-3', **config),
-                                       discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-4"), 'tas-poly-4', **config),
-                                       discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-5"), 'tas-poly-5'), **config)
+        return weather.iterate_bundles(discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas"), 'tas', None, config),
+                                       discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-2"), 'tas-poly-2', None, config),
+                                       discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-3"), 'tas-poly-3', None, config),
+                                       discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-4"), 'tas-poly-4', None, config),
+                                       discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/tas-poly-5"), 'tas-poly-5'), config)
     if config['specification'] == 'bins':
-        return weather.iterate_bundles(discover_day2year(standard_variable('tas', 'day', **config), lambda arr: np.mean(arr, axis=0)),
-                                       discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/binned_tas"), "tas_bin_day_counts", **config),
-                                       **config)
+        return weather.iterate_bundles(discover_day2year(standard_variable('tas', 'day', config), lambda arr: np.mean(arr, axis=0)),
+                                       discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/binned_tas"), "tas_bin_day_counts", None, config),
+                                       config)
     if config['specification'] == 'hddcdd':
-        return weather.iterate_bundles(discover_day2year(standard_variable('tas', 'day', **config), lambda arr: np.mean(arr, axis=0)),
-                                       discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/" + config['hddvar']), config['hddvar'], **config),
-                                       discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/" + config['cddvar']), config['cddvar'], **config),
-                                       **config)
+        return weather.iterate_bundles(discover_day2year(standard_variable('tas', 'day', config), lambda arr: np.mean(arr, axis=0)),
+                                       discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/" + config['hddvar']), config['hddvar'], None, config),
+                                       discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/" + config['cddvar']), config['cddvar'], None, config),
+                                       config)
     raise ValueError("Unknown specification: %s" % config['specification'])
     
 def check_doit(targetdir, basename, suffix):

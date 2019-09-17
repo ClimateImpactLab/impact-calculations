@@ -17,8 +17,8 @@ timerate = config.get('timerate', 'day')
 discoverers = []
 for variable in config['climate']:
     print variable
-    discoverer = standard_variable(variable, timerate, **config)
+    discoverer = standard_variable(variable, timerate, config)
     discoverers.append(discoverer)
 
-for clim_scenario, clim_model, weatherbundle in weather.iterate_bundles(*discoverers, **config):
+for clim_scenario, clim_model, weatherbundle in weather.iterate_bundles(*discoverers, config=config):
     print clim_scenario, clim_model

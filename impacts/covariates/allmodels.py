@@ -13,7 +13,8 @@ def preload():
 
 def get_bundle_iterator(config):
     return weather.iterate_bundles(discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tas'),
-                                   discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'pr'))
+                                   discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'pr'),
+                                   config=config)
 
 def produce(targetdir, weatherbundle, economicmodel, pvals, config, result_callback=None, push_callback=None, suffix='', profile=False, diagnosefile=False):
     if do_singleyear:
