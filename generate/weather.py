@@ -15,10 +15,12 @@ class WeatherTransformer(object):
     def get_years(self, years):
         return years
 
-def iterate_bundles(*iterators_readers, config={}):
+def iterate_bundles(*iterators_readers, **configs):
     """
     Return bundles for each RCP and model.
+    configs is expected to only include {config: config}
     """
+    config = configs['config']
     if 'rolling-years' in config:
         transformer = RollingYearTransfomer(config['rolling-years'])
     else:
