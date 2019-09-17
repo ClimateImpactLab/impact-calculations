@@ -8,8 +8,6 @@ assumptions about directory structure.
 
 import unittest
 import subprocess
-import tempfile
-import shutil
 import os
 import os.path
 
@@ -147,7 +145,6 @@ class TestSingleMortality(unittest.TestCase):
 
         goal = 'USA.14.608'
         self.assertEqual(actual, goal)
-
 
 
 if __name__ == '__main__':
