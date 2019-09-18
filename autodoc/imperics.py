@@ -1,6 +1,7 @@
 import sys, os, csv, importlib, yaml
 import numpy as np
 from impactlab_tools.utils import files
+from impactlab_tools.utils.configdict import gather_configtree
 from interpret import container
 from generate import caller, loadmodels, pvalses
 from adaptation import csvvfile
@@ -10,7 +11,7 @@ import lib
 
 ## Configuration
 
-config = files.get_argv_config()
+config = gather_configtree(files.get_argv_config())
 allcalcs = sys.argv[2]
 
 region = sys.argv[3] if len(sys.argv) > 3 else 'USA.14.608' #'IND.21.329.1353'
