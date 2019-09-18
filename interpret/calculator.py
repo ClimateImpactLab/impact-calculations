@@ -40,7 +40,11 @@ def create_postspecification(postconf, models, calculation, extras={}):
 
 def create_calcstep(name, args, models, subcalc, extras={}):
     if name == 'Rebase':
-        return caller.standardize(subcalc)
+        if isinstance(args, dict):
+            kwargs = args
+        else:
+            kwargs = {}
+        return caller.standardize(subcalc, **kwargs)
 
     cls = getattr(stdlib, name)
 
@@ -89,7 +93,10 @@ def create_calcstep(name, args, models, subcalc, extras={}):
                     arglist.append(savedargs[argtype.name])
                     continue
                 elif getattr(argtype, 'is_optional', False):
-                    kwargs[argtype.name] = arg
+                    if isinstance(arg, dict) and len(arg) == 1 and argtype.name in arg:
+                        kwargs[argtype.name] = arg[argtype.name]
+                    else:
+                        kwargs[argtype.name] = arg
                 else:
                     arglist.append(arg)
             except:
