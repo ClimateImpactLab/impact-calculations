@@ -6,6 +6,7 @@ print "Initializing..."
 
 import os
 from impactlab_tools.utils import files
+from impactlab_tools.utils.configdict import gather_configtree
 from climate import discover
 from datastore import weights
 from adaptation import farming, econmodel, csvvfile
@@ -15,7 +16,7 @@ import cProfile, pstats, StringIO
 
 do_profile = False
 
-config = files.get_allargv_config()
+config = gather_configtree(files.get_allargv_config())
 
 targetdir = config['targetdir']
 pvals = pvalses.interpret(config) # pvals

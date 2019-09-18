@@ -6,8 +6,9 @@ import os, importlib, yaml
 from generate import loadmodels, weather
 from climate.discover import standard_variable
 from impactlab_tools.utils import files
+from impactlab_tools.utils.configdict import gather_configtree
 
-config = files.get_allargv_config()
+config = gather_configtree(files.get_allargv_config())
 config['show-source'] = True
 
 mod = importlib.import_module("interpret.container")

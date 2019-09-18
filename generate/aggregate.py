@@ -269,9 +269,10 @@ def fullfile(filename, suffix, config):
 if __name__ == '__main__':
     import sys
     from impactlab_tools.utils import files
+    from impactlab_tools.utils.configdict import gather_configtree
     from datastore import population, agecohorts
 
-    config = files.get_allargv_config()
+    config = gather_configtree(files.get_allargv_config())
     regioncount = config.get('region-count', 24378)
 
     statman = paralog.StatusManager('aggregate', "generate.aggregate " + sys.argv[1], 'logs', CLAIM_TIMEOUT)

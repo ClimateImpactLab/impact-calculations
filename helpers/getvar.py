@@ -10,6 +10,7 @@ The configuration file provides the bundle iterator (top-level climate discovere
 import sys, importlib, yaml, os
 import numpy as np
 from impactlab_tools.utils import files
+from impactlab_tools.utils.configdict import gather_configtree
 from climate import discover
 from generate import weather, loadmodels
 from interpret import variables
@@ -30,7 +31,7 @@ if sys.argv[1][-4:] != '.yml':
             break
 else:
     # Use <config> <variable> syntax
-    config = files.get_allargv_config()
+    config = gather_configtree(files.get_allargv_config())
 
     transform = variables.interpret_ds_transform(varname, config)
     

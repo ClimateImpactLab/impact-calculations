@@ -9,9 +9,10 @@ import weather, pvalses, timing
 from adaptation import curvegen
 from openest.generate import diagnostic
 from impactlab_tools.utils import files, paralog
+from impactlab_tools.utils.configdict import gather_configtree
 import cProfile, pstats, StringIO, metacsv
 
-config = files.get_allargv_config()
+config = gather_configtree(files.get_allargv_config())
 
 print "Initializing..."
 
