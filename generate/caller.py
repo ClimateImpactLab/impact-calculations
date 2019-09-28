@@ -25,9 +25,9 @@ def get_model_by_gcpid(gcpid):
     rowvalues = wks.row_values(ids.index(gcpid) + 1)
     return get_model(rowvalues[header.index('DMAS ID')])
 
-def standardize(calculation):
+def standardize(calculation, **kwargs):
     unit = calculation.unitses[0]
-    return SpanInstabase(calculation, 2001, 2010, func=lambda x, y: x - y, units=unit)
+    return SpanInstabase(calculation, 2001, 2010, func=lambda x, y: x - y, units=unit, **kwargs)
 
 def call_prepare(module, weatherbundle, economicmodel, pvals, getmodel=get_model, standard=True, getdata=get_data):
     economicmodel.reset()
