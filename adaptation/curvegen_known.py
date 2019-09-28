@@ -82,6 +82,10 @@ class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
 
         return elements
 
+    def get_partial_derivative_curve(self, covariate):
+        yy = [csvvfile.get_gamma(csvv, predname, covariate) for predname in self.prednames]
+        return ZeroInterceptPolynomialCurve(yy, self.weathernames, self.allow_raising)
+
 class CubicSplineCurveGenerator(curvegen.CSVVCurveGenerator):
     def __init__(self, indepunits, depenunit, prefix, knots, csvv, betalimits={}):
         self.knots = knots
