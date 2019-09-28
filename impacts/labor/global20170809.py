@@ -6,7 +6,6 @@ import copy
 import numpy as np
 from openest.generate.stdlib import *
 from openest.generate import smart_curve
-from openest.models.curve import FlatCurve, ShiftedCurve, PiecewiseCurve, ClippedCurve, ProductCurve, CoefficientsCurve
 from adaptation import csvvfile, covariates, constraints, curvegen_known, curvegen
 from datastore import modelcache
 from climate import discover
@@ -47,7 +46,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
             shift = -csvvfile.get_gamma(csvv, 'tasmax', covars[0]) * 27 * predgen.get_current(region)[covars[0]]
             for term in range(2, order+1):
                 shift += -csvvfile.get_gamma(csvv, 'tasmax%d' % term, covars[term-1]) * (27**term) * predgen.get_current(region)[covars[term-1]]
-            return ShiftedCurve(smart_curve.CoefficientsCurve(curve.ccs, variables[:order]), shift)
+            return smart_curve.ShiftedCurve(smart_curve.CoefficientsCurve(curve.ccs, variables[:order]), shift)
 
         return curvegen.TransformCurveGenerator(shift_curve, "Shift curve by -gamma_H1 27 H - gamma_H2 27^2 H", poly_curvegen)
 
@@ -61,7 +60,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
                                                                            csvvfile.filtered(csvv, lambda pred, covar: pred != 'belowzero' and 'I_{T < 27}' not in covar), diagprefix='gt27-'), *gt27_covars)
 
     def make_piecewise(region, lt27_curve, gt27_curve):
-        return PiecewiseCurve([lt27_curve, gt27_curve], [-np.inf, 27, np.inf], lambda ds: ds.tasmax)
+        return smart_curve.PiecewiseCurve([lt27_curve, gt27_curve], [-np.inf, 27, np.inf], lambda ds: ds.tasmax)
     
     piece_curvegen = curvegen.TransformCurveGenerator(make_piecewise, "Piecewise join < 27 and > 27 curves", lt27_curvegen, gt27_curvegen)
 
@@ -100,9 +99,9 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
 
     def shift_piecewise(region, curve):
         if clipping:
-            curve = ClippedCurve(ShiftedCurve(curve, -curve(baselinemaxs[region])), cliplow=False)
+            curve = smart_curve.ClippedCurve(smart_curve.ShiftedCurve(curve, -curve(baselinemaxs[region])), cliplow=False)
 
-        return ProductCurve(ShiftedCurve(curve, -curve(27)), StepCurve([-np.inf, 0, np.inf], [0, 1], lambda ds: ds.tasmax))
+        return smart_curve.ProductCurve(smart_curve.ShiftedCurve(curve, -curve(27)), smart_curve.StepCurve([-np.inf, 0, np.inf], [0, 1], lambda ds: ds.tasmax))
 
     shifted_curvegen = curvegen.TransformCurveGenerator(shift_piecewise, "Subtract curve at 27 C and clip", piece_curvegen) # both clip and subtract curve at 27
 

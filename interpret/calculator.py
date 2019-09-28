@@ -40,7 +40,11 @@ def create_postspecification(postconf, models, calculation, extras={}):
 
 def create_calcstep(name, args, models, subcalc, extras={}):
     if name == 'Rebase':
-        return caller.standardize(subcalc)
+        if isinstance(args, dict):
+            kwargs = args
+        else:
+            kwargs = {}
+        return caller.standardize(subcalc, **kwargs)
 
     cls = getattr(stdlib, name)
 
@@ -69,9 +73,9 @@ def create_calcstep(name, args, models, subcalc, extras={}):
                 arglist.append(subcalc)
             else:
                 arglist.append(prepare_argument(argtype.name, get_argument(argtype.name), models, argtype, extras=extras))
-        elif argtype == arguments.calculationss and len(cls.describe()['arguments']) == 1 and isinstance(args, list):
+        elif argtype == arguments.calculationss and cls.describe()['arguments'][-1] == argtype and isinstance(args, list):
             # Special case for list of subcalcs
-            arglist.append(prepare_argument(argtype.name, args, models, argtype, extras=extras))
+            arglist.append(prepare_argument(argtype.name, list(generator), models, argtype, extras=extras))
         elif argtype in [arguments.model, arguments.curvegen, arguments.curve_or_curvegen]:
             if 'default' in models:
                 arglist.append(models['default'])
@@ -89,7 +93,10 @@ def create_calcstep(name, args, models, subcalc, extras={}):
                     arglist.append(savedargs[argtype.name])
                     continue
                 elif getattr(argtype, 'is_optional', False):
-                    kwargs[argtype.name] = arg
+                    if isinstance(arg, dict) and len(arg) == 1 and argtype.name in arg:
+                        kwargs[argtype.name] = arg[argtype.name]
+                    else:
+                        kwargs[argtype.name] = arg
                 else:
                     arglist.append(arg)
             except:

@@ -1,0 +1,14 @@
+module: impacts/energy/hddcddspline_t_OTHERIND_other_energy.yml
+mode: writecalcs
+outputdir: /shares/gcp/outputs/energy/impacts-blueghost
+singledir: single
+do_farmers: no
+do_historical: no
+deltamethod: no
+econcovar:
+   class: mean
+   length: 15
+climcovar:
+   class: mean
+   length: 15
+loggdppc-delta: 9.087
