@@ -31,7 +31,14 @@ def iterate_median():
         yield 'median', pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
 
 def iterate_montecarlo():
-    for batch in itertools.count():
+    # How many monte carlo iterations do we do?
+    mc_n = config.get('mc_n')
+    if mc_n is None:
+        mc_batch_iter = itertools.count()
+    else:
+        mc_batch_iter = range(int(mc_n))
+
+    for batch in mc_batch_iter:
         for clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in loadmodels.random_order(mod.get_bundle_iterator(config), config):
             pvals = pvalses.OnDemandRandomPvals()
             yield 'batch' + str(batch), pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
