@@ -2,7 +2,7 @@ import re
 from adaptation import csvvfile, curvegen, curvegen_known, curvegen_arbitrary, covariates, constraints
 from datastore import irvalues
 from openest.generate import smart_curve, selfdocumented
-from openest.models.curve import ShiftedCurve, MinimumCurve, ClippedCurve, ZeroInterceptPolynomialCurve
+from openest.models.curve import ShiftedCurve, MinimumCurve, ClippedCurve
 from openest.generate.stdlib import *
 from impactcommon.math import minpoly, minspline
 import calculator, variables, configs
@@ -55,7 +55,7 @@ def create_covariator(specconf, weatherbundle, economicmodel, config={}, quiet=F
 
     return covariator
         
-def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
+def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}, getcsvvcurve=False):
     user_assert('depenunit' in specconf, "Specification configuration missing 'depenunit' string.")
     user_assert('functionalform' in specconf, "Specification configuration missing 'functionalform' string.")
     if specconf['functionalform'] in ['polynomial', 'cubicspline']:
@@ -70,32 +70,40 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
         variable = specconf['variable']
         indepunit = specconf['indepunit']
         coeffvar = specconf.get('coeffvar', variable)
-        
+
+        if 'final-t' in specconf:
+            suffix = '-' + str(specconf['suffixes'][specconf['final-t']])
+        else:
+            suffix = ''
+            
         order = 0
         predinfix = ''
         for predname in csvv['prednames']:
-            if predname == coeffvar:
+            if predname == coeffvar + suffix:
                 order = max(order, 1)
             else:
-                match = re.match(coeffvar + r'(\d+)', predname)
+                match = re.match(coeffvar.replace('*', '\\*') + r'(\d+)' + suffix, predname)
                 if match:
                     order = max(order, int(match.group(1)))
                     continue
-                match = re.match(coeffvar + r'-poly-(\d+)', predname)
+                match = re.match(coeffvar.replace('*', '\\*') + r'-poly-(\d+)' + suffix, predname)
                 if match:
                     predinfix = '-poly-'
                     order = max(order, int(match.group(1)))
                     continue
 
-        assert order > 1, "Cannot find more than one power of %s in %s" % (coeffvar, str(csvv['prednames']))
-                    
+        if suffix:
+            assert order > 1, "Cannot find more than one power of %sN%s in %s" % (coeffvar, suffix, str(csvv['prednames']))
+        else:
+            assert order > 1, "Cannot find more than one power of %s in %s" % (coeffvar, str(csvv['prednames']))
+        
         weathernames = [variable] + ['%s-poly-%d' % (variable, power) for power in range(2, order+1)]
-        if 'within-season' in specconf:
-            weathernames = [variables.get_post_process(name, specconf) for name in weathernames]
+        if variables.needs_interpret(variable, specconf):
+            weathernames = [variables.interpret_ds_transform(name, specconf) for name in weathernames]
 
         curr_curvegen = curvegen_known.PolynomialCurveGenerator([indepunit] + ['%s^%d' % (indepunit, pow) for pow in range(2, order+1)],
                                                                 depenunit, coeffvar, order, csvv, predinfix=predinfix,
-                                                                weathernames=weathernames, betalimits=betalimits)
+                                                                weathernames=weathernames, betalimits=betalimits, allow_raising=specconf.get('allow-raising', False))
         minfinder = lambda mintemp, maxtemp: lambda curve: minpoly.findpolymin([0] + curve.ccs, mintemp, maxtemp)
             
     elif specconf['functionalform'] == 'cubic spline':
@@ -127,9 +135,23 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
                                                                          transform_descriptions, indepunits, depenunit,
                                                                          csvv, betalimits=betalimits)
         weathernames = [] # Use curve directly
+    elif specconf['functionalform'] == 'sum-by-time':
+        csvvcurvegens = []
+        for tt in range(len(specconf['suffixes'])):
+            subspecconf = configs.merge(specconf, specconf['subspec'])
+            subspecconf['final-t'] = tt
+            csvvcurvegen = create_curvegen(csvv, None, regions, farmer=farmer, specconf=subspecconf, getcsvvcurve=True) # don't pass covariator, so skip farmer curvegen
+            assert isinstance(csvvcurvegen, curvegen.CSVVCurveGenerator), "Error: Curve-generator resulted in a " + str(csvvcurvegen.__class__)
+            csvvcurvegens.append(csvvcurvegen)
+        
+        curr_curvegen = curvegen.SumCurveGenerator(csvvcurvegens, specconf['suffixes'])
+        weathernames = [] # Use curve directly
     else:
         user_failure("Unknown functional form %s." % specconf['functionalform'])
 
+    if getcsvvcurve:
+        return curr_curvegen
+        
     if specconf.get('goodmoney', False):
         baselineloggdppcs = {}
         for region in regions:
@@ -148,9 +170,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
             baselinemins = {region: curvemin for region in regions}
 
     def transform(region, curve):
-        if isinstance(curve, ZeroInterceptPolynomialCurve):
-            final_curve = smart_curve.ZeroInterceptPolynomialCurve(curve.ccs, weathernames, specconf.get('allow-raising', False))
-        elif isinstance(curve, smart_curve.SmartCurve):
+        if isinstance(curve, smart_curve.SmartCurve):
             final_curve = curve
         else:
             final_curve = smart_curve.CoefficientsCurve(curve.ccs, weathernames)
@@ -182,7 +202,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
     elif specconf.get('goodmoney', False):
         final_curvegen = curvegen.TransformCurveGenerator(transform, "Good Money transformation", curr_curvegen)
     else:
-        final_curvegen = curvegen.TransformCurveGenerator(transform, "Smart curve transformation", curr_curvegen)
+        final_curvegen = curvegen.TransformCurveGenerator(transform, None, curr_curvegen) # smart curve transform
         final_curvegen.deltamethod_passthrough = True
 
     if covariator:

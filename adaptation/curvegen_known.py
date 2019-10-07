@@ -1,15 +1,17 @@
 import numpy as np
 import csvvfile, curvegen
 from openest.generate import diagnostic, formatting, selfdocumented
-from openest.models.curve import ZeroInterceptPolynomialCurve, CubicSplineCurve
+from openest.generate.smart_curve import ZeroInterceptPolynomialCurve
+from openest.models.curve import CubicSplineCurve
 
 class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
-    def __init__(self, indepunits, depenunit, prefix, order, csvv, diagprefix='coeff-', predinfix='', weathernames=None, betalimits={}):
+    def __init__(self, indepunits, depenunit, prefix, order, csvv, diagprefix='coeff-', predinfix='', weathernames=None, betalimits={}, allow_raising=False):
         self.order = order
         prednames = [prefix + predinfix + str(ii) if ii > 1 else prefix for ii in range(1, order+1)]
         super(PolynomialCurveGenerator, self).__init__(prednames, indepunits * order, depenunit, csvv, betalimits=betalimits)
         self.diagprefix = diagprefix
         self.weathernames = weathernames
+        self.allow_raising = allow_raising
 
     def get_curve(self, region, year, covariates={}, recorddiag=True, **kwargs):
         coefficients = self.get_coefficients(covariates)
@@ -23,7 +25,7 @@ class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
                 else:
                     diagnostic.record(region, year, self.diagprefix + predname, coefficients[predname])
 
-        return ZeroInterceptPolynomialCurve([-np.inf, np.inf], yy)
+        return ZeroInterceptPolynomialCurve(yy, self.weathernames, self.allow_raising)
 
     def get_lincom_terms_simple_each(self, predname, covarname, predictors, covariates={}):
         if predname not in predictors._variables.keys():

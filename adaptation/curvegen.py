@@ -1,6 +1,7 @@
+import copy
 import numpy as np
 from openest.generate.curvegen import *
-from openest.generate import checks, fast_dataset, formatting
+from openest.generate import checks, fast_dataset, formatting, smart_curve, formattools
 
 region_curves = {}
 
@@ -40,22 +41,25 @@ class CSVVCurveGenerator(CurveGenerator):
         else:
             assert checks.loosematch(csvv['variables']['outcome']['unit'], depenunit), "Dependent units %s does not match %s." % (csvv['variables']['outcome']['unit'], depenunit)
 
+        self.fill_marginals()
+
+    def fill_marginals(self):
         # Preprocessing
         self.constant = {} # {predname: constant}
         self.predcovars = {} # {predname: [covarname]}
         self.predgammas = {} # {predname: np.array}
-        for predname in set(prednames):
+        for predname in set(self.prednames):
             self.predcovars[predname] = []
             self.predgammas[predname] = []
 
-            indices = [ii for ii, xx in enumerate(csvv['prednames']) if xx == predname]
+            indices = [ii for ii, xx in enumerate(self.csvv['prednames']) if xx == predname]
             for index in indices:
-                if csvv['covarnames'][index] == '1':
+                if self.csvv['covarnames'][index] == '1':
                     assert predname not in self.constant
-                    self.constant[predname] = csvv['gamma'][index]
+                    self.constant[predname] = self.csvv['gamma'][index]
                 else:
-                    self.predcovars[predname].append(csvv['covarnames'][index])
-                    self.predgammas[predname].append(csvv['gamma'][index])
+                    self.predcovars[predname].append(self.csvv['covarnames'][index])
+                    self.predgammas[predname].append(self.csvv['gamma'][index])
 
             self.predgammas[predname] = np.array(self.predgammas[predname])
 
@@ -92,7 +96,9 @@ class CSVVCurveGenerator(CurveGenerator):
                 except Exception as e:
                     print "Available covariates:"
                     print covariates
-                    raise e
+                    print "Requested covariates:"
+                    print self.predcovars[predname]
+                    raise
 
         return coefficients
 
@@ -265,3 +271,24 @@ class DifferenceCurveGenerator(CurveGenerator):
         result.update(equation_two)
         result['main'] = formatting.FormatElement("%s - %s" % (equation_one['main'].repstr, equation_two['main'].repstr), self.one.dependencies + self.two.dependencies)
         return result
+
+class SumCurveGenerator(CurveGenerator):
+    def __init__(self, csvvcurvegens, coeffsuffixes):
+        super(SumCurveGenerator, self).__init__(csvvcurvegens[0].indepunits, csvvcurvegens[0].depenunit)
+        curvegens = []
+        for tt in range(len(coeffsuffixes)):
+            curvegen = csvvcurvegens[tt]
+            curvegen.prednames = [predname + "-%s" % coeffsuffixes[tt] for predname in curvegen.prednames]
+            curvegen.fill_marginals()
+            curvegens.append(curvegen)
+        
+        self.curvegens = curvegens
+
+    def get_curve(self, region, year, covariates={}, **kwargs):
+        curves = [curvegen.get_curve(region, year, covariates, **kwargs) for curvegen in self.curvegens]
+        return smart_curve.SumCurve(curves)
+
+    def format_call(self, lang, *args):
+        elementsets = [curvegen.format_call(lang, *args) for curvegen in self.curvegens]
+        return formattools.join(" + ", elementsets)
+    
