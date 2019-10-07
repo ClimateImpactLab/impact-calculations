@@ -1,11 +1,27 @@
-import re
+import re, copy
 import numpy as np
 from openest.generate import fast_dataset, selfdocumented
 from datastore import irvalues
 
 re_dotsplit = re.compile("\.(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)")
 
+def needs_interpret(name, config):
+    if ' - ' in name or ' * ' in name or '.' in name:
+        return True
+    if 'final-t' in config or 'within-season' in config:
+        return True
+    return False
+
 def interpret_ds_transform(name, config):
+    if ' ** ' in name:
+        chunks = name.split(' ** ', 1)
+        internal_left = interpret_ds_transform(chunks[0], config)
+        internal_right = interpret_ds_transform(chunks[1], config)
+
+        return selfdocumented.DocumentedFunction(lambda ds: internal_left(ds) * internal_right(ds),
+                                                 name, lambda x, y: x * y,
+                                                 [internal_left, internal_right])
+
     if ' - ' in name:
         chunks = name.split(' - ', 1)
         internal_left = interpret_ds_transform(chunks[0], config)
@@ -14,7 +30,16 @@ def interpret_ds_transform(name, config):
         return selfdocumented.DocumentedFunction(lambda ds: internal_left(ds) - internal_right(ds),
                                                  name, lambda x, y: x - y,
                                                  [internal_left, internal_right])
-    
+
+    if ' * ' in name:
+        chunks = name.split(' * ', 1)
+        internal_left = interpret_ds_transform(chunks[0], config)
+        internal_right = interpret_ds_transform(chunks[1], config)
+
+        return selfdocumented.DocumentedFunction(lambda ds: internal_left(ds) * internal_right(ds),
+                                                 name, lambda x, y: x * y,
+                                                 [internal_left, internal_right])
+
     if '.' in name:
         chunks = re_dotsplit.split(name)
         if len(chunks) > 1:
@@ -35,6 +60,9 @@ def interpret_wrap_transform(transform, internal):
     assert False, "Unknown transform" + transform
 
 def get_post_process(name, config):
+    if 'final-t' in config:
+        return selfdocumented.DocumentedFunction(lambda ds: post_process(ds, name, config), "Select time %d" % config['final-t'], docargs=[name])
+    
     if 'within-season' in config:
         return selfdocumented.DocumentedFunction(lambda ds: post_process(ds, name, config), "Limit to within season", docargs=[name])
 
@@ -42,6 +70,20 @@ def get_post_process(name, config):
     
 def post_process(ds, name, config):
     dataarr = ds[name]
+
+    if 'final-t' in config: # also handles 'final-t' + 'within-season' case recursively
+        subconfig = copy.copy(config)
+        del subconfig['final-t']
+        before = post_process(ds, name, subconfig)
+        if config['final-t'] < before._values.shape[dataarr.original_coords.index('time')]:
+            return before.isel(time=config['final-t'])
+            # return fast_dataset.FastDataArray(np.array([before._values[config['final-t']]]), dataarr.original_coords, ds)
+        else:
+            new_coords = list(dataarr.original_coords)
+            new_shape = list(before._values.shape)
+            del new_shape[new_coords.index('time')]
+            del new_coords[new_coords.index('time')]
+            return fast_dataset.FastDataArray(np.zeros(tuple(new_shape)), new_coords, ds)
     
     if 'within-season' in config:
         if len(dataarr) == 24:

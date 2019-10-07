@@ -1,4 +1,4 @@
-module: impacts/agriculture/allmodels.yml
+module: impacts/agriculture/corn_prsplitmodel.yml
 mode: median
 outputdir: /shares/gcp/outputs/agriculture/impacts-mealy
 do_farmers: true
