@@ -63,5 +63,11 @@ models:
             model: gddprecip
         - YearlySumIrregular:
             model: kddprecip
+      - AuxillaryResult:
+        - PartialDerivative:
+            variable: seasonaltasmax
+      - AuxillaryResult:
+        - PartialDerivative:
+            variable: seasonalpr
       - Rebase
       - Exponentiate
