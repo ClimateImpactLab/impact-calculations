@@ -7,6 +7,21 @@ region_curves = {}
 
 class CSVVCurveGenerator(CurveGenerator):
     def __init__(self, prednames, indepunits, depenunit, csvv, betalimits={}):
+        """
+
+        Parameters
+        ----------
+        prednames : sequence of str
+            Independent variable names.
+        indepunits : sequence of str
+            Independent variable units.
+        depenunit : str
+            Dependent variable unit.
+        csvv : dict
+            CSVV dict as produced by `interpret.container.produce_csvv`.
+        betalimits: dict
+
+        """
         super(CSVVCurveGenerator, self).__init__(indepunits, depenunit)
 
         assert isinstance(prednames, list) or isinstance(prednames, set) or isinstance(prednames, tuple)
@@ -49,6 +64,23 @@ class CSVVCurveGenerator(CurveGenerator):
             self.predgammas[predname] = np.array(self.predgammas[predname])
 
     def get_coefficients(self, covariates, debug=False):
+        """
+
+        Parameters
+        ----------
+        covariates : dict
+            Dictionary with string variable keys and float values. The keys in
+            `covariates` must correspond to keys in `self.predcovars` and
+            items in `self.predname`.
+        debug : bool, optional
+            If True, prints intermediate terms for debugging.
+
+        Returns
+        -------
+        coefficients : dict
+            With str keys giving variable names and values giving the
+            corresponding float coefficients.
+        """
         coefficients = {} # {predname: sum}
         for predname in set(self.prednames):
             if len(self.predgammas[predname]) == 0:
@@ -99,6 +131,18 @@ class CSVVCurveGenerator(CurveGenerator):
 class FarmerCurveGenerator(DelayedCurveGenerator):
     """Handles different adaptation assumptions."""
     def __init__(self, curvegen, covariator, farmer='full', save_curve=True):
+        """
+
+        Parameters
+        ----------
+        curvegen : openest.generate.curvegen.CurveGenerator-like
+        covariator : adaptation.covariates.CombinedCovariator
+        farmer : {'full', 'noadapt', 'incadapt'}
+            Type of farmer adaptation.
+        save_curve : bool, optional
+            Do you want to save this curve in `adaptation.region_curves`?
+
+        """
         super(FarmerCurveGenerator, self).__init__(curvegen)
         self.covariator = covariator
         self.farmer = farmer
@@ -107,6 +151,24 @@ class FarmerCurveGenerator(DelayedCurveGenerator):
         self.lincom_last_year = {}
 
     def get_next_curve(self, region, year, *args, **kwargs):
+        """
+
+        Parameters
+        ----------
+        region : str
+            Region code
+        year : int
+        args :
+            We do nothing with this.
+        kwargs :
+            If `self.farmer` is 'full', pass `kwargs['weather']` to
+            `self.covariator.offer_update()` 'ds'.
+
+        Returns
+        -------
+        openest.generate.SmartCurve-like
+
+        """
         if year < 2015:
             if region not in self.last_curves:
                 covariates = self.covariator.get_current(region)

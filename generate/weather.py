@@ -93,7 +93,11 @@ class WeatherBundle(object):
     def load_regions(self, reader=None):
         """Load the rows of hierarchy.csv associated with all known regions."""
         if reader is not None:
-            self.regions = reader.get_regions()
+            try:
+                self.regions = reader.get_regions()
+            except Exception as ex:
+                print "WARNING: failure to read regions for " + str(reader.__class__)
+                self.regions = irregions.load_regions(self.hierarchy, self.dependencies)
         else:
             self.regions = irregions.load_regions(self.hierarchy, self.dependencies)
 
