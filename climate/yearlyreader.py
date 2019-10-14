@@ -28,7 +28,7 @@ class YearlyWeatherReader(WeatherReader):
         return self.regions
 
     def get_dimension(self):
-        return self.variable
+        return self.variables
 
     def read_iterator(self):
         ds = xr.open_dataset(self.filepath)

@@ -45,7 +45,7 @@ def load_ageshares(model, scenario):
             data[region][year] = np.array(pops) / sum(pops)
 
             if year not in sumbyyear:
-                sumbyyear[year] = data[region][year]
+                sumbyyear[year] = np.array(data[region][year])
                 countbyyear[year] = 1
             else:
                 sumbyyear[year] += data[region][year]

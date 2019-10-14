@@ -22,6 +22,8 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config={}, quiet=F
         return covariates.EconomicCovariator(economicmodel, 2015, config=configs.merge(config, 'econcovar'))
     elif covar == 'incbin':
         return covariates.BinnedEconomicCovariator(economicmodel, 2015, args, config=configs.merge(config, 'econcovar'))
+    elif covar == 'loggdppc-shifted':
+        return covariates.ShiftedEconomicCovariator(economicmodel, 2015, config)
     elif covar == 'ir-share':
         return covariates.ConstantCovariator('ir-share', irvalues.load_irweights("social/baselines/agriculture/world-combo-201710-irrigated-area.csv", 'irrigated_share'))
     elif '*' in covar:
@@ -200,7 +202,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}, getcs
     elif specconf.get('goodmoney', False):
         final_curvegen = curvegen.TransformCurveGenerator(transform, "Good Money transformation", curr_curvegen)
     else:
-        final_curvegen = curvegen.TransformCurveGenerator(transform, None, curr_curvegen) # smart curve transform
+        final_curvegen = curvegen.TransformCurveGenerator(transform, "Smart curve transformation", curr_curvegen)
         final_curvegen.deltamethod_passthrough = True
 
     if covariator:
