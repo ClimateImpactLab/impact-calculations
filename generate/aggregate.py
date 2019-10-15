@@ -26,8 +26,8 @@ cached_weights = {}
 def get_cached_weight(halfweight, weight_args, years):
     global cached_weights
 
-    minyear = min(years)
-    maxyear = max(years)
+    minyear = int(min(years))
+    maxyear = int(max(years))
 
     key = (halfweight, weight_args, minyear, maxyear)
     if key in cached_weights:
