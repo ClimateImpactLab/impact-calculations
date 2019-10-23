@@ -77,7 +77,7 @@ def main(projout_dir):
                  gammas=gammas_lowrisk,
                  belowzero=belowzero_lowrisk)
     )
-    lib.show_header("Un-rebased value in 1981 (%.12g calculated)" % ybar)
+    print('\t Calculated: %.12g' % ybar)
 
     # Calc baseline by hand
     lib.show_header("Baseline (%.12g reported):" % lib.excind(calcs_lowrisk, 2000, 'baseline'))
@@ -91,7 +91,7 @@ def main(projout_dir):
                      belowzero=belowzero_lowrisk)
         )
     basevals_bar = np.mean(np.array(basevals))
-    lib.show_header("Baseline (%.12g calculated):" % basevals_bar)
+    print('\t Calculated: %.12g' % basevals_bar)
 
     # Calc rebased future value
     lib.show_header("Rebased future result (%.12g reported)" % (outputs[futureyear]['rebased']))
@@ -99,7 +99,7 @@ def main(projout_dir):
                            gammas=gammas_lowrisk,
                            belowzero=belowzero_lowrisk)
     yrebase = np.mean(ybar_future) - basevals_bar
-    lib.show_header("Rebased future result (%.12g calculated)" % yrebase)
+    print('\t Calculated: %.12g' % yrebase)
 
 
 if __name__ == '__main__':
