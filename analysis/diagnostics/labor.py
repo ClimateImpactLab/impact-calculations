@@ -1,9 +1,7 @@
 """
-This script apparently serves as a sanity check.
+This script checks projection output against calculated values.
 
-This script checks projection output is checked against values calculated here.
-
-The script is intended to be run as::
+This is intended to be run as::
 
     python <path_to_script> <path_to_directory_of_projection_output>
 
