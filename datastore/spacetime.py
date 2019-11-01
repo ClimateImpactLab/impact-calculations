@@ -54,13 +54,14 @@ class SpaceTimeBipartiteData(SpaceTimeData):
 class SpaceTimeBipartiteFromProviderData(SpaceTimeData):
     def __init__(self, Provider, year0, year1, regions):
         super(SpaceTimeBipartiteFromProviderData, self).__init__(year0, year1, regions)
+        self.Provider = Provider
 
     def load(self, year0, year1, model, scenario):
-        provider = Provider(model, scenario)
+        provider = self.Provider(model, scenario)
         return SpaceTimeLazyData(year0, year1, self.regions, lambda region: self.adjustlen(year0, year1, provider.get_startyear(),
                                                                                            provider.get_timeseries(region)))
 
-    def adjustlen(year0, year1, startyear, series):
+    def adjustlen(self, year0, year1, startyear, series):
         if startyear < year0:
             prepared = series[year0 - startyear:]
         elif startyear > year0:
@@ -69,10 +70,11 @@ class SpaceTimeBipartiteFromProviderData(SpaceTimeData):
         else:
             prepared = series
 
-        if year1 - year0 < len(prepared):
+        # Inclusive of the last year
+        if year1 - year0 + 1 < len(prepared):
             prepared = prepared[:year1 - year0]
-        elif year1 - year0 > len(prepared):
-            prepared.extend([prepared[-1]] * (year1 - year0 - len(prepared)))
+        elif year1 - year0 + 1 > len(prepared):
+            prepared.extend([prepared[-1]] * (year1 - year0 + 1 - len(prepared)))
 
         return prepared
             
