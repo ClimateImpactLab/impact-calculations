@@ -65,9 +65,13 @@ models:
             model: kddprecip
       - AuxillaryResult:
         - PartialDerivative:
-            variable: seasonaltasmax
+            covariate: seasonaltasmax
+            covarunit: C
+        - ddseasonaltasmax
       - AuxillaryResult:
         - PartialDerivative:
-            variable: seasonalpr
+            covariate: seasonalpr
+            covarunit: mm
+        - ddseasonalpr
       - Rebase
       - Exponentiate
