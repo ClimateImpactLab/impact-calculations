@@ -9,4 +9,4 @@ before_script:
 test:
   script:
   - source activate risingverse-py27
-  - pytest
+  - pytest -v -m "not imperics_shareddir"
