@@ -15,11 +15,13 @@ import numpy as np
 import numpy.testing as npt
 import xarray as xr
 import yaml
+import pytest
 
 
 _here = os.path.abspath(os.path.dirname(__file__))
 
 
+@pytest.mark.imperics_shareddir
 class TestSingleEnergy(unittest.TestCase):
     """Check diagnostic projection run for energy sector"""
 
@@ -84,6 +86,7 @@ class TestSingleEnergy(unittest.TestCase):
         self.assertEqual(actual, goal)
 
 
+@pytest.mark.imperics_shareddir
 class TestSingleMortality(unittest.TestCase):
     """Check diagnostic projection run for mortality sector"""
 
@@ -148,6 +151,7 @@ class TestSingleMortality(unittest.TestCase):
         self.assertEqual(actual, goal)
 
 
+@pytest.mark.imperics_shareddir
 class TestMonteCarloEnergy(unittest.TestCase):
     """Check Monte Carlo projection run for energy sector"""
 
