@@ -10,10 +10,12 @@ setup(name='impactcalculations',
       license='GNU v. 3',
       long_description=open('README.md').read(),
       long_description_content_type='text/markdown',
-      install_requires=['numpy', 'xarray', 'netCDF4', 'gspread', 'statsmodels',
-                        'scipy', 'oauth2client', 'click', 'impactcommon',
-                        'impactlab-tools', 'openest', 'metacsv'],
-      tests_require=['pytest'],
+      install_requires=['numpy', 'xarray', 'netCDF4', 'statsmodels',
+                        'scipy', 'click', 'impactcommon', 'impactlab-tools',
+                        'openest', 'metacsv'],
+      extras_require={
+            "test": ["pytest", "pytest-mock", "black", "flake8"],
+      },
       entry_points={
             'console_scripts': [
                   'imperics = cli:impactcalculations_cli',
