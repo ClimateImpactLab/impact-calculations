@@ -31,8 +31,8 @@ def simultaneous_application(weatherbundle, calculation, regions=None, push_call
     region : str
     result_year : int
         First element of Sequential returned by `calculation` after `apply` has
-        been given a region, and pushed an ``xarray.Dataset`` for a given year,
-        in a given region.
+        been given a region, and pushed data output from weatherbundle for a
+        given year, in a given region.
     result : list
         Remaining elements returned from `calculation`, as described above,
         without `result_year`.
