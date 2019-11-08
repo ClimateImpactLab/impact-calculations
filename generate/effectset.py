@@ -79,10 +79,43 @@ def generate(targetdir, basename, weatherbundle, calculation, description, calcu
 
     if deltamethod_vcv is not False:
         calculation.enable_deltamethod()
-    
+
     return write_ncdf(targetdir, basename, weatherbundle, calculation, description, calculation_dependencies, filter_region=filter_region, push_callback=push_callback, subset=subset, diagnosefile=diagnosefile, deltamethod_vcv=deltamethod_vcv)
 
 def write_ncdf(targetdir, basename, weatherbundle, calculation, description, calculation_dependencies, filter_region=None, push_callback=None, subset=None, diagnosefile=False, deltamethod_vcv=False):
+    """Compute and write impact projection to NetCDF file
+
+    No values are returned. This function writes projected values to a NetCDF
+    file. It may also write a diagnostic file, if specified.
+
+    Parameters
+    ----------
+    targetdir : str
+        Directory to write files to.
+    basename : str
+        Projection basename. Used for file naming.
+    weatherbundle : generate.weather.DailyWeatherBundle
+        Populated weather data to compute projection over.
+    calculation : openest.generate.functions.SpanInstabase
+        Projection calculations to apply to `weatherbundle`.
+    description : str
+        Description of projection for output file metadata.
+    calculation_dependencies : Iterable of str
+    filter_region : str or None, optional
+        One or more regions to perform calculations for. If None, uses all
+        regions available in ``weatherbundle.regions``.
+    push_callback : Callable or None, optional
+        Passed to ``generate.effectset.simultaneous_application``.
+    subset : str or None, optional
+        Regional subsetting used to make region variable in output NetCDF file.
+        Passed to ``nc4writer.make_regions_variable``.
+    diagnosefile : str or bool, optional
+        Path to file for writing projection run diagnostic CSV file. If
+        ``False``, no diagnostics are output.
+    deltamethod_vcv : ndarray or bool, optional
+        2D variance-covariance float array if the projection is to run with the
+        delta method. If ``False``, the delta method is not used.
+    """
     if filter_region is None:
         my_regions = weatherbundle.regions
     else:
@@ -108,14 +141,14 @@ def write_ncdf(targetdir, basename, weatherbundle, calculation, description, cal
 
     years = nc4writer.make_years_variable(rootgrp)
     regions = nc4writer.make_regions_variable(rootgrp, my_regions, subset)
-    
+
     if deltamethod_vcv is not False:
         rootgrp.createDimension('coefficient', deltamethod_vcv.shape[0])
 
         vcv = rootgrp.createVariable('vcv', 'f4', ('coefficient', 'coefficient'))
         vcv.long_title = "Variance covariance matrix"
         vcv[:, :] = deltamethod_vcv
-    
+
     yeardata = weatherbundle.get_years()
 
     infos = calculation.column_info()
