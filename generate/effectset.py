@@ -7,7 +7,36 @@ from openest.generate import retrieve, diagnostic, fast_dataset
 from adaptation import curvegen
 import server, nc4writer
 
+
 def simultaneous_application(weatherbundle, calculation, regions=None, push_callback=None):
+    """Iterate weather, calculations, generating regional results per time step
+
+    Parameters
+    ----------
+    weatherbundle : generate.weather.DailyWeatherBundle
+        Its ``regions`` may be parsed and ``yearbundle`` is iterated.
+    calculation : openest.generate.functions.SpanInstabase
+        Its ``apply`` method is passed items from ``regions``, if given.
+        Afterwards, its ``cleanup`` method is called.
+    regions : Iterable of str or None, optional:
+        One or more regions to perform calculations for. If None, uses all
+        regions available in ``weatherbundle.regions``.
+    push_callback : Callable or None, optional
+        Used for diagnostic purposes. Must accept three arguments. A year, a
+        str region, and whatever is returned from ``calculation.apply()`` when
+        passed region.
+
+    Yields
+    -------
+    region : str
+    result_year : int
+        First element of Sequential returned by `calculation` after `apply` has
+        been given a region, and pushed an ``xarray.Dataset`` for a given year,
+        in a given region.
+    result : list
+        Remaining elements returned from `calculation`, as described above,
+        without `result_year`.
+    """
     if regions is None:
         regions = weatherbundle.regions
 
@@ -17,7 +46,7 @@ def simultaneous_application(weatherbundle, calculation, regions=None, push_call
         applications[region] = calculation.apply(region)
 
     region_indices = {region: weatherbundle.regions.index(region) for region in regions}
-    
+
     print "Processing years..."
     for year, ds in weatherbundle.yearbundles():
         if ds.region.shape[0] < len(applications):
