@@ -2,6 +2,7 @@ import copy
 import numpy as np
 from openest.generate.curvegen import *
 from openest.generate import checks, fast_dataset, formatting, smart_curve, formattools
+from openest.models.curve import FlatCurve
 
 region_curves = {}
 
@@ -197,6 +198,16 @@ class FarmerCurveGenerator(DelayedCurveGenerator):
 
         return curve
 
+    def get_partial_derivative_curvegen(self, covariate, covarunit):
+        """
+        Returns a Curve that calculates the partial
+        derivative with respect to a covariate.
+        """
+        if self.farmer in ['noadapt', 'incadapt']:
+            return ConstantCurveGenerator(self.indepunits, self.depenunit + '/' + covarunit, FlatCurve(0))
+
+        return self.curvegen.get_partial_derivative_curvegen(covariate, covarunit)
+        
     def get_lincom_terms(self, region, year, predictors={}, origds=None):
         # Get last covariates
         if self.lincom_last_year.get(region, None) == year:

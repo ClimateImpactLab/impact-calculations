@@ -12,6 +12,7 @@ class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
         self.diagprefix = diagprefix
         self.weathernames = weathernames
         self.allow_raising = allow_raising
+        self.predinfix = predinfix
 
     def get_curve(self, region, year, covariates={}, recorddiag=True, **kwargs):
         coefficients = self.get_coefficients(covariates)
@@ -82,9 +83,12 @@ class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
 
         return elements
 
-    def get_partial_derivative_curve(self, covariate):
-        yy = [csvvfile.get_gamma(csvv, predname, covariate) for predname in self.prednames]
-        return ZeroInterceptPolynomialCurve(yy, self.weathernames, self.allow_raising)
+    def get_partial_derivative_curvegen(self, covariate, covarunit):
+        csvvpart = csvvfile.partial_derivative(self.csvv, covariate)
+        return PolynomialCurveGenerator(indepunits, depenunit + '/' + covarunit, prefix, order, csvvpart,
+                                        diagprefix=self.diagprefix, predinfix=self.predinfix,
+                                        weathernames=self.weathernames, betalimits=self.betalimits,
+                                        allow_raising=self.allow_raising)
 
 class CubicSplineCurveGenerator(curvegen.CSVVCurveGenerator):
     def __init__(self, indepunits, depenunit, prefix, knots, csvv, betalimits={}):

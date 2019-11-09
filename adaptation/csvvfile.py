@@ -122,3 +122,25 @@ def get_gamma(csvv, predname, covarname):
             return csvv['gamma'][ii]
 
     return None
+
+def partial_derivative(csvv, covariate):
+    covarnames = []
+    include = []
+    for ii in range(len(csvv['gamma'])):
+        m1 = re.search(r'\b' + covariate + r'\b\s*[*]\s*', csvv['covarnames'][ii])
+        m2 = re.search(r'\s*[*]\s*\b' + covariate + r'\b', csvv['covarnames'][ii])
+        if csvv['covarnames'][ii] == covariate:
+            covarnames.append('1')
+            include.append(True)
+        elif m1:
+            covarnames.append(re.sub(r'\b' + covariate + r'\b\s*[*]\s*', '', csvv['covarnames'][ii]))
+            include.append(True)
+        elif m2:
+            covarnames.append(re.sub(r'\s*[*]\s*\b' + covariate + r'\b', '', csvv['covarnames'][ii]))
+            include.append(True)
+        else:
+            include.append(False)
+    csvvpart = subset(csvv, toinclude)
+    csvvpart['covarnames'] = covarnames
+
+    return csvvpart
