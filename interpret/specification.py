@@ -292,7 +292,6 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     list
     Callable
     """
-    import pdb; pdb.set_trace()  # DEBUG
     user_assert('depenunit' in specconf, "Specification configuration missing 'depenunit' string.")
     user_assert('calculation' in specconf, "Specification configuration missing 'calculation' list.")
     user_assert('description' in specconf, "Specification configuration missing 'description' list.")
