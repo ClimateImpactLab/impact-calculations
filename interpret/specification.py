@@ -8,14 +8,41 @@ from impactcommon.math import minpoly, minspline
 import calculator, variables, configs
 
 def user_failure(message):
+    """Prints and 'ERROR' message and exits program"""
     print "ERROR: " + message
     exit()
 
 def user_assert(check, message):
+    """If `check` False, send error message and exit program
+
+    Parameters
+    ----------
+    check : bool
+    message : str
+    """
     if not check:
         user_failure(message)
 
 def get_covariator(covar, args, weatherbundle, economicmodel, config={}, quiet=False):
+    """
+
+    Parameters
+    ----------
+    covar : str
+        Covariate name.
+    args : list or None
+        Additional postional arguments to pass to 
+        ``covariates.BinnedEconomicCovariator`` if `covar` is 'incbin', 
+        ``get_covariator`` if '*' or `^` is in `covar`.
+    weatherbundle : generate.weather.DailyWeatherBundle
+    economicmodel : adaptation.econmodel.SSPEconomicModel
+    config : dict, optional
+    quiet : bool
+
+    Returns
+    -------
+    adaptation.covariates.Covariator
+    """
     if isinstance(covar, dict):
         return get_covariator(covar.keys()[0], covar.values()[0], weatherbundle, economicmodel, config=config, quiet=quiet)
     elif covar in ['loggdppc', 'logpopop', 'year']:
@@ -40,6 +67,21 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config={}, quiet=F
         user_failure("Covariate %s is unknown." % covar)
         
 def create_covariator(specconf, weatherbundle, economicmodel, config={}, quiet=False):
+    """Creates a Covariator given specifications
+
+    Parameters
+    ----------
+    specconf : dict, optional
+        Specification configuration.
+    weatherbundle : generate.weather.DailyWeatherBundle
+    economicmodel : adaptation.econmodel.SSPEconomicModel
+    config : dict, optional
+    quiet : bool, optional
+
+    Returns
+    -------
+    covariator : adaptation.covariates.Covariator or None
+    """
     if 'covariates' in specconf:
         covariators = []
         for covar in specconf['covariates']:
@@ -56,6 +98,24 @@ def create_covariator(specconf, weatherbundle, economicmodel, config={}, quiet=F
     return covariator
         
 def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}, getcsvvcurve=False):
+    """Create a CurveGenerator instance from specifications
+
+    Parameters
+    ----------
+    csvv : dict
+        Various parameters and curve descriptions from CSVV file.
+    covariator : adaptation.covariates.Covariator
+    regions : xarray.Dataset
+    farmer : {'full', 'noadapt', 'incadapt'}, optional
+        Type of farmer adaptation.
+    specconf : dict, optional
+        Specification configuration.
+    getcsvvcurve : bool, optional
+
+    Returns
+    -------
+    openest.generate.CurveGenerator
+    """
     user_assert('depenunit' in specconf, "Specification configuration missing 'depenunit' string.")
     user_assert('functionalform' in specconf, "Specification configuration missing 'functionalform' string.")
     if specconf['functionalform'] in ['polynomial', 'cubicspline']:
@@ -211,6 +271,28 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}, getcs
     return final_curvegen
 
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', specconf={}, config={}):
+    """
+
+    Parameters
+    ----------
+    csvv : dict
+        Various parameters and curve descriptions from CSVV file.
+    weatherbundle : generate.weather.DailyWeatherBundle
+    economicmodel : adaptation.econmodel.SSPEconomicModel
+    qvals : generate.pvalses.ConstantDictionary
+    farmer : {'full', 'noadapt', 'incadapt'}, optional
+        Type of farmer adaptation.
+    specconf : dict, optional
+        Specification configuration.
+    config : dict, optional
+
+    Returns
+    -------
+    calculation : openest.generate.stdlib.SpanInstabase
+    list
+    Callable
+    """
+    import pdb; pdb.set_trace()  # DEBUG
     user_assert('depenunit' in specconf, "Specification configuration missing 'depenunit' string.")
     user_assert('calculation' in specconf, "Specification configuration missing 'calculation' list.")
     user_assert('description' in specconf, "Specification configuration missing 'description' list.")

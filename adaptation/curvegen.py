@@ -6,22 +6,21 @@ from openest.generate import checks, fast_dataset, formatting, smart_curve, form
 region_curves = {}
 
 class CSVVCurveGenerator(CurveGenerator):
+    """
+
+    Parameters
+    ----------
+    prednames : sequence of str
+        Independent variable names.
+    indepunits : sequence of str
+        Independent variable units.
+    depenunit : str
+        Dependent variable unit.
+    csvv : dict
+        CSVV dict as produced by `interpret.container.produce_csvv`.
+    betalimits: dict
+    """
     def __init__(self, prednames, indepunits, depenunit, csvv, betalimits={}):
-        """
-
-        Parameters
-        ----------
-        prednames : sequence of str
-            Independent variable names.
-        indepunits : sequence of str
-            Independent variable units.
-        depenunit : str
-            Dependent variable unit.
-        csvv : dict
-            CSVV dict as produced by `interpret.container.produce_csvv`.
-        betalimits: dict
-
-        """
         super(CSVVCurveGenerator, self).__init__(indepunits, depenunit)
 
         assert isinstance(prednames, list) or isinstance(prednames, set) or isinstance(prednames, tuple)
@@ -129,20 +128,18 @@ class CSVVCurveGenerator(CurveGenerator):
         return np.array(terms)
     
 class FarmerCurveGenerator(DelayedCurveGenerator):
-    """Handles different adaptation assumptions."""
+    """Handles different adaptation assumptions.
+
+    Parameters
+    ----------
+    curvegen : openest.generate.curvegen.CurveGenerator-like
+    covariator : adaptation.covariates.CombinedCovariator
+    farmer : {'full', 'noadapt', 'incadapt'}
+        Type of farmer adaptation.
+    save_curve : bool, optional
+        Do you want to save this curve in `adaptation.region_curves`?
+    """
     def __init__(self, curvegen, covariator, farmer='full', save_curve=True):
-        """
-
-        Parameters
-        ----------
-        curvegen : openest.generate.curvegen.CurveGenerator-like
-        covariator : adaptation.covariates.CombinedCovariator
-        farmer : {'full', 'noadapt', 'incadapt'}
-            Type of farmer adaptation.
-        save_curve : bool, optional
-            Do you want to save this curve in `adaptation.region_curves`?
-
-        """
         super(FarmerCurveGenerator, self).__init__(curvegen)
         self.covariator = covariator
         self.farmer = farmer
