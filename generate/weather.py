@@ -95,6 +95,8 @@ class WeatherBundle(object):
         if reader is not None:
             try:
                 self.regions = reader.get_regions()
+                if np.issubdtype(self.regions[0], np.integer):
+                    self.regions = irregions.load_regions(self.hierarchy, self.dependencies)
             except Exception as ex:
                 print "WARNING: failure to read regions for " + str(reader.__class__)
                 self.regions = irregions.load_regions(self.hierarchy, self.dependencies)

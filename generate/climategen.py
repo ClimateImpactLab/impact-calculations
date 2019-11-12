@@ -6,8 +6,13 @@ from climate import discover
 from impactlab_tools.utils import files
 from impactcommon.math import averages
 
-filename = 'dd_tasmax.nc4'
-only_missing = True
+filename = 'areatas.nc4' #'dd_tasmax.nc4'
+only_missing = False
+
+outputdir = '/shares/gcp/outputs/temps'
+
+standard_running_mean_init = averages.BartlettAverager
+numtempyears = 30
 
 if filename == 'climtas.nc4':
     discoverer = discover.discover_versioned(files.sharedpath('climate/BCSD/hierid/popwt/daily/tas'), 'tas')
@@ -19,11 +24,11 @@ if filename == 'dd_tasmax.nc4':
                                                     'Degreedays_tasmax', 'coldd_agg', 'hotdd_agg')
     covar_names = ['climcold-tasmax', 'climhot-tasmax']
     annual_calcs = [lambda ds: ds.coldd_agg, lambda ds: ds.hotdd_agg]
-    
-outputdir = '/shares/gcp/outputs/temps'
 
-standard_running_mean_init = averages.BartlettAverager
-numtempyears = 30
+if filename == 'areatas.nc4': # area-weighted tas
+    discoverer = discover.discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tas')
+    covar_names = ['climtas']
+    annual_calcs = [lambda ds: np.mean(ds['tas'])] # Average within each year
 
 for clim_scenario, clim_model, weatherbundle in weather.iterate_bundles(discoverer):
     print clim_scenario, clim_model
