@@ -48,6 +48,17 @@ def interpret_ds_transform(name, config):
                 internal = interpret_wrap_transform(chunk, internal)
             return internal
 
+    # If can cast into float, simply use as scalar value.
+    try:
+        use_scalar = float(name)
+        def out(ds):
+            new_coords = list(ds.original_coords)
+            new_shape = list(ds._values.shape)
+            return fast_dataset.FastDataArray(np.ones(tuple(new_shape)), new_coords, ds)
+        return selfdocumented.DocumentedFunction(out, name)
+    except ValueError:
+        pass
+
     return get_post_process(name, config)
 
 def interpret_wrap_transform(transform, internal):
