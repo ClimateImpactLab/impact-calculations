@@ -38,6 +38,28 @@ class Covariator(object):
     def get_current_args(self, region):
         return (self.get_current(region),)
 
+class TestingCovariator(Covariator):
+    """Produces a externally given sequence of covariate values."""
+    def __init__(self, startupdateyear, covarname, baseline, values):
+        """
+        `baseline` will returned up to (and including) `startupdateyear`.
+        In `startupdateyear` + N, the Nth value of `values` will be returned (`values[N-1]`).
+        """
+        super(TestingCovariator, self).__init__(startupdateyear)
+        self.covarname = covarname
+        self.values = values
+        self.cached_value = baseline
+        self.cached_index = -1
+
+    def get_current(self, region):
+        return {self.covarname: self.cached_value}
+
+    def get_update(self, region, year, ds):
+        if year > self.startupdateyear:
+            self.cached_index += 1
+            self.cached_value = self.values[self.cached_index]
+        return self.get_current(region)
+    
 class EconomicCovariator(Covariator):
     def __init__(self, economicmodel, maxbaseline, config={}):
         super(EconomicCovariator, self).__init__(maxbaseline)
@@ -458,6 +480,32 @@ class TranslateCovariator(Covariator):
         update = self.covariator.get_update(region, year, ds)
         return self.translate(update)
 
+class SplineCovariator(TranslateCovariator):
+    """Convert a simple covariator into a series of spline segments.
+    Each spline segment is defined as (x - l_k) * (x >= l_k) for some l_k."""
+    def __init__(self, covariator, covarname, suffix, leftlimits):
+        """
+        `covariator` should be a Covariator, returning dictionaries containing `covarname`.
+
+        The resulting spline covariate dictionary will contain keys of
+        the form `[covarname][suffix][k]`, for `k` in 1 ... len(leftlimits). 
+        
+        The values are as defined above, for l_k drawn from `leftlimits`.
+        """
+        super(SplineCovariator, self).__init__(covariator, {})
+        self.covarname = covarname
+        self.suffix = suffix
+        self.leftlimits = leftlimits
+
+    def translate(self, covariates):
+        result = {}
+        for ii in range(len(self.leftlimits)):
+            if covariates[self.covarname] - self.leftlimits[ii] < 0:
+                result[self.covarname + self.suffix + str(ii+1)] = 0
+            else:
+                result[self.covarname + self.suffix + str(ii+1)] = covariates[self.covarname] - self.leftlimits[ii]
+        return result
+                
 class CountryAggregatedCovariator(Covariator):
     def __init__(self, source, regions):
         self.source = source
