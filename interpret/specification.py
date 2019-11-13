@@ -111,6 +111,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}, getcs
     specconf : dict, optional
         Specification configuration.
     getcsvvcurve : bool, optional
+        If True, a adaptation.curvegen.CSVVCurveGenerator instance is returned.
 
     Returns
     -------
