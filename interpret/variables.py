@@ -12,7 +12,22 @@ def needs_interpret(name, config):
         return True
     return False
 
+
 def interpret_ds_transform(name, config):
+    """Parse variable name for transformations to apply to variables
+
+    Parameters
+    ----------
+    name : str
+        Name to interpret. Assumes the name has no units designated with
+        brackets or parenthesis.
+    config : dict
+        Configuration dictionary.
+
+    Returns
+    -------
+    openest.generate.selfdocumented.DocumentedFunction
+    """
     if ' ** ' in name:
         chunks = name.split(' ** ', 1)
         internal_left = interpret_ds_transform(chunks[0], config)
@@ -51,15 +66,24 @@ def interpret_ds_transform(name, config):
     # If can cast into float, simply use as scalar value.
     try:
         use_scalar = float(name)
+
+        # Create a FastDataset populated with the name and scalar...
         def out(ds):
+            # Get first available non-coordinate variable.
+            noncoord_var = [x for x in ds.variables.keys() if x not in ds.coords.keys()][0]
+            new_shape = tuple(list(ds[noncoord_var]._values.shape))
             new_coords = list(ds.original_coords)
-            new_shape = list(ds._values.shape)
-            return fast_dataset.FastDataArray(np.ones(tuple(new_shape)), new_coords, ds)
+            darray = fast_dataset.FastDataArray(np.ones(new_shape) * use_scalar,
+                                                new_coords, ds)
+            return darray
+
         return selfdocumented.DocumentedFunction(out, name)
+
     except ValueError:
         pass
 
     return get_post_process(name, config)
+
 
 def interpret_wrap_transform(transform, internal):
     if transform[:4] == 'bin(':
