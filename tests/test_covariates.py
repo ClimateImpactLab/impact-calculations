@@ -5,7 +5,7 @@ from adaptation import covariates
 class TestCovariates(unittest.TestCase):
     def test_spline_covariator(self):
         """Test the SplineCovariator class with two dummy spline terms."""
-        testcovar = covariates.TestingCovariator(2015, 'val', 0, np.arange(1, 100))
+        testcovar = covariates.GlobalExogenousCovariator(2015, 'val', 0, np.arange(1, 100))
         splinecovar = covariates.SplineCovariator(testcovar, 'val', 'spline', [5, 10])
 
         for year in range(2010, 2030):
