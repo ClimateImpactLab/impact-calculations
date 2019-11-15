@@ -38,14 +38,20 @@ class Covariator(object):
     def get_current_args(self, region):
         return (self.get_current(region),)
 
-class TestingCovariator(Covariator):
-    """Produces a externally given sequence of covariate values."""
+class GlobalExogenousCovariator(Covariator):
+    """Produces a externally given sequence of covariate values for all regions.
+     
+    {'covarname': `baseline`} will returned up to (and including) `startupdateyear`.
+    In `startupdateyear` + N, the Nth value of `values` will be returned (`values[N-1]`).
+
+    Args:
+        startupdateyear (year): Last year to report `baseline` value.
+        covarname (str): Covariate name to report.
+        baseline (numeric): The value to report up to `startupdateyear`.
+        values (list-like of numeric): Values to report after `startupdateyear`.
+    """
     def __init__(self, startupdateyear, covarname, baseline, values):
-        """
-        `baseline` will returned up to (and including) `startupdateyear`.
-        In `startupdateyear` + N, the Nth value of `values` will be returned (`values[N-1]`).
-        """
-        super(TestingCovariator, self).__init__(startupdateyear)
+        super(GlobalExogenousCovariator, self).__init__(startupdateyear)
         self.covarname = covarname
         self.values = values
         self.cached_value = baseline
@@ -482,16 +488,20 @@ class TranslateCovariator(Covariator):
 
 class SplineCovariator(TranslateCovariator):
     """Convert a simple covariator into a series of spline segments.
-    Each spline segment is defined as (x - l_k) * (x >= l_k) for some l_k."""
-    def __init__(self, covariator, covarname, suffix, leftlimits):
-        """
-        `covariator` should be a Covariator, returning dictionaries containing `covarname`.
+    Each spline segment is defined as (x - l_k) * (x >= l_k) for some l_k.
 
-        The resulting spline covariate dictionary will contain keys of
-        the form `[covarname][suffix][k]`, for `k` in 1 ... len(leftlimits). 
+    `covariator` should be a Covariator, returning dictionaries containing `covarname`.
+
+    The resulting spline covariate dictionary will contain keys of
+    the form `[covarname][suffix][k]`, for `k` in 1 ... len(leftlimits). 
         
-        The values are as defined above, for l_k drawn from `leftlimits`.
-        """
+    Args:
+        covariator (Covariator): Source for variable to be splined.
+        covarname (str): The covariate reported by `covariator`.
+        suffix (str): Added to the covariate name when reporting splines.
+        leftlimits (list-like of numeric): The values for l_k as defined above.
+    """
+    def __init__(self, covariator, covarname, suffix, leftlimits):
         super(SplineCovariator, self).__init__(covariator, {})
         self.covarname = covarname
         self.suffix = suffix
