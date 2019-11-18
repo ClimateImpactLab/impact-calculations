@@ -74,10 +74,10 @@ class TestSingleEnergy(unittest.TestCase):
         goal_shape = (120, 1)
         self.assertEqual(actual.shape, goal_shape)
 
-        goal_head = np.array([20.58283424,  108.42780304,  449.78918457])
-        goal_tail = np.array([-2572.81518555, -3596.93286133, -2827.64257812])
-        npt.assert_allclose(actual[:3, 0], goal_head, atol=1e-8, rtol=0)
-        npt.assert_allclose(actual[-3:, 0], goal_tail, atol=1e-8, rtol=0)
+        goal_head = np.array([0.38048702,  16.431911,  153.75822])
+        goal_tail = np.array([-779.9211, -936.4386, -735.1447])
+        npt.assert_allclose(actual[:3, 0], goal_head, atol=1e-4, rtol=0)
+        npt.assert_allclose(actual[-3:, 0], goal_tail, atol=1e-4, rtol=0)
 
     def test_year(self):
         """Smoke test (head, tail) of 'year' in results_nc4"""
@@ -116,7 +116,7 @@ class TestSingleMortality(unittest.TestCase):
         resultspath_fragment = ['temp', 'single', 'rcp85', 'CCSM4', 'high',
                                 'SSP3',
                                 'Agespec_interaction_GMFD_POLY-4_TINV_CYA_NW_w1-combined.nc4']
-        
+
         os.chdir(os.path.join(_here, os.pardir))
         try:
             # This is going to *clobber* anything in the 
