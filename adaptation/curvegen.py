@@ -200,7 +200,7 @@ class FarmerCurveGenerator(DelayedCurveGenerator):
 
     def get_partial_derivative_curvegen(self, covariate, covarunit):
         """
-        Returns a Curve that calculates the partial
+        Returns a CurveGenerator that calculates the partial
         derivative with respect to a covariate.
         """
         if self.farmer in ['noadapt', 'incadapt']:
@@ -284,6 +284,9 @@ class DifferenceCurveGenerator(CurveGenerator):
         return result
 
 class SumCurveGenerator(CurveGenerator):
+    """
+    Sum a list of CSVVCurveGenerators, where each applies coefficients with a different suffix
+    """
     def __init__(self, csvvcurvegens, coeffsuffixes):
         super(SumCurveGenerator, self).__init__(csvvcurvegens[0].indepunits, csvvcurvegens[0].depenunit)
         curvegens = []
@@ -303,3 +306,9 @@ class SumCurveGenerator(CurveGenerator):
         elementsets = [curvegen.format_call(lang, *args) for curvegen in self.curvegens]
         return formattools.join(" + ", elementsets)
     
+    def get_partial_derivative_curvegen(self, covariate, covarunit):
+        """
+        Returns a CurveGenerator that calculates the partial
+        derivative with respect to a covariate.
+        """
+        return SumCurveGenerator([curvegen.get_partial_derivative_curvegen(covariate, covarunit) for curvegen in self.curvegens], coeffsuffixes)
