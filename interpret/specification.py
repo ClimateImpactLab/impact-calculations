@@ -293,7 +293,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     -------
     calculation : openest.generate.stdlib.SpanInstabase
     list
-    Callable
+    object
     """
     user_assert('depenunit' in specconf, "Specification configuration missing 'depenunit' string.")
     user_assert('calculation' in specconf, "Specification configuration missing 'calculation' list.")
