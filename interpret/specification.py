@@ -58,13 +58,13 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config={}, quiet=F
     elif '^' in covar:
         chunks = covar.split('^', 1)
         return covariates.PowerCovariator(get_covariator(chunks[0].strip(), args, weatherbundle, economicmodel, config=config, quiet=quiet), float(chunks[1]))
+    elif covar[-6:] == 'spline':
+        # Produces spline term covariates, named [name]spline1, [name]spline2, etc.
+        return covariates.SplineCovariator(get_covariator(covar[:-6], None, weatherbundle, economicmodel, config=config, quiet=quiet), covar[:-6], 'spline', args)
     elif covar[:8] == 'seasonal':
         return covariates.SeasonalWeatherCovariator(weatherbundle, 2015, config['within-season'], covar[8:], config=configs.merge(config, 'climcovar'))
     elif covar[:4] == 'clim': # climtas, climcdd-20, etc.
         return covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, covar[4:], config=configs.merge(config, 'climcovar'), quiet=quiet), {covar: covar[4:]})
-    elif covar[:-6] == 'spline':
-        # Produces spline term covariates, named [name]spline1, [name]spline2, etc.
-        return covariates.SplineCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, covar[:-6], config=configs.merge(config, 'climcovar'), quiet=quiet), covar[:-6], 'spline', args)
     else:
         user_failure("Covariate %s is unknown." % covar)
         
