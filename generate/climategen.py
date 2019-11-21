@@ -7,7 +7,7 @@ from impactlab_tools.utils import files
 from impactcommon.math import averages
 
 filename = 'areatas.nc4' #'dd_tasmax.nc4'
-only_missing = False
+only_missing = True
 
 outputdir = '/shares/gcp/outputs/temps'
 
