@@ -35,7 +35,7 @@ def generate(confpath, conf):
     file_configs = get_file_config(confpath)
     arg_configs = dict(arg.split('=') for arg in conf)
     configs_out = file_configs.update(arg_configs)
-    gg.main(configs_out)
+    gg.main(configs_out, str(confpath))
 
 
 @impactcalculations_cli.command(
@@ -54,4 +54,4 @@ def diagnostic(confpath):
     }
 
     file_configs.update(diagnostic_configs)
-    gg.main(file_configs)
+    gg.main(file_configs, str(confpath))
