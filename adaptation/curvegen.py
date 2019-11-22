@@ -7,7 +7,7 @@ from openest.models.curve import FlatCurve
 region_curves = {}
 
 class CSVVCurveGenerator(CurveGenerator):
-    def __init__(self, prednames, indepunits, depenunit, csvv, betalimits={}):
+    def __init__(self, prednames, indepunits, depenunit, csvv, betalimits={}, ignore_units=False):
         """
 
         Parameters
@@ -30,17 +30,18 @@ class CSVVCurveGenerator(CurveGenerator):
         self.csvv = csvv
         self.betalimits = betalimits
 
-        for ii, predname in enumerate(prednames):
-            if predname not in csvv['variables']:
-                print "WARNING: Predictor %s definition not found in CSVV." % predname
-            else:
-                if 'unit' in csvv['variables'][predname]:
-                    assert checks.loosematch(csvv['variables'][predname]['unit'], indepunits[ii]), "Units error for %s: %s <> %s" % (predname, csvv['variables'][predname]['unit'], indepunits[ii])
+        if not ignore_units:
+            for ii, predname in enumerate(prednames):
+                if predname not in csvv['variables']:
+                    print "WARNING: Predictor %s definition not found in CSVV." % predname
+                else:
+                    if 'unit' in csvv['variables'][predname]:
+                        assert checks.loosematch(csvv['variables'][predname]['unit'], indepunits[ii]), "Units error for %s: %s <> %s" % (predname, csvv['variables'][predname]['unit'], indepunits[ii])
 
-        if 'outcome' not in csvv['variables']:
-            print "WARNING: Dependent variable definition not in CSVV."
-        else:
-            assert checks.loosematch(csvv['variables']['outcome']['unit'], depenunit), "Dependent units %s does not match %s." % (csvv['variables']['outcome']['unit'], depenunit)
+            if 'outcome' not in csvv['variables']:
+                print "WARNING: Dependent variable definition not in CSVV."
+            else:
+                assert checks.loosematch(csvv['variables']['outcome']['unit'], depenunit), "Dependent units %s does not match %s." % (csvv['variables']['outcome']['unit'], depenunit)
 
         self.fill_marginals()
 
@@ -297,6 +298,7 @@ class SumCurveGenerator(CurveGenerator):
             curvegens.append(curvegen)
         
         self.curvegens = curvegens
+        self.coeffsuffixes = coeffsuffixes
 
     def get_curve(self, region, year, covariates={}, **kwargs):
         curves = [curvegen.get_curve(region, year, covariates, **kwargs) for curvegen in self.curvegens]
@@ -311,4 +313,4 @@ class SumCurveGenerator(CurveGenerator):
         Returns a CurveGenerator that calculates the partial
         derivative with respect to a covariate.
         """
-        return SumCurveGenerator([curvegen.get_partial_derivative_curvegen(covariate, covarunit) for curvegen in self.curvegens], coeffsuffixes)
+        return SumCurveGenerator([curvegen.get_partial_derivative_curvegen(covariate, covarunit) for curvegen in self.curvegens], self.coeffsuffixes)

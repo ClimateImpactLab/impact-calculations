@@ -140,7 +140,7 @@ def partial_derivative(csvv, covariate):
             include.append(True)
         else:
             include.append(False)
-    csvvpart = subset(csvv, toinclude)
+    csvvpart = subset(csvv, include)
     csvvpart['covarnames'] = covarnames
 
     return csvvpart
