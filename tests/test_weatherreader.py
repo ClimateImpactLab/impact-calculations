@@ -7,7 +7,7 @@ class TestWeatherReader(unittest.TestCase):
     def test_bincompare(self):
         # Check the first month of daily values
         print "Reading from the daily data files."
-        template1 = "/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level/historical/CCSM4/tas/tas_day_aggregated_historical_r1i1p1_CCSM4_%d.nc"
+        template1 = "tests/testdata/tas_day_aggregated_historical_r1i1p1_CCSM4_%d.nc"
         weatherreader1 = DailyWeatherReader(template1, 1981, 'SHAPENUM', 'tas')
 
         print weatherreader1.version, weatherreader1.units
@@ -19,7 +19,7 @@ class TestWeatherReader(unittest.TestCase):
 
         # Compare it to the first month of binned values
         print "Reading from the binned data files."
-        template2 = "/shares/gcp/climate/BCSD/aggregation/cmip5_bins/IR_level/historical/CCSM4/tas/tas_Bindays_aggregated_historical_r1i1p1_CCSM4_%d.nc"
+        template2 = "tests/testdata/tas_Bindays_aggregated_historical_r1i1p1_CCSM4_%d.nc"
         weatherreader2 = YearlyBinnedWeatherReader(template2, 1981, 'SHAPENUM', 'DayNumber', bindim='bins', binvariable='bin_edges')
 
         print weatherreader2.version, weatherreader2.units
