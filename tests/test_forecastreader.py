@@ -5,6 +5,10 @@ from climate.forecastreader import *
 from climate import forecasts
 
 class TestForecastReader(unittest.TestCase):
+    def setUp(self):
+        from impactlab_tools.utils import files
+        files.server_config = {shareddir_key: 'tests/testdata'}
+
     def test_zscore(self):
         weatherreader = MonthlyForecastReader("tests/testdata/tas_aggregated_forecast_2012-2016Aug.nc", 'mean')
         for ds in weatherreader.read_iterator():
