@@ -1,7 +1,12 @@
+import pytest
 import numpy as np
 import numpy.testing as npt
 from generate import weather
 from climate import discover
+
+## Test that weather bundles are working properly.
+
+# Utility functions
 
 def get_weatherbundle():
     """Get a simple weather bundle for tas."""
@@ -9,7 +14,16 @@ def get_weatherbundle():
     scenario, model, weatherbundle = bundleiterator.next()
     return weatherbundle
 
-def get_temp2year():
+def get_yearorder(temp2year, weatherbundle):
+    """Return the sequence of years returned by weatherbundle, using the temperature mapping."""
+    years = []
+    for year, ds in weatherbundle.yearbundles():
+        years.append(temp2year.get(np.mean(ds['tas'][0]), None))
+    return years
+
+# Provides data for all tests
+@pytest.fixture
+def temp2year():
     """Return a mapping between observed temperatures and the year they are observed."""
     temp2year = {}
     weatherbundle = get_weatherbundle()
@@ -17,12 +31,7 @@ def get_temp2year():
         temp2year[np.mean(ds['tas'][0])] = year
     return temp2year
 
-def get_yearorder(temp2year, weatherbundle):
-    """Return the sequence of years returned by weatherbundle, using the temperature mapping."""
-    years = []
-    for year, ds in weatherbundle.yearbundles():
-        years.append(temp2year.get(np.mean(ds['tas'][0]), None))
-    return years
+# The tests
 
 def test_repeated(temp2year):
     """Does a median weatherset zig-zag properly?"""
@@ -43,8 +52,6 @@ def test_shuffled(temp2year):
     npt.assert_equal(np.max(years), 2005)
 
 if __name__ == '__main__':
-    temp2year = get_temp2year()
-    test_repeated(temp2year)
-    test_shuffled(temp2year)
-
-
+    mapping = temp2year()
+    test_repeated(mapping)
+    test_shuffled(mapping)
