@@ -2,8 +2,6 @@ import numpy as np
 from openest.generate import smart_curve, curvegen
 
 def interpret(name, models, extras):
-    print name
-    print extras
     if name in models:
         return models[name], extras.get(name, {})
 
