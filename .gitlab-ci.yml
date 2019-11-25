@@ -1,0 +1,12 @@
+image: continuumio/anaconda:latest
+
+before_script:
+  - conda env create ClimateImpactLab/risingverse-py27
+  - source activate risingverse-py27
+  - pip install git+https://github.com/ClimateImpactLab/open-estimate.git
+  - pip install git+https://github.com/ClimateImpactLab/impact-common.git
+
+test:
+  script:
+  - source activate risingverse-py27
+  - pytest -v -m "not imperics_shareddir"
