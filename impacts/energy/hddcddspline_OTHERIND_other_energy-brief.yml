@@ -30,12 +30,12 @@ models:
         variable: tas-cdd-20
     calculation:
       - Sum:
-        - unshift: false
         - YearlyApply:
             model: tas
         - YearlyApply:
             model: hdd-20
         - YearlyApply:
             model: cdd-20
+        - unshift: false
       - Rebase:
           unshift: false
