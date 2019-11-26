@@ -1,3 +1,8 @@
+"""
+Functions for intrepretting weighting configuration options, for use with aggregator.py.
+See docs/aggregator.md for more details.
+"""
+
 import re, os
 import numpy as np
 import pandas as pd
@@ -5,24 +10,55 @@ from impactlab_tools.utils import files
 from impactcommon.exogenous_economy import gdppc
 import population, agecohorts, spacetime
 
-RE_FLOATING = r"[-+]?[0-9]*\.?[0-9]*"
-RE_NUMBER = RE_FLOATING + r"([eE]" + RE_FLOATING + ")?"
-RE_CSVNAME = r"[-\w./()]+"
-RE_CONSTFILE = r"constcsv/(%s?):(%s?):(%s?)(\s|$)" % (RE_CSVNAME, RE_CSVNAME, RE_CSVNAME) # filename, region column, weight column
-RE_YEARLYFILE = r"(%s?):(%s?):(%s?):(%s?)(\s|$)" % (RE_CSVNAME, RE_CSVNAME, RE_CSVNAME, RE_CSVNAME) # filename, region column, year column, weight column
+## Regular expressions to interpret configuration options
+RE_FLOATING = r"[-+]?[0-9]*\.?[0-9]*" # matches floating point numbers, like 3.14
+RE_NUMBER = RE_FLOATING + r"([eE]" + RE_FLOATING + ")?" # matches e-notation numbers, like 3.14e-3
+RE_CSVNAME = r"[-\w./()]+" # intended to match either a filepath, like /path/weights.csv, or a CSV column name
+
+## Weighting information files need column information as well, provided by the one of the syntaxes:
+# Region-specific constants: constcsv/[filepath.csv]:[region column]:[weight column]
+RE_CONSTFILE = r"constcsv/(%s?):(%s?):(%s?)(\s|$)" % (RE_CSVNAME, RE_CSVNAME, RE_CSVNAME)
+# Annually varying weights: [filepath.csv]:[region column]:[year column]:[weight column]
+RE_YEARLYFILE = r"(%s?):(%s?):(%s?):(%s?)(\s|$)" % (RE_CSVNAME, RE_CSVNAME, RE_CSVNAME, RE_CSVNAME)
 
 def read_byext(filepath):
+    """Reads a weighting data file, interpretting the format based on the extension.
+
+    Parameters
+    ----------
+    filepath : str
+        Path to a file that can be interpretted as a DataFrame.
+
+    Returns
+    -------
+    pandas.DataFrame
+        The contents of the file.
+    """
     extension = os.path.splitext(filepath)[1].lower()
-    assert extension in ['.csv', '.dta']
+    assert extension in ['.csv', '.dta'] # we only handle these so far
 
     if extension == '.csv':
         return pd.read_csv(filepath)
     if extension == '.dta':
         return pd.read_stata(filepath)
 
+# Singleton to describe weights that sum to 1.
 HALFWEIGHT_SUMTO1 = "Sum to 1"
 
 def interpret_halfweight(weighting):
+    """Interpret the text of a configuration weighting scheme.
+
+    Parameters
+    ----------
+    weighting : str
+        A weighting description. See docs/aggregator.md for allowed options.
+
+    Returns
+    -------
+    spacetime.SpaceTimeData
+        Must have a valid `load` function, producing an object on which `get_time` can be called.
+        
+    """
     if weighting.lower() == 'sum-to-1':
         return HALFWEIGHT_SUMTO1
     
