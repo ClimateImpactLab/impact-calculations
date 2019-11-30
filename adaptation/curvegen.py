@@ -204,7 +204,8 @@ class FarmerCurveGenerator(DelayedCurveGenerator):
         if self.farmer in ['noadapt', 'incadapt']:
             return ConstantCurveGenerator(self.indepunits, self.depenunit + '/' + covarunit, FlatCurve(0))
 
-        return self.curvegen.get_partial_derivative_curvegen(covariate, covarunit)
+        return FarmerCurveGenerator(self.curvegen.get_partial_derivative_curvegen(covariate, covarunit),
+                                    self.covariator, self.farmer, self.save_curve)
         
     def get_lincom_terms(self, region, year, predictors={}, origds=None):
         # Get last covariates

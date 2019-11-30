@@ -85,11 +85,11 @@ class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
         return elements
 
     def get_partial_derivative_curvegen(self, covariate, covarunit):
-        csvvpart = csvvfile.partial_derivative(self.csvv, covariate)
-        return PolynomialCurveGenerator([self.indepunits[0]], self.depenunit + '/' + covarunit, self.prefix,
+        csvvpart = csvvfile.partial_derivative(self.csvv, covariate, covarunit)
+        return PolynomialCurveGenerator(self.indepunits, self.depenunit + '/' + covarunit, self.prefix,
                                         self.order, csvvpart, diagprefix=self.diagprefix, predinfix=self.predinfix,
                                         weathernames=self.weathernames, betalimits=self.betalimits,
-                                        allow_raising=self.allow_raising, ignore_units=True)
+                                        allow_raising=self.allow_raising)
 
 class CubicSplineCurveGenerator(curvegen.CSVVCurveGenerator):
     def __init__(self, indepunits, depenunit, prefix, knots, csvv, betalimits={}):

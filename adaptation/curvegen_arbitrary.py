@@ -1,7 +1,7 @@
-import curvegen
 import numpy as np
 from openest.generate import formatting, diagnostic, selfdocumented
 from openest.generate.smart_curve import TransformCoefficientsCurve
+import curvegen, csvvfile
 
 class CoefficientsCurveGenerator(curvegen.CSVVCurveGenerator):
     def __init__(self, curvefunc, indepunits, depenunit, prefix, order, csvv, zerostart=True, betalimits={}):
@@ -32,7 +32,7 @@ class SumCoefficientsCurveGenerator(curvegen.CSVVCurveGenerator):
         allcoeffs = self.get_coefficients(covariates)
         return [allcoeffs[predname] for predname in self.prednames]
 
-    def get_curve(self, region, year, covariates={}, recorddiag=True):
+    def get_curve(self, region, year, covariates={}, recorddiag=True, **kwargs):
         mycoeffs = self.get_curve_parameters(region, year, covariates)
 
         if recorddiag and diagnostic.is_recording():
@@ -64,6 +64,15 @@ class SumCoefficientsCurveGenerator(curvegen.CSVVCurveGenerator):
             elts.update(selfdocumented.format_nomain(self.ds_transforms[self.prednames[ii]], lang))
 
         return elts
+
+    def get_partial_derivative_curvegen(self, covariate, covarunit):
+        csvvpart = csvvfile.partial_derivative(self.csvv, covariate, covarunit)
+        incpreds = [predname in csvvpart['prednames'] for predname in self.prednames]
+        prednames = [self.prednames[ii] for ii in range(len(self.prednames)) if incpreds[ii]]
+        indepunits = [self.indepunits[ii] for ii in range(len(self.prednames)) if incpreds[ii]]
+        return SumCoefficientsCurveGenerator(prednames, self.ds_transforms, self.transform_descriptions,
+                                             indepunits, self.depenunit + '/' + covarunit,
+                                             csvvpart, diagprefix=self.diagprefix, betalimits=self.betalimits)
     
 class MLECoefficientsCurveGenerator(CoefficientsCurveGenerator):
     def get_coefficients(self, covariates, debug=False):
