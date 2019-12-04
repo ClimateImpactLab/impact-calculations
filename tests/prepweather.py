@@ -1,11 +1,16 @@
 import os
 from shutil import copyfile
 from netCDF4 import Dataset
+import numpy as np
+import numpy.ma as ma
 
 sourcedir = '/shares/gcp/climate/BCSD/hierid/popwt/daily/tas/'
 targetdir = 'testdata/climate/BCSD/hierid/popwt/daily/tas/'
 
+region = 'CAN.1.2.28'
 gcm = 'CCSM4'
+
+regions = None
 
 for scenario in os.listdir(sourcedir):
     if not os.path.isdir(os.path.join(sourcedir, scenario)):
@@ -25,7 +30,11 @@ for scenario in os.listdir(sourcedir):
 
                 for attr in reader.ncattrs():
                     setattr(writer, attr, getattr(reader, attr))
-                
+
+                if regions is None:
+                    regions = np.array([''.join(ma.array(reader.variables['hierid'][ii, :]).compressed()) for ii in np.arange(reader.variables['hierid'].shape[0])])
+                rr = np.nonzero(regions == region)[0]
+                    
                 writer.createDimension('time', None)
                 writer.createDimension('hierid', 1)
                 
@@ -35,10 +44,10 @@ for scenario in os.listdir(sourcedir):
                         column[:] = reader.variables[key][:]
                     elif key == 'hierid':
                         column = writer.createVariable(key, str, ('hierid',))
-                        column[0] = 'dummy'
+                        column[0] = region
                     else:
                         column = writer.createVariable(key, 'f4', ('time', 'hierid'))
-                        column[:, :] = reader.variables[key][:, 1000:1001]
+                        column[:, :] = reader.variables[key][:, rr]
                         
                 reader.close()
                 writer.close()
