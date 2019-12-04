@@ -72,7 +72,7 @@ class SumCoefficientsCurveGenerator(curvegen.CSVVCurveGenerator):
         indepunits = [self.indepunits[ii] for ii in range(len(self.prednames)) if incpreds[ii]]
         return SumCoefficientsCurveGenerator(prednames, self.ds_transforms, self.transform_descriptions,
                                              indepunits, self.depenunit + '/' + covarunit,
-                                             csvvpart, diagprefix=self.diagprefix + 'dd', betalimits=self.betalimits)
+                                             csvvpart, diagprefix=self.diagprefix + 'dd' + covariate, betalimits=self.betalimits)
     
 class MLECoefficientsCurveGenerator(CoefficientsCurveGenerator):
     def get_coefficients(self, covariates, debug=False):
