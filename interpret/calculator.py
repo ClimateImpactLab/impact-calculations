@@ -13,8 +13,9 @@ def prepare_argument(name, argument, models, argtype, extras={}):
         assert isinstance(argument, list)
         return [create_calcstep(argii.keys()[0], argii.values()[0], models, None, extras=extras) for argii in argument]
 
-    if argtype == arguments.calculation:
-        return create_calcstep(argument.keys()[0], argument.values()[0], models, None, extras=extras)
+    if argtype.isa(arguments.calculation):
+        subcalc = extras.get('subcalc', None)
+        return create_calcstep(argument.keys()[0], argument.values()[0], models, subcalc, extras=extras)
     
     return argument
 
@@ -77,6 +78,11 @@ def create_calcstep(name, args, models, subcalc, extras={}):
             kwargs = {}
         return caller.standardize(subcalc, **kwargs)
 
+    if name == 'PartialDerivative':
+        assert isinstance(args, dict)
+        assert 'covariate' in args and 'covarunit' in args
+        return subcalc.partial_derivative(args['covariate'], args['covarunit'])
+    
     cls = getattr(stdlib, name)
 
     if isinstance(args, list):
@@ -101,11 +107,14 @@ def create_calcstep(name, args, models, subcalc, extras={}):
     kwargs = {}
     savedargs = {}
     for argtype in cls.describe()['arguments']:
-        if argtype == arguments.calculation:
-            if subcalc is not None:
+        if argtype.isa(arguments.calculation):
+            if subcalc is not None and subcalc not in arglist:
                 arglist.append(subcalc)
             else:
-                arglist.append(prepare_argument(argtype.name, get_argument(argtype.name), models, argtype, extras=extras))
+                # other calculation might need this one (e.g., AuxillaryResult)
+                subextras = copy.copy(extras)
+                subextras['subcalc'] = subcalc
+                arglist.append(prepare_argument(argtype.name, get_argument(argtype.name), models, argtype, extras=subextras))
         elif argtype == arguments.calculationss and isinstance(args, list):
             calculations = []
             while len(remainingargs) > 0:

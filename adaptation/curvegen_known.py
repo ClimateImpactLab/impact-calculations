@@ -5,13 +5,15 @@ from openest.generate.smart_curve import ZeroInterceptPolynomialCurve
 from openest.models.curve import CubicSplineCurve
 
 class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
-    def __init__(self, indepunits, depenunit, prefix, order, csvv, diagprefix='coeff-', predinfix='', weathernames=None, betalimits={}, allow_raising=False):
+    def __init__(self, indepunits, depenunit, prefix, order, csvv, diagprefix='coeff-', predinfix='', weathernames=None, betalimits={}, allow_raising=False, ignore_units=False):
         self.order = order
         prednames = [prefix + predinfix + str(ii) if ii > 1 else prefix for ii in range(1, order+1)]
-        super(PolynomialCurveGenerator, self).__init__(prednames, indepunits * order, depenunit, csvv, betalimits=betalimits)
+        super(PolynomialCurveGenerator, self).__init__(prednames, indepunits * order, depenunit, csvv, betalimits=betalimits, ignore_units=ignore_units)
         self.diagprefix = diagprefix
         self.weathernames = weathernames
         self.allow_raising = allow_raising
+        self.prefix = prefix
+        self.predinfix = predinfix
 
     def get_curve(self, region, year, covariates={}, recorddiag=True, **kwargs):
         coefficients = self.get_coefficients(covariates)
@@ -81,6 +83,13 @@ class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
                     elements.update(selfdocumented.format_nomain(self.weathernames[ii], lang))
 
         return elements
+
+    def get_partial_derivative_curvegen(self, covariate, covarunit):
+        csvvpart = csvvfile.partial_derivative(self.csvv, covariate, covarunit)
+        return PolynomialCurveGenerator(self.indepunits, self.depenunit + '/' + covarunit, self.prefix,
+                                        self.order, csvvpart, diagprefix=self.diagprefix + 'dd' + covariate, predinfix=self.predinfix,
+                                        weathernames=self.weathernames, betalimits=self.betalimits,
+                                        allow_raising=self.allow_raising)
 
 class CubicSplineCurveGenerator(curvegen.CSVVCurveGenerator):
     def __init__(self, indepunits, depenunit, prefix, knots, csvv, betalimits={}):
