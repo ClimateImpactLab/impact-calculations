@@ -87,7 +87,7 @@ class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
     def get_partial_derivative_curvegen(self, covariate, covarunit):
         csvvpart = csvvfile.partial_derivative(self.csvv, covariate, covarunit)
         return PolynomialCurveGenerator(self.indepunits, self.depenunit + '/' + covarunit, self.prefix,
-                                        self.order, csvvpart, diagprefix=self.diagprefix, predinfix=self.predinfix,
+                                        self.order, csvvpart, diagprefix=self.diagprefix + 'dd', predinfix=self.predinfix,
                                         weathernames=self.weathernames, betalimits=self.betalimits,
                                         allow_raising=self.allow_raising)
 
