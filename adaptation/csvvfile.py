@@ -91,11 +91,13 @@ def binname_part(xxlimit):
 
 def subset(csvv, toinclude):
     """Create a CSVV object with the contents of a subset of the variables in csvv.
-    `toinclude` may be either a list of predictor names from prednames, or a list of indices."""
+    `toinclude` may be either a list of predictor names from prednames, or a list of indices or booleans."""
     if not isinstance(toinclude, slice):
         if isinstance(toinclude[0], str):
             toinclude = map(lambda predname: predname in toinclude, csvv['prednames'])
-            toinclude = np.where(toinclude)[0]
+            toinclude = np.nonzero(toinclude)[0]
+        elif isinstance(toinclude[0], bool):
+            toinclude = np.nonzero(toinclude)[0]
         else:
             toinclude = np.array(toinclude)
         toinclist = toinclude
@@ -107,7 +109,7 @@ def subset(csvv, toinclude):
     subcsvv['covarnames'] = [csvv['covarnames'][ii] for ii in toinclist]
     subcsvv['gamma'] = csvv['gamma'][toinclude]
     if 'gammavcv' in csvv and csvv['gammavcv'] is not None:
-        assert isinstance(toinclude, slice)
+        assert isinstance(toinclude, slice), "The uncertainty must be collapsed first."
         subcsvv['gammavcv'] = csvv['gammavcv'][toinclude, toinclude]
 
     return subcsvv
@@ -122,3 +124,50 @@ def get_gamma(csvv, predname, covarname):
             return csvv['gamma'][ii]
 
     return None
+
+def partial_derivative(csvv, covariate, covarunit):
+    covarnames = []
+    include = []
+    for ii in range(len(csvv['gamma'])):
+        # Look for products
+        m1 = re.search(r'\b' + covariate + r'\b\s*[*]\s*', csvv['covarnames'][ii])
+        m2 = re.search(r'\s*[*]\s*\b' + covariate + r'\b', csvv['covarnames'][ii])
+        if csvv['covarnames'][ii] == covariate: # Uninteracted covariate
+            covarnames.append('1')
+            include.append(True)
+        elif m1:
+            # The remaining covariate
+            covarnames.append(re.sub(r'\b' + covariate + r'\b\s*[*]\s*', '', csvv['covarnames'][ii]))
+            include.append(True)
+        elif m2:
+            covarnames.append(re.sub(r'\s*[*]\s*\b' + covariate + r'\b', '', csvv['covarnames'][ii]))
+            include.append(True)
+        else:
+            include.append(False)
+    csvvpart = subset(csvv, include)
+    if 'outcome' in csvv['variables']:
+        csvvpart['variables'] = csvvpart['variables'].copy()  # remove when MetaCSV fixed
+        csvvpart['variables']._data = copy.deepcopy(csvvpart['variables']._data)
+        oldunit = csvv['variables']['outcome']['unit']
+        csvvpart['variables']['outcome']['unit'] = csvv['variables']['outcome']['unit'] + '/' + covarunit
+        assert csvv['variables']['outcome']['unit'] == oldunit
+    csvvpart['covarnames'] = covarnames
+
+    # Make sure that we have a constant
+    missing_prednames = []
+    for predname in set(csvv['prednames']):
+        found_constant = False
+        for ii in range(len(csvvpart['prednames'])):
+            if csvvpart['prednames'][ii] == predname and csvvpart['covarnames'][ii] == '1':
+                found_constant = True
+                break
+        if not found_constant:
+            missing_prednames.append(predname)
+
+    if len(missing_prednames) > 0:
+        csvvpart['prednames'] = np.append(csvvpart['prednames'], missing_prednames)
+        csvvpart['covarnames'] = np.append(csvvpart['covarnames'], map(lambda x: '1', missing_prednames))
+        csvvpart['gamma'] = np.append(csvvpart['gamma'], map(lambda x: 0, missing_prednames))
+        # gammavcv already was collapsed, because we successfully called subset
+    
+    return csvvpart
