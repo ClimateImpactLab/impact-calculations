@@ -366,8 +366,8 @@ class TestAggregateEnergy(unittest.TestCase):
         """Test regions in *aggregated results file"""
         actual = self.results_aggregated['regions'].values
         self.assertEqual(actual.shape, (5716, ))
-        self.assertEqual(actual[0], u'CAN.1.2.28')
-        self.assertEqual(actual[-1], u'BWA.4.13')
+        self.assertEqual(actual[0], u'')
+        self.assertEqual(actual[-1], u'RUS.73.2026')
 
     def test_aggregated_rebased(self):
         """Test shape & (head, tail) values of 'rebased' in *aggregated file"""
