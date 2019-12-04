@@ -23,6 +23,9 @@ for scenario in os.listdir(sourcedir):
                 reader = Dataset(os.path.join(srcpath, filename), 'r', format='NETCDF4')
                 writer = Dataset(os.path.join(dstpath, filename), 'w', format='NETCDF4')
 
+                for attr in reader.ncattrs():
+                    setattr(writer, attr, getattr(reader, attr))
+                
                 writer.createDimension('time', None)
                 writer.createDimension('hierid', 1)
                 
