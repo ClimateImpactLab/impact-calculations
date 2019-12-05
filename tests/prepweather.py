@@ -1,3 +1,7 @@
+"""
+Generate single-region versions of a tree of climate data.
+"""
+
 import os
 from shutil import copyfile
 from netCDF4 import Dataset
