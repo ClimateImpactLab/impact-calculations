@@ -58,12 +58,12 @@ batchfilter = lambda batch: True
 #   Only process SSP3: lambda targetdir: 'SSP3' in targetdir
 targetdirfilter = lambda targetdir: True
 
+def main(config):
+    raise NotImplementedError
+
 ## Cache of loaded weighting data
 # Dictionary of (halfweight, weight_args, minyear, maxyear) => weights
 cached_weights = {}
-
-def main(config):
-    raise NotImplementedError
 
 def get_cached_weight(halfweight, weight_args, years):
     global cached_weights
