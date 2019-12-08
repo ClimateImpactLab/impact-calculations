@@ -1,30 +1,69 @@
-import os, Queue, traceback, time
+"""Impact result aggregation tool.
+
+See docs/aggregator.md for usage.
+
+Code Organization
+-----------------
+This is the master script for performing aggregations. The main script
+interprets an aggregation configuration file, and then iterates
+through all of the available outputs in a specified directory
+tree. The aggregation functions-- make_levels and make_aggregates,
+along with make_costs_levels and make_costs_aggregates if a costs
+script is used-- get run upon each output bundle.
+
+Aggregation depends on weighting files, which are stored in
+datastore/. The top-level classes for providing weighting information
+are in datastore/spacetime.py. The translation process from
+configuration file descriptions of weights to weighting object is
+handled by datastore/weights.py.
+
+Helper functions are organized in agglib.py, which are also used by
+climateagg.py.
+"""
+
+import os, traceback
 import numpy as np
 from netCDF4 import Dataset
-import nc4writer, agglib, checks, csv
+import nc4writer, agglib, checks
 from datastore import weights
 from impactlab_tools.utils import paralog
 
-costs_suffix = '-costs'
-levels_suffix = '-levels'
-suffix = "-aggregated"
-missing_only = True
+### Master Configuration
+### See docs/aggregator.md for other configuration options
 
-debug_aggregate = False #'ARE'
+# Suffixes applied to the output filenames
+costs_suffix = '-costs'   # adaptation costs file
+levels_suffix = '-levels' # scaled results, typically changing rates to levels
+suffix = "-aggregated"    # aggregated results across higher-level regions
+missing_only = True       # generate only missing output files, or regenerate all?
 
+debug_aggregate = False   # If not false, set to the name of an aggregated region to report. e.g., 'ARE'
+
+# Command to run to generate adaptation costs files
 costs_command = "Rscript generate/cost_curves.R \"%s\" \"%s\" \"%s\" \"%s\"" # tavgpath rcp gcm impactspath
 
+# Allow directories to be re-claimed after this many seconds
 CLAIM_TIMEOUT = 24*60*60
 
-batchfilter = lambda batch: True #batch == 'median' or 'batch' in batch
-targetdirfilter = lambda targetdir: True #'rcp85' in targetdir #'SSP3' in targetdir and 'Env-Growth' in targetdir
+## Filters on target directories to aggregate
 
-# The full population, if we just read it.
-# Dictionary of (halfweight, weight_args, minyear, maxyear) => population
-cached_weights = {}
+# batchfilter returns whether the batch directory should be processed
+#   Process all batches: lambda batch: True
+#   Ignore single directories: lambda batch: batch == 'median' or 'batch' in batch
+batchfilter = lambda batch: True
+
+# targetdirfilter returns whether the particular target directory should be processed
+#   Process all target dirs: lambda targetdir: True
+#   Only process RCP 8.5: lambda targetdir: 'rcp85' in targetdir
+#   Only process SSP3: lambda targetdir: 'SSP3' in targetdir
+targetdirfilter = lambda targetdir: True
 
 def main(config):
     raise NotImplementedError
+
+## Cache of loaded weighting data
+# Dictionary of (halfweight, weight_args, minyear, maxyear) => weights
+cached_weights = {}
 
 def get_cached_weight(halfweight, weight_args, years):
     global cached_weights
