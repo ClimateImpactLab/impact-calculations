@@ -2,7 +2,7 @@
 Manages rcps and econ and climate models, and generate.effectset.simultaneous_application handles the regions and years.
 """
 
-import sys, os, itertools, importlib, shutil, csv, time, yaml, tempfile
+import os, itertools, importlib, shutil, csv, time, yaml, tempfile
 from collections import OrderedDict
 import loadmodels
 import weather, pvalses, timing
@@ -13,10 +13,9 @@ from impactlab_tools.utils import files, paralog
 import cProfile, pstats, StringIO, metacsv
 
 
-def main(config=None):
-    if config is None:
-        config = configs.standardize(files.get_allargv_config())
-
+def main(config, runid):
+    """Main generate func, given run config dict and run ID str for logging
+    """
     print "Initializing..."
 
     CLAIM_TIMEOUT = 12*60*60
@@ -24,7 +23,7 @@ def main(config=None):
 
     singledir = config.get('singledir', 'single')
 
-    statman = paralog.StatusManager('generate', "generate.generate " + sys.argv[1], 'logs', CLAIM_TIMEOUT)
+    statman = paralog.StatusManager('generate', "generate.generate " + str(runid), 'logs', CLAIM_TIMEOUT)
 
     targetdir = None # The current targetdir
 
@@ -248,4 +247,10 @@ def main(config=None):
 
 
 if __name__ == '__main__':
-    main()
+    # Legacy run from command line.
+    import sys
+
+    run_id = sys.argv[1]
+    run_config = configs.standardize(files.get_allargv_config())
+
+    main(run_config, run_id)
