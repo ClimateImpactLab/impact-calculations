@@ -19,7 +19,7 @@ def get_yearorder(temp2year, weatherbundle):
     years = []
     for year, ds in weatherbundle.yearbundles():
         years.append(temp2year.get(np.mean(ds['tas'][0]), None))
-        if year > 2020:
+        if year > 2050:
             break
     return years
 
@@ -31,7 +31,7 @@ def temp2year():
     weatherbundle = get_weatherbundle()
     for year, ds in weatherbundle.yearbundles():
         temp2year[np.mean(ds['tas'][0])] = year
-        if year > 2020:
+        if year > 2050:
             break
     return temp2year
 
@@ -52,7 +52,7 @@ def test_shuffled(temp2year):
     weatherbundle = get_weatherbundle()
     historybundle = weather.HistoricalWeatherBundle.make_historical(weatherbundle, 1)
     years = get_yearorder(temp2year, historybundle)
-    npt.assert_approx_equal(np.mean(np.abs(np.diff(years))), 8.775)
+    npt.assert_approx_equal(np.mean(np.abs(np.diff(years))), 8.485714285714286)
     npt.assert_array_less(years, 2006)
 
 if __name__ == '__main__':
