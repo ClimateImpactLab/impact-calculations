@@ -42,7 +42,7 @@ class DailyWeatherReader(YearlySplitWeatherReader):
 
     def prepare_ds(self, filename):
         try:
-            ds = xr.open_dataset(filename)
+            ds = xr.open_dataset(filename, autoclose=True)
             if 'time' in ds.coords:
                 ds.rename({'time': 'yyyyddd', self.regionvar: 'region'}, inplace=True)
                 ds['time'] = (('yyyyddd'), pd.date_range('%d-01-01' % (ds.yyyyddd[0] // 1000), periods=365))
