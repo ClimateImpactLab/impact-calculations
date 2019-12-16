@@ -15,7 +15,6 @@ def create(targetdir, basename):
     basename : str
         Output filename, which can exclude the extension, called a `basename` in projection system parlance.
     """
-    
     if basename[-4:] != '.nc4':
         basename += '.nc4'
     
@@ -187,6 +186,23 @@ def make_betas_variables(rootgrp, num):
     betadim = rootgrp.createDimension('betadim', num)
 
 def get_years(reader, limityears=None):
+    """Return the vector of years in reader.
+
+    Extracts either a `year` or `years` variable from the given Dataset.
+
+    Parameters
+    ----------
+    reader : netCDF4.Dataset
+        Dataset with a `year` or `years` variable.
+    limityears : function(sequence), option
+        Filters the years extracted before returning.
+
+    Returns
+    -------
+    sequence of int
+        Years from the reader object.
+    """
+    # Look for the years variable
     if 'year' in reader.variables:
         readeryears = reader.variables['year'][:]
     elif 'years' in reader.variables:
@@ -194,6 +210,7 @@ def get_years(reader, limityears=None):
     else:
         raise RuntimeError("Cannot find years variable")
 
+    # Limit the results if offered
     if limityears is not None:
         readeryears = limityears(readeryears)
 
