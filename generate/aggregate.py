@@ -571,4 +571,4 @@ if __name__ == '__main__':
                     incomplete = True
 
         statman.release(targetdir, "Incomplete" if incomplete else "Complete")
-        os.system("chmod g+rw " + os.path.join(targetdir, "*"))
+        os.system("chmod g+rw --quiet " + os.path.join(targetdir, "*"))
