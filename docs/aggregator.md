@@ -55,6 +55,8 @@ Optional:
 
  - `infix`: A label inserted before the term `-levels` and
    `-aggregated`, to distinguish multiple weighting schemes.
+ - `timeout`: The number of hours to allow the process to work, before
+   considering a directory abandoned (default: 24).
 
 Filtering Targets (also Optional):
 
