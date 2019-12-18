@@ -10,6 +10,7 @@ def read(filename):
 
         # Clean up variables
         for variable in variables:
+            assert isinstance(variable[1], dict), "Variable definition '%s' malformed." % str(variable[1])
             fullunit = variable[1]['unit']
             if ']' in fullunit:
                 variable[1]['unit'] = fullunit[:fullunit.index(']')]

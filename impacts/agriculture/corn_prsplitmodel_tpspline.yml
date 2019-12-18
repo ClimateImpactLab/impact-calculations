@@ -1,0 +1,69 @@
+timerate: month
+grid-weight: cropwt
+rolling-years: 2
+climate: [ tasmax, edd, pr, pr-poly-2 = pr-monthsum-poly-2 ]
+models:
+  - csvvs: "social/parameters/agriculture/splineadapt/corn_global_t-tbar_spline_pbar_lnincbr_ir_tp_binp-tbar_pbar_lnincbr_ir_tp_fg_fe-A1TT_A0Y_clus-A1_A0Y_TINV-191126.csvv"
+    within-season: "social/baselines/agriculture/world-combo-201710-growing-seasons-corn-1stseason.csv"
+    clipping: false
+    covariates:
+      - loggdppc
+      - seasonaltasmax
+      - seasonalpr
+      - ir-share
+      - seasonaltasmax*seasonalpr
+      - seasonaltasmaxspline: [18, 20, 31, 34]
+      - seasonaltasmaxspline*seasonalpr: [18, 20, 31, 34]
+    description: Yield rate for corn
+    specifications:
+      gddkdd:
+        functionalform: coefficients
+        description: Temperature-driven yield rate for corn
+        depenunit: log kg / Ha
+        variables:
+          gdd-8-30: edd.bin(8) - edd.bin(30) [C day]
+          kdd-30: edd.bin(30) [C day]
+        beta-limits:
+          gdd-8-30: 0, inf
+          kdd-30: -inf, 0
+      precip:
+        functionalform: sum-by-time
+        description: Precipitation-driven yield rate for corn
+        depenunit: log kg / Ha
+        indepunit: mm
+        suffixes: [1, 2, 3, 4, 5, 6, 7, 8, 9, r, r, r]
+        subspec:
+          variable: pr
+          functionalform: polynomial
+      gddprecip:
+        functionalform: sum-by-time
+        description: Interaction between temperature and precipitation
+        depenunit: log kg / Ha
+        suffixes: [1, 2, 3, 4, 5, 6, 7, 8, 9, r, r, r]
+        indepunit: C mm day
+        subspec:
+          functionalform: polynomial
+          coeffvar: gdd-8-30*pr
+          variable: edd.bin(8) - edd.bin(30) ** pr
+      kddprecip:
+        functionalform: sum-by-time
+        description: Interaction between temperature and precipitation
+        depenunit: log kg / Ha
+        suffixes: [1, 2, 3, 4, 5, 6, 7, 8, 9, r, r, r]
+        indepunit: C mm day
+        subspec:
+          functionalform: polynomial
+          coeffvar: kdd-8-30*pr
+          variable: edd.bin(30) * pr
+    calculation:
+      - Sum:
+        - YearlySumIrregular:
+            model: gddkdd
+        - YearlySumIrregular:
+            model: precip
+        - YearlySumIrregular:
+            model: gddprecip
+        - YearlySumIrregular:
+            model: kddprecip
+      - Rebase
+      - Exponentiate
