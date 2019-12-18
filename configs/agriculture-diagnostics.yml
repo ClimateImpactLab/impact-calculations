@@ -1,4 +1,4 @@
-module: impacts/agriculture/corn_prsplitmodel_tp.yml
+module: impacts/agriculture/corn_prsplitmodel_tpspline.yml
 mode: writecalcs
 outputdir: /shares/gcp/outputs/agriculture/impacts-mealy
 do_farmers: false
