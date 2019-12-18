@@ -69,12 +69,14 @@ class DailyWeatherReader(YearlySplitWeatherReader):
         return None
 
 class MonthlyDimensionedWeatherReader(YearlySplitWeatherReader):
-    def __init__(self, template, year1, regionvar, variable, dim, dimvariable):
+    def __init__(self, template, year1, regionvar, variable, dim, dimvariable=None):
         super(MonthlyDimensionedWeatherReader, self).__init__(template, year1, variable)
         self.time_units = 'yyyy0mm'
         self.regionvar = regionvar
         self.dim = dim
         self.regions = netcdfs.readncdf_single(self.file_for_year(year1), regionvar, allow_missing=True)
+        if dimvariable is None:
+            dimvariable = dim
         self.dim_values = netcdfs.readncdf_single(self.file_for_year(year1), dimvariable)
 
     def get_regions(self):
