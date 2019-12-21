@@ -12,21 +12,25 @@ from openest.generate import diagnostic
 from impactlab_tools.utils import files, paralog
 import cProfile, pstats, StringIO, metacsv
 
+# Top-level configuration (for debugging)
+do_single = False
 
 def main(config, runid):
     """Main generate func, given run config dict and run ID str for logging
     """
     print "Initializing..."
 
-    CLAIM_TIMEOUT = 12*60*60
-    do_single = False
-
+    # Collect the configuration
+    claim_timeout = config.get('timeout', 12) * 60*60
     singledir = config.get('singledir', 'single')
 
-    statman = paralog.StatusManager('generate', "generate.generate " + str(runid), 'logs', CLAIM_TIMEOUT)
+    # Create the object for claiming directories
+    statman = paralog.StatusManager('generate', "generate.generate " + str(runid), 'logs', claim_timeout)
 
     targetdir = None # The current targetdir
 
+    ### Mode-specific iterators, yielding target directories to process
+    
     def iterate_median():
         for clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in loadmodels.random_order(mod.get_bundle_iterator(config), config):
             pvals = pvalses.ConstantPvals(.5)
@@ -71,6 +75,8 @@ def main(config, runid):
 
         yield singledir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
 
+    ### Callback functions, for recording internal data
+        
     def splinepush_callback(region, year, application, get_predictors, model):
         if 'mortality' in config['module']:
             covars = ['climtas', 'loggdppc', 'logpopop']
@@ -141,11 +147,15 @@ def main(config, runid):
         if economicmodel is not None:
             diagnostic.record(region, year, 'population', economicmodel.get_population_year(region, year))
 
+    # Select the iterator based on the mode
+            
     mode_iterators = {'median': iterate_median, 'montecarlo': iterate_montecarlo, 'lincom': iterate_single, 'single': iterate_single, 'writesplines': iterate_single, 'writepolys': iterate_single, 'writecalcs': iterate_single, 'profile': iterate_nosideeffects, 'diagnostic': iterate_nosideeffects}
 
     assert 'mode' in config, "Configuration does not contain 'mode'."
     assert config['mode'] in mode_iterators.keys()
 
+    # Load the module for setting up the calculation
+    
     start = timing.process_time()
 
     if config['module'][-4:] == '.yml':
@@ -159,7 +169,10 @@ def main(config, runid):
 
     mod.preload()
 
+    # Loop through target directories
+    
     for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in mode_iterators[config['mode']]():
+        # Check if we should process this directory
         if batchdir is not None:
             targetdir = files.configpath(os.path.join(config['outputdir'], batchdir, clim_scenario, clim_model, econ_model, econ_scenario))
 
@@ -186,6 +199,7 @@ def main(config, runid):
             pr = cProfile.Profile()
             pr.enable()
 
+        # Claim the directory
         if statman.is_claimed(targetdir) and mode_iterators[config['mode']] == iterate_single:
             try:
                 paralog.StatusManager.kill_active(targetdir, 'generate') # if do_fillin and crashed, could still exist
@@ -196,6 +210,7 @@ def main(config, runid):
 
         print targetdir
 
+        # Load the pvals data, if available
         if pvalses.has_pval_file(targetdir):
             oldpvals = pvalses.read_pval_file(targetdir)
             if oldpvals is not None:
@@ -203,6 +218,8 @@ def main(config, runid):
         else:
             pvalses.make_pval_file(targetdir, pvals)
 
+        # Produce the results!
+        
         if config['mode'] == 'writesplines':
             mod.produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callback=splinepush_callback, diagnosefile=os.path.join(targetdir, shortmodule + "-allcalcs.csv"))
         elif config['mode'] in ['writepolys', 'lincom']:
@@ -226,6 +243,8 @@ def main(config, runid):
         else:
             mod.produce(targetdir, weatherbundle, economicmodel, pvals, config)
 
+        # Also produce historical climate results
+        
         if config['mode'] not in ['writesplines', 'writepolys', 'writecalcs', 'diagnostic'] or config.get('do_historical', False):
             # Generate historical baseline
             print "Historical"
@@ -234,6 +253,8 @@ def main(config, runid):
 
             mod.produce(targetdir, historybundle, economicmodel, pvals, config, suffix='-histclim')
 
+        # Clean up
+        
         pvalses.make_pval_file(targetdir, pvals)
 
         statman.release(targetdir, "Generated")
