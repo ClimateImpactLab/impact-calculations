@@ -3,26 +3,10 @@ services:
   - docker:dind
 
 stages:
-  - build
   - test
   - deploy
 
-build_docker:
-  stage: build
-  script:
-    - docker info
-    - docker build -t imperics .
-    - mkdir carbonite
-    - docker save imperics > carbonite/app.tar
-  artifacts:
-    paths:
-      - carbonite
-    expire_in: 1d
-  only:
-    - master
-
-test_package:
-  stage: test
+test:
   image: continuumio/anaconda:latest
   before_script:
     - conda info -a
@@ -34,19 +18,12 @@ test_package:
   - source activate risingverse-py27
   - pytest -v -m "not imperics_shareddir"
 
-test_docker:
-  stage: test
-  script:
-  - docker load -i carbonite/app.tar
-  - docker run --rm imperics --help
-  only:
-    - master
-
-deploy_docker_dev:
-  stage: deploy
+deploy:
   script:
     - cat $GCR_KEY | docker login -u _json_key --password-stdin https://$GCR_HOST
-    - docker load -i carbonite/app.tar
+    - docker info
+    - docker build -t imperics .
+    - docker run --rm imperics --help  # "Testing" the image.
     - docker images
     - docker tag imperics $GCR_HOST/$GCS_PROJECTID/imperics:dev
     - docker push $GCR_HOST/$GCS_PROJECTID/imperics:dev
