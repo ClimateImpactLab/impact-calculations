@@ -18,6 +18,8 @@ build_docker:
     paths:
       - carbonite
     expire_in: 1d
+  only:
+    - master
 
 test_package:
   stage: test
@@ -37,6 +39,8 @@ test_docker:
   script:
   - docker load -i carbonite/app.tar
   - docker run --rm imperics --help
+  only:
+    - master
 
 deploy_docker_dev:
   stage: deploy
