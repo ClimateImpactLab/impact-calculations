@@ -1,12 +1,50 @@
-image: continuumio/anaconda:latest
+image: docker:latest
+services:
+  - docker:dind
 
-before_script:
-  - conda env create ClimateImpactLab/risingverse-py27
-  - source activate risingverse-py27
-  - pip install git+https://github.com/ClimateImpactLab/open-estimate.git
-  - pip install git+https://github.com/ClimateImpactLab/impact-common.git
+stages:
+  - build
+  - test
+  - deploy
 
-test:
+build_docker:
+  stage: build
+  script:
+    - docker info
+    - docker build -t imperics .
+    - mkdir carbonite
+    - docker save imperics > carbonite/app.tar
+  artifacts:
+    paths:
+      - carbonite
+    expire_in: 1d
+
+test_package:
+  stage: test
+  image: continuumio/anaconda:latest
+  before_script:
+    - conda info -a
+    - conda env create ClimateImpactLab/risingverse-py27
+    - source activate risingverse-py27
+    - pip install git+https://github.com/ClimateImpactLab/open-estimate.git
+    - pip install git+https://github.com/ClimateImpactLab/impact-common.git
   script:
   - source activate risingverse-py27
   - pytest -v -m "not imperics_shareddir"
+
+test_docker:
+  stage: test
+  script:
+  - docker load -i carbonite/app.tar
+  - docker run --rm imperics --help
+
+deploy_docker_dev:
+  stage: deploy
+  script:
+    - cat $GCR_KEY | docker login -u _json_key --password-stdin https://$GCR_HOST
+    - docker load -i carbonite/app.tar
+    - docker images
+    - docker tag imperics $GCR_HOST/$GCS_PROJECTID/imperics:dev
+    - docker push $GCR_HOST/$GCS_PROJECTID/imperics:dev
+  only:
+    - master
