@@ -71,7 +71,7 @@ def interpret_ds_transform(name, config):
         def out(ds):
             # Get first available non-coordinate variable.
             noncoord_var = [x for x in ds.variables.keys() if x not in ds.coords.keys()][0]
-            new_shape = tuple(list(ds[noncoord_var]._values.shape))
+            new_shape = ds[noncoord_var]._values.shape
             new_coords = list(ds.original_coords)
             darray = fast_dataset.FastDataArray(np.ones(new_shape) * use_scalar,
                                                 new_coords, ds)
@@ -91,18 +91,18 @@ def interpret_wrap_transform(transform, internal):
         return selfdocumented.DocumentedFunction(lambda ds: internal(ds).sel(refTemp=value),
                                                  "Extract bin from weather",
                                                  docargs=[internal, value])
-    
+
     assert False, "Unknown transform" + transform
 
 def get_post_process(name, config):
     if 'final-t' in config:
         return selfdocumented.DocumentedFunction(lambda ds: post_process(ds, name, config), "Select time %d" % config['final-t'], docargs=[name])
-    
+
     if 'within-season' in config:
         return selfdocumented.DocumentedFunction(lambda ds: post_process(ds, name, config), "Limit to within season", docargs=[name])
 
     return selfdocumented.DocumentedFunction(lambda ds: ds[name], "Extract from weather", docfunc=lambda x: x, docargs=[name])
-    
+
 def post_process(ds, name, config):
     dataarr = ds[name]
 
@@ -119,7 +119,7 @@ def post_process(ds, name, config):
             del new_shape[new_coords.index('time')]
             del new_coords[new_coords.index('time')]
             return fast_dataset.FastDataArray(np.zeros(tuple(new_shape)), new_coords, ds)
-    
+
     if 'within-season' in config:
         if len(dataarr) == 24:
             culture = irvalues.get_file_cached(config['within-season'], irvalues.load_culture_months).get(ds.region, None)
