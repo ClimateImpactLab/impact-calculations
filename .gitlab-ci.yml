@@ -24,7 +24,7 @@ deploy:
     - cat $GCR_KEY | docker login -u _json_key --password-stdin https://$GCR_HOST
     - docker info
     - docker build -t imperics .
-    - docker run --rm imperics --help  # "Testing" the image.
+    - docker run --rm imperics imperics --help  # "Testing" the image.
     - docker images
     - docker tag imperics $GCR_HOST/$GCS_PROJECTID/imperics:dev
     - docker push $GCR_HOST/$GCS_PROJECTID/imperics:dev
