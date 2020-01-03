@@ -42,9 +42,6 @@ debug_aggregate = False   # If not false, set to the name of an aggregated regio
 # Command to run to generate adaptation costs files
 costs_command = "Rscript generate/cost_curves.R \"%s\" \"%s\" \"%s\" \"%s\"" # tavgpath rcp gcm impactspath
 
-# Allow directories to be re-claimed after this many seconds
-CLAIM_TIMEOUT = 24*60*60
-
 ## Filters on target directories to aggregate
 
 # batchfilter returns whether the batch directory should be processed
@@ -479,10 +476,10 @@ if __name__ == '__main__':
     config = files.get_allargv_config()
     regioncount = config.get('region-count', 24378) # used by checks to ensure complete files
 
+    # Construct object to claim directories
     # Allow directories to be re-claimed after this many seconds
     claim_timeout = config.get('timeout', 24) * 60*60
 
-    # Construct object to claim directories
     statman = paralog.StatusManager('aggregate', "generate.aggregate " + sys.argv[1], 'logs', claim_timeout)
 
     ### Determine weights
