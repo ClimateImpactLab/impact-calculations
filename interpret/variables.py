@@ -53,8 +53,10 @@ def interpret_ds_transform(name, config):
 def interpret_wrap_transform(transform, internal):
     if transform[:4] == 'bin(':
         value = float(transform[4:-1]) if '.' in transform else int(transform[4:-1])
-        return selfdocumented.DocumentedFunction(lambda ds: internal(ds).sel(refTemp=value),
-                                                 "Extract bin from weather",
+        def getbin(ds):
+            assert sum(ds.refTemp == value) == 1, "Cannot find the requested temperature cut-off."
+            return internal(ds).sel(refTemp=value)
+        return selfdocumented.DocumentedFunction(getbin, "Extract bin from weather",
                                                  docargs=[internal, value])
     
     assert False, "Unknown transform" + transform
