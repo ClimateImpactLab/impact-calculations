@@ -20,7 +20,7 @@ class WeatherReader(object):
     def get_regions(self):
         """Returns a list of all regions available."""
         raise NotImplementedError
-    
+
     def get_dimension(self):
         """Returns a list of length K, describing the number of elements
         describing the weather in each region and time period.
@@ -42,9 +42,9 @@ class YearlySplitWeatherReader(WeatherReader):
             version, units = netcdfs.readmeta(self.find_templated(year1), variable[0])
         else:
             version, units = netcdfs.readmeta(self.find_templated(year1), variable)
-            
+
         super(YearlySplitWeatherReader, self).__init__(version, units, 'year')
-            
+
         self.year1 = year1
         self.variable = variable
 
@@ -96,15 +96,15 @@ class YearlySplitWeatherReader(WeatherReader):
         options = glob.glob(template.replace("%v", "*") % (year))
         if len(options) == 0:
             return template.replace("%v", "unknown") % (year)
-        
+
         options = map(lambda s: os.path.splitext(os.path.basename(s))[0], options)
         options.sort(key=lambda s: map(int, s.split('.')))
-        return template.replace("%v", options[-1]) % (year)        
+        return template.replace("%v", options[-1]) % (year)
 
     @staticmethod
     def precheck(template, year1, variables):
         return None
-    
+
 class ConversionWeatherReader(WeatherReader):
     """Wraps another weather reader, applying conversion to its weather."""
 
@@ -193,7 +193,7 @@ class RegionReorderWeatherReader(WeatherReader):
     def read_year(self, year):
         ds = self.reader.read_year(year)
         return self.reorder_regions(ds)
-        
+
     def reorder_regions(self, ds):
         newvars = {}
         for var in ds:
@@ -234,14 +234,14 @@ class RenameReader(WeatherReader):
         self.renamer = renamer
         if isinstance(self.renamer, str):
             assert len(self.reader.get_dimension()) == 1
-        
+
     def get_times(self):
         """Returns a list of all times available."""
         return self.reader.get_times()
 
     def get_years(self):
         return self.reader.get_years()
-        
+
     def get_dimension(self):
         """Returns a list of length K, describing the number of elements
         describing the weather in each region and time period.
@@ -259,6 +259,13 @@ class RenameReader(WeatherReader):
         for year in self.get_years():
             yield self.read_year(year)
 
+    def read_iterator_to(self, maxyear):
+        # Assume that self.get_years() always returns years sorted in asc.
+        for year in self.get_years():
+            yield self.read_year(year)
+            if int(year) >= maxyear:
+                break
+
     def read_year(self, year):
         if callable(self.renamer):
             renames = {name: self.renamer(name) for name in self.reader.get_dimension()}
@@ -266,9 +273,9 @@ class RenameReader(WeatherReader):
             renames = {self.reader.get_dimension()[0]: self.renamer}
         else:
             renames = self.renamer
-            
+
         return self.reader.read_year(year).rename(renames)
-    
+
 class HistoricalCycleReader(WeatherReader):
     """Wraps another weather reader, iterating through history repeatedly, pretending to be a future reader."""
 
@@ -283,7 +290,7 @@ class HistoricalCycleReader(WeatherReader):
 
     def get_years(self):
         return self.futurereader.get_years()
-        
+
     def get_dimension(self):
         """Returns a list of length K, describing the number of elements
         describing the weather in each region and time period.
@@ -301,7 +308,7 @@ class HistoricalCycleReader(WeatherReader):
         fromstart = (year - histyears[0]) % (2 * len(histyears) - 2)
 
         renames = {name: name + '.histclim' for name in self.futurereader.get_dimension()}
-        
+
         if fromstart < len(histyears):
             if year <= histyears[-1]:
                 return self.reader.read_year(histyears[fromstart]).rename(renames)
@@ -324,14 +331,14 @@ class MapReader(WeatherReader):
         self.readers = readers
         for reader in readers[1:]:
             assert reader.get_times() == readers[0].get_times()
-        
+
     def get_times(self):
         """Returns a list of all times available."""
         return self.readers[0].get_times()
 
     def get_years(self):
         return self.readers[0].get_years()
-        
+
     def get_dimension(self):
         return [self.name]
 
@@ -356,5 +363,5 @@ class MapReader(WeatherReader):
             ds0[origvar] = (ds0[origvar].dims, result)
         else:
             ds0[origvar] = result
-            
+
         return ds0.rename({origvar: self.name})
