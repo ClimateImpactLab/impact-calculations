@@ -169,7 +169,7 @@ else:
     elements.update(extraelements)
     
     allparams = {calcs['header'][ii]: calcs['2000'][ii] for ii in range(len(calcs['header']))}
-    allparams.update({calcs['header'][ii]: calcs[str(futureyear)][ii] for ii in range(len(calcs['header'])) if not np.all(np.isnan(calcs[str(futureyear)][ii]))})
+    allparams.update({calcs['header'][ii]: calcs[str(futureyear-1)][ii] for ii in range(len(calcs['header'])) if not np.all(np.isnan(calcs[str(futureyear-1)][ii]))})
     allparams.update(weather[str(futureyear)])
     allparams.update(extraparams)
     
