@@ -16,6 +16,7 @@ def user_assert(check, message):
         user_failure(message)
 
 def get_covariator(covar, args, weatherbundle, economicmodel, config={}, quiet=False):
+    """Intreprets a single entry in the covariates dictionary."""
     if isinstance(covar, dict):
         return get_covariator(covar.keys()[0], covar.values()[0], weatherbundle, economicmodel, config=config, quiet=quiet)
     elif covar in ['loggdppc', 'logpopop', 'year']:
@@ -38,6 +39,7 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config={}, quiet=F
         user_failure("Covariate %s is unknown." % covar)
         
 def create_covariator(specconf, weatherbundle, economicmodel, config={}, quiet=False):
+    """Interprets the entire covariates dictionary in the configuration file."""
     if 'covariates' in specconf:
         covariators = []
         for covar in specconf['covariates']:

@@ -19,9 +19,11 @@ class Covariator(object):
         self.lastyear = {}
 
     def get_current(self, region):
+        """This can be called as many times as we want."""
         raise NotImplementedError
 
     def offer_update(self, region, year, ds):
+        """This can be called as many times as we want."""
         assert year < 10000
         # Ensure that we aren't called with a year twice
         assert self.lastyear.get(region, -np.inf) <= year, "Called with %d, but previously did %d" % (year, self.lastyear.get(region, -np.inf))
@@ -32,6 +34,7 @@ class Covariator(object):
         return self.get_current(region)
 
     def get_update(self, region, year, ds):
+        """This should only be called by offer_update, because it can only be called once per year-region combination."""
         raise NotImplementedError
 
     def get_current_args(self, region):
