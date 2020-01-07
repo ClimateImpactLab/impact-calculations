@@ -12,7 +12,22 @@ def needs_interpret(name, config):
         return True
     return False
 
+
 def interpret_ds_transform(name, config):
+    """Parse variable name for transformations to apply to variables
+
+    Parameters
+    ----------
+    name : str
+        Name to interpret. Assumes the name has no units designated with
+        brackets or parenthesis.
+    config : dict
+        Configuration dictionary.
+
+    Returns
+    -------
+    openest.generate.selfdocumented.DocumentedFunction
+    """
     if ' ** ' in name:
         chunks = name.split(' ** ', 1)
         internal_left = interpret_ds_transform(chunks[0], config)
@@ -48,7 +63,27 @@ def interpret_ds_transform(name, config):
                 internal = interpret_wrap_transform(chunk, internal)
             return internal
 
+    # If can cast into float, simply use as scalar value.
+    try:
+        use_scalar = float(name)
+
+        # Create a FastDataset populated with the name and scalar...
+        def out(ds):
+            # Get first available non-coordinate variable.
+            noncoord_var = [x for x in ds.variables.keys() if x not in ds.coords.keys()][0]
+            new_shape = ds[noncoord_var]._values.shape
+            new_coords = list(ds.original_coords)
+            darray = fast_dataset.FastDataArray(np.ones(new_shape) * use_scalar,
+                                                new_coords, ds)
+            return darray
+
+        return selfdocumented.DocumentedFunction(out, name)
+
+    except ValueError:
+        pass
+
     return get_post_process(name, config)
+
 
 def interpret_wrap_transform(transform, internal):
     if transform[:4] == 'bin(':
@@ -58,18 +93,18 @@ def interpret_wrap_transform(transform, internal):
             return internal(ds).sel(refTemp=value)
         return selfdocumented.DocumentedFunction(getbin, "Extract bin from weather",
                                                  docargs=[internal, value])
-    
+
     assert False, "Unknown transform" + transform
 
 def get_post_process(name, config):
     if 'final-t' in config:
         return selfdocumented.DocumentedFunction(lambda ds: post_process(ds, name, config), "Select time %d" % config['final-t'], docargs=[name])
-    
+
     if 'within-season' in config:
         return selfdocumented.DocumentedFunction(lambda ds: post_process(ds, name, config), "Limit to within season", docargs=[name])
 
     return selfdocumented.DocumentedFunction(lambda ds: ds[name], "Extract from weather", docfunc=lambda x: x, docargs=[name])
-    
+
 def post_process(ds, name, config):
     dataarr = ds[name]
 
@@ -86,7 +121,7 @@ def post_process(ds, name, config):
             del new_shape[new_coords.index('time')]
             del new_coords[new_coords.index('time')]
             return fast_dataset.FastDataArray(np.zeros(tuple(new_shape)), new_coords, ds)
-    
+
     if 'within-season' in config:
         if len(dataarr) == 24:
             culture = irvalues.get_file_cached(config['within-season'], irvalues.load_culture_months).get(ds.region, None)
