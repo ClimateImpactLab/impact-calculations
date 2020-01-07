@@ -24,7 +24,6 @@ def simultaneous_application(weatherbundle, calculation, regions=None, push_call
             print "WARNING: fewer regions in weather than expected; dropping from end."
 
         print "Push", year
-
         for region, subds in fast_dataset.region_groupby(ds, year, regions, region_indices):
             for yearresult in applications[region].push(subds):
                 yield (region, yearresult[0], yearresult[1:])
@@ -72,7 +71,7 @@ def write_ncdf(targetdir, basename, weatherbundle, calculation, description, cal
     except Exception as ex:
         print "Failed to open file for writing at " + os.path.join(targetdir, basename + '.nc4')
         raise ex
-    
+
     rootgrp.description = description
     rootgrp.version = headre.dated_version(basename)
     rootgrp.dependencies = ', '.join([weatherbundle.version] + weatherbundle.dependencies + calculation_dependencies)
@@ -80,11 +79,17 @@ def write_ncdf(targetdir, basename, weatherbundle, calculation, description, cal
 
     years = nc4writer.make_years_variable(rootgrp)
     regions = nc4writer.make_regions_variable(rootgrp, my_regions, subset)
+    
+    if deltamethod_vcv is not False:
+        rootgrp.createDimension('coefficient', deltamethod_vcv.shape[0])
 
+        vcv = rootgrp.createVariable('vcv', 'f4', ('coefficient', 'coefficient'))
+        vcv.long_title = "Variance covariance matrix"
+        vcv[:, :] = deltamethod_vcv
+    
     yeardata = weatherbundle.get_years()
 
     infos = calculation.column_info()
-    print calculation.unitses
     columns = []
     # Store all in columndata, for faster feeding in
     columndata = [] # [matrix(year x region)]
@@ -103,6 +108,13 @@ def write_ncdf(targetdir, basename, weatherbundle, calculation, description, cal
         columns.append(column)
         columndata.append(np.zeros((len(yeardata), len(my_regions))) * np.nan)
 
+        if deltamethod_vcv is not False:
+            column = rootgrp.createVariable(myname + '_bcde', 'f4', ('coefficient', 'year', 'region'))
+            column.long_title = infos[ii]['title'] + " by coefficient deltamethod evaluation"
+
+            columns.append(column)
+            columndata.append(np.zeros((deltamethod_vcv.shape[0], len(yeardata), len(my_regions))) * np.nan)
+
     nc4writer.make_str_variable(rootgrp, 'operation', 'orderofoperations', list(reversed(usednames)),
                                 "Order of the operations applied to the input weather data.")
 
@@ -112,7 +124,7 @@ def write_ncdf(targetdir, basename, weatherbundle, calculation, description, cal
         diagnostic.begin(diagnosefile, finishset=set(['input', 'output']))
 
     region_indices = {region: my_regions.index(region) for region in my_regions}
-        
+
     for region, year, results in simultaneous_application(weatherbundle, calculation, regions=my_regions, push_callback=push_callback):
         for col in range(len(results)):
             if deltamethod_vcv is not False:
@@ -120,7 +132,8 @@ def write_ncdf(targetdir, basename, weatherbundle, calculation, description, cal
                 for ii in range(len(results[col])):
                     for jj in range(len(results[col])):
                         variance += deltamethod_vcv[ii, jj] * results[col][ii] * results[col][jj]
-                columndata[col][year - yeardata[0], region_indices[region]] = variance
+                columndata[2 * col][year - yeardata[0], region_indices[region]] = variance
+                columndata[2 * col + 1][:, year - yeardata[0], region_indices[region]] = results[col]
             else:
                 columndata[col][year - yeardata[0], region_indices[region]] = results[col]
         if diagnosefile:
@@ -130,7 +143,11 @@ def write_ncdf(targetdir, basename, weatherbundle, calculation, description, cal
         diagnostic.close()
 
     for col in range(len(results)):
-        columns[col][:, :] = columndata[col]
+        if deltamethod_vcv is not False:
+            columns[2 * col][:, :] = columndata[2 * col]
+            columns[2 * col + 1][:, :, :] = columndata[2 * col + 1]
+        else:
+            columns[col][:, :] = columndata[col]
 
     rootgrp.close()
 

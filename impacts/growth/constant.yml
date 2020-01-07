@@ -1,0 +1,16 @@
+timerate: year
+climate: [ meantas-.country ]
+models:
+  - csvvs: ./impacts/growth/burkeetal.csvv
+    clipping: false
+    specification:
+      functionalform: polynomial
+      variable: meantas
+      coeffvar: tas
+      description: Change in ln(GDP per capita) from Burke et al.
+      allow-raising: true
+      depenunit: ln(GDPpc)/year
+      indepunit: C
+      calculation:
+        - YearlyApply
+        - Rebase

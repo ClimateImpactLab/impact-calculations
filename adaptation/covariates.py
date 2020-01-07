@@ -1,5 +1,6 @@
 import itertools
 import numpy as np
+import xarray as xr
 from openest.generate import fast_dataset
 from econmodel import *
 from datastore import agecohorts, irvalues
@@ -121,7 +122,25 @@ class BinnedEconomicCovariator(EconomicCovariator):
     def get_update(self, region, year, ds):
         covars = super(BinnedEconomicCovariator, self).get_update(region, year, ds)
         return self.add_bins(covars)
-    
+
+class ShiftedEconomicCovariator(EconomicCovariator):
+    def __init__(self, economicmodel, maxbaseline, config={}):
+        super(ShiftedEconomicCovariator, self).__init__(economicmodel, maxbaseline, config=config)
+        assert 'loggdppc-delta' in config, "Must define loggdppc-delta to use loggdppc-shifted."
+        self.delta = config['loggdppc-delta']
+
+    def add_shifted(self, covars):
+        covars['loggdppc-shifted'] = covars['loggdppc'] - self.delta
+        return covars
+        
+    def get_current(self, region):
+        covars = super(ShiftedEconomicCovariator, self).get_current(region)
+        return self.add_shifted(covars)
+
+    def get_update(self, region, year, ds):
+        covars = super(ShiftedEconomicCovariator, self).get_update(region, year, ds)
+        return self.add_shifted(covars)
+
 class MeanWeatherCovariator(Covariator):
     def __init__(self, weatherbundle, maxbaseline, variable, config={}, quiet=False):
         super(MeanWeatherCovariator, self).__init__(maxbaseline)
@@ -229,6 +248,8 @@ class SeasonalWeatherCovariator(MeanWeatherCovariator):
         return self.get_current(region)
 
 def get_single_value(numpylike):
+    if isinstance(numpylike, xr.DataArray):
+        return get_single_value(numpylike.values)
     dims = np.sum(np.array(numpylike).shape)
     if dims == 0:
         return numpylike
@@ -250,6 +271,7 @@ class YearlyWeatherCovariator(Covariator):
 
         for ds in yearlyreader.read_iterator():
             year = get_single_value(ds[yearlyreader.timevar])
+            print year
             for ii in range(len(regions)):
                 predictors[regions[ii]].update(ds[yearlyreader.variables[0]][ii])
             if year == baseline_end:
