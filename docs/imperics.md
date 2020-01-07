@@ -105,6 +105,14 @@ modifications to standard variable names.
  - A path
  - A variable followed by `==<version>`
  - `<name> = ` followed by another standard variable definition
+ - `<name>.<transform>`: A known transformation of a variable. The transformation is by default done at the daily level before being transformed to the desired time rate; the name could have the suffix `-` to be also looked up at the daily level.
+ - `<name> * <name>`: A product of two variables, taken at the daily level before any aggregation.
+
+Some of the known transformations are:
+ - `histclim`: The historical climate only.
+ - `gddkdd(low, high)`: generate GDD and KDD values with the given temperature limits
+ - `step(limit, before, after)`: Generate a step function, stepping from `before` to `after` at the value `limit`.
+ - `country`: country level averages
 
 ## Specification configuration:
 
