@@ -2,6 +2,7 @@ import os
 import numpy as np
 from netCDF4 import Dataset
 import nc4writer, agglib
+from datastore import spacetime, irregions
 
 suffix = "-aggregated"
 outputdir = '/shares/gcp/outputs/temps'
@@ -65,8 +66,14 @@ if __name__ == '__main__':
     import sys
     from datastore import population
 
+    dependencies = []
+    
     halfweight = population.SpaceTimeBipartiteData(1981, 2099, None)
-    stweight = halfweight.load(1981, 2099, 'high', 'SSP2')
+    pop_stweight = halfweight.load(1981, 2099, 'high', 'SSP2')
+
+    areas = irregions.load_region_attr("regions/region-attributes-geom.csv", "hierid", "area", dependencies)
+    halfweight = spacetime.SpaceTimeSpatialOnlyData(areas)
+    area_stweight = halfweight.load(1981, 2099, 'high', 'SSP2')
 
     for rcp, gcm, targetdir in iterresults(outputdir):
         print targetdir
@@ -76,5 +83,9 @@ if __name__ == '__main__':
                 print filename
 
                 # Aggregate impacts
-                make_aggregates(targetdir, filename, stweight)
+                if filename == 'areatas.nc4':
+                    print "Using area weighting."
+                    make_aggregates(targetdir, filename, area_stweight)
+                else:
+                    make_aggregates(targetdir, filename, pop_stweight)
                 
