@@ -3,7 +3,7 @@ grid-weight: cropwt
 rolling-years: 2
 climate: [ tasmax, edd, pr, pr-poly-2 = pr-monthsum-poly-2 ]
 models:
-  - csvvs: "social/parameters/agriculture/corn/corn_global_t-tbar_pbar_lnincbr_ir_tp_binp-tbar_pbar_lnincbr_ir_tp_fg_fe-A1TT_A0Y_clus-A1_A0Y_TINV-190816.csvv"
+  - csvvs: "social/parameters/agriculture/corn/corn_global_t-tbar_pbar_lnincbr_ir_tp_binp-tbar_pbar_lnincbr_ir_tp_fg_fe-A1TT_A0Y_clus-A1_A0Y_TINV_updated-191113.csvv"
     within-season: "social/baselines/agriculture/world-combo-201710-growing-seasons-corn-1stseason.csv"
     clipping: false
     covariates:
@@ -57,12 +57,17 @@ models:
       - Sum:
         - YearlySumIrregular:
             model: gddkdd
+            drop: true
         - YearlySumIrregular:
             model: precip
+            drop: true
         - YearlySumIrregular:
             model: gddprecip
+            drop: true
         - YearlySumIrregular:
             model: kddprecip
+            drop: true
+        - drop: true
       - AuxillaryResult:
         - PartialDerivative:
             covariate: seasonaltasmax

@@ -69,7 +69,19 @@ def get_unitsarg(name, argtype, get_argument, has_argument, savedargs, extras):
     if argtype.isa(arguments.output_unit) and argtype.name != 'depenunit':
         return get_unitsarg(name, argtype.rename('depenunit'), get_argument, has_argument, savedargs, extras)
     raise ValueError("Could not find required units %s of %s" % (argtype.name, name))
-    
+
+def get_namedarg(args, name):
+    """Return the requested argument, handling aliases."""
+    if name in args:
+        return args[name]
+
+    if name == 'unshift':
+        return not args['drop']
+    if name == 'drop':
+        return not args['unshift']
+
+    raise KeyError(name)
+
 def create_calcstep(name, args, models, subcalc, extras={}):
     if name == 'Rebase':
         if isinstance(args, dict):
@@ -90,7 +102,7 @@ def create_calcstep(name, args, models, subcalc, extras={}):
         get_argument = lambda name: remainingargs.pop(0)
         has_argument = lambda name: len(remainingargs) > 0
     else:
-        get_argument = lambda name: args[name]
+        get_argument = lambda name: get_namedarg(args, name)
         has_argument = lambda name: name in args
         if 'model' in args:
             # Set this up as the default model
@@ -150,7 +162,7 @@ def create_calcstep(name, args, models, subcalc, extras={}):
                     continue
                 elif getattr(argtype, 'is_optional', False):
                     if isinstance(arg, dict) and len(arg) == 1 and argtype.name in arg:
-                        kwargs[argtype.name] = arg[argtype.name]
+                        kwargs[argtype.name] = get_namedarg(arg, argtype.name)
                     else:
                         kwargs[argtype.name] = arg
                 else:
