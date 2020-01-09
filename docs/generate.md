@@ -48,3 +48,18 @@ first three, `length` is the length to the last non-zero term in the
 kernel; for the last, it's the decay-rate of the exponential decay.
 Always use spaces to indent these parameters.
 
+## Reduced adaptation speed
+
+As a sensitivity test, we have a simple way to halve the speed of
+adaptation. This is supported for income and climate adaptation.
+
+In both cases, we calculate the regional initial value of the
+covariate. Call this Z_0, and let the covariate calculated in a future
+year be Z_t. Then, we perform the calculations using the covariate
+values (Z_0 + Z_t) / 2. This halves the linear growth rate.
+
+In the case of income, the original covariate value is log GDP per
+capita (this is also the original covariate when binned covariates are
+used). The reduced adaptation rate in this case is equivalent to
+calculating Y_0 exp(g t / 2), for initial income level Y_0 and growth
+rate g.
