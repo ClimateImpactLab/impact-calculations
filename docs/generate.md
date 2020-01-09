@@ -63,3 +63,10 @@ capita (this is also the original covariate when binned covariates are
 used). The reduced adaptation rate in this case is equivalent to
 calculating Y_0 exp(g t / 2), for initial income level Y_0 and growth
 rate g.
+
+These are activated by including the `slowadapt` option in the run
+configuration file. The possible values for `slowadapt` are:
+
+`slowadapt: income`: Halve the growth rate of income.
+`slowadapt: temperature`: Halve the rate of climate covariate increase.
+`slowadapt: both`: Halve both income and temperature growth rates.
