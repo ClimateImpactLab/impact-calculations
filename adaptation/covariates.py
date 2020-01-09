@@ -188,16 +188,31 @@ class MeanWeatherCovariator(Covariator):
         self.temp_predictors = temp_predictors
         self.weatherbundle = weatherbundle
 
+        if config.get('slowadapt', 'none') in ['both', 'temperature']:
+            self.slowadapt = True
+            baseline_predictors = {}
+            for region in temp_predictors:
+                baseline_predictors[region] = temp_predictors[region].get()
+            self.baseline_predictors = baseline_predictors
+        else:
+            self.slowadapt = False
+
     def get_current(self, region):
         #assert region in self.temp_predictors, "Missing " + region
-        return {self.variable: self.temp_predictors[region].get()}
+        if self.slowadapt:
+            return {self.variable: (self.temp_predictors[region].get() + self.baseline_predictors[region]) / 2}
+        else:
+            return {self.variable: self.temp_predictors[region].get()}
 
     def get_update(self, region, year, ds):
         """Allow ds = None for incadapt farmer who cannot adapt to temperature."""
         if ds is not None and year > self.startupdateyear:
             self.temp_predictors[region].update(np.mean(ds[self.variable]._values)) # if only yearly values
 
-        return {self.variable: self.temp_predictors[region].get(), 'year': year}
+        if self.slowadapt:
+            return {self.variable: (self.temp_predictors[region].get() + self.baseline_predictors[region]) / 2, 'year': year}
+        else:
+            return {self.variable: self.temp_predictors[region].get(), 'year': year}
 
 class SubspanWeatherCovariator(MeanWeatherCovariator):
     def __init__(self, weatherbundle, maxbaseline, day_start, day_end, variable, config={}):
