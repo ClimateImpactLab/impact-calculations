@@ -76,8 +76,8 @@ def get_namedarg(args, name):
         return args[name]
 
     if name == 'unshift':
-        return not args['drop']
-    if name == 'drop':
+        return not args['dropprev']
+    if name == 'dropprev':
         return not args['unshift']
 
     raise KeyError(name)
@@ -94,7 +94,7 @@ def create_calcstep(name, args, models, subcalc, extras={}):
         assert isinstance(args, dict)
         assert 'covariate' in args and 'covarunit' in args
         return subcalc.partial_derivative(args['covariate'], args['covarunit'])
-    
+
     cls = getattr(stdlib, name)
 
     if isinstance(args, list):
@@ -146,6 +146,9 @@ def create_calcstep(name, args, models, subcalc, extras={}):
                 arglist.append(prepare_argument(argtype.name, get_argument(argtype.name), models, argtype, extras=extras))
         elif argtype.name in ['input_unit', 'output_unit'] and argtype.name in savedargs:
             arglist.append(savedargs[argtype.name])
+        elif argtype.types == [list] and isinstance(args, list) and cls.describe()['arguments'][-1] == argtype: # Allow a trailing list to capture remaining arguments
+            arglist.append(remainingargs)
+            remainingargs = []
         else:
             if not has_argument(argtype.name):
                 gotarg = False

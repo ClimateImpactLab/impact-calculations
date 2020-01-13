@@ -57,17 +57,12 @@ models:
       - Sum:
         - YearlySumIrregular:
             model: gddkdd
-            drop: true
         - YearlySumIrregular:
             model: precip
-            drop: true
         - YearlySumIrregular:
             model: gddprecip
-            drop: true
         - YearlySumIrregular:
             model: kddprecip
-            drop: true
-        - drop: true
       - AuxillaryResult:
         - PartialDerivative:
             covariate: seasonaltasmax
@@ -80,3 +75,7 @@ models:
         - ddseasonalpr
       - Rebase
       - Exponentiate
+      - KeepOnly:
+        - ddseasonaltasmax
+        - ddseasonalpr
+        - exp
