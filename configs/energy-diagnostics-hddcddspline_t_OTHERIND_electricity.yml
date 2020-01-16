@@ -12,3 +12,4 @@ climcovar:
    class: mean
    length: 15
 loggdppc-delta: 9.087
+yearcovarscale: 2
