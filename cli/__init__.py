@@ -34,8 +34,8 @@ def generate(confpath, conf):
     """Run the impact projection generate system with configuration file"""
     file_configs = get_file_config(confpath)
     arg_configs = dict(arg.split('=') for arg in conf)
-    configs_out = file_configs.update(arg_configs)
-    gg.main(configs_out, str(confpath))
+    file_configs.update(arg_configs)
+    gg.main(file_configs, str(confpath))
 
 
 @impactcalculations_cli.command(
