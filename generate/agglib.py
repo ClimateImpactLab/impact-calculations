@@ -25,6 +25,29 @@ def iterresults(outdir, batchfilter=lambda batch: True, targetdirfilter=lambda t
                         yield batch, clim_scenario, clim_model, econ_scenario, econ_model, espath
 
 def copy_timereg_variable(writer, variable, key, dstvalues, suffix, unitchange=lambda x: x, timevar='year'):
+    """Creates a copy of the source variable, with the given aggregated data.
+
+    This is called after we have already done the aggregation, to copy
+    the result into the `writer` output file.
+
+    Parameters
+    ----------
+    writer : NetCDF4.Dataset
+        The target file; should already have dimensions defined.
+    variable : NetCDF4.Variable
+        The unaggregated variable, to copy metadata.
+    key : str
+        The name of the variable
+    dstvalues : array_like
+        A 2D matrix (time x region) containing the aggregated data.
+    suffix : str
+        Additional information to add to source metadata.
+    unitchange : function(str), optional
+        Transforms the original units to result units, if provided.
+    timevar : str
+        The name of the time dimension.
+    """
+    # Create the output variable
     column = writer.createVariable(key, 'f4', (timevar, 'region'))
     if hasattr(variable, 'units'):
         column.units = unitchange(variable.units)
@@ -36,27 +59,76 @@ def copy_timereg_variable(writer, variable, key, dstvalues, suffix, unitchange=l
     column[:, :] = dstvalues
 
 def iter_timereg_variables(reader, timevar='year'):
+    """Locates all variables that have time and region dimensions and can be aggregated.
+
+    We can aggregate any variable that has dimensions (time x
+    region). We also handle an old case where weather variables were
+    stored as (time x region x singleton dimension).
+
+    Parameters
+    ----------
+    reader : NetCDF4.Dataset
+        The source for variables we want to process.
+    timevar : str
+        The name of the time dimension.
+
+    Yields
+    ------
+    tuple(str, NetCDF4.Variable)
+        Yields each variable we can process
+    """
+    # Look through all variables
     for key in reader.variables.keys():
         if (timevar, 'region') == reader.variables[key].dimensions:
+            # Yield this (time, region) variable
             print key
             variable = reader.variables[key]
 
             yield key, variable
         elif (timevar, 'region') == reader.variables[key].dimensions[:2] and reader.variables[key].shape[2] == 1: # This is currently true of temps
+            # Yield this (time, region, singleton dimension) variable
             print key
             variable = reader.variables[key][:, :, 0]
 
             yield key, variable
 
 def get_aggregated_regions(regions):
-    # Collect all levels of aggregation
+    """Returns all higher-level regions associated with IR list regions.
+    
+    This works by assuming that IR keys are named hierarchically, so
+    the IR region "USA.16.208" is included in three aggregations: ""
+    (the global aggregation), "USA" (country-level), and "USA.16"
+    (state-level).
+
+    We also include regions from the FUND model, as keys of the form
+    FUND-key.
+
+    Parameters
+    ----------
+    regions : sequence of str
+        List of IR keys, like "USA.16.208"
+
+    Returns
+    -------
+    tuple(dict, list, list)
+        - The first item is a dictionary with a key for each
+        aggregated region, associated with a list of a list of all
+        contained IR keys.
+        - The second item is a list of all identified aggregated
+        region keys.
+        - The third item is a list of dependencies, acquired in the
+        process.
+
+    """
+    # Collect regions into lists at levels of aggregation
     originals = {} # { prefix: [region] }
     for region in regions:
         original = region
         if len(region) == 3:
             originals[region] = [region]
             continue # Add single-region countries
-        
+
+        # Iterate up the IR key structure, to get all levels
         while len(region) > 3:
             region = region[:region.rindex('.')]
             if region in originals:
@@ -67,9 +139,11 @@ def get_aggregated_regions(regions):
     # Add the FUND regions
     dependencies = []
     with open(files.sharedpath('regions/macro-regions.csv'), 'r') as fp:
+        # Remove the metadata header
         aggreader = csv.reader(header.deparse(fp, dependencies))
         headrow = aggreader.next()
         for row in aggreader:
+            # Each row gives the FUND region for each ISO3 country code
             fundregion = 'FUND-' + row[headrow.index('FUND')]
             if fundregion not in originals:
                 originals[fundregion] = []
@@ -184,6 +258,3 @@ def config_targetdirfilter(clim_scenario, clim_model, econ_scenario, econ_model,
             return False
 
     return True
-
-
-            

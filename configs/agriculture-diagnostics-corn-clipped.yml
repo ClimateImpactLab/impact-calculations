@@ -1,0 +1,6 @@
+module: impacts/agriculture/corn_prsplitmodel_tp.yml 
+mode: writecalcs
+outputdir: /shares/gcp/outputs/agriculture/impacts-mealy
+singledir: single-corn-190816-triple-interaction-precip-bins-TINV
+do_farmers: true
+do_historical: true

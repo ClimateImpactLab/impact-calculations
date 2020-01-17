@@ -1,13 +1,53 @@
+"""
+Classes for handling lazy-loaded spatiotemporal data.
+"""
+
 import numpy as np
 import numpy.matlib
 
 class SpaceTimeData(object):
+    """SpaceTimeData is the top-level class for providing spatiotemporal data.
+    It provides no data, but has information on the range of years and regions covered.
+
+    Parameters
+    ----------
+    year0 : int
+        The first year of the data
+    year1 : int
+        The last year of the data (inclusive of year1)
+    regions : sequence of str
+        Region names are generally drawn from the hierarchy.
+
+    """
     def __init__(self, year0, year1, regions):
         self.year0 = year0
         self.year1 = year1
         self.regions = regions
 
+    def load(self, year0, year1, model, scenario):
+        """Load data for the given model and scenario. Return an object that
+        supports the `get_time` method."""
+        raise NotImplementedError()
+        
 class SpaceTimeLoadedData(SpaceTimeData):
+    """SpaceTimeLoadedData contains the entire collection of space-time data as a matrix.
+    
+    Parameters
+    ----------
+    year0 : int
+        The first year of the data
+    year1 : int
+        The last year of the data (inclusive of year1)
+    regions : sequence of str
+        Region names are generally drawn from the hierarchy.
+    array : array_like
+        Should have (year1 - year0 + 1) rows and len(regions) columns.
+    ifmissing : None or 'mean' or 'logmean'
+        When a region is not in the data, return None or the mean or logmean timeseries.
+    adm3fallback : bool
+        If True, when a region is not in the data, instead the 3-character ADM0 suffix will be queried.
+
+    """
     def __init__(self, year0, year1, regions, array, ifmissing=None, adm3fallback=False):
         super(SpaceTimeLoadedData, self).__init__(year0, year1, regions)
         self.array = array # as YEAR x REGION
@@ -23,6 +63,7 @@ class SpaceTimeLoadedData(SpaceTimeData):
         self.adm3fallback = adm3fallback
             
     def get_time(self, region):
+        """Return a timeseries vector for the given region."""
         ii = self.indices.get(region, None)
         if ii is None:
             if self.adm3fallback and len(region) > 3:
@@ -33,6 +74,7 @@ class SpaceTimeLoadedData(SpaceTimeData):
         return self.array[:, ii]
 
     def load(self, year0, year1, model, scenario):
+        """Load the requied data. It's already loaded, so just return this."""
         return self
 
 class SpaceTimeLazyData(SpaceTimeData):
@@ -69,13 +111,14 @@ class SpaceTimeBipartiteData(SpaceTimeData):
 class SpaceTimeBipartiteFromProviderData(SpaceTimeData):
     def __init__(self, Provider, year0, year1, regions):
         super(SpaceTimeBipartiteFromProviderData, self).__init__(year0, year1, regions)
+        self.Provider = Provider
 
     def load(self, year0, year1, model, scenario):
-        provider = Provider(model, scenario)
+        provider = self.Provider(model, scenario)
         return SpaceTimeLazyData(year0, year1, self.regions, lambda region: self.adjustlen(year0, year1, provider.get_startyear(),
                                                                                            provider.get_timeseries(region)))
 
-    def adjustlen(year0, year1, startyear, series):
+    def adjustlen(self, year0, year1, startyear, series):
         if startyear < year0:
             prepared = series[year0 - startyear:]
         elif startyear > year0:
@@ -84,10 +127,11 @@ class SpaceTimeBipartiteFromProviderData(SpaceTimeData):
         else:
             prepared = series
 
-        if year1 - year0 < len(prepared):
+        # Inclusive of the last year
+        if year1 - year0 + 1 < len(prepared):
             prepared = prepared[:year1 - year0]
-        elif year1 - year0 > len(prepared):
-            prepared.extend([prepared[-1]] * (year1 - year0 - len(prepared)))
+        elif year1 - year0 + 1 > len(prepared):
+            prepared.extend([prepared[-1]] * (year1 - year0 + 1 - len(prepared)))
 
         return prepared
             

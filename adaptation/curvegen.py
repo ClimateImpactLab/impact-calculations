@@ -1,11 +1,27 @@
+import copy
 import numpy as np
 from openest.generate.curvegen import *
-from openest.generate import checks, fast_dataset, formatting
+from openest.generate import checks, fast_dataset, formatting, smart_curve, formattools
+from openest.models.curve import FlatCurve
 
 region_curves = {}
 
 class CSVVCurveGenerator(CurveGenerator):
-    def __init__(self, prednames, indepunits, depenunit, csvv, betalimits={}):
+    """
+
+    Parameters
+    ----------
+    prednames : sequence of str
+        Independent variable names.
+    indepunits : sequence of str
+        Independent variable units.
+    depenunit : str
+        Dependent variable unit.
+    csvv : dict
+        CSVV dict as produced by `interpret.container.produce_csvv`.
+    betalimits: dict
+    """
+    def __init__(self, prednames, indepunits, depenunit, csvv, betalimits={}, ignore_units=False):
         super(CSVVCurveGenerator, self).__init__(indepunits, depenunit)
 
         assert isinstance(prednames, list) or isinstance(prednames, set) or isinstance(prednames, tuple)
@@ -13,38 +29,59 @@ class CSVVCurveGenerator(CurveGenerator):
         self.csvv = csvv
         self.betalimits = betalimits
 
-        for ii, predname in enumerate(prednames):
-            if predname not in csvv['variables']:
-                print "WARNING: Predictor %s definition not found in CSVV." % predname
+        if not ignore_units:
+            for ii, predname in enumerate(prednames):
+                if predname not in csvv['variables']:
+                    print "WARNING: Predictor %s definition not found in CSVV." % predname
+                else:
+                    if 'unit' in csvv['variables'][predname]:
+                        assert checks.loosematch(csvv['variables'][predname]['unit'], indepunits[ii]), "Units error for %s: %s <> %s" % (predname, csvv['variables'][predname]['unit'], indepunits[ii])
+
+            if 'outcome' not in csvv['variables']:
+                print "WARNING: Dependent variable definition not in CSVV."
             else:
-                if 'unit' in csvv['variables'][predname]:
-                    assert checks.loosematch(csvv['variables'][predname]['unit'], indepunits[ii]), "Units error for %s: %s <> %s" % (predname, csvv['variables'][predname]['unit'], indepunits[ii])
+                assert checks.loosematch(csvv['variables']['outcome']['unit'], depenunit), "Dependent units %s does not match %s." % (csvv['variables']['outcome']['unit'], depenunit)
 
-        if 'outcome' not in csvv['variables']:
-            print "WARNING: Dependent variable definition not in CSVV."
-        else:
-            assert checks.loosematch(csvv['variables']['outcome']['unit'], depenunit), "Dependent units %s does not match %s." % (csvv['variables']['outcome']['unit'], depenunit)
+        self.fill_marginals()
 
+    def fill_marginals(self):
         # Preprocessing
         self.constant = {} # {predname: constant}
         self.predcovars = {} # {predname: [covarname]}
         self.predgammas = {} # {predname: np.array}
-        for predname in set(prednames):
+        for predname in set(self.prednames):
             self.predcovars[predname] = []
             self.predgammas[predname] = []
 
-            indices = [ii for ii, xx in enumerate(csvv['prednames']) if xx == predname]
+            indices = [ii for ii, xx in enumerate(self.csvv['prednames']) if xx == predname]
             for index in indices:
-                if csvv['covarnames'][index] == '1':
+                if self.csvv['covarnames'][index] == '1':
                     assert predname not in self.constant
-                    self.constant[predname] = csvv['gamma'][index]
+                    self.constant[predname] = self.csvv['gamma'][index]
                 else:
-                    self.predcovars[predname].append(csvv['covarnames'][index])
-                    self.predgammas[predname].append(csvv['gamma'][index])
+                    self.predcovars[predname].append(self.csvv['covarnames'][index])
+                    self.predgammas[predname].append(self.csvv['gamma'][index])
 
             self.predgammas[predname] = np.array(self.predgammas[predname])
 
     def get_coefficients(self, covariates, debug=False):
+        """
+
+        Parameters
+        ----------
+        covariates : dict
+            Dictionary with string variable keys and float values. The keys in
+            `covariates` must correspond to keys in `self.predcovars` and
+            items in `self.predname`.
+        debug : bool, optional
+            If True, prints intermediate terms for debugging.
+
+        Returns
+        -------
+        coefficients : dict
+            With str keys giving variable names and values giving the
+            corresponding float coefficients.
+        """
         coefficients = {} # {predname: sum}
         for predname in set(self.prednames):
             if len(self.predgammas[predname]) == 0:
@@ -60,7 +97,9 @@ class CSVVCurveGenerator(CurveGenerator):
                 except Exception as e:
                     print "Available covariates:"
                     print covariates
-                    raise e
+                    print "Requested covariates:"
+                    print self.predcovars[predname]
+                    raise
 
         return coefficients
 
@@ -91,7 +130,17 @@ class CSVVCurveGenerator(CurveGenerator):
         return np.array(terms)
     
 class FarmerCurveGenerator(DelayedCurveGenerator):
-    """Handles different adaptation assumptions."""
+    """Handles different adaptation assumptions.
+
+    Parameters
+    ----------
+    curvegen : openest.generate.curvegen.CurveGenerator-like
+    covariator : adaptation.covariates.CombinedCovariator
+    farmer : {'full', 'noadapt', 'incadapt'}
+        Type of farmer adaptation.
+    save_curve : bool, optional
+        Do you want to save this curve in `adaptation.region_curves`?
+    """
     def __init__(self, curvegen, covariator, farmer='full', save_curve=True):
         super(FarmerCurveGenerator, self).__init__(curvegen)
         self.covariator = covariator
@@ -101,6 +150,24 @@ class FarmerCurveGenerator(DelayedCurveGenerator):
         self.lincom_last_year = {}
 
     def get_next_curve(self, region, year, *args, **kwargs):
+        """
+
+        Parameters
+        ----------
+        region : str
+            Region code
+        year : int
+        args :
+            We do nothing with this.
+        kwargs :
+            If `self.farmer` is 'full', pass `kwargs['weather']` to
+            `self.covariator.offer_update()` 'ds'.
+
+        Returns
+        -------
+        openest.generate.SmartCurve-like
+
+        """
         if year < 2015:
             if region not in self.last_curves:
                 covariates = self.covariator.get_current(region)
@@ -129,6 +196,17 @@ class FarmerCurveGenerator(DelayedCurveGenerator):
 
         return curve
 
+    def get_partial_derivative_curvegen(self, covariate, covarunit):
+        """
+        Returns a CurveGenerator that calculates the partial
+        derivative with respect to a covariate.
+        """
+        if self.farmer in ['noadapt', 'incadapt']:
+            return ConstantCurveGenerator(self.indepunits, self.depenunit + '/' + covarunit, FlatCurve(0))
+
+        return FarmerCurveGenerator(self.curvegen.get_partial_derivative_curvegen(covariate, covarunit),
+                                    self.covariator, self.farmer, self.save_curve)
+        
     def get_lincom_terms(self, region, year, predictors={}, origds=None):
         # Get last covariates
         if self.lincom_last_year.get(region, None) == year:
@@ -203,3 +281,34 @@ class DifferenceCurveGenerator(CurveGenerator):
         result.update(equation_two)
         result['main'] = formatting.FormatElement("%s - %s" % (equation_one['main'].repstr, equation_two['main'].repstr), self.one.dependencies + self.two.dependencies)
         return result
+
+class SumCurveGenerator(CurveGenerator):
+    """
+    Sum a list of CSVVCurveGenerators, where each applies coefficients with a different suffix
+    """
+    def __init__(self, csvvcurvegens, coeffsuffixes):
+        super(SumCurveGenerator, self).__init__(csvvcurvegens[0].indepunits, csvvcurvegens[0].depenunit)
+        curvegens = []
+        for tt in range(len(coeffsuffixes)):
+            curvegen = csvvcurvegens[tt]
+            curvegen.prednames = [predname + "-%s" % coeffsuffixes[tt] for predname in curvegen.prednames]
+            curvegen.fill_marginals()
+            curvegens.append(curvegen)
+        
+        self.curvegens = curvegens
+        self.coeffsuffixes = coeffsuffixes
+
+    def get_curve(self, region, year, covariates={}, **kwargs):
+        curves = [curvegen.get_curve(region, year, covariates, **kwargs) for curvegen in self.curvegens]
+        return smart_curve.SumCurve(curves)
+
+    def format_call(self, lang, *args):
+        elementsets = [curvegen.format_call(lang, *args) for curvegen in self.curvegens]
+        return formattools.join(" + ", elementsets)
+    
+    def get_partial_derivative_curvegen(self, covariate, covarunit):
+        """
+        Returns a CurveGenerator that calculates the partial
+        derivative with respect to a covariate.
+        """
+        return SumCurveGenerator([curvegen.get_partial_derivative_curvegen(covariate, covarunit) for curvegen in self.curvegens], self.coeffsuffixes)

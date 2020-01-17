@@ -1,0 +1,65 @@
+---
+source_variable: tas
+file_dependencies:
+  '1.1': '1.1'
+file: /global/home/users/jsimcock/code/documentation/scripts/climate/transformation/cmip/tas_poly_bcsd.py
+repo: https://github.com/ClimateImpactLab/Climate/climate-transforms-tas-poly
+probability_method: SMME
+aggwt: popwt
+oneline: Powers of daily average temperature
+agglev: hierid
+year: '2017'
+variable: tas
+description: 'Powers of daily average temperature
+
+
+  Values are daily mean temperature raised to various powers for use in polynomial
+  response functions, aggregated to impact regions/hierids using population weights.
+  Data is reported at the daily level using a 365-day calendar (leap years excluded)
+  in the format YYYYDDD.
+
+
+  version 1.6 An error in the NASA BCSD files in which daily      tasmin was sometimes
+  greater than daily tasmax was corrected      by masking out the problem grid cells
+  in both tasmin and tasmax,      and then linearly interpolating over those regions.      This
+  correction slightly changes their resulting average (tas).
+
+
+  version 1.5 fixes another bug in which grid cells with zero population were     replaced
+  with backup (area) weights. This is incorrect - only NaN values     should be replaced.
+
+
+  version 1.4 fixes a bug which dropped regions with no population. Now, these     regions
+  draw on gridded data using backup (area) weights.
+
+
+  version 1.3 updated with correct K --> C conversion (273.15, not 237.15). Kudos    to
+  @jrising for the catch.
+
+
+  version 1.1 and 1.2 updated metadata to conform to @jrising''s spec
+
+
+  version 1.0 - initial release'
+execute: python /global/home/users/jsimcock/code/documentation/scripts/climate/transformation/cmip/tas_poly_bcsd.py
+  run
+scenario: rcp45
+author: Justin Simcock
+contact: jsimcock@rhg.com
+project: gcp
+frequency: daily
+version: '1.6'
+team: climate
+units: C
+dependencies: ''
+model: CCSM4
+variables:
+  tas:
+    description: 'Daily average temperature (degrees C)
+
+
+      Leap years are removed before counting days (uses a 365 day calendar).'
+    long_title: Daily average temperature (degrees C)
+    units: C
+    variable: tas
+...
