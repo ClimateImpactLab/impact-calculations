@@ -1,12 +1,19 @@
 The aggregator tool is a post-processing tool which operates on
-IR-level generated response files.  It generates three kinds of files:
+impact-region (IR) level generated response files.  Any impact-region
+files can be aggregated. To do so, you need to describe the
+aggregation weighting scheme, which is encoded in a yaml configuration
+file, described below.
+
+It generates three kinds of files:
 
  - `-levels` files, which are scaled versions of the output files,
    using time-varying scaling, at the IR-level.
  - `-aggregated` files, which aggregate IR regions up to higher
    ADM-level, country-level, regional international groupings, and
    globally aggregated outputs.
- - `-costs` files, which estimate the cost bounds for adaptation.
+ - `-costs` files, which estimate the cost bounds for adaptation. For
+   cost files to be generated, an adaptation costs script needs to be
+   provided (talk with James for details).
 
 If the raw outputs are *y_it*, then the scaling scheme in the levels
 files produces *w_it y_it*, and the aggregation system computes
@@ -48,6 +55,8 @@ Optional:
 
  - `infix`: A label inserted before the term `-levels` and
    `-aggregated`, to distinguish multiple weighting schemes.
+ - `timeout`: The number of hours to allow the process to work, before
+   considering a directory abandoned (default: 24).
 
 Filtering Targets (also Optional):
 
@@ -62,9 +71,9 @@ Filtering Targets (also Optional):
    `/shares/gcp/.../SSP3`)  Do not include a tailing slash.
  - `basename`: Only aggregate results for a given basename (the portion of the filename before `.nc4`, typically copied from the name of the CSVV file).
 
-## Costs files
+## Adaptation Costs files
 
-For the cost files to be generated, the sector needs to be setup so
+For the adpatation cost files to be generated, the sector needs to be setup so
 that the normal output files include a `climtas_effect` variable.  If
 this is present, the `generate/cost_curves.R` script will be run to
 generate IR-level cost estimates, and then the aggregate script will
@@ -121,3 +130,39 @@ fully specified) and should be in quotes if it contains spaces;
 between 1 and 5, inclusive; and `<OUTPUT-FILE>` is a filename (ending
 with `.csv`) where the result should be stored.  Note the single `>`
 symbol above is required for the results to be written to this file.
+
+## Examples:
+
+Aggregate results by population, as -aggregated files. This will also produce -levels files
+that are the total impact across all people (the impacts times the
+population), which is sensible if the impact is a per-person result.
+
+```
+outputdir: [...]
+weighting: population
+```
+
+As above, but aggregate results by total GDP, and report total dollars
+lost for a per-person impact.
+
+```
+outputdir: [...]
+# Levels are minutes * wage / elasticity; wage = income / (250 days * 6 hours * 60 minutes); elasticity = 0.5
+levels-weighting: population * income / 180000
+aggregate-weighting: population * income
+infix: wage
+```
+
+Create kevels files by multiplying each result by the corresponding
+energy price, and the aggregated files by taking these price-scaled
+results and aggregating them by population. The resulting files will
+be called *-withprice-levels.nc4 and *-withprice-aggregated.nc4 to
+distinguish them from other aggregations.
+
+```
+outputdir: [...]
+levels-weighting: social/baselines/energy/IEA_Price_FIN_Clean_gr014_GLOBAL_COMPILE.dta:country:year:other_energycompile_price
+aggregate-weighting-numerator: population * social/baselines/energy/IEA_Price_FIN_Clean_gr014_GLOBAL_COMPILE.dta:country:year:other_energycompile_price
+aggregate-weighting-denominator: population
+infix: withprice
+```

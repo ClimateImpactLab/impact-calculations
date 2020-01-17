@@ -1,0 +1,6 @@
+outputdir: /shares/gcp/outputs/energy/unittest
+levels-weighting: social/baselines/energy/IEA_Price_FIN_Clean_gr014_GLOBAL_COMPILE.dta:country:year:other_energycompile_price
+aggregate-weighting-numerator: population * social/baselines/energy/IEA_Price_FIN_Clean_gr014_GLOBAL_COMPILE.dta:country:year:other_energycompile_price
+aggregate-weighting-denominator: population
+infix: withprice
+

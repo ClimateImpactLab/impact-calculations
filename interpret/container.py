@@ -11,6 +11,8 @@ def preload():
     pass
 
 def get_bundle_iterator(config):
+    if 'timerate' not in config:
+        print "Warning: 'timerate' not found in the configuration; assuming daily."
     timerate = config.get('timerate', 'day')
     discoverers = []
     for variable in config['climate']:

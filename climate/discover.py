@@ -112,10 +112,13 @@ def standard_variable(name, mytimerate, **config):
                 discover_versioned_binned(files.sharedpath('climate/BCSD/hierid/cropwt/monthly/edd_monthly'),
                                           'edd_monthly', 'refTemp', version=version, **config),
                 {'edd_monthly': 'edd'})
+        if name in ['pr', 'pr-poly-2']:
+            return discover_versioned(files.sharedpath('climate/BCSD/hierid/cropwt/monthly/' + name),
+                                      name, version=version, **config)
         if name in ['prmm', 'prmm-poly-2']:
             return discover_rename(
                 discover_versioned(files.sharedpath('climate/BCSD/hierid/cropwt/monthly/' + name.replace('prmm', 'pr')),
-                                   name.replace('prmm', 'pr'), version=version, **config), {name.replace('prmm', 'pr'), name})
+                                   name.replace('prmm', 'pr'), version=version, **config), {name.replace('prmm', 'pr'): name})
 
     if mytimerate == 'year':
         polyedvars = ['tas-cdd-20', 'tas-hdd-20']
@@ -140,7 +143,7 @@ def standard_variable(name, mytimerate, **config):
             return discover_rename(
                 discover_day2year(standard_variable('tas', 'day', **config), lambda arr, dim: np.mean(arr, axis=dim)), {'tas': 'meantas'})
             
-    raise ValueError("Unknown variable: " + name + ' at ' + mytimerate)
+    raise ValueError("Unknown %s variable: %s" % (mytimerate, name))
 
 def interpret_transform(var, transform):
     if transform == 'histclim':
