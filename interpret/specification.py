@@ -24,7 +24,7 @@ def user_assert(check, message):
         user_failure(message)
 
 def get_covariator(covar, args, weatherbundle, economicmodel, config={}, quiet=False):
-    """Intreprets a single entry in the covariates dictionary."""
+    """Intreprets a single entry in the covariates dictionary.
 
     Parameters
     ----------
@@ -70,7 +70,7 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config={}, quiet=F
         user_failure("Covariate %s is unknown." % covar)
         
 def create_covariator(specconf, weatherbundle, economicmodel, config={}, quiet=False):
-    """Interprets the entire covariates dictionary in the configuration file."""
+    """Interprets the entire covariates dictionary in the configuration file.
 
     Parameters
     ----------
