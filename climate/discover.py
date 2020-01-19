@@ -142,6 +142,8 @@ def standard_variable(name, mytimerate, **config):
         if name == 'meantas':
             return discover_rename(
                 discover_day2year(standard_variable('tas', 'day', **config), lambda arr, dim: np.mean(arr, axis=dim)), {'tas': 'meantas'})
+        if name == 'areatas-aggregated':
+            return discover_covariate(files.sharedpath("outputs/temps"), "areatas-aggregated.nc4", "annual")
             
     raise ValueError("Unknown %s variable: %s" % (mytimerate, name))
 
@@ -437,6 +439,17 @@ def discover_versioned_yearly(basedir, variable, version=None, reorder=True, **c
             
         yield scenario, model, pastreader, futurereader
 
+def discover_covariate(basedir, filename, variable):
+    for scenario in os.listdir(basedir):
+        if scenario[0:3] != 'rcp':
+            continue
+
+        for model in os.listdir(os.path.join(basedir, scenario)):
+            filepath = os.path.join(basedir, scenario, model, filename)
+            if os.path.exists(filepath):
+                reader = YearlyWeatherReader(filepath, 'annual', timevar='year', regionvar='regions')
+                yield scenario, model, reader, reader
+                                     
 def discover_makehist(discover_iterator):
     """Mainly used with .histclim for, e.g., lincom (since normal historical is at the bundle level)."""
     for scenario, model, pastreader, futurereader in discover_iterator:
