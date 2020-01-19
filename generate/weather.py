@@ -210,13 +210,17 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
     def yearbundles(self, maxyear=np.inf):
         """Yields xarray Datasets for each year up to (but not including) `maxyear`"""
         if len(self.pastfuturereaders) == 1:
+            year = None # In case no additional years in pastreader
             for ds in self.pastfuturereaders[0][0].read_iterator_to(min(self.futureyear1, maxyear)):
                 assert ds.region.shape[0] == len(self.regions), "Region length mismatch: %d <> %d" % (ds.region.shape[0], len(self.regions))
                 year = ds['time.year'][0]
                 for year2, ds2 in self.transformer.push(year, ds):
                     yield year2, ds2
 
-            lastyear = year
+            if year is None:
+                lastyear = self.futureyear1 - 1
+            else:
+                lastyear = year
             if maxyear > self.futureyear1:
                 for ds in self.pastfuturereaders[0][1].read_iterator_to(maxyear):
                     year = ds['time.year'][0]
