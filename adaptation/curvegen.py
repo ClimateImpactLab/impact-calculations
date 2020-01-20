@@ -1,3 +1,14 @@
+"""Classes that extend the open-estimate curve generation system for
+econometric results.
+
+Econometric models used by the CIL typically have covariates that
+describe the potential for sensitivity to adapt to future climates and
+wealth. The curves generated for a given region and year, then, are
+conditional on these climate and socioeconomic covariates. These
+classes encode the logic for using CSVVs to use these covariates. See
+docs/CSVV File Format Specification.pdf for more information.
+"""
+
 import copy
 import numpy as np
 from openest.generate.curvegen import *
