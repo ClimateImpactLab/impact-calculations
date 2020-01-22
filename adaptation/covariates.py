@@ -1,3 +1,29 @@
+"""Defines the covariate construction system.
+
+Covariates, like income and long-run temperature, are the basis for
+describing adaptation in the GCP.
+
+Covariates are provided by `Covariator` objects.  Each calculation has
+a single Covariator, which may itself contain other Covariators to
+produce a collection of covariates.
+
+Initially, the covariate has a baseline value. This value is computed
+up to a given year, the `maxbaseline` year. It is held constant at
+this value up to that point.  Then it calculates an updated value each
+year, providing this value to all who ask for it until the next year.
+
+Covariates are averaged across multiple years, using a running average
+object with a specific kernel and length. This system is defined in
+`impactcommon.math.averages`.
+
+The different subclasses of Covariator provide different kinds of
+covariates. In general, climate covariates rely on the weather data
+being pushed through the projection calculation. Socioeconomic
+coviarates, however, have some other object as a source of the
+information and the Covariator object just manages the baselining and
+averaging.
+"""
+
 import itertools
 import numpy as np
 import xarray as xr
@@ -70,6 +96,7 @@ class GlobalExogenousCovariator(Covariator):
         return self.get_current(region)
     
 class EconomicCovariator(Covariator):
+    """Provides information on log GDP per capita and Population-weight population density."""
     def __init__(self, economicmodel, maxbaseline, config={}):
         super(EconomicCovariator, self).__init__(maxbaseline)
 
@@ -133,6 +160,7 @@ class EconomicCovariator(Covariator):
         return dict(loggdppc=loggdppc, logpopop=np.log(popop), year=year)
 
 class BinnedEconomicCovariator(EconomicCovariator):
+    """Provides income as a series of indicator values for the income bin."""
     def __init__(self, economicmodel, maxbaseline, limits, config={}):
         super(BinnedEconomicCovariator, self).__init__(economicmodel, maxbaseline, config=config)
         self.limits = limits
@@ -153,6 +181,7 @@ class BinnedEconomicCovariator(EconomicCovariator):
         return self.add_bins(covars)
 
 class ShiftedEconomicCovariator(EconomicCovariator):
+    """Provides a 'loggdppc-delta' covariate, which is the loggdppc with a constant subtracted."""
     def __init__(self, economicmodel, maxbaseline, config={}):
         super(ShiftedEconomicCovariator, self).__init__(economicmodel, maxbaseline, config=config)
         assert 'loggdppc-delta' in config, "Must define loggdppc-delta to use loggdppc-shifted."
@@ -171,6 +200,7 @@ class ShiftedEconomicCovariator(EconomicCovariator):
         return self.add_shifted(covars)
 
 class MeanWeatherCovariator(Covariator):
+    """Provides an average climate variable covariate."""
     def __init__(self, weatherbundle, maxbaseline, variable, config={}, quiet=False):
         super(MeanWeatherCovariator, self).__init__(maxbaseline)
 
@@ -203,6 +233,7 @@ class MeanWeatherCovariator(Covariator):
         return {self.variable: self.temp_predictors[region].get(), 'year': year}
 
 class SubspanWeatherCovariator(MeanWeatherCovariator):
+    """Provides an average climate variable covariate, using only data from a span of days in each year."""
     def __init__(self, weatherbundle, maxbaseline, day_start, day_end, variable, config={}):
         super(SubspanWeatherCovariator, self).__init__(weatherbundle, maxbaseline, variable, config=config)
         self.maxbaseline = maxbaseline
@@ -244,6 +275,7 @@ class SubspanWeatherCovariator(MeanWeatherCovariator):
         return {self.mustr: mu, self.sigmastr: sigma}
 
 class SeasonalWeatherCovariator(MeanWeatherCovariator):
+    """Provides an average climate variable covariate, using planting and harvesting dates that are IR-specific."""
     def __init__(self, weatherbundle, maxbaseline, filepath, variable, config={}):
         super(SeasonalWeatherCovariator, self).__init__(weatherbundle, maxbaseline, variable, config=config)
         self.maxbaseline = maxbaseline
@@ -329,6 +361,8 @@ class YearlyWeatherCovariator(Covariator):
         return {self.yearlyreader.get_dimension()[0]: self.predictors[region].get()}
 
 class MeanBinsCovariator(Covariator):
+    """Provides binned weather data.
+    This class has not been updated to reflect xarray use."""
     def __init__(self, weatherbundle, binlimits, dropbin, maxbaseline, config={}, quiet=False):
         super(MeanBinsCovariator, self).__init__(maxbaseline)
 
@@ -379,6 +413,7 @@ class MeanBinsCovariator(Covariator):
         return {self.weatherbundle.get_dimension()[ii]: self.temp_predictors[region][ii].get() for ii in range(len(self.weatherbundle.get_dimension()))}
 
 class AgeShareCovariator(Covariator):
+    """Provides the share of the population in each age group."""
     def __init__(self, economicmodel, maxbaseline, config={}):
         super(AgeShareCovariator, self).__init__(maxbaseline)
 
@@ -424,6 +459,7 @@ class AgeShareCovariator(Covariator):
         return {column: self.agerm[region][column].get() for column in agecohorts.columns}
 
 class ConstantCovariator(Covariator):
+    """Provides an IR-specific value that is constant across time."""
     def __init__(self, name, irvalues):
         super(ConstantCovariator, self).__init__(None)
         self.name = name
@@ -436,6 +472,7 @@ class ConstantCovariator(Covariator):
         return {self.name: self.irvalues[region]}
     
 class CombinedCovariator(Covariator):
+    """Reports all covariates provided by a collection of Covariator objects."""
     def __init__(self, covariators):
         commonstartyear = None
         for covariator in covariators:
@@ -467,6 +504,7 @@ class CombinedCovariator(Covariator):
         return result
 
 class TranslateCovariator(Covariator):
+    """Rename or otherwise transform the results of another Covariator."""
     def __init__(self, covariator, renames, transforms={}):
         super(TranslateCovariator, self).__init__(covariator.startupdateyear)
         self.covariator = covariator
@@ -520,6 +558,7 @@ class SplineCovariator(TranslateCovariator):
         return result
                 
 class CountryAggregatedCovariator(Covariator):
+    """Spatially average the covariates across all regions within a country."""
     def __init__(self, source, regions):
         self.source = source
         bycountry = {}
@@ -535,6 +574,7 @@ class CountryAggregatedCovariator(Covariator):
         return {key: np.mean([value[key] for value in values]) for key in values[0]}
 
 class CountryDeviationCovariator(CountryAggregatedCovariator):
+    """Report the deviation between a region-specific covariate and its country average."""
     def get_current(self, region):
         countrylevel = super(CountryDeviationCovariator, self).get_current(region[:3])
         subcountrylevel = self.source.get_current(region)
@@ -559,6 +599,7 @@ called.
         return {covar + self.suffix: covariates[covar] for covar in covariates}
 
 class ProductCovariator(Covariator):
+    """Multiple the covariates provided by two other Covariators."""
     def __init__(self, source1, source2):
         assert source1.startupdateyear == source2.startupdateyear
         super(ProductCovariator, self).__init__(source1.startupdateyear)
@@ -585,6 +626,7 @@ class ProductCovariator(Covariator):
         return self.make_product(covars1, covars2)
     
 class PowerCovariator(Covariator):
+    """Raise a covariate provided by another Covariator to a power."""
     def __init__(self, source, power):
         super(PowerCovariator, self).__init__(source.startupdateyear)
         self.source = source
