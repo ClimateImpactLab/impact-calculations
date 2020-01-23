@@ -1,0 +1,11 @@
+module: impacts/labor/labor_empshare_noFE.yml
+outputdir: /shares/gcp/outputs/labor/tmp
+only-ssp: SSP3
+only-rcp: rcp85
+only-model: CCSM4
+do_farmers: False
+do_historical: False
+mode: writecalcs
+climcovar:
+    class: mean
+    length: 15
