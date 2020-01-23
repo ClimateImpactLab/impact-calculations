@@ -1,7 +1,7 @@
 timerate: year
 climate: [ meantas ]
 models:
-  - csvvs: "/shares/gcp/social/parameters/labor/csvv_oct2019/labor_empshare_noFE.csvv"
+  - csvvs: /shares/gcp/social/parameters/labor/csvv_oct2019/labor_empshare_noFE.csvv
     specification:
       clipping: false
       covariates: [ loggdppc, climmeantas, climmeantas^2, climmeantas^3, climmeantas^4]
