@@ -23,7 +23,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
                            curve_description=modelspecconf['description'])
         models[key] = model
         extras[key] = modelextras
-    
+
     calculation = calculator.create_calculation(specconf['calculation'], models, extras=extras)
 
     if covariator is None:
