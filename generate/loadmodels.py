@@ -29,7 +29,7 @@ def single(bundle_iterator):
                 if econ_scenario[:4] == single_econ_scenario and econ_model == single_econ_model:
                     return clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
                 continue
-            
+
             if (do_econ_scenario_only is not None and econ_scenario[0:4] != do_econ_scenario_only[clim_scenario][0]) or (do_econ_model_only is not None and econ_model != do_econ_model_only[0]):
                 continue
 
@@ -38,7 +38,8 @@ def single(bundle_iterator):
 def random_order(bundle_iterator, config={}):
     mydo_econ_scenario_only = config.get('ssp', config.get('only-ssp', do_econ_scenario_only))
     mydo_clim_scenario_only = config.get('rcp', config.get('only-rcp', do_clim_scenario_only))
-        
+    mydo_econ_model_only = config.get('iam', config.get('only-iam', do_econ_model_only))
+
     print "Loading models..."
     allecons = []
     for econ_model, econ_scenario, economicmodel in covariates.iterate_econmodels(config):
@@ -54,7 +55,7 @@ def random_order(bundle_iterator, config={}):
             # Drop PIK GDP-32 (it's USA-only)
             if econ_model == 'PIK GDP-32':
                 continue
-            if do_econ_model_only is not None and econ_model not in do_econ_model_only:
+            if mydo_econ_model_only is not None and econ_model not in mydo_econ_model_only:
                 continue
             if mydo_econ_scenario_only is not None and econ_scenario[0:4] not in mydo_econ_scenario_only:
                 continue
