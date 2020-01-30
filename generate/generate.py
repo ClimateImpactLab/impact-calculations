@@ -38,7 +38,7 @@ def main(config, runid):
 
     def iterate_montecarlo():
         # How many monte carlo iterations do we do?
-        mc_n = config.get('mc_n')
+        mc_n = config.get('mc-n', config.get('mc_n'))
         if mc_n is None:
             mc_batch_iter = itertools.count()
         else:
