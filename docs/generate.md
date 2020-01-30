@@ -15,6 +15,8 @@ included in the generate configuration file.
    `batch1` directory.
  - `timeout`: The number of hours to allow the process to work, before
    considering a directory abandoned (default: 12).
+ - `mc-n`: Desired number of Monte Carlo iterations ("batches") when 
+    `mode: montecarlo`. Ignored if `only-batch-number` is set.
 
 # Options within a target
 
