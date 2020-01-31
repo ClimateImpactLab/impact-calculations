@@ -54,3 +54,40 @@ first three, `length` is the length to the last non-zero term in the
 kernel; for the last, it's the decay-rate of the exponential decay.
 Always use spaces to indent these parameters.
 
+## Changing adaptation speed
+
+As a sensitivity test, we have a simple way to halve the speed of
+adaptation, and adjustnig the rate of technological (time)
+trends.
+
+For income and climate adaptation, we allow halving the adaptation
+speed.  In both cases, we calculate the regional initial value of the
+covariate. Call this Z_0, and let the covariate calculated in a future
+year be Z_t. Then, we perform the calculations using the covariate
+values (Z_0 + Z_t) / 2. This halves the linear growth rate.
+
+In the case of income, the original covariate value is log GDP per
+capita (this is also the original covariate when binned covariates are
+used). The reduced adaptation rate in this case is equivalent to
+calculating Y_0 exp(g t / 2), for initial income level Y_0 and growth
+rate g.
+
+These are activated by including the `slowadapt` option in the run
+configuration file. The possible values for `slowadapt` are:
+
+`slowadapt: income`: Halve the growth rate of income.
+`slowadapt: temperature`: Halve the rate of climate covariate increase.
+`slowadapt: both`: Halve both income and temperature growth rates.
+
+For technological (time) trends, we support a scaling factor, which
+increases or decreases the apparent rate of time change. The `year`
+covariate progresses normally up until the end of the baseline period,
+at which it is reported as X (T - T_0) + T_0, for some scaling factor
+X.
+
+To change the rate of time trends, adjust add a `yearcovarscale`
+option to the run configuration, like so:
+
+```
+yearcovarscale: 2
+```

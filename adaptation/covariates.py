@@ -41,10 +41,18 @@ class Covariator(object):
     """
     Provides both baseline data and updated covariates in response to each year's values.
     """
-    def __init__(self, maxbaseline):
+    def __init__(self, maxbaseline, config={}):
         self.startupdateyear = maxbaseline
         self.lastyear = {}
+        self.yearcovarscale = config.get('yearcovarscale', 1)
 
+    def get_yearcovar(self, region):
+        year = self.lastyear.get(region, self.startupdateyear)
+        if year > self.startupdateyear:
+            return (year - self.startupdateyear) * self.yearcovarscale + self.startupdateyear
+        else:
+            return year
+        
     def get_current(self, region):
         """This can be called as many times as we want."""
         raise NotImplementedError
@@ -98,7 +106,7 @@ class GlobalExogenousCovariator(Covariator):
 class EconomicCovariator(Covariator):
     """Provides information on log GDP per capita and Population-weight population density."""
     def __init__(self, economicmodel, maxbaseline, config={}):
-        super(EconomicCovariator, self).__init__(maxbaseline)
+        super(EconomicCovariator, self).__init__(maxbaseline, config=config)
 
         self.numeconyears = config.get('length', standard_economic_config['length'])
 
@@ -139,7 +147,7 @@ class EconomicCovariator(Covariator):
         econpreds = self.get_econ_predictors(region)
         return dict(loggdppc=econpreds['loggdppc'],
                     logpopop=np.log(econpreds['popop']),
-                    year=self.lastyear.get(region, self.startupdateyear))
+                    year=self.get_yearcovar(region))
 
     def get_update(self, region, year, ds):
         assert year < 10000
@@ -157,7 +165,7 @@ class EconomicCovariator(Covariator):
         loggdppc = self.get_econ_predictors(region)['loggdppc']
         popop = self.get_econ_predictors(region)['popop']
 
-        return dict(loggdppc=loggdppc, logpopop=np.log(popop), year=year)
+        return dict(loggdppc=loggdppc, logpopop=np.log(popop), year=self.get_yearcovar(region))
 
 class BinnedEconomicCovariator(EconomicCovariator):
     """Provides income as a series of indicator values for the income bin."""
@@ -202,7 +210,7 @@ class ShiftedEconomicCovariator(EconomicCovariator):
 class MeanWeatherCovariator(Covariator):
     """Provides an average climate variable covariate."""
     def __init__(self, weatherbundle, maxbaseline, variable, config={}, quiet=False):
-        super(MeanWeatherCovariator, self).__init__(maxbaseline)
+        super(MeanWeatherCovariator, self).__init__(maxbaseline, config=config)
 
         self.numtempyears = config.get('length', standard_climate_config['length'])
         self.variable = variable
@@ -221,16 +229,31 @@ class MeanWeatherCovariator(Covariator):
         self.temp_predictors = temp_predictors
         self.weatherbundle = weatherbundle
 
+        if config.get('slowadapt', 'none') in ['both', 'temperature']:
+            self.slowadapt = True
+            baseline_predictors = {}
+            for region in temp_predictors:
+                baseline_predictors[region] = temp_predictors[region].get()
+            self.baseline_predictors = baseline_predictors
+        else:
+            self.slowadapt = False
+
     def get_current(self, region):
         #assert region in self.temp_predictors, "Missing " + region
-        return {self.variable: self.temp_predictors[region].get()}
+        if self.slowadapt:
+            return {self.variable: (self.temp_predictors[region].get() + self.baseline_predictors[region]) / 2}
+        else:
+            return {self.variable: self.temp_predictors[region].get()}
 
     def get_update(self, region, year, ds):
         """Allow ds = None for incadapt farmer who cannot adapt to temperature."""
         if ds is not None and year > self.startupdateyear:
             self.temp_predictors[region].update(np.mean(ds[self.variable]._values)) # if only yearly values
 
-        return {self.variable: self.temp_predictors[region].get(), 'year': year}
+        if self.slowadapt:
+            return {self.variable: (self.temp_predictors[region].get() + self.baseline_predictors[region]) / 2, 'year': self.get_yearcovar(region)}
+        else:
+            return {self.variable: self.temp_predictors[region].get(), 'year': self.get_yearcovar(region)}
 
 class SubspanWeatherCovariator(MeanWeatherCovariator):
     """Provides an average climate variable covariate, using only data from a span of days in each year."""
@@ -250,7 +273,6 @@ class SubspanWeatherCovariator(MeanWeatherCovariator):
             # Read in all regions
             self.all_values = {}
             for year, ds in self.weatherbundle.yearbundles(maxyear=self.maxbaseline):
-                print year
                 for region in self.weatherbundle.regions:
                     if region not in self.all_values:
                         self.all_values[region] = np.squeeze(ds[self.variable].sel(region=region).values[self.day_start:self.day_end])
@@ -332,7 +354,6 @@ class YearlyWeatherCovariator(Covariator):
 
         for ds in yearlyreader.read_iterator():
             year = get_single_value(ds[yearlyreader.timevar])
-            print year
             for ii in range(len(regions)):
                 predictors[regions[ii]].update(ds[yearlyreader.variables[0]][ii])
             if year == baseline_end:
