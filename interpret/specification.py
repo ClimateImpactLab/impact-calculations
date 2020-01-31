@@ -1,3 +1,13 @@
+"""Interpret the specifications sections of a configuration file.
+
+As we define them, specifications are segments of the full
+specification used by a sector's projection. For example, a projection
+can consist of one polynomial specification applied to temperatures
+over 20C and another for temperatures below 20C; or one polynomial
+specification can be used for temperature and another for
+precipitation.
+"""
+
 import re
 from adaptation import csvvfile, curvegen, curvegen_known, curvegen_arbitrary, covariates, constraints
 from datastore import irvalues

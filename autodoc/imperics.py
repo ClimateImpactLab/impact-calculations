@@ -1,3 +1,30 @@
+"""Diagnostic generation script for configuration-based projections.
+
+This script performs a set of hand-calculation diagnostics for any
+configuration-based projection. This script requires that the
+projection is first run in "diagnostic" mode: producing a single
+region and the associated `allcalcs` file.
+
+When this script is run, the text that is produced has three sections:
+
+1. Inputs: This includes the merged configuration file, excerpts from
+the allcalcs file, the weather data, and the output results (which are
+inputs to this diagnostic process).
+
+2. Beta calculations: Beta parameters are derived from a combination
+of the CSVV gamma parameters and the covariates. This makes sure that
+the curves being produced have the correct parameters.
+
+3. Result calculation: For each reported calculation result, this
+checks that the result values are as expected.
+
+For steps 2 and 3, the diagnostic is performed by producing a set of
+julia code that is intended to reproduce the calculations in the
+projection system. Often the calculations will be done in different
+but equivalent way. This julia code is then run, and the result is
+reported to be compared with the pre-computed result.
+"""
+
 import sys, os, csv, importlib, yaml
 import numpy as np
 from impactlab_tools.utils import files
