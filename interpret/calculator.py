@@ -1,3 +1,28 @@
+"""Interpret the calculations sequence in a configuration file.
+
+Calculation objects have self-documented arguments, and these are used
+to interpret the `calculations` dictionary in the spec. configuration
+file. The `describe` function on a Calculation object returns a list
+of `BaseArgument` objects, which are matched to information in the
+configuration file.
+
+Calculation objects are read in order, with any `subcalc`
+Calculation argument of each Calculation applied to the previous
+Calculation object. Other arguments are read from either the
+subdirectory specific to that Calculation or from parent dictionaries
+in the configuration file.
+
+In the configuration file, arguments may be provided in either a list
+or a dictionary. If provided as a list, they must be given in the same
+order as the Calculation object's `describe` method. If provided a
+dictionary, they must use the names referenced in the `describe`
+method.
+
+Specially handling is used for units, since units can be provided as a
+single item in the configuration file (as `indepunits -> depenunit`,
+but fed into two arguments in the creation of the Calculation object.
+"""
+
 import yaml, copy, sys, traceback
 from openest.generate import stdlib, arguments
 from generate import caller
