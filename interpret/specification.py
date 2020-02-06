@@ -42,12 +42,11 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config={}, quiet=F
 
     Parameters
     ----------
-    covar : str
-        Covariate name.
+    covar : str or dict
+        Covariate name, or ``{name: extra_args}``. If dict, value is pased in as 
+        `args` recursively.
     args : list or None
-        Additional postional arguments to pass to 
-        ``covariates.BinnedEconomicCovariator`` if `covar` is 'incbin', 
-        ``get_covariator`` if '*' or `^` is in `covar`.
+        Additional postional arguments if `covar` values, if was dict.
     weatherbundle : generate.weather.DailyWeatherBundle
     economicmodel : adaptation.econmodel.SSPEconomicModel
     config : dict, optional
