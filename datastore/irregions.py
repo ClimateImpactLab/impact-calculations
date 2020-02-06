@@ -32,11 +32,6 @@ def contains_region(parents, candidate, hierid_df):
 
     return contains_region(parents, parent_key, hierid_df)
 
-def read_hierid(csvpath):
-    """Read hierid hierarchy.csv, return pandas.DataFrame with region-key index
-    """
-    return read_csv(csvpath, skiprows=31, index_col="region-key")
-
 def load_regions(hierarchy, dependencies):
     """Load the rows of hierarchy.csv associated with all known regions."""
     mapping = {} # color to hierid
