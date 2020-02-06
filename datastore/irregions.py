@@ -1,5 +1,4 @@
 import csv
-from pandas import read_csv
 from impactlab_tools.utils import files
 import helpers.header as headre
 
