@@ -198,13 +198,14 @@ Modifications of covariates:
 * `*`: Multiplication of two covariates.
 * `^`: A covariate raised to a power.
 
-Additionally, `hierid-...` can be given as a covariate to add a term 
-that affects specific impact regions. To define its area of effect, this covariate 
-takes a list of one or more impact region hierarchical "region-keys", as 
-defined in /shares/gcp/regions/hierarchy.csv. The covariate name should match 
-a variable/"covarnames" value in the projection run's CSVV file. If an impact-region falls 
-within one of the covariates' regions, that CSVV value is used for the covariate 
-term. Otherwise the term is 0.0. The `...` in the covariate name can be any arbitrary name.
+Additionally, `hierid-...` can be given as a covariate to add a constant for 
+just a subset of the impact regions. To define the regions that will have a 
+non-zero value for this term, this covariate takes a list of one or more impact 
+region hierarchical "region-keys", as defined in /shares/gcp/regions/hierarchy.csv. 
+The covariate name should match a variable/"covarnames" value in the projection 
+run's CSVV file. If an impact-region falls within one of the covariates' regions, 
+that CSVV value is used for the covariate term. Otherwise the term is 0.0. 
+The `...` in the covariate name can be any arbitrary name.
 
 
 ## Calculation (or post-calculation) options:
