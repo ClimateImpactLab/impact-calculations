@@ -7,12 +7,50 @@ from datastore import irregions
 from impactlab_tools.utils import files
 
 def iterdir(basedir, dironly=False):
+    """Generator giving filename, path for files and dirs within `basedir`.
+
+    Parameters
+    ----------
+    basedir : str
+        Target directory to iterate through.
+    dironly : bool, optional
+        Should directories be yielded?
+
+    Yields
+    ------
+    filename : str
+    path : str
+    """
     for filename in os.listdir(basedir):
         if dironly and not os.path.isdir(os.path.join(basedir, filename)):
             continue
         yield filename, os.path.join(basedir, filename)
 
 def iterresults(outdir, batchfilter=lambda batch: True, targetdirfilter=lambda targetdir: True):
+    """Generator giving run info based on proj output director, after filtering
+
+    Parameters
+    ----------
+    outdir : str
+        Path to directory of impact projection output.
+    batchfilter : Callable, optional
+        Given batch information str arg, return bool indicating whether to
+        include the batch. Default returns True for everything, i.e. no
+        filtering.
+    targetdirfilter : Callable, optional
+        Given directory str arg, return bool indicating whether to
+        include the target directory. Default returns True for everything,
+        i.e. no filtering.
+
+    Yields
+    ------
+    batch : str
+    clim_scenario : str
+    clim_model : str
+    econ_scenario : str
+    econ_model : str
+    espath : str
+    """
     for batch, batchpath in iterdir(files.configpath(outdir), True):
         if not batchfilter(batch):
             continue
@@ -69,7 +107,7 @@ def iter_timereg_variables(reader, timevar='year'):
     ----------
     reader : NetCDF4.Dataset
         The source for variables we want to process.
-    timevar : str
+    timevar : str, optional
         The name of the time dimension.
 
     Yields
@@ -94,7 +132,7 @@ def iter_timereg_variables(reader, timevar='year'):
 
 def get_aggregated_regions(regions):
     """Returns all higher-level regions associated with IR list regions.
-    
+
     This works by assuming that IR keys are named hierarchically, so
     the IR region "USA.16.208" is included in three aggregations: ""
     (the global aggregation), "USA" (country-level), and "USA.16"
@@ -204,13 +242,13 @@ def combine_results(targetdir, basename, sub_basenames, get_stweights, descripti
                 all_variables[key].append(variable)
 
     print {key: len(all_variables[key]) for key in all_variables}
-                
+
     for key in all_variables:
         if len(all_variables[key]) < len(readers):
             continue
 
         dstnumers = np.zeros((len(years), len(regions)))
-        dstdenoms = np.zeros((len(years), len(regions)))        
+        dstdenoms = np.zeros((len(years), len(regions)))
         srcvalueses = [variable[:, :] for variable in all_variables[key]]
         for ii in range(len(regions)):
             for kk in range(len(readers)):
@@ -227,6 +265,24 @@ def combine_results(targetdir, basename, sub_basenames, get_stweights, descripti
     writer.close()
 
 def make_batchfilter(config):
+    """Parse config dict mode to return callable 'batchfilter'
+
+    This 'batchfilter' takes a single arg, most likely a str, and outputs
+    boolean, depending on whether the str matches config.mode or not.
+
+    If 'mode' and 'batch' not in `config`, then return a callable simply
+    returning `True`.
+
+    Parameters
+    ----------
+    config : dict
+        A configuration dictionary.
+
+    Returns
+    -------
+    Callable
+        A 'batchfilter'.
+    """
     if 'batch' in config:
         return lambda batch: batch == config['batch']
     if 'mode' in config:
@@ -239,8 +295,24 @@ def make_batchfilter(config):
         else:
             print "WARNING: Unknown mode %s" % config['mode']
     return lambda batch: True
-            
+
 def config_targetdirfilter(clim_scenario, clim_model, econ_scenario, econ_model, targetdir, config):
+    """Given run information, test if matches info in run config
+
+    Parameters
+    ----------
+    clim_scenario : str
+    clim_model : str
+    econ_scenario : str
+    econ_model : str
+    targetdir : str
+        Path to target directory.
+    config : dict
+
+    Returns
+    -------
+    bool
+    """
     if 'rcp' in config:
         if clim_scenario != config['rcp']:
             return False

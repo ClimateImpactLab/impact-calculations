@@ -1,3 +1,33 @@
+"""Classes that extend the open-estimate curve generation system for
+econometric results.
+
+Econometric models used by the CIL typically have covariates that
+describe the potential for sensitivity to adapt to future climates and
+wealth. The curves generated for a given region and year, then, are
+conditional on these climate and socioeconomic covariates. These
+classes encode the logic for using CSVVs to use these covariates. See
+docs/CSVV File Format Specification.pdf for more information.
+
+The most important class here is CSVVCurveGenerator, which embodies
+the adaptation logic used in CIL. A set of "gamma" coefficients-- the
+result of an interactions between covariates and weather predictors--
+define the adaptation curve:
+    y = sum_k (gamma_k0 + sum_l gamma_kl z_l) x_k
+  where z_l is the z_l is a covariate and x_k is a weather predictor.
+
+In a given year and region, these gamma coefficients can be applied to
+covariates to produce a corresponding set of "beta" coefficients,
+which are then applied to predictors:
+    beta_k = gamma_k0 + sum_l gamma_kl z_l
+    y = sum_k beta_k x_k
+
+This two-step process is used both because the beta_k parameters are
+of interest in their own right, and because the expression relating
+gammas to a beta may be arbitrarily complicated (e.g., using
+elasticities in the case of MLE or accounting for clipping).
+
+"""
+
 import copy
 import numpy as np
 from openest.generate.curvegen import *
