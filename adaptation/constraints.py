@@ -1,3 +1,10 @@
+"""Functions to support constraints applied to a projection.
+
+Currently the only constraint defined here is "Good money", since
+beta-clipping requires no complicate functions and U-clipping has been
+moved to open-estimate.
+"""
+
 import csv, os
 import numpy as np
 from generate import caller

@@ -1,0 +1,24 @@
+---
+oneline: Burke et al. (2015) GDP impact without country-specific time trends, preicipitation and country or year fixed effects
+version: GDP-BURKE-2015.20190508
+dependencies: GrowthClimateDataset.dta
+description: Generated based on GenerateFigure2Data.do; contains FE fit with errors clustered at country-level (using Stata's default estimator)
+csvv-version: girdin-2017-01-10
+variables:
+  tas: Yearly average temperature [C]
+  tas2: Squared yearly average temperature [C2]
+  outcome: GDP per capita growth [ln(GDPpc)/year]
+...
+observations
+6584
+prednames
+tas,tas2
+covarnames
+1,1
+gamma
+0.0127183,-0.0004871
+gammavcv
+0.0000143,-0.000000376
+-3.76E-07,1.40E-08
+residvcv
+0.00325319

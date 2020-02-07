@@ -1,43 +1,100 @@
+"""Interpret the specifications sections of a configuration file.
+
+As we define them, specifications are segments of the full
+specification used by a sector's projection. For example, a projection
+can consist of one polynomial specification applied to temperatures
+over 20C and another for temperatures below 20C; or one polynomial
+specification can be used for temperature and another for
+precipitation.
+"""
+
 import re
 from adaptation import csvvfile, curvegen, curvegen_known, curvegen_arbitrary, covariates, constraints
 from datastore import irvalues
 from openest.generate import smart_curve, selfdocumented
-from openest.models.curve import ShiftedCurve, MinimumCurve, ClippedCurve, ZeroInterceptPolynomialCurve
+from openest.models.curve import ShiftedCurve, MinimumCurve, ClippedCurve
 from openest.generate.stdlib import *
 from impactcommon.math import minpoly, minspline
 import calculator, variables, configs
 
 def user_failure(message):
+    """Prints an 'ERROR' message and exits program"""
     print "ERROR: " + message
     exit()
 
 def user_assert(check, message):
+    """If `check` False, send error message and exit program
+
+    Parameters
+    ----------
+    check : bool
+    message : str
+    """
     if not check:
         user_failure(message)
 
 def get_covariator(covar, args, weatherbundle, economicmodel, config={}, quiet=False):
+    """Intreprets a single entry in the covariates dictionary.
+
+    Parameters
+    ----------
+    covar : str
+        Covariate name.
+    args : list or None
+        Additional postional arguments to pass to 
+        ``covariates.BinnedEconomicCovariator`` if `covar` is 'incbin', 
+        ``get_covariator`` if '*' or `^` is in `covar`.
+    weatherbundle : generate.weather.DailyWeatherBundle
+    economicmodel : adaptation.econmodel.SSPEconomicModel
+    config : dict, optional
+    quiet : bool
+
+    Returns
+    -------
+    adaptation.covariates.Covariator
+    """
     if isinstance(covar, dict):
         return get_covariator(covar.keys()[0], covar.values()[0], weatherbundle, economicmodel, config=config, quiet=quiet)
     elif covar in ['loggdppc', 'logpopop', 'year']:
         return covariates.EconomicCovariator(economicmodel, 2015, config=configs.merge(config, 'econcovar'))
     elif covar == 'incbin':
         return covariates.BinnedEconomicCovariator(economicmodel, 2015, args, config=configs.merge(config, 'econcovar'))
+    elif covar == 'loggdppc-shifted':
+        return covariates.ShiftedEconomicCovariator(economicmodel, 2015, config)
     elif covar == 'ir-share':
         return covariates.ConstantCovariator('ir-share', irvalues.load_irweights("social/baselines/agriculture/world-combo-201710-irrigated-area.csv", 'irrigated_share'))
     elif '*' in covar:
         sources = map(lambda x: get_covariator(x.strip(), args, weatherbundle, economicmodel, config=config, quiet=quiet), covar.split('*', 1))
         return covariates.ProductCovariator(sources[0], sources[1])
+    elif '^' in covar:
+        chunks = covar.split('^', 1)
+        return covariates.PowerCovariator(get_covariator(chunks[0].strip(), args, weatherbundle, economicmodel, config=config, quiet=quiet), float(chunks[1]))
+    elif covar[-6:] == 'spline':
+        # Produces spline term covariates, named [name]spline1, [name]spline2, etc.
+        return covariates.SplineCovariator(get_covariator(covar[:-6], None, weatherbundle, economicmodel, config=config, quiet=quiet), covar[:-6], 'spline', args)
     elif covar[:8] == 'seasonal':
         return covariates.SeasonalWeatherCovariator(weatherbundle, 2015, config['within-season'], covar[8:], config=configs.merge(config, 'climcovar'))
     elif covar[:4] == 'clim': # climtas, climcdd-20, etc.
         return covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, covar[4:], config=configs.merge(config, 'climcovar'), quiet=quiet), {covar: covar[4:]})
-    elif '^' in covar:
-        chunks = covar.split('^', 1)
-        return covariates.PowerCovariator(get_covariator(chunks[0].strip(), args, weatherbundle, economicmodel, config=config, quiet=quiet), float(chunks[1]))
     else:
         user_failure("Covariate %s is unknown." % covar)
         
 def create_covariator(specconf, weatherbundle, economicmodel, config={}, quiet=False):
+    """Interprets the entire covariates dictionary in the configuration file.
+
+    Parameters
+    ----------
+    specconf : dict, optional
+        Specification configuration.
+    weatherbundle : generate.weather.DailyWeatherBundle
+    economicmodel : adaptation.econmodel.SSPEconomicModel
+    config : dict, optional
+    quiet : bool, optional
+
+    Returns
+    -------
+    covariator : adaptation.covariates.Covariator or None
+    """
     if 'covariates' in specconf:
         covariators = []
         for covar in specconf['covariates']:
@@ -53,7 +110,26 @@ def create_covariator(specconf, weatherbundle, economicmodel, config={}, quiet=F
 
     return covariator
         
-def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
+def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}, getcsvvcurve=False):
+    """Create a CurveGenerator instance from specifications
+
+    Parameters
+    ----------
+    csvv : dict
+        Various parameters and curve descriptions from CSVV file.
+    covariator : adaptation.covariates.Covariator
+    regions : xarray.Dataset
+    farmer : {'full', 'noadapt', 'incadapt'}, optional
+        Type of farmer adaptation.
+    specconf : dict, optional
+        Specification configuration.
+    getcsvvcurve : bool, optional
+        If True, a adaptation.curvegen.CSVVCurveGenerator instance is returned.
+
+    Returns
+    -------
+    openest.generate.CurveGenerator
+    """
     user_assert('depenunit' in specconf, "Specification configuration missing 'depenunit' string.")
     user_assert('functionalform' in specconf, "Specification configuration missing 'functionalform' string.")
     if specconf['functionalform'] in ['polynomial', 'cubicspline']:
@@ -68,32 +144,40 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
         variable = specconf['variable']
         indepunit = specconf['indepunit']
         coeffvar = specconf.get('coeffvar', variable)
-        
+
+        if 'final-t' in specconf:
+            suffix = '-' + str(specconf['suffixes'][specconf['final-t']])
+        else:
+            suffix = ''
+            
         order = 0
         predinfix = ''
         for predname in csvv['prednames']:
-            if predname == coeffvar:
+            if predname == coeffvar + suffix:
                 order = max(order, 1)
             else:
-                match = re.match(coeffvar + r'(\d+)', predname)
+                match = re.match(coeffvar.replace('*', '\\*') + r'(\d+)' + suffix, predname)
                 if match:
                     order = max(order, int(match.group(1)))
                     continue
-                match = re.match(coeffvar + r'-poly-(\d+)', predname)
+                match = re.match(coeffvar.replace('*', '\\*') + r'-poly-(\d+)' + suffix, predname)
                 if match:
                     predinfix = '-poly-'
                     order = max(order, int(match.group(1)))
                     continue
 
-        assert order > 1, "Cannot find more than one power of %s in %s" % (coeffvar, str(csvv['prednames']))
-                    
+        if suffix:
+            assert order > 1, "Cannot find more than one power of %sN%s in %s" % (coeffvar, suffix, str(csvv['prednames']))
+        else:
+            assert order > 1, "Cannot find more than one power of %s in %s" % (coeffvar, str(csvv['prednames']))
+        
         weathernames = [variable] + ['%s-poly-%d' % (variable, power) for power in range(2, order+1)]
-        if 'within-season' in specconf:
-            weathernames = [variables.get_post_process(name, specconf) for name in weathernames]
+        if variables.needs_interpret(variable, specconf):
+            weathernames = [variables.interpret_ds_transform(name, specconf) for name in weathernames]
 
         curr_curvegen = curvegen_known.PolynomialCurveGenerator([indepunit] + ['%s^%d' % (indepunit, pow) for pow in range(2, order+1)],
                                                                 depenunit, coeffvar, order, csvv, predinfix=predinfix,
-                                                                weathernames=weathernames, betalimits=betalimits)
+                                                                weathernames=weathernames, betalimits=betalimits, allow_raising=specconf.get('allow-raising', False))
         minfinder = lambda mintemp, maxtemp: lambda curve: minpoly.findpolymin([0] + curve.ccs, mintemp, maxtemp)
             
     elif specconf['functionalform'] == 'cubic spline':
@@ -125,9 +209,23 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
                                                                          transform_descriptions, indepunits, depenunit,
                                                                          csvv, betalimits=betalimits)
         weathernames = [] # Use curve directly
+    elif specconf['functionalform'] == 'sum-by-time':
+        csvvcurvegens = []
+        for tt in range(len(specconf['suffixes'])):
+            subspecconf = configs.merge(specconf, specconf['subspec'])
+            subspecconf['final-t'] = tt
+            csvvcurvegen = create_curvegen(csvv, None, regions, farmer=farmer, specconf=subspecconf, getcsvvcurve=True) # don't pass covariator, so skip farmer curvegen
+            assert isinstance(csvvcurvegen, curvegen.CSVVCurveGenerator), "Error: Curve-generator resulted in a " + str(csvvcurvegen.__class__)
+            csvvcurvegens.append(csvvcurvegen)
+        
+        curr_curvegen = curvegen.SumCurveGenerator(csvvcurvegens, specconf['suffixes'])
+        weathernames = [] # Use curve directly
     else:
         user_failure("Unknown functional form %s." % specconf['functionalform'])
 
+    if getcsvvcurve:
+        return curr_curvegen
+        
     if specconf.get('goodmoney', False):
         baselineloggdppcs = {}
         for region in regions:
@@ -146,9 +244,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
             baselinemins = {region: curvemin for region in regions}
 
     def transform(region, curve):
-        if isinstance(curve, ZeroInterceptPolynomialCurve):
-            final_curve = smart_curve.ZeroInterceptPolynomialCurve(curve.ccs, weathernames, specconf.get('allow-raising', False))
-        elif isinstance(curve, smart_curve.SmartCurve):
+        if isinstance(curve, smart_curve.SmartCurve):
             final_curve = curve
         else:
             final_curve = smart_curve.CoefficientsCurve(curve.ccs, weathernames)
@@ -189,6 +285,27 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}):
     return final_curvegen
 
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', specconf={}, config={}):
+    """
+
+    Parameters
+    ----------
+    csvv : dict
+        Various parameters and curve descriptions from CSVV file.
+    weatherbundle : generate.weather.DailyWeatherBundle
+    economicmodel : adaptation.econmodel.SSPEconomicModel
+    qvals : generate.pvalses.ConstantDictionary
+    farmer : {'full', 'noadapt', 'incadapt'}, optional
+        Type of farmer adaptation.
+    specconf : dict, optional
+        Specification configuration.
+    config : dict, optional
+
+    Returns
+    -------
+    calculation : openest.generate.stdlib.SpanInstabase
+    list
+    object
+    """
     user_assert('depenunit' in specconf, "Specification configuration missing 'depenunit' string.")
     user_assert('calculation' in specconf, "Specification configuration missing 'calculation' list.")
     user_assert('description' in specconf, "Specification configuration missing 'description' list.")
@@ -207,6 +324,6 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     calculation = calculator.create_postspecification(specconf['calculation'], {'default': final_curvegen}, None, extras=extras)
         
     if covariator is None:
-        return calculation, [], lambda: {}
+        return calculation, [], lambda region: {}
     else:
         return calculation, [], covariator.get_current
