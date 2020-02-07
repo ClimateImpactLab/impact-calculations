@@ -90,9 +90,18 @@ class WeatherBundle(object):
         """Returns True if this data presents historical observations; else False."""
         raise NotImplementedError
 
-    def load_regions(self):
+    def load_regions(self, reader=None):
         """Load the rows of hierarchy.csv associated with all known regions."""
-        self.regions = irregions.load_regions(self.hierarchy, self.dependencies)
+        if reader is not None:
+            try:
+                self.regions = reader.get_regions()
+                if np.issubdtype(self.regions[0], np.integer):
+                    self.regions = irregions.load_regions(self.hierarchy, self.dependencies)
+            except Exception as ex:
+                print "WARNING: failure to read regions for " + str(reader.__class__)
+                self.regions = irregions.load_regions(self.hierarchy, self.dependencies)
+        else:
+            self.regions = irregions.load_regions(self.hierarchy, self.dependencies)
 
     def load_readermeta(self, reader):
         self.version = reader.version
@@ -193,7 +202,7 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
         self.futureyear1 = min(onefuturereader.get_years())
 
         self.load_readermeta(onefuturereader)
-        self.load_regions()
+        self.load_regions(onefuturereader)
 
     def is_historical(self):
         return False
@@ -202,7 +211,7 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
         """Yields xarray Datasets for each year up to (but not including) `maxyear`"""
         if len(self.pastfuturereaders) == 1:
             for ds in self.pastfuturereaders[0][0].read_iterator_to(min(self.futureyear1, maxyear)):
-                assert ds.region.shape[0] == len(self.regions)
+                assert ds.region.shape[0] == len(self.regions), "Region length mismatch: %d <> %d" % (ds.region.shape[0], len(self.regions))
                 year = ds['time.year'][0]
                 for year2, ds2 in self.transformer.push(year, ds):
                     yield year2, ds2
@@ -284,7 +293,7 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
             self.pastyears = np.random.choice(choices, int(self.futureyear_end - self.pastyear_start + 1))
 
         self.load_readermeta(onereader)
-        self.load_regions()
+        self.load_regions(onereader)
 
     def is_historical(self):
         return True
@@ -296,7 +305,11 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
             for pastyear in self.pastyears:
                 if year > maxyear:
                     break
-                for year2, ds2 in self.transformer.push(year, self.reader.read_year(pastyear)):
+
+                ds = self.pastreaders[0].read_year(pastyear)
+                ds = self.update_year(ds, pastyear, year)
+                
+                for year2, ds2 in self.transformer.push(year, ds):
                     yield year2, ds2
                 year += 1
             return
@@ -309,20 +322,24 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
                 ds = pastreader.read_year(pastyear)
                 allds = fast_dataset.merge((allds, ds)) #xr.merge((allds, ds))
 
-            # Correct the time - should generalize
-            if isinstance(allds['time'][0], np.datetime64):
-                allds['time']._values = np.array(map(lambda date: str(year) + str(date)[4:], allds['time']._values))
-            elif allds['time'][0] < 10000:
-                allds['time']._values += year - pastyear # YYYY
-            elif allds['time'][0] < 1000000:
-                allds['time']._values += (year - pastyear) * 100 # YYYYMM
-            else:
-                allds['time']._values += (year - pastyear) * 1000 # YYYYDDD
+            allds = self.update_year(allds, pastyear, year)
                 
             for year2, ds2 in self.transformer.push(year, allds):
                 yield year2, ds2
             year += 1
 
+    def update_year(self, ds, pastyear, futureyear):
+        # Correct the time - should generalize
+        if isinstance(ds['time'][0], np.datetime64):
+            ds['time']._values = np.array(map(lambda date: str(futureyear) + str(date)[4:], ds['time']._values))
+        elif ds['time'][0] < 10000:
+            ds['time']._values += futureyear - pastyear # YYYY
+        elif ds['time'][0] < 1000000:
+            ds['time']._values += (futureyear - pastyear) * 100 # YYYYMM
+        else:
+            ds['time']._values += (futureyear - pastyear) * 1000 # YYYYDDD
+        return ds
+            
     def get_years(self):
         return range(int(self.pastyear_start), int(self.futureyear_end) + 1)
 

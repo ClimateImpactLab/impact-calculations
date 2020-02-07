@@ -18,3 +18,16 @@ def load_regions(hierarchy, dependencies):
         regions.append(mapping[ii + 1])
 
     return regions
+
+def load_region_attr(filepath, indexcol, valcol, dependencies):
+    """Load a column of attributes from an attribute file."""
+    mapping = {} # hierid to attribute
+
+    with open(files.sharedpath(filepath), 'r') as fp:
+        reader = csv.reader(headre.deparse(fp, dependencies))
+        header = reader.next()
+        for row in reader:
+            mapping[row[header.index(indexcol)]] = float(row[header.index(valcol)])
+
+    return mapping
+

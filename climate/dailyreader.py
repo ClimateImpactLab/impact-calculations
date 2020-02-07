@@ -42,7 +42,7 @@ class DailyWeatherReader(YearlySplitWeatherReader):
 
     def prepare_ds(self, filename):
         try:
-            ds = xr.open_dataset(filename)
+            ds = xr.open_dataset(filename, autoclose=True)
             if 'time' in ds.coords:
                 ds.rename({'time': 'yyyyddd', self.regionvar: 'region'}, inplace=True)
                 ds['time'] = (('yyyyddd'), pd.date_range('%d-01-01' % (ds.yyyyddd[0] // 1000), periods=365))
@@ -69,14 +69,18 @@ class DailyWeatherReader(YearlySplitWeatherReader):
         return None
 
 class MonthlyDimensionedWeatherReader(YearlySplitWeatherReader):
-    def __init__(self, template, year1, regionvar, variable, dim):
+    def __init__(self, template, year1, regionvar, variable, dim, dimvariable=None):
         super(MonthlyDimensionedWeatherReader, self).__init__(template, year1, variable)
         self.time_units = 'yyyy0mm'
         self.regionvar = regionvar
         self.dim = dim
         self.regions = netcdfs.readncdf_single(self.file_for_year(year1), regionvar, allow_missing=True)
-        self.dim_values = netcdfs.readncdf_single(self.file_for_year(year1), dim)
-
+        if self.regions is None:
+            print "WARNING: Cannot find %s variable in %s." % (regionvar, self.file_for_year(year1))
+        if dimvariable is None:
+            dimvariable = dim
+        self.dim_values = netcdfs.readncdf_single(self.file_for_year(year1), dimvariable)
+        
     def get_regions(self):
         """Returns a list of all regions available."""
         return self.regions
@@ -95,14 +99,18 @@ class MonthlyDimensionedWeatherReader(YearlySplitWeatherReader):
 
     def read_iterator(self):
         # Yield data in yearly chunks
+        years = self.get_years()
+        yy = 0
         for filename in self.file_iterator():
             ds = xr.open_dataset(filename)
             if 'month' in ds.coords:
                 ds.rename({'month': 'time', self.regionvar: 'region'}, inplace=True)
             else:
                 ds.rename({self.regionvar: 'region'}, inplace=True)
-            ds = ds.transpose('time', 'region', self.dim) # Some old code may depend on T x REGIONS x K
+            ds[self.variable] = ds[self.variable].transpose('time', 'region', self.dim) # Some old code may depend on T x REGIONS x K
+            ds.attrs['year'] = years[yy]
             yield ds
+            yy += 1
 
     def read_year(self, year):
         ds = xr.open_dataset(self.file_for_year(year))
@@ -110,14 +118,15 @@ class MonthlyDimensionedWeatherReader(YearlySplitWeatherReader):
             ds.rename({'month': 'time', self.regionvar: 'region'}, inplace=True)
         else:
             ds.rename({self.regionvar: 'region'}, inplace=True)
-        ds = ds.transpose('time', 'region', self.dim) # Some old code may depend on T x REGIONS x K
+        ds[self.variable] = ds[self.variable].transpose('time', 'region', self.dim) # Some old code may depend on T x REGIONS x K
+        ds.attrs['year'] = year
         return ds
 
 class MonthlyBinnedWeatherReader(MonthlyDimensionedWeatherReader):
     """Exposes binned weather data, accumulated into months and split into yearly file."""
 
-    def __init__(self, template, year1, regionvar, variable):
-        super(MonthlyBinnedWeatherReader, self).__init__(template, year1, regionvar, variable, 'bin_limits')
+    def __init__(self, template, year1, regionvar, variable, bindim='bins', binvariable='bin_limits'):
+        super(MonthlyBinnedWeatherReader, self).__init__(template, year1, regionvar, variable, bindim, binvariable)
 
     def get_dimension(self):
         return [self.variable + '-' + str(self.dim_values[bb-1]) + '-' + str(self.dim_values[bb]) for bb in range(1, len(self.dim_values))] # if dim_values = 2, single value
@@ -125,12 +134,11 @@ class MonthlyBinnedWeatherReader(MonthlyDimensionedWeatherReader):
 class YearlyBinnedWeatherReader(YearlySplitWeatherReader):
     """Exposes binned weather data, accumulated into years from a month binned file."""
 
-    def __init__(self, template, year1, regionvar, variable):
+    def __init__(self, template, year1, regionvar, variable, bindim='bins', binvariable='bin_limits'):
         super(YearlyBinnedWeatherReader, self).__init__(template, year1, variable)
         self.time_units = 'yyyy000'
-        self.regionvar = regionvar
-        self.monthlyreader = MonthlyBinnedWeatherReader(template, year1, regionvar, variable)
-        self.bin_limits = self.monthlyreader.bin_limits
+        self.monthlyreader = MonthlyBinnedWeatherReader(template, year1, regionvar, variable, bindim, binvariable)
+        self.bin_limits = self.monthlyreader.dim_values
 
     def get_times(self):
         return self.get_years()
@@ -141,15 +149,16 @@ class YearlyBinnedWeatherReader(YearlySplitWeatherReader):
     def read_iterator(self):
         # Yield data summed across years
         for ds in self.monthlyreader.read_iterator():
-            ds = ds.groupby('time.year').sum()
-            ds.rename({self.regionvar: 'region'}, inplace=True)
-            yield ds.rename({'year': 'time'})
+            year = ds.attrs['year']
+            ds = ds.sum(dim='time') # only have one year
+            ds.attrs['year'] = year
+            yield ds
 
     def read_year(self, year):
         ds = self.monthlyreader.read_year(year)
-        ds = ds.groupby('time.year').sum()
-        ds.rename({self.regionvar: 'region'}, inplace=True)
-        return ds.rename({'year': 'time'})
+        ds = ds.sum(dim='time')
+        ds.attrs['year'] = year
+        return ds
 
 class GDDKDDReader(ConversionWeatherReader):
     def __init__(self, reader, tminvar, tmaxvar, lower, upper):

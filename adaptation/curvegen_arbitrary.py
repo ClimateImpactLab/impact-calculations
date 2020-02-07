@@ -1,9 +1,49 @@
-import curvegen
+"""Classes for curve generation from general fitting methods.
+
+This file defines sub-classes of the CSVVCurveGenerator class. For
+more information, see the curvegen.py file.
+
+In contrast to curvegen_known.py, the CurveGenerators defined below
+take coefficients that are applied in the same way to all
+predictors. For example, a SumCoefficientsCurveGenerator takes
+coefficients from a regression, and assumes that predictors of the
+same form as the regression will be applied to it during the
+projection process. In this case, the entire projection calculation
+reduces to a dot-product.
+
+"""
+
 import numpy as np
 from openest.generate import formatting, diagnostic, selfdocumented
 from openest.generate.smart_curve import TransformCoefficientsCurve
+import curvegen, csvvfile
 
 class CoefficientsCurveGenerator(curvegen.CSVVCurveGenerator):
+    """Wrapper class for an arbitrary curve generation function.
+    
+    The CSVV coefficients are assumed to be named either prefix0,
+    prefix1, ..., prefixN or prefix, prefix2, ..., prefixN.
+
+    Parameters
+    ----------
+    curvefunc : function(sequence of float) -> Curve
+        Produces a curve for a given set of adaptation-adjusted coefficients (betas).
+    indepunits : sequence of str
+        The unit for each predictor variable.
+    depenunit : str
+        The unit for the outcome variable.
+    prefix : str
+        Prefix for naming the coefficients in the CSVV.
+    order : int
+        The number of coefficient terms.
+    csvv : dict
+        Dictionary returned by csvvfile.read.
+    zerostart : bool
+        If True, the first predictor is prefix0; otherwise it is prefix.
+    betalimits : dict
+        Dictionary of limits on the resulting betas; passed to CSVVCurveGenerator.
+
+    """
     def __init__(self, curvefunc, indepunits, depenunit, prefix, order, csvv, zerostart=True, betalimits={}):
         self.curvefunc = curvefunc
         if zerostart:
@@ -22,6 +62,33 @@ class CoefficientsCurveGenerator(curvegen.CSVVCurveGenerator):
         return self.curvefunc(mycoeffs)
 
 class SumCoefficientsCurveGenerator(curvegen.CSVVCurveGenerator):
+    """Arbitrary OLS gamma regression curve generator.
+
+    Each predictor can be a transformation of the information in the
+    weather xarray Dataset, although it is usually directly taken from
+    the dataset since transformation is performed prior to spatial
+    aggregation.
+
+    Parameters
+    ----------
+    prednames : sequence of str
+        The predictors as described in the CSVV file.
+    ds_transforms : sequence of function(Dataset) -> array_like
+        Functions to extract the relevant data from the xarray Dataset.
+    transform_descriptions : sequence of str
+        Description of what each ds_transform does.
+    indepunits : sequence of str
+        The unit for each predictor variable.
+    depenunit : str
+        The unit for the outcome variable.
+    csvv : dict
+        Dictionary returned by csvvfile.read.
+    diagprefix : str
+        The prefix for coefficient values as reported in the diagnostics file.
+    betalimits : dict
+        Dictionary of limits on the resulting betas; passed to CSVVCurveGenerator.
+
+    """
     def __init__(self, prednames, ds_transforms, transform_descriptions, indepunits, depenunit, csvv, diagprefix='coeff-', betalimits={}):
         super(SumCoefficientsCurveGenerator, self).__init__(prednames, indepunits, depenunit, csvv, betalimits=betalimits)
         self.ds_transforms = ds_transforms
@@ -32,7 +99,7 @@ class SumCoefficientsCurveGenerator(curvegen.CSVVCurveGenerator):
         allcoeffs = self.get_coefficients(covariates)
         return [allcoeffs[predname] for predname in self.prednames]
 
-    def get_curve(self, region, year, covariates={}, recorddiag=True):
+    def get_curve(self, region, year, covariates={}, recorddiag=True, **kwargs):
         mycoeffs = self.get_curve_parameters(region, year, covariates)
 
         if recorddiag and diagnostic.is_recording():
@@ -64,8 +131,26 @@ class SumCoefficientsCurveGenerator(curvegen.CSVVCurveGenerator):
             elts.update(selfdocumented.format_nomain(self.ds_transforms[self.prednames[ii]], lang))
 
         return elts
+
+    def get_partial_derivative_curvegen(self, covariate, covarunit):
+        csvvpart = csvvfile.partial_derivative(self.csvv, covariate, covarunit)
+        incpreds = [predname in csvvpart['prednames'] for predname in self.prednames]
+        prednames = [self.prednames[ii] for ii in range(len(self.prednames)) if incpreds[ii]]
+        indepunits = [self.indepunits[ii] for ii in range(len(self.prednames)) if incpreds[ii]]
+        return SumCoefficientsCurveGenerator(prednames, self.ds_transforms, self.transform_descriptions,
+                                             indepunits, self.depenunit + '/' + covarunit,
+                                             csvvpart, diagprefix=self.diagprefix + 'dd' + covariate, betalimits=self.betalimits)
     
 class MLECoefficientsCurveGenerator(CoefficientsCurveGenerator):
+    """Implementation of CoefficientsCurveGenerator for standard MLE curves.
+
+    MLE curves, as we use the term in CIL, use the functional form:
+        y = sum_k gamma_k0 x_l exp(sum_l gamma_kl z_l)
+
+    This needs an alternative implementation of the get_coefficients
+    curve to replace the linear sum with the expression above.
+
+    """
     def get_coefficients(self, covariates, debug=False):
         coefficients = {} # {predname: beta * exp(gamma z)}
         for predname in set(self.prednames):

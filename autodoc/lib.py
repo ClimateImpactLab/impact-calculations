@@ -26,6 +26,14 @@ def show_julia(command, clipto=160):
         except Exception as ex:
             print ex
 
+def get_julia(obj):
+    if isinstance(obj, float):
+        return "%f" % obj
+    elif isinstance(obj, np.ndarray):
+        return "[%s]" % (', '.join(map(get_julia, obj)))
+    else:
+        return str(obj)
+
 def get_excerpt(filepath, first_col, regionid, years, hasmodel=True, onlymodel=None, hidecols=[]):
     data = {}
     model = None
@@ -191,7 +199,7 @@ def get_adm0_regionindices(adm0):
             if row[0][:3] == adm0 and row[6] != '':
                 yield int(row[6]) - 1
 
-def get_outputs(outputpath, years, shapenum, timevar='year'):
+def get_outputs(outputpath, years, shapenum, timevar='year', deltamethod=False):
     rootgrp = Dataset(outputpath, 'r', format='NETCDF4')
     if isinstance(shapenum, str):
         regions = list(rootgrp.variables['regions'][:])
@@ -200,14 +208,18 @@ def get_outputs(outputpath, years, shapenum, timevar='year'):
         shapenum = 0
         
     outyears = list(rootgrp.variables[timevar])
-    outvars = [var for var in rootgrp.variables if len(rootgrp.variables[var].shape) == 2]
+    outvars = [var for var in rootgrp.variables if len(rootgrp.variables[var].shape) == 2 and var != 'vcv']
     print 'year,' + ','.join(outvars)
     
     outputs = {}
     for year in years:
         data = {var: rootgrp.variables[var][outyears.index(year), shapenum] for var in outvars}
         outputs[year] = data
-        
+        if deltamethod:
+            for var in outvars:
+                outputs[year][var + '_bcde'] = rootgrp.variables[var + '_bcde'][:, outyears.index(year), shapenum]
+            outputs['vcv'] = rootgrp.variables['vcv']
+            
         print ','.join([str(year)] + [str(data[var]) for var in outvars])
 
     return outputs
