@@ -10,7 +10,7 @@ levels_suffix = '-levels'
 suffix = "-aggregated"
 missing_only = True
 
-costs_command = "Rscript generate/cost_curves.R \"%s\" \"%s\" \"%s\" \"%s\"" # tavgpath rcp gcm impactspath
+costs_command = "Rscript generate/cost_curves.R \"%s\" \"%s\" \"%s\" \"%s\" \"%s\"" # tavgpath rcp gcm impactspath suffix
 
 CLAIM_TIMEOUT = 24*60*60
 
@@ -175,7 +175,7 @@ def make_costs_levels(targetdir, filename, outfilename, halfweight, weight_args)
 
 def fullfile(filename, suffix, config):
     if 'infix' in config:
-        return fullfile(filename, '-' + config['infix'] + suffix, {})
+        return fullfile(filename, '-' + str(config['infix']) + suffix, {})
 
     return filename[:-4] + suffix + '.nc4'
     
@@ -281,7 +281,8 @@ if __name__ == '__main__':
 
                     if '-noadapt' not in filename and '-incadapt' not in filename and 'histclim' not in filename and 'indiamerge' not in filename:
                         # Generate costs
-                        if not missing_only or not os.path.exists(os.path.join(targetdir, fullfile(filename, costs_suffix, config))):
+                        outfilename = fullfile(filename, costs_suffix, config)
+                        if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)) or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable='costs_lb', regioncount=5665):
                             if '-combined' in filename:
                                 # Look for age-specific costs
                                 agegroups = ['young', 'older', 'oldest']
@@ -300,19 +301,23 @@ if __name__ == '__main__':
                             else:
                                 tavgpath = '/shares/gcp/outputs/temps/%s/%s/climtas.nc4' % (clim_scenario, clim_model)
                                 impactspath = os.path.join(targetdir, filename)
-                                
-                                print costs_command % (tavgpath, clim_scenario, clim_model, impactspath)
-                                os.system(costs_command % (tavgpath, clim_scenario, clim_model, impactspath))
+
+                                if 'infix' in config:
+                                    fullcostsuffix = '-' + str(config['infix']) + costs_suffix
+                                else:
+                                    fullcostsuffix = costs_suffix
+                                print costs_command % (tavgpath, clim_scenario, clim_model, impactspath, fullcostsuffix)
+                                os.system(costs_command % (tavgpath, clim_scenario, clim_model, impactspath, fullcostsuffix))
 
                         # Levels of costs
                         outfilename = fullfile(filename, costs_suffix + levels_suffix, config)
                         if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)):
-                            make_costs_levels(targetdir, fullfile(filename, costs_suffix, config), outfilename, halfweight_levels, weight_args_levels)
+                            make_costs_levels(targetdir, fullfile(filename, costs_suffix, {}), outfilename, halfweight_levels, weight_args_levels)
 
                         # Aggregate costs
                         outfilename = fullfile(filename, costs_suffix + suffix, config)
                         if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)):
-                            make_costs_aggregate(targetdir, fullfile(filename, costs_suffix, config), outfilename, halfweight_aggregate, weight_args_aggregate, halfweight_denom=halfweight_aggregate_denom, weight_args_denom=weight_args_aggregate_denom)
+                            make_costs_aggregate(targetdir, fullfile(filename, costs_suffix, {}), outfilename, halfweight_aggregate, weight_args_aggregate, halfweight_denom=halfweight_aggregate_denom, weight_args_denom=weight_args_aggregate_denom)
                     elif 'indiamerge' in filename:
                         # Just aggregate the costs
 

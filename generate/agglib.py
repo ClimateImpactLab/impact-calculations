@@ -48,6 +48,10 @@ def get_aggregated_regions(regions):
     originals = {} # { prefix: [region] }
     for region in regions:
         original = region
+        if len(region) == 3:
+            originals[region] = [region]
+            continue # Add single-region countries
+        
         while len(region) > 3:
             region = region[:region.rindex('.')]
             if region in originals:

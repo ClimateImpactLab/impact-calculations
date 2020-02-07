@@ -1,4 +1,5 @@
 import re
+import numpy as np
 import pandas as pd
 from impactlab_tools.utils import files
 from impactcommon.exogenous_economy import gdppc
@@ -15,7 +16,7 @@ def interpret_halfweight(weighting):
             factor = interpret_halfweight(parts[ii])
             combiner = lambda x, y: x * y
             if parts[ii-1] == '/':
-                combiner = lambda x, y: x / y
+                combiner = lambda x, y: np.array(x, dtype=float) / np.array(y, dtype=float)
             halfweight = spacetime.SpaceTimeProductBipartiteData(halfweight.year0, halfweight.year1, halfweight.regions, halfweight, factor, combiner=combiner)
         return halfweight
 
