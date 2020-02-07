@@ -1,13 +1,25 @@
-import subprocess, csv, os
+"""
+Various utils for various sector-specific diagnostic scripts.
+"""
+
+import csv
+import os
+import subprocess
+
 import numpy as np
 from netCDF4 import Dataset
 
 endbaseline = 2015
 
 def show_header(text):
+    """Pretty printing of str `text`
+    """
     print "\n\033[1m" + text + "\033[0m"
 
+
 def show_julia(command, clipto=160):
+    """Print output from running command in Julia
+    """
     if isinstance(command, str):
         print command
         print "# " + subprocess.check_output(["julia", "-e", "println(" + command + ")"])
@@ -17,10 +29,49 @@ def show_julia(command, clipto=160):
                 print line[:(clipto-3)] + '...'
             else:
                 print line
-                
-        print "# " + subprocess.check_output(["julia", "-e", "; ".join(command[:-1]) + "; println(" + command[-1] + ")"])
 
-def get_excerpt(filepath, first_col, regionid, years, hasmodel=True, onlymodel=None, hidecols=[]):
+        print "# " + subprocess.check_output(
+            ["julia", "-e", "; ".join(command[:-1]) + "; println(" + command[-1] + ")"])
+
+
+def get_excerpt(filepath, first_col, regionid, years, hasmodel=True, onlymodel=None, hidecols=None):
+    """
+    Get section of projection diagnostic output CSV file
+
+    Parameters
+    ----------
+    filepath : str
+        Path to target file.
+    first_col : int
+        0 based index for the column at which data actually starts, following
+        "region", "year", and possibly "model"(s) columns.
+    regionid : str
+        Year to extract from CSV file. Parsed from the first column.
+    years : sequence
+        Sequence of years to extract from CSV file.
+    hasmodel : bool, optional
+        Does the file have columns for models?
+    onlymodel : str or None, optional
+        Which models should be subset from the file. Only works if there is
+        a "models" column in the file index. If None, then no subset is
+        extracted, or no models information is included in the file.
+    hidecols : sequence of str or None, optional
+        Columns in the target file to exclude from the returned data. If None,
+        no columns are hidden.
+
+    Returns
+    -------
+    out : dict
+        A dictionary with keys for every year in the target file and a "header"
+        key. "header" contains a list of str, giving an ordered sequence of
+        columns. The elements with year keys are lists containing floats and
+        potentially ``np.nan``. Note that the year indices are str. The order
+        of the items in this list correspond to the order in
+        ``out['header']]``.
+    """
+    if hidecols is None:
+        hidecols = []
+
     data = {}
     model = None
     with open(filepath, 'r') as fp:
@@ -61,8 +112,24 @@ def get_excerpt(filepath, first_col, regionid, years, hasmodel=True, onlymodel=N
 
     return data
 
+
 def excind(data, year, column):
+    """
+    Extract a year and column from a data dict.
+
+    Parameters
+    ----------
+    data : dict
+        A dictionary as output from ``get_excerpt``. Needs a "header" element,
+        and all other values are indexed on str keys giving the years of
+        data.
+    year : str
+        Year to extract. Must be in `data`.
+    column : str
+        'Column' from ``data`` to extract.
+    """
     return data[str(year)][data['header'].index(column)]
+
 
 def parse_csvv_line(line):
     line = line.rstrip().split(',')
@@ -71,7 +138,28 @@ def parse_csvv_line(line):
 
     return line
 
+
 def get_csvv(filepath, index0=None, indexend=None):
+    """
+    Read CSVV file and return contents
+
+    Parameters
+    ----------
+    filepath : str
+        Path to target CSVV file.
+    index0 : int or None, optional
+        First value of slice to select a subset of elements from the file
+        line.
+    indexend : int or None, optional
+        Second value of slice to select a subset of elements from the file
+        line.
+
+    Returns
+    -------
+    csvv : dict
+        Dictionary representing the content of a CSVV file. Keys give file
+        field names.
+    """
     csvv = {}
     with open(filepath, 'rU') as fp:
         printline = None
@@ -92,14 +180,54 @@ def get_csvv(filepath, index0=None, indexend=None):
 
     return csvv
 
+
 def get_gamma(csvv, predname, covarname):
+    """Get gamma values from a CSVV dict.
+
+    Parameters
+    ----------
+    csvv : dict
+        CSVV values as returned from ``get_csvv``
+    predname : str
+        Extract value corresponding to "predname".
+    covarname : str
+        Extract value corresponding to "covarname".
+    """
     for ii in range(len(csvv['gamma'])):
         if csvv['prednames'][ii] == predname and csvv['covarnames'][ii] == covarname:
             return csvv['gamma'][ii]
 
     return None
 
+
 def show_coefficient(csvv, preds, year, coefname, covartrans, calconly=False):
+    """
+    Extract coefficient from CSVV and do some calculations in Julia with it.
+
+    Parameters
+    ----------
+    csvv : dict
+        CSVV data, as output from get_CSVV.
+    preds : dict
+        A dictionary as output from ``get_excerpt``. Needs a "header" element,
+        and all other values are indexed on str keys giving the years of
+        data.
+    year : int
+        Target year to calculate for.
+    coefname : str
+        Name of coefficient listed in ``csvv['prednames']`` to work from.
+    covartrans : dict
+        Covariate transformations dictionary. Time has long forgotten what this
+        actually does. But it does do something.
+    calconly : bool, optional
+        If True, simply return a str showing the julia calculation, otherwise
+        the calculation is run and printed to stdout.
+
+    Returns
+    -------
+    str is returned if `calconly is True. Otherwise has the sideeffect of
+    triggering a calculation in Julia.
+    """
     predyear = year - 1 if year > endbaseline else year
 
     terms = []
@@ -109,8 +237,9 @@ def show_coefficient(csvv, preds, year, coefname, covartrans, calconly=False):
                 terms.append(str(csvv['gamma'][ii]))
             elif csvv['covarnames'][ii] in covartrans:
                 if covartrans[csvv['covarnames'][ii]] is None:
-                    continue # Skip this one
-                terms.append(str(csvv['gamma'][ii]) + " * " + str(excind(preds, predyear, covartrans[csvv['covarnames'][ii]])))
+                    continue  # Skip this one
+                terms.append(
+                    str(csvv['gamma'][ii]) + " * " + str(excind(preds, predyear, covartrans[csvv['covarnames'][ii]])))
             else:
                 terms.append(str(csvv['gamma'][ii]) + " * " + str(excind(preds, predyear, csvv['covarnames'][ii])))
 
@@ -118,6 +247,7 @@ def show_coefficient(csvv, preds, year, coefname, covartrans, calconly=False):
         return ' + '.join(terms)
     
     show_julia(' + '.join(terms))
+
 
 def show_coefficient_mle(csvv, preds, year, coefname, covartrans):
     predyear = year - 1 if year > endbaseline else year
@@ -128,13 +258,16 @@ def show_coefficient_mle(csvv, preds, year, coefname, covartrans):
             if csvv['covarnames'][ii] == '1':
                 continue
             elif csvv['covarnames'][ii] in covartrans:
-                terms.append(str(csvv['gamma'][ii]) + " * " + str(excind(preds, predyear, covartrans[csvv['covarnames'][ii]])))
+                terms.append(
+                    str(csvv['gamma'][ii]) + " * " + str(excind(preds, predyear, covartrans[csvv['covarnames'][ii]])))
             else:
                 terms.append(str(csvv['gamma'][ii]) + " * " + str(excind(preds, predyear, csvv['covarnames'][ii])))
 
-    beta = [csvv['gamma'][ii] for ii in range(len(csvv['gamma'])) if csvv['prednames'][ii] == coefname and csvv['covarnames'][ii] == '1'][0]
+    beta = [csvv['gamma'][ii] for ii in range(len(csvv['gamma'])) if
+            csvv['prednames'][ii] == coefname and csvv['covarnames'][ii] == '1'][0]
 
     show_julia("%f * exp(%s)" % (beta, ' + '.join(terms)))
+
 
 def get_regionindex(region):
     with open("/shares/gcp/regions/hierarchy.csv", 'r') as fp:
@@ -147,6 +280,7 @@ def get_regionindex(region):
             if row[0] == region:
                 return int(row[6]) - 1
 
+
 def get_adm0_regionindices(adm0):
     with open("/shares/gcp/regions/hierarchy.csv", 'r') as fp:
         for line in fp:
@@ -158,7 +292,32 @@ def get_adm0_regionindices(adm0):
             if row[0][:3] == adm0 and row[6] != '':
                 yield int(row[6]) - 1
 
+
 def get_weather(weathertemplate, years, shapenum=None, show_all_years=[], variable='tas'):
+    """Extract a subset of weather from a NetCDF4 file.
+
+    Parameters
+    ----------
+    weathertemplate : str
+        A str with replacement fields for ''{rcp}'', ''{variable}'', and
+        ''{year}''.
+    years : sequence
+        Sequence of years to extract.
+    shapenum : str, int, or None, optional
+        If str, `shapenum` is treated as a region and this region is extracted
+        from the target file. Otherwise, used to extract from the last
+        dimension of the data variable.
+    show_all_years : sequence of str, optional
+        Print debug information for these select years. Default prints nothing.
+    variable : str, optional
+        Variable to extract from target NetCDF file.
+
+    Returns
+    -------
+    weather : dict
+        Data extracted from target NetCDF file. Dictionary keys are ints giving
+        extracted years. Dictionary values are numpy.ndarray.
+    """
     weather = {}
     for year in years:
         filepath = weathertemplate.format(rcp='historical' if year < 2006 else 'rcp85', variable=variable, year=year)
@@ -166,7 +325,8 @@ def get_weather(weathertemplate, years, shapenum=None, show_all_years=[], variab
         rootgrp = Dataset(filepath, 'r', format='NETCDF4')
         if isinstance(shapenum, str):
             regions = rootgrp.variables['hierid'][:]
-            regions = [''.join([region[ii] for ii in range(len(region)) if region[ii] is not np.ma.masked]) for region in regions]
+            regions = [''.join([region[ii] for ii in range(len(region)) if region[ii] is not np.ma.masked]) for region
+                       in regions]
             shapenum = regions.index(shapenum)
 
         if len(rootgrp.variables[variable].shape) == 2:
@@ -187,7 +347,30 @@ def get_weather(weathertemplate, years, shapenum=None, show_all_years=[], variab
 
     return weather
 
+
 def get_outputs(outputpath, years, shapenum, timevar='year'):
+    """Read and subset
+
+    Parameters
+    ----------
+    outputpath : str
+        Path to output projection NetCDF4 file.
+    years : sequence of int
+        Years to extract from the target file.
+    shapenum : str, int, or None, optional
+        If str, `shapenum` is treated as a region and this region is extracted
+        from the target file. Otherwise, used to extract from the last
+        dimension of the data variable.
+    timevar : str, optional
+        Name of the "time" variable.
+
+    Returns
+    -------
+    outputs : dict of dicts
+        Data extracted from the projection NetCDF4 file. Keys to this dict
+        give years (as int) from the file, and values are nested dicts like:
+        {variable: value}.
+    """
     rootgrp = Dataset(outputpath, 'r', format='NETCDF4')
     if isinstance(shapenum, str):
         regions = list(rootgrp.variables['regions'][:])
