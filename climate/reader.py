@@ -48,6 +48,9 @@ class YearlySplitWeatherReader(WeatherReader):
         self.year1 = year1
         self.variable = variable
 
+    def __repr__(self):
+        return "%s(%s)" % (self.__class__, self.template)
+
     def get_years(self):
         "Returns list of years."
 
@@ -159,11 +162,13 @@ class RegionReorderWeatherReader(WeatherReader):
         self.dependencies = []
         desired_regions = irregions.load_regions(hierarchy, self.dependencies)
         observed_regions = self.reader.get_regions()
+        if observed_regions is None:
+            raise ValueError("No regions produced by " + str(self.reader))
 
         mapping = {} ## mapping maps from region to index in observed_regions
         for ii in range(len(observed_regions)):
             mapping[''.join(observed_regions[ii])] = ii
-
+            
         self.reorder = np.array([mapping[region] for region in desired_regions])
 
     def get_times(self):
