@@ -1,3 +1,15 @@
+"""Base classes for exposing weather data.
+
+See docs/climate.md for the API interface for the weather reading
+system.
+
+This file defines the basic interface for a `WeatherReader` class,
+which provides the data for a given variable, typically stored in one
+or more NetCDF files.  New variables can be paired with existing
+WeatherReader classes if the file and directory structures have been
+used before. Otherwise, that logic is encapsulated here.
+"""
+
 import os, glob
 import numpy as np
 import xarray as xr
