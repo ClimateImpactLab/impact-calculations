@@ -95,27 +95,41 @@ def standard_variable(name, mytimerate, **config):
             return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/" + name), name, version=version, **config)
         for ii in range(2, 10):
             if name in ["%s-poly-%d" % (var, ii) for var in polyedvars]:
+                if config.get('show-source', False):
+                    print files.sharedpath("climate/BCSD/hierid/popwt/daily/" + name)
                 return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/" + name), name, version=version, **config)
             if name in ["%s%d" % (var, ii) for var in polyedvars]:
+                if config.get('show-source', False):
+                    print files.sharedpath("climate/BCSD/hierid/popwt/daily/%s-poly-%s" % (name[:-1], name[-1]))
                 return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/%s-poly-%s" % (name[:-1], name[-1])), '%s-poly-%s' % (name[:-1], name[-1]), version=version, **config)
         if name == 'prmm':
+            if config.get('show-source', False):
+                print files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level/*/pr')
             return discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'pr', **config)
 
     if mytimerate == 'month':
         if name in ['tas', 'tasmax']:
             return discover_day2month(standard_variable(name, 'day', **config),  lambda arr, dim: np.mean(arr, axis=dim))
         if name == 'tasbin':
+            if config.get('show-source', False):
+                print files.sharedpath('climate/BCSD/aggregation/cmip5_bins/IR_level/*/tas')
             return discover_binned(files.sharedpath('climate/BCSD/aggregation/cmip5_bins/IR_level'), 'year', # Should this be year?
                                    'tas/tas_Bindays_aggregated_%scenario_r1i1p1_%model_%d.nc', 'SHAPENUM', 'DayNumber')
         if name == 'edd':
+            if config.get('show-source', False):
+                print files.sharedpath('climate/BCSD/hierid/cropwt/monthly/edd_monthly')
             return discover_rename(
                 discover_versioned_binned(files.sharedpath('climate/BCSD/hierid/cropwt/monthly/edd_monthly'),
                                           'edd_monthly', 'refTemp', version=version, **config),
                 {'edd_monthly': 'edd'})
         if name in ['pr', 'pr-poly-2']:
+            if config.get('show-source', False):
+                print files.sharedpath('climate/BCSD/hierid/cropwt/monthly/' + name)
             return discover_versioned(files.sharedpath('climate/BCSD/hierid/cropwt/monthly/' + name),
                                       name, version=version, **config)
         if name in ['prmm', 'prmm-poly-2']:
+            if config.get('show-source', False):
+                print files.sharedpath('climate/BCSD/hierid/cropwt/monthly/' + name.replace('prmm', 'pr'))
             return discover_rename(
                 discover_versioned(files.sharedpath('climate/BCSD/hierid/cropwt/monthly/' + name.replace('prmm', 'pr')),
                                    name.replace('prmm', 'pr'), version=version, **config), {name.replace('prmm', 'pr'): name})
@@ -125,11 +139,17 @@ def standard_variable(name, mytimerate, **config):
         polyedvars_daily = ['tas', 'tasmax'] # Currently do these as sums
 
         if name in polyedvars:
+            if config.get('show-source', False):
+                print files.sharedpath("climate/BCSD/hierid/popwt/annual/" + name)
             return discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/" + name), name, version=version, **config)
         for ii in range(2, 10):
             if name in ["%s-poly-%d" % (var, ii) for var in polyedvars]:
+                if config.get('show-source', False):
+                    print files.sharedpath("climate/BCSD/hierid/popwt/annual/" + name)
                 return discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/" + name), name, version=version, **config)
             if name in ["%s%d" % (var, ii) for var in polyedvars]:
+                if config.get('show-source', False):
+                    print files.sharedpath("climate/BCSD/hierid/popwt/annual/%s-poly-%s" % (name[:-1], name[-1]))
                 return discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/%s-poly-%s" % (name[:-1], name[-1])), '%s-poly-%s' % (name[:-1], name[-1]), version=version, **config)
 
         if name in polyedvars_daily:
@@ -158,7 +178,11 @@ def standard_variable(name, mytimerate, **config):
         if name == 'meantas':
             return discover_rename(
                 discover_day2year(standard_variable('tas', 'day', **config), lambda arr, dim: np.mean(arr, axis=dim)), {'tas': 'meantas'})
-
+        if name == 'areatas-aggregated':
+            if config.get('show-source', False):
+                print files.sharedpath("outputs/temps/*/*/areatas-aggregated.nc4")
+            return discover_covariate(files.sharedpath("outputs/temps"), "areatas-aggregated.nc4", "annual")
+            
     raise ValueError("Unknown %s variable: %s" % (mytimerate, name))
 
 def interpret_transform(var, transform):
@@ -453,6 +477,17 @@ def discover_versioned_yearly(basedir, variable, version=None, reorder=True, **c
 
         yield scenario, model, pastreader, futurereader
 
+def discover_covariate(basedir, filename, variable):
+    for scenario in os.listdir(basedir):
+        if scenario[0:3] != 'rcp':
+            continue
+
+        for model in os.listdir(os.path.join(basedir, scenario)):
+            filepath = os.path.join(basedir, scenario, model, filename)
+            if os.path.exists(filepath):
+                reader = YearlyWeatherReader(filepath, 'annual', timevar='year', regionvar='regions')
+                yield scenario, model, reader, reader
+                                     
 def discover_makehist(discover_iterator):
     """Mainly used with .histclim for, e.g., lincom (since normal historical is at the bundle level)."""
     for scenario, model, pastreader, futurereader in discover_iterator:
