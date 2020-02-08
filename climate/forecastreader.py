@@ -1,3 +1,5 @@
+"""Classes for exposing readers from IRI forecasts."""
+
 from netCDF4 import Dataset
 from reader import WeatherReader
 from scipy.stats import norm

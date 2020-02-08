@@ -1,3 +1,5 @@
+"""Classes for exposing weather data available at an annual timestep."""
+
 import os
 import numpy as np
 import xarray as xr
