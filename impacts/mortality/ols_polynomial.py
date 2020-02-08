@@ -1,4 +1,5 @@
 import csv, copy
+from datetime import date
 import numpy as np
 from adaptation import csvvfile, curvegen, curvegen_known, covariates, constraints
 from interpret import configs
@@ -9,8 +10,8 @@ from openest.curves import ushape_numeric
 from impactcommon.math import minpoly
     
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', config={}):
-    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, config=configs.merge(config, 'climcovar'), varindex=0), {'climtas': 'tas'}),
-                                                covariates.EconomicCovariator(economicmodel, 2015, config=configs.merge(config, 'econcovar'))])
+    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, config.get('endbaseline', 2015), config=configs.merge(config, 'climcovar'), varindex=0), {'climtas': 'tas'}),
+                                                covariates.EconomicCovariator(economicmodel, config.get('endbaseline', 2015), config=configs.merge(config, 'econcovar'))])
 
     # Don't collapse: already collapsed in allmodels
     #csvvfile.collapse_bang(csvv, qvals.get_seed('csvv'))
@@ -59,7 +60,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
         return ushape_numeric.UShapedCurve(ClippedCurve(goodmoney_curve), baselinemins[region], lambda xs: xs[:, 0], fillxxs=fillins, fillyys=unicurve(fillins))
 
     clip_curvegen = curvegen.TransformCurveGenerator(transform, curr_curvegen)
-    farm_curvegen = curvegen.FarmerCurveGenerator(clip_curvegen, covariator, farmer)
+    farm_curvegen = curvegen.FarmerCurveGenerator(clip_curvegen, covariator, farmer, endbaseline=config.get('endbaseline', 2015))
 
     # Generate the marginal income curve
     climtas_effect_curve = ZeroInterceptPolynomialCurve([-np.inf, np.inf], 365 * np.array([csvvfile.get_gamma(csvv, tasvar, 'climtas') for tasvar in ['tas', 'tas2', 'tas3', 'tas4', 'tas5'][:order]])) # x 365, to undo / 365 later
@@ -79,8 +80,20 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     climtas_effect_curvegen = curvegen.TransformCurveGenerator(transform_climtas_effect, farm_curvegen)
 
     # Produce the final calculation
+
+    if config.get('filter', 'jun-aug'):
+        def weather_change(region, x):
+            x2 = np.copy(x)
+            # 1950 is a non-leap year
+            x2[0:(date(1950, 6, 1) - date(1950, 1, 1)).days] = np.nan
+            x2[(date(1950, 9, 1) - date(1950, 1, 1)).days:] = np.nan
+            return x2
+    else:
+        weather_change = lambda region, x: x
+        
     calculation = Transform(AuxillaryResult(YearlyAverageDay('100,000 * death/population', farm_curvegen,
-                                                             "the mortality response curve"),
+                                                             "the mortality response curve",
+                                                             weather_change),
                                             YearlyAverageDay('100,000 * death/population', climtas_effect_curvegen,
                                                              "climtas effect after clipping", norecord=True), 'climtas_effect'),
                             '100,000 * death/population', 'deaths/person/year', lambda x: 365 * x / 1e5,

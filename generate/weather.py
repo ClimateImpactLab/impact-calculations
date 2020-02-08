@@ -239,14 +239,17 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
         return alldims
 
 class HistoricalWeatherBundle(DailyWeatherBundle):
-    def __init__(self, pastreaders, futureyear_end, seed, scenario, model, hierarchy='hierarchy.csv'):
+    def __init__(self, pastreaders, futureyear_end, seed, scenario, model, hierarchy='hierarchy.csv', pastyear_end=None):
         super(HistoricalWeatherBundle, self).__init__(scenario, model, hierarchy)
         self.pastreaders = pastreaders
 
         onereader = self.pastreaders[0]
         years = onereader.get_years()
         self.pastyear_start = min(years)
-        self.pastyear_end = max(years)
+        if pastyear_end is None:
+            self.pastyear_end = max(years)
+        else:
+            self.pastyear_end = pastyear_end
         self.futureyear_end = futureyear_end
 
         # Generate the full list of past years
@@ -323,10 +326,10 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
         return alldims
 
     @staticmethod
-    def make_historical(weatherbundle, seed):
+    def make_historical(weatherbundle, seed, pastyear_end=None):
         futureyear_end = weatherbundle.get_years()[-1]
         pastreaders = [pastreader for pastreader, futurereader in weatherbundle.pastfuturereaders]
-        return HistoricalWeatherBundle(pastreaders, futureyear_end, seed, weatherbundle.scenario, weatherbundle.model)
+        return HistoricalWeatherBundle(pastreaders, futureyear_end, seed, weatherbundle.scenario, weatherbundle.model, pastyear_end=pastyear_end)
 
 class AmorphousWeatherBundle(WeatherBundle):
     def __init__(self, pastfuturereader_dict, scenario, model, hierarchy='hierarchy.csv'):
@@ -340,7 +343,7 @@ class AmorphousWeatherBundle(WeatherBundle):
 
 if __name__ == '__main__':
     template = "/shares/gcp/BCSD/grid2reg/cmip5/historical/CCSM4/{0}/{0}_day_aggregated_historical_r1i1p1_CCSM4_{1}.nc"
-    weatherbundle = HistoricalWeatherBundle(template, 1981, 2005, ['pr', 'tas'], 'historical', 'CCSM4')
+    weatherbundle = HistoricalWeatherBundle(template, 1950, 2005, ['pr', 'tas'], 'historical', 'CCSM4')
     weatherslice = weatherbundle.yearbundles().next()
     print len(weatherslice.times), len(weatherslice.weathers), len(weatherslice.weathers[0]) # 365, 2, 365
 

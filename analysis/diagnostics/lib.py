@@ -9,6 +9,7 @@ import subprocess
 import numpy as np
 from netCDF4 import Dataset
 
+endbaseline = 2015
 
 def show_header(text):
     """Pretty printing of str `text`
@@ -227,7 +228,7 @@ def show_coefficient(csvv, preds, year, coefname, covartrans, calconly=False):
     str is returned if `calconly is True. Otherwise has the sideeffect of
     triggering a calculation in Julia.
     """
-    predyear = year - 1 if year > 2015 else year
+    predyear = year - 1 if year > endbaseline else year
 
     terms = []
     for ii in range(len(csvv['gamma'])):
@@ -249,7 +250,7 @@ def show_coefficient(csvv, preds, year, coefname, covartrans, calconly=False):
 
 
 def show_coefficient_mle(csvv, preds, year, coefname, covartrans):
-    predyear = year - 1 if year > 2015 else year
+    predyear = year - 1 if year > endbaseline else year
 
     terms = []
     for ii in range(len(csvv['gamma'])):

@@ -6,8 +6,8 @@ from openest.models.curve import StepCurve, OtherClippedCurve, CoefficientsCurve
 from openest.generate.stdlib import *
 
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, farmer='full', config={}):
-    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, config=configs.merge(config, 'climcovar'), varindex=0), {'climtas': 'tas'}),
-                                                covariates.EconomicCovariator(economicmodel, 2015, config=configs.merge(config, 'econcovar'))])
+    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, config.get('endbaseline', 2015), config=configs.merge(config, 'climcovar'), varindex=0), {'climtas': 'tas'}),
+                                                covariates.EconomicCovariator(economicmodel, config.get('endbaseline', 2015), config=configs.merge(config, 'econcovar'))])
 
     curr_curvegen = curvegen_arbitrary.CoefficientsCurveGenerator(curvegen_arbitrary.ParameterHolderCurve, map(lambda label: config['terms'][label]['unit'], config['terms']), '100,000 * death/population', map(lambda label: config['terms'][label]['coeffvar'], config['terms']), csvv)
 
@@ -38,7 +38,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, farmer='full',
         return CoefficientsCurve(coeffs, lambda x: np.nan)
 
     clip_curvegen = curvegen.TransformCurveGenerator(clip_transform, curr_curvegen)
-    farm_curvegen = curvegen.FarmerCurveGenerator(clip_curvegen, covariator, farmer)
+    farm_curvegen = curvegen.FarmerCurveGenerator(clip_curvegen, covariator, farmer, endbaseline=config.get('endbaseline', 2015))
     climtas_curvegen = curvegen.TransformCurveGenerator(clip_transform_climtas, farm_curvegen)
 
     getters = [lambda region, year, temps, curve: curve.coeffs[0], lambda region, year, temps, curve: curve.coeffs[1], lambda region, year, temps, curve: curve.coeffs[2], lambda region, year, temps, curve: curve.coeffs[3]]
