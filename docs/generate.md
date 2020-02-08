@@ -32,7 +32,13 @@ included in the generate configuration file.
  - `csvvfile`: A path to a CSVV file to be used for the coefficients.
    This can be given as a subpath from the data directory; e.g.,
    `social/parameters/mortality/.../....csv`.
- 
+
+## Debugging
+
+It is sometimes not clear which weather data is selected for a given
+configration. You can add the run configuration option `show-source:
+true` to print out the location of each selected weather dataset.
+
 ## Covariate Averaging
 
 You can specify in a configuration file the averaging scheme for
