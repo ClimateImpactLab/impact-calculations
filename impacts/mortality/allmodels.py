@@ -114,7 +114,7 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
                     if profile:
                         return
 
-                if config['do_farmers'] and not weatherbundle.is_historical():
+                if config['do_farmers'] == 'always' or (config['do_farmers'] and not weatherbundle.is_historical()):
                     # Lock in the values
                     pvals[subbasename].lock()
 
@@ -134,9 +134,9 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
             try:
                 for assumption in ['', '-noadapt', '-incadapt']:
                     if assumption != '':
-                        if not config['do_farmers'] or weatherbundle.is_historical():
+                        if config['do_farmers'] == 'always' or not config['do_farmers'] or weatherbundle.is_historical():
                             continue
-                    halfweight = agecohorts.SpaceTimeBipartiteData(1981, 2100, None)
+                    halfweight = agecohorts.SpaceTimeBipartiteData(1950, 2100, None)
                     basenames = [basename + '-' + agegroup + assumption + suffix for agegroup in agegroups]
                     get_stweights = [lambda year0, year1: halfweight.load(year0, year1, economicmodel.model, economicmodel.scenario, 'age0-4', shareonly=True), lambda year0, year1: halfweight.load(year0, year1, economicmodel.model, economicmodel.scenario, 'age5-64', shareonly=True), lambda year0, year1: halfweight.load(year0, year1, economicmodel.model, economicmodel.scenario, 'age65+', shareonly=True)]
                     if check_doit(targetdir, basename + '-combined' + assumption, suffix, config):

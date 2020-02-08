@@ -68,14 +68,15 @@ class CSVVCurveGenerator(CurveGenerator):
 
 class FarmerCurveGenerator(DelayedCurveGenerator):
     """Handles different adaptation assumptions."""
-    def __init__(self, curvegen, covariator, farmer='full', save_curve=True):
+    def __init__(self, curvegen, covariator, farmer='full', save_curve=True, endbaseline=2015):
         super(FarmerCurveGenerator, self).__init__(curvegen)
         self.covariator = covariator
         self.farmer = farmer
         self.save_curve = save_curve
+        self.endbaseline = endbaseline
 
     def get_next_curve(self, region, year, *args, **kwargs):
-        if year < 2015:
+        if year < self.endbaseline:
             if region not in self.last_curves:
                 covariates = self.covariator.get_current(region)
                 curve = self.curvegen.get_curve(region, year, covariates)
