@@ -1,5 +1,5 @@
 timerate: year
-climate: [ meantas-.country ]
+climate: [ areatas-aggregated ]
 models:
   - csvvs: ./impacts/growth/burkeetal.csvv
     clipping: false

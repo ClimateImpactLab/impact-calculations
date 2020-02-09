@@ -12,11 +12,12 @@ class YearlyWeatherReader(WeatherReader):
     def __init__(self, filepath, *variables, **kwargs):
         self.filepath = filepath
         self.variables = variables
-        self.timevar = kwargs.get('timevar', 'year')
+        self.timevar = kwargs.get('timevar', 'time')
 
         version, units = netcdfs.readmeta(filepath, variables[0])
 
-        self.regions = netcdfs.readncdf_single(filepath, 'hierid', allow_missing=True) # Is None if organized by SHAPENUM
+        regionvar = kwargs.get('regionvar', 'hierid')
+        self.regions = netcdfs.readncdf_single(filepath, regionvar, allow_missing=True) # Is None if organized by SHAPENUM
         super(YearlyWeatherReader, self).__init__(version, units, 'year')
 
     def get_times(self):
@@ -37,17 +38,23 @@ class YearlyWeatherReader(WeatherReader):
         years = self.get_times()
 
         for ii in range(len(years)):
-            yield ds.isel(time=ii)
+            yield ds.isel({self.timevar: ii})
 
     def read_iterator_to(self, maxyear):
         for ds in self.read_iterator():
-            if ds['time.year'][0] >= maxyear:
+            if self.timevar == 'year':
+                if ds['year'][0] >= maxyear:
+                    return
+            elif ds[self.timevar + '.year'][0] >= maxyear:
                 return
             yield ds
 
     def read_year(self, year):
         for ds in self.read_iterator():
-            if ds['time.year'][0] == year: # always a single value anyway
+            if self.timevar == 'year':
+                if ds['year'][0] == year:
+                    return ds
+            elif ds[self.timevar + '.year'][0] == year: # always a single value anyway
                 return ds
 
     def __str__(self):
