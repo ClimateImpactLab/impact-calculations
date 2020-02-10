@@ -38,12 +38,11 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config={}, quiet=F
 
     Parameters
     ----------
-    covar : str
-        Covariate name.
+    covar : str or dict
+        Covariate name, or ``{name: extra_args}``. If dict, value is pased in as 
+        `args` recursively.
     args : list or None
-        Additional postional arguments to pass to 
-        ``covariates.BinnedEconomicCovariator`` if `covar` is 'incbin', 
-        ``get_covariator`` if '*' or `^` is in `covar`.
+        Additional postional arguments if `covar` values, if was dict.
     weatherbundle : generate.weather.DailyWeatherBundle
     economicmodel : adaptation.econmodel.SSPEconomicModel
     config : dict, optional
@@ -76,9 +75,11 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config={}, quiet=F
         return covariates.SeasonalWeatherCovariator(weatherbundle, 2015, config['within-season'], covar[8:], config=configs.merge(config, 'climcovar'))
     elif covar[:4] == 'clim': # climtas, climcdd-20, etc.
         return covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, covar[4:], config=configs.merge(config, 'climcovar'), quiet=quiet), {covar: covar[4:]})
+    elif covar[:6] == 'hierid':
+        return covariates.populate_constantcovariator_by_hierid(covar, list(args))
     else:
         user_failure("Covariate %s is unknown." % covar)
-        
+
 def create_covariator(specconf, weatherbundle, economicmodel, config={}, quiet=False):
     """Interprets the entire covariates dictionary in the configuration file.
 
