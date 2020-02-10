@@ -9,16 +9,12 @@ precipitation.
 """
 
 import re
-from collections import defaultdict
-from pandas import read_csv
 from adaptation import csvvfile, curvegen, curvegen_known, curvegen_arbitrary, covariates, constraints
 from datastore import irvalues
 from openest.generate import smart_curve, selfdocumented
 from openest.models.curve import ShiftedCurve, MinimumCurve, ClippedCurve
 from openest.generate.stdlib import *
 from impactcommon.math import minpoly, minspline
-from impactlab_tools.utils import files
-from datastore.irregions import contains_region
 import calculator, variables, configs
 
 def user_failure(message):
@@ -80,21 +76,7 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config={}, quiet=F
     elif covar[:4] == 'clim': # climtas, climcdd-20, etc.
         return covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, covar[4:], config=configs.merge(config, 'climcovar'), quiet=quiet), {covar: covar[4:]})
     elif covar[:6] == 'hierid':
-        # If has fixed effect based on region being within hierid(s)...
-        hi_df = read_csv(files.sharedpath('/shares/gcp/regions/hierarchy.csv'),
-                         skiprows=31, index_col='region-key')
-
-        # Expect 'hierid-*' covariator have list of str hierids (appears
-        # in 'args', here).
-        target_regions = list(args)
-
-        # 1.0 if in hierid(s), otherwise always 0.0.
-        ir_dict = defaultdict(lambda: 0.0)
-        for r in hi_df.index.values:
-            if contains_region(target_regions, r, hi_df):
-                ir_dict[r] = 1.0
-
-        covariates.ConstantCovariator(covar, ir_dict)
+        return covariates.populate_constantcovariator_by_hierid(covar, list(args))
     else:
         user_failure("Covariate %s is unknown." % covar)
 

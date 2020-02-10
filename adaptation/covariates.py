@@ -25,13 +25,17 @@ averaging.
 """
 
 import itertools
+from collections import defaultdict
 import numpy as np
 import xarray as xr
+from pandas import read_csv
 from openest.generate import fast_dataset
+from impactlab_tools.utils import files
 from econmodel import *
-from datastore import agecohorts, irvalues
+from datastore import agecohorts, irvalues, irregions
 from climate.yearlyreader import RandomYearlyAccess
 from interpret import averages
+
 
 ## Class constructor with arguments (initial values, running length)
 standard_economic_config = {'class': 'bartlett', 'length': 13}
@@ -491,7 +495,43 @@ class ConstantCovariator(Covariator):
 
     def get_update(self, region, year, ds):
         return {self.name: self.irvalues[region]}
-    
+
+def populate_constantcovariator_by_hierid(covar_name, parent_hierids, hi_df=None):
+    """Return ConstantCovariator with 1.0 for IRs falling in `parent_hierids`
+
+    Parameters
+    ----------
+    covar_name : str
+        Covariator name. Generally starts with 'hierid*'.
+    parent_hierids : Sequence of str
+        Hierids we want to see if impact regions (IR) fall within. These are 
+        defined in a magical hierarchy.csv file.
+    hi_df : pandas.DataFrame or None, optional
+        Optional DataFrame of hierarchical region relationships. Must index 
+        'region-key', with column 'parent-key' populated with str. If None,
+        parses /shares/gcp/regions/hierarchy.csv from sharedpath. This is 
+        useful for testing and debugging.
+
+    Returns
+    -------
+    ConstantCovariator
+        Has binary floats assigned to each IR. 1.0 if within 'parent_hierids',
+        otherwise 0.0.
+    """
+    target_regions = list(parent_hierids)
+
+    if hi_df is None:
+        hi_df = read_csv(files.sharedpath('/shares/gcp/regions/hierarchy.csv'),
+                        skiprows=31, index_col='region-key')
+
+    # 1.0 if in hierid(s), otherwise *always* 0.0, even if bad key.
+    ir_dict = defaultdict(lambda: 0.0)
+    for r in hi_df.index.values:
+        if irregions.contains_region(target_regions, r, hi_df):
+            ir_dict[r] = 1.0
+
+    return ConstantCovariator(covar_name, ir_dict)
+
 class CombinedCovariator(Covariator):
     """Reports all covariates provided by a collection of Covariator objects."""
     def __init__(self, covariators):
