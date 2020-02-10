@@ -23,5 +23,5 @@ def test_populate_constantcovariator_by_hierid(hierid_df):
     assert ccovar.get_current("Ab") == {"hierid-foobar": 1.0}
     assert ccovar.get_current("Baa") == {"hierid-foobar": 0.0}
 
-    assert ccovar.get_update("Ab") == {"hierid-foobar": 1.0}
-    assert ccovar.get_update("Baa") == {"hierid-foobar": 0.0}
+    assert ccovar.get_update("Ab", 1984, "ni!") == {"hierid-foobar": 1.0}
+    assert ccovar.get_update("Baa", 1984, "ni!") == {"hierid-foobar": 0.0}
