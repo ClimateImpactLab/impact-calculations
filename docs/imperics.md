@@ -91,6 +91,9 @@ Basic model configration:
     third for young people (and intended for files with a `-young`
     suffix); the second third for older (suffix `-older`), and the
     third third for oldest (suffix `-oldest`).
+  - `lowhigh`: The parameters are divided into two groups, with the first
+    half for low-risk labor (and intended for files with a `-lowrisk`
+    suffix); the second half for high-risk labor (suffix `-highrisk`).
 
 * `within-season` (optional): All weather-driven covariates and
   weather parameters will be limited to seasons specified by the given
