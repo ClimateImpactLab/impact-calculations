@@ -181,7 +181,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}, getcs
                                                                 weathernames=weathernames, betalimits=betalimits, allow_raising=specconf.get('allow-raising', False))
         minfinder = lambda mintemp, maxtemp: lambda curve: minpoly.findpolymin([0] + curve.ccs, mintemp, maxtemp)
             
-    elif specconf['functionalform'] == 'cubic spline':
+    elif specconf['functionalform'] == 'cubicspline':
         knots = specconf['knots']
         prefix = specconf['prefix']
         indepunit = specconf['indepunit']
