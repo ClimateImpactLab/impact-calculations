@@ -57,6 +57,24 @@ class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
         self.predinfix = predinfix
 
     def get_curve(self, region, year, covariates={}, recorddiag=True, **kwargs):
+        """
+        Parameters
+        ----------
+        regions : str
+            Target region.
+        year : int
+            Target year.
+        covariates : dict
+            Input covariates. Dictionary keys are variable name (str) with float values.
+        recorddiag : bool
+            Should a record be sent to ``diagnostic``?
+        kwargs :
+            Unused.
+
+        Returns
+        -------
+        openest.generate.smart_curve.ZeroInterceptPolynomialCurve
+        """
         coefficients = self.get_coefficients(covariates)
         yy = [coefficients[predname] for predname in self.prednames]
 
