@@ -180,14 +180,15 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}, getcs
                                                                 depenunit, coeffvar, order, csvv, predinfix=predinfix,
                                                                 weathernames=weathernames, betalimits=betalimits, allow_raising=specconf.get('allow-raising', False))
         minfinder = lambda mintemp, maxtemp: lambda curve: minpoly.findpolymin([0] + curve.ccs, mintemp, maxtemp)
-            
+
     elif specconf['functionalform'] == 'cubicspline':
         knots = specconf['knots']
         prefix = specconf['prefix']
         indepunit = specconf['indepunit']
+        variable_name = specconf['variable']
 
         curr_curvegen = curvegen_known.CubicSplineCurveGenerator([indepunit] + ['%s^3' % indepunit] * (len(knots) - 2),
-                                                                 depenunit, prefix, knots, csvv, betalimits=betalimits)
+                                                                 depenunit, prefix, knots, variable_name, csvv, betalimits=betalimits)
         minfinder = lambda mintemp, maxtemp: lambda curve: minspline.findsplinemin(knots, curve.coeffs, mintemp, maxtemp)
         weathernames = [prefix]
     elif specconf['functionalform'] == 'coefficients':

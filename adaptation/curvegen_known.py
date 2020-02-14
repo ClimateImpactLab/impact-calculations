@@ -11,7 +11,7 @@ respect to a covariate to produce another known CurveGenerator.
 import numpy as np
 from . import csvvfile, curvegen
 from openest.generate import diagnostic, formatting, selfdocumented
-from openest.generate.smart_curve import ZeroInterceptPolynomialCurve
+from openest.generate.smart_curve import ZeroInterceptPolynomialCurve, CurveCurve
 from openest.models.curve import CubicSplineCurve, StepCurve
 
 class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
@@ -165,13 +165,16 @@ class CubicSplineCurveGenerator(curvegen.CSVVCurveGenerator):
         The prefix used in the CSVV for all terms.
     knots : seq of float
         The location of the knots in the cubic spline
+    variablename: str
+        Variable to apply the spline to.
     csvv : csvv dictionary
         Source for all parameter calculations.
     betalimits : dict of str -> float
         Requires that all calculated betas are clipped to these limits.
     """
-    def __init__(self, indepunits, depenunit, prefix, knots, csvv, betalimits={}):
+    def __init__(self, indepunits, depenunit, prefix, knots, variablename, csvv, betalimits={}):
         self.knots = knots
+        self.variablename = str(variablename)
         prednames = [prefix + str(ii) for ii in range(len(knots)-1)]
         super(CubicSplineCurveGenerator, self).__init__(prednames, indepunits, depenunit, csvv, betalimits=betalimits)
 
@@ -187,7 +190,9 @@ class CubicSplineCurveGenerator(curvegen.CSVVCurveGenerator):
                 else:
                     diagnostic.record(region, year, predname, coefficients[predname])
 
-        return CubicSplineCurve(self.knots, yy)
+        # Using smart_curve.CurveCurve to wraps a dumbcurve and mimic proper SmartCurve
+        dumbcurve = CubicSplineCurve(self.knots, yy)
+        return CurveCurve(dumbcurve, self.variablename)
 
 class BinnedStepCurveGenerator(curvegen.CSVVCurveGenerator):
     """A CurveGenerator for a series of cumulative bins.
