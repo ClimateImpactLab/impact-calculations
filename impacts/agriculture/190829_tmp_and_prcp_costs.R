@@ -49,9 +49,17 @@ library(abind)
 is.local <- T
 if(is.local) {
   # Andy's paths
-  tavgpath <- 'C:/Users/Andy Hultgren/Documents/ARE/GSR/GCP/Ag/Projections/single-corn-190326/corn_prsplitmodel-allcalcs-corn_global_t-tbar_pbar_lnincbr_ir_tp_binp-tbar_pbar_lnincbr_ir_tp-190326.csv'
-  outpath <- 'C:/Users/Andy Hultgren/Documents/ARE/GSR/GCP/Ag/Projections/single-corn-190326/output'
-  gammapath <- 'C:/Users/Andy Hultgren/Documents/ARE/GSR/GCP/Ag/Projections/single-corn-190326/csvv/corn_global_t-tbar_pbar_lnincbr_ir_tp_binp-tbar_pbar_lnincbr_ir_tp_time_invariant_fe-A1TT_A0Y_clus-A1_A0Y-190326.csvv'
+  tavgpath <- 'C:/Users/Andy Hultgren/Documents/ARE/GSR/GCP/Ag/Projections/adaptation_costs_test/impacts-mealy/single-corn-tbar-spline-nogddclip-costs-191218/corn_prsplitmodel-allcalcs-corn_191220.csv'
+  outpath <- 'C:/Users/Andy Hultgren/Documents/ARE/GSR/GCP/Ag/Projections/adaptation_costs_test/impacts-mealy/single-corn-tbar-spline-nogddclip-costs-191218/output'
+  gammapath <- 'C:/Users/Andy Hultgren/Documents/ARE/GSR/GCP/Ag/Projections/adaptation_costs_test/impacts-mealy/single-corn-tbar-spline-nogddclip-costs-191218/csvv/corn_global_t-tbar_pbar_lnincbr_ir_tp_binp-tbar_pbar_lnincbr_ir_tp_fe-A1TT_A0Y_clus-A1_A0Y_TINV-191220.csvv'
+  
+  tavgpath <- 'C:/Users/Andy Hultgren/Documents/ARE/GSR/GCP/Ag/Projections/adaptation_costs_test/impacts-mealy/single-corn-kdd-cutoff31-precip-bins-costs/corn-allcalcs-191220.csv'
+  outpath <- 'C:/Users/Andy Hultgren/Documents/ARE/GSR/GCP/Ag/Projections/adaptation_costs_test/impacts-mealy/single-corn-kdd-cutoff31-precip-bins-costs/output'
+  gammapath <- 'C:/Users/Andy Hultgren/Documents/ARE/GSR/GCP/Ag/Projections/adaptation_costs_test/impacts-mealy/single-corn-kdd-cutoff31-precip-bins-costs/csvv/corn_global_t-tbar_pbar_lnincbr_ir_tp_binp-tbar_pbar_lnincbr_ir_tp_fe-A1TT_A0Y_clus-A1_A0Y_TINV-191220.csvv'
+  
+  # tavgpath <- 'C:/Users/Andy Hultgren/Documents/ARE/GSR/GCP/Ag/Projections/adaptation_costs_test/impacts-mealy/corn_global_t-tbar_pbar_lnincbr_ir_tp_binp-tbar_pbar_lnincbr_ir_tp_fe-A1TT_A0Y_clus-A1_A0Y_TINV-191220.nc4'
+  # outpath <- 'C:/Users/Andy Hultgren/Documents/ARE/GSR/GCP/Ag/Projections/adaptation_costs_test/impacts-mealy/output'
+  # gammapath <- 'C:/Users/Andy Hultgren/Documents/ARE/GSR/GCP/Ag/Projections/single-corn-190326/csvv/corn_global_t-tbar_pbar_lnincbr_ir_tp_binp-tbar_pbar_lnincbr_ir_tp_time_invariant_fe-A1TT_A0Y_clus-A1_A0Y-190326.csvv'
   
   # Set this to TRUE if outputting marginal effects of climate terms for diagnostics / development.  Otherwise set to FALSE.
   compute_marginals <- TRUE
@@ -67,7 +75,7 @@ if(is.local) {
 
 if(is.local) {
   # Andy's setup for ag costs
-  df.tavg <- read.csv(tavgpath, skip=42)
+  df.tavg <- read.csv(tavgpath, skip=108) # skip=42, skip=108
   
 } else {
   # OPEN THE NETCDF - average temps
@@ -96,8 +104,8 @@ df.tavg <- df.tavg %>%
   mutate( avgpbar = movavg(seasonalpr, 30, 'w')  ) %>%
   mutate( avgtbar.lag = lag(avgtbar, order_by=region)) %>%
   mutate( avgpbar.lag = lag(avgpbar, order_by=region)) %>%
-  mutate( avggdd = movavg(gdd.8.29, 30, 'w')  ) %>%
-  mutate( avgkdd = movavg(kdd.29, 30, 'w')  ) %>%
+  mutate( avggdd = movavg(gdd.8.31, 30, 'w')  ) %>%
+  mutate( avgkdd = movavg(kdd.31, 30, 'w')  ) %>%
   mutate( avggdd.lag = lag(avggdd, order_by=region)) %>%
   mutate( avgkdd.lag = lag(avgkdd, order_by=region)) %>%
   # The following lines are included because I am not sure how the actual monthly
@@ -149,60 +157,75 @@ get.coeff <- function( clim, cov, csvv.df=coeffs ) {
 # In every year-ir that is clipped, force the costs to be zero. 
 # Check for clipping in GDD (clip if GDD coeff < 0) and in KDD (clip if KDD coeff > 0).
 # This filter takes a value of 1 when costs should be clipped. Apply it when calculating costs.
+gdd_var <- 'gdd-8-31'
+kdd_var <- 'kdd-31'
+no_gdd_clip <- TRUE
+
 gdd.clip.filter <- ( 0 < 
-                       get.coeff('gdd-8-29','1') + 
-                       get.coeff('gdd-8-29','seasonaltasmax')*df.tavg$seasonaltasmax +
-                       get.coeff('gdd-8-29','seasonalpr')*df.tavg$seasonalpr +
-                       get.coeff('gdd-8-29','seasonaltasmax*seasonalpr')*df.tavg$seasonaltasmax.seasonalpr +
-                       get.coeff('gdd-8-29','loggdppc')*df.tavg$loggdppc +
-                       get.coeff('gdd-8-29','ir-share')*df.tavg$ir.share 
+                       get.coeff(gdd_var,'1') + 
+                       get.coeff(gdd_var,'seasonaltasmax')*df.tavg$seasonaltasmax +
+                       get.coeff(gdd_var,'seasonalpr')*df.tavg$seasonalpr +
+                       get.coeff(gdd_var,'seasonaltasmax*seasonalpr')*df.tavg$seasonaltasmax.seasonalpr +
+                       get.coeff(gdd_var,'loggdppc')*df.tavg$loggdppc +
+                       get.coeff(gdd_var,'ir-share')*df.tavg$ir.share 
                      )
+
 
 kdd.clip.filter <- ( 0 > 
-                       get.coeff('kdd-29','1') + 
-                       get.coeff('kdd-29','seasonaltasmax')*df.tavg$seasonaltasmax +
-                       get.coeff('kdd-29','seasonalpr')*df.tavg$seasonalpr +
-                       get.coeff('kdd-29','seasonaltasmax*seasonalpr')*df.tavg$seasonaltasmax.seasonalpr +
-                       get.coeff('kdd-29','loggdppc')*df.tavg$loggdppc +
-                       get.coeff('kdd-29','ir-share')*df.tavg$ir.share 
+                       get.coeff(kdd_var,'1') + 
+                       get.coeff(kdd_var,'seasonaltasmax')*df.tavg$seasonaltasmax +
+                       get.coeff(kdd_var,'seasonalpr')*df.tavg$seasonalpr +
+                       get.coeff(kdd_var,'seasonaltasmax*seasonalpr')*df.tavg$seasonaltasmax.seasonalpr +
+                       get.coeff(kdd_var,'loggdppc')*df.tavg$loggdppc +
+                       get.coeff(kdd_var,'ir-share')*df.tavg$ir.share 
                      )
 
-# Set NA values to zero
-gdd.clip.filter[is.na(gdd.clip.filter)] <- 0
-kdd.clip.filter[is.na(kdd.clip.filter)] <- 0
+if(no_gdd_clip) {
+  gdd.clip.filter <- as.logical( gdd.clip.filter*0 + 1 )
+  # Set NA values
+  gdd.clip.filter[is.na(gdd.clip.filter)] <- 1
+  kdd.clip.filter[is.na(kdd.clip.filter)] <- 0
+
+} else {
+  # Set NA values to zero
+  gdd.clip.filter[is.na(gdd.clip.filter)] <- 0
+  kdd.clip.filter[is.na(kdd.clip.filter)] <- 0
+}
+
+
 
 
 if (compute_marginals) {
   
-  # For diagnostic purposes, compute the lower bound marginal effects of climate
+  # For diagnostic purposes, compute the upper bound marginal effects of climate
   # Naming convention: marginal.[covariate].[temp or prcp]   
   # E.g., marginal.tbar.temp is the marginal effect of Tbar through the temperature terms (gdd and kdd)
   
-  df.tavg$marginal.tbar.temp <- ( df.tavg$avggdd.2010 * gdd.clip.filter *
-                                    ( get.coeff('gdd-8-29','seasonaltasmax') + get.coeff('gdd-8-29','seasonaltasmax*seasonalpr')*df.tavg$seasonalpr.2010 ) +
-                                  df.tavg$avgkdd.2010 * kdd.clip.filter *
-                                    ( get.coeff('kdd-29','seasonaltasmax') + get.coeff('kdd-29','seasonaltasmax*seasonalpr')*df.tavg$seasonalpr.2010 )
+  df.tavg$marginal.tbar.temp <- ( df.tavg$avggdd.lag * gdd.clip.filter *
+                                    ( get.coeff(gdd_var,'seasonaltasmax') + get.coeff(gdd_var,'seasonaltasmax*seasonalpr')*df.tavg$seasonalpr ) +
+                                  df.tavg$avgkdd.lag * kdd.clip.filter *
+                                    ( get.coeff(kdd_var,'seasonaltasmax') + get.coeff(kdd_var,'seasonaltasmax*seasonalpr')*df.tavg$seasonalpr )
                                 )
   
-  # Note: this term incorrect due to approximation used for avgpr.2010
-  df.tavg$marginal.tbar.prcp <- ( df.tavg$avgpr.2010 * 
-                                    ( get.coeff('pr-r','seasonaltasmax') + get.coeff('pr-r','seasonaltasmax*seasonalpr')*df.tavg$seasonalpr.2010 ) +
-                                  df.tavg$avgpr2.2010 *
-                                    ( get.coeff('pr2-r','seasonaltasmax') + get.coeff('pr2-r','seasonaltasmax*seasonalpr')*df.tavg$seasonalpr.2010 )
+  # Note: this term incorrect due to approximation used for avgpr
+  df.tavg$marginal.tbar.prcp <- ( df.tavg$avgpr.lag * 
+                                    ( get.coeff('pr-r','seasonaltasmax') + get.coeff('pr-r','seasonaltasmax*seasonalpr')*df.tavg$seasonalpr ) +
+                                  df.tavg$avgpr2.lag *
+                                    ( get.coeff('pr2-r','seasonaltasmax') + get.coeff('pr2-r','seasonaltasmax*seasonalpr')*df.tavg$seasonalpr )
                                 )
   
   
-  df.tavg$marginal.pbar.temp <- ( df.tavg$avggdd.2010 * gdd.clip.filter *
-                                    ( get.coeff('gdd-8-29','seasonalpr') + get.coeff('gdd-8-29','seasonaltasmax*seasonalpr')*df.tavg$seasonaltasmax.2010 ) +
-                                  df.tavg$avgkdd.2010 * kdd.clip.filter *
-                                    ( get.coeff('kdd-29','seasonalpr') + get.coeff('kdd-29','seasonaltasmax*seasonalpr')*df.tavg$seasonaltasmax.2010 )
+  df.tavg$marginal.pbar.temp <- ( df.tavg$avggdd.lag * gdd.clip.filter *
+                                    ( get.coeff(gdd_var,'seasonalpr') + get.coeff(gdd_var,'seasonaltasmax*seasonalpr')*df.tavg$seasonaltasmax ) +
+                                  df.tavg$avgkdd.lag * kdd.clip.filter *
+                                    ( get.coeff(kdd_var,'seasonalpr') + get.coeff(kdd_var,'seasonaltasmax*seasonalpr')*df.tavg$seasonaltasmax )
                                 )
   
-  # Note: this term incorrect due to approximation used for avgpr.2010
-  df.tavg$marginal.pbar.prcp <- ( df.tavg$avgpr.2010 * 
-                                    ( get.coeff('pr-r','seasonalpr') + get.coeff('pr-r','seasonaltasmax*seasonalpr')*df.tavg$seasonaltasmax.2010 ) +
-                                  df.tavg$avgpr2.2010 *
-                                    ( get.coeff('pr2-r','seasonalpr') + get.coeff('pr2-r','seasonaltasmax*seasonalpr')*df.tavg$seasonaltasmax.2010 )
+  # Note: this term incorrect due to approximation used for avgpr
+  df.tavg$marginal.pbar.prcp <- ( df.tavg$avgpr.lag * 
+                                    ( get.coeff('pr-r','seasonalpr') + get.coeff('pr-r','seasonaltasmax*seasonalpr')*df.tavg$seasonaltasmax ) +
+                                  df.tavg$avgpr2.lag *
+                                    ( get.coeff('pr2-r','seasonalpr') + get.coeff('pr2-r','seasonaltasmax*seasonalpr')*df.tavg$seasonaltasmax )
                                 )
   
 }
@@ -212,32 +235,32 @@ if (compute_marginals) {
 # Temperature response adaptation costs to changing Tbar
 # !!!! For the lower bound, should I be using df.tavg$seasonalpr.2010 ?? I think so, but check the math and confirm...
 df.tavg$adpt.cost.tmp.tbar.lower <- ( df.tavg$avggdd.2010 * gdd.clip.filter *
-                                        ( get.coeff('gdd-8-29','seasonaltasmax') + get.coeff('gdd-8-29','seasonaltasmax*seasonalpr')*df.tavg$seasonalpr.2010 ) +
+                                        ( get.coeff(gdd_var,'seasonaltasmax') + get.coeff(gdd_var,'seasonaltasmax*seasonalpr')*df.tavg$seasonalpr.2010 ) +
                                       df.tavg$avgkdd.2010 * kdd.clip.filter *
-                                        ( get.coeff('kdd-29','seasonaltasmax') + get.coeff('kdd-29','seasonaltasmax*seasonalpr')*df.tavg$seasonalpr.2010 )
+                                        ( get.coeff(kdd_var,'seasonaltasmax') + get.coeff(kdd_var,'seasonaltasmax*seasonalpr')*df.tavg$seasonalpr.2010 )
                                     ) * ( df.tavg$seasonaltasmax.lag - df.tavg$seasonaltasmax )
 
 
 df.tavg$adpt.cost.tmp.tbar.upper <- ( df.tavg$avggdd.lag * gdd.clip.filter *
-                                        ( get.coeff('gdd-8-29','seasonaltasmax') + get.coeff('gdd-8-29','seasonaltasmax*seasonalpr')*df.tavg$seasonalpr ) +
+                                        ( get.coeff(gdd_var,'seasonaltasmax') + get.coeff(gdd_var,'seasonaltasmax*seasonalpr')*df.tavg$seasonalpr ) +
                                       df.tavg$avgkdd.lag * kdd.clip.filter *
-                                        ( get.coeff('kdd-29','seasonaltasmax') + get.coeff('kdd-29','seasonaltasmax*seasonalpr')*df.tavg$seasonalpr )
+                                        ( get.coeff(kdd_var,'seasonaltasmax') + get.coeff(kdd_var,'seasonaltasmax*seasonalpr')*df.tavg$seasonalpr )
                                     ) * ( df.tavg$seasonaltasmax.lag - df.tavg$seasonaltasmax )
 
 
 
 # Temperature response adaptation costs to changing Pbar
 df.tavg$adpt.cost.tmp.pbar.lower <- ( df.tavg$avggdd.2010 * gdd.clip.filter *
-                                        ( get.coeff('gdd-8-29','seasonalpr') + get.coeff('gdd-8-29','seasonaltasmax*seasonalpr')*df.tavg$seasonaltasmax.2010 ) +
+                                        ( get.coeff(gdd_var,'seasonalpr') + get.coeff(gdd_var,'seasonaltasmax*seasonalpr')*df.tavg$seasonaltasmax.2010 ) +
                                         df.tavg$avgkdd.2010 * kdd.clip.filter *
-                                        ( get.coeff('kdd-29','seasonalpr') + get.coeff('kdd-29','seasonaltasmax*seasonalpr')*df.tavg$seasonaltasmax.2010 )
+                                        ( get.coeff(kdd_var,'seasonalpr') + get.coeff(kdd_var,'seasonaltasmax*seasonalpr')*df.tavg$seasonaltasmax.2010 )
                                     ) * ( df.tavg$seasonalpr.lag - df.tavg$seasonalpr )
 
 
 df.tavg$adpt.cost.tmp.pbar.upper <- ( df.tavg$avggdd.lag * gdd.clip.filter *
-                                        ( get.coeff('gdd-8-29','seasonalpr') + get.coeff('gdd-8-29','seasonaltasmax*seasonalpr')*df.tavg$seasonaltasmax ) +
+                                        ( get.coeff(gdd_var,'seasonalpr') + get.coeff(gdd_var,'seasonaltasmax*seasonalpr')*df.tavg$seasonaltasmax ) +
                                         df.tavg$avgkdd.lag * kdd.clip.filter *
-                                        ( get.coeff('kdd-29','seasonalpr') + get.coeff('kdd-29','seasonaltasmax*seasonalpr')*df.tavg$seasonaltasmax )
+                                        ( get.coeff(kdd_var,'seasonalpr') + get.coeff(kdd_var,'seasonaltasmax*seasonalpr')*df.tavg$seasonaltasmax )
                                     ) * ( df.tavg$seasonalpr.lag - df.tavg$seasonalpr )
 
 
@@ -368,15 +391,39 @@ if (compute_marginals) {
 }
 
 
-df.tavg <- df.tavg[ , columns.to.keep ]
+df.tavg.final <- df.tavg[ , columns.to.keep ]
 
 # Write to .csv
-write.csv( df.tavg, file=paste0(outpath, '/corn_single_190326_costs.csv'), row.names=FALSE)
+write.csv( df.tavg.final, file=paste0(outpath, '/corn_single_200121_costs.csv'), row.names=FALSE)
 
 # View(df.tavg[1:50,])
 # View(df.tavg[ df.tavg$region=='AUS.5.392',])
 
 
+if(1==0) {
+  
+  df.tavg.final$marginal.tbar <- df.tavg.final$marginal.tbar.temp + df.tavg.final$marginal.tbar.prcp
+  df.tavg.final$marginal.pbar <- df.tavg.final$marginal.pbar.temp + df.tavg.final$marginal.pbar.prcp
+  
+  my_ir <- 'USA.11.422'
+  filt <- df.tavg.final$region %in% my_ir
+  View(df.tavg.final[filt, c('region', 'year', 'marginal.tbar', 'marginal.pbar')])
+  
+  nc.impacts <- nc_open('C:/Users/Andy Hultgren/Documents/ARE/GSR/GCP/Ag/Projections/adaptation_costs_test/impacts-mealy/single-corn-kdd-cutoff31-precip-bins-costs/corn_global_t-tbar_pbar_lnincbr_ir_tp_binp-tbar_pbar_lnincbr_ir_tp_fe-A1TT_A0Y_clus-A1_A0Y_TINV-191220.nc4')
+  print(nc.impacts)
+  
+  regions <- ncvar_get(nc.impacts, 'regions')
+  years <- ncvar_get(nc.impacts, 'year')
+  years
+  ddseasonalpr <- ncvar_get(nc.impacts, 'ddseasonalpr')
+  ddseasonaltasmax <- ncvar_get(nc.impacts, 'ddseasonaltasmax')  
+  
+  region_idx <- which(regions==my_ir)
+  test.out <- cbind(years, ddseasonaltasmax[region_idx,], ddseasonalpr[region_idx,])
+  colnames(test.out) <- c('year', 'ddseasonaltasmax', 'ddseasonalpr')
+  View(test.out)
+  
+}
 
 
 
