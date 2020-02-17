@@ -94,8 +94,8 @@ class WeatherBundle(object):
         """Load the rows of hierarchy.csv associated with all known regions."""
         if reader is not None:
             try:
-                self.regions = reader.get_regions()
-                if np.issubdtype(self.regions[0], np.integer):
+                self.regions = list(reader.get_regions())
+                if not isinstance(self.regions[0], str) and not isinstance(self.regions[0], unicode) and np.issubdtype(self.regions[0], np.integer):
                     self.regions = irregions.load_regions(self.hierarchy, self.dependencies)
             except Exception as ex:
                 print "WARNING: failure to read regions for " + str(reader.__class__)
@@ -214,6 +214,8 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
             for ds in self.pastfuturereaders[0][0].read_iterator_to(min(self.futureyear1, maxyear)):
                 assert ds.region.shape[0] == len(self.regions), "Region length mismatch: %d <> %d" % (ds.region.shape[0], len(self.regions))
                 year = ds['time.year'][0]
+                if isinstance(year, xr.DataArray):
+                    year = year.values
                 for year2, ds2 in self.transformer.push(year, ds):
                     yield year2, ds2
 
@@ -224,9 +226,11 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
             if maxyear > self.futureyear1:
                 for ds in self.pastfuturereaders[0][1].read_iterator_to(maxyear):
                     year = ds['time.year'][0]
+                    if isinstance(year, xr.DataArray):
+                        year = year.values
                     if year <= lastyear:
                         continue # allow for overlapping weather
-                    assert ds.region.shape[0] == len(self.regions)
+                    assert ds.region.shape[0] == len(self.regions), "Region length mismatch: %d <> %d" % (ds.region.shape[0], len(self.regions))
                     for year2, ds2 in self.transformer.push(year, ds):
                         yield year2, ds2
             return

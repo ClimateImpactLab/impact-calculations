@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import pandas as pd
 import xarray as xr
 import netcdfs
 from reader import WeatherReader, YearlySplitWeatherReader
@@ -36,23 +37,24 @@ class YearlyWeatherReader(WeatherReader):
         years = self.get_times()
 
         for ii in range(len(years)):
-            yield ds.isel({self.timevar: ii})
+            yeards = ds[{self.timevar: ii}]
+            if self.timevar != 'time':
+                yeards.rename({self.timevar: 'time'}, inplace=True)
+                if self.timevar == 'year':
+                    yeards['time'] = pd.to_datetime(["%d-01-01" % yeards['time']])
+                    for variable in self.variables:
+                        yeards[variable] = yeards[variable].expand_dims('time', 0)
+            yield yeards
 
     def read_iterator_to(self, maxyear):
         for ds in self.read_iterator():
-            if self.timevar == 'year':
-                if ds['year'][0] >= maxyear:
-                    return
-            elif ds[self.timevar + '.year'][0] >= maxyear:
+            if ds['time.year'][0] >= maxyear:
                 return
             yield ds
 
     def read_year(self, year):
         for ds in self.read_iterator():
-            if self.timevar == 'year':
-                if ds['year'][0] == year:
-                    return ds
-            elif ds[self.timevar + '.year'][0] == year: # always a single value anyway
+            if ds['time.year'][0] == year: # always a single value anyway
                 return ds
 
     def __str__(self):
