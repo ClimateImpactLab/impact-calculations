@@ -4,6 +4,7 @@ Manages rcps and econ and climate models, and generate.effectset.simultaneous_ap
 
 import os, itertools, importlib, shutil, csv, time, yaml, tempfile
 from collections import OrderedDict
+import numpy as np
 import loadmodels
 import weather, pvalses, timing
 from adaptation import curvegen
@@ -141,6 +142,10 @@ def main(config, runid):
             writer.writerow([region, year, model] + [predictors[covar] for covar in covars])
 
     def genericpush_callback(region, year, application, get_predictors, model, weatherbundle=None, economicmodel=None):
+        if isinstance(year, np.ndarray):
+            year = year.tolist()
+        if isinstance(region, np.ndarray):
+            region = region.tolist()
         predictors = get_predictors(region)
         for predictor in predictors:
             diagnostic.record(region, year, predictor, predictors[predictor])
@@ -245,7 +250,7 @@ def main(config, runid):
 
         # Also produce historical climate results
         
-        if config['mode'] not in ['writesplines', 'writepolys', 'writecalcs', 'diagnostic'] or config.get('do_historical', False):
+        if config.get('do_historical', True) and (config['mode'] not in ['writesplines', 'writepolys', 'writecalcs', 'diagnostic'] or config.get('do_historical', False)):
             # Generate historical baseline
             print "Historical"
             historybundle = weather.HistoricalWeatherBundle.make_historical(weatherbundle, None if config['mode'] == 'median' else pvals['histclim'].get_seed('yearorder'))
