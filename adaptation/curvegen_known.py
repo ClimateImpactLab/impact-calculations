@@ -175,7 +175,7 @@ class CubicSplineCurveGenerator(curvegen.CSVVCurveGenerator):
     def __init__(self, indepunits, depenunit, prefix, knots, variablename, csvv, betalimits={}):
         self.knots = knots
         self.variablename = str(variablename)
-        prednames = [prefix + str(ii) for ii in range(len(knots)-1)]
+        prednames = [self.variablename] + [prefix + str(ii) for ii in range(1, len(knots)-1)]
         super(CubicSplineCurveGenerator, self).__init__(prednames, indepunits, depenunit, csvv, betalimits=betalimits)
 
     def get_curve(self, region, year, covariates={}, recorddiag=True, **kwargs):

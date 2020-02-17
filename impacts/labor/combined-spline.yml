@@ -1,15 +1,17 @@
 timerate: year
 climate: [ tasmax ]
 models:
-  - csvvs: social/parameters/labor/csvv_spline_jan2020_corrected/*.csvv
-    csvv-organization: lowhigh
+  - csvvs: social/parameters/labor/csvv_spline_jan2020_corrected/labor_spline.csvv
     specification:
+      csvv-organization: lowhigh
       covariates: [ loggdppc, climtasmax ]
       description: labor productivity
       depenunit: minutes worked by individual
       indepunit: C
-      knots: [ 11.6 ]
+      knots: [ 11.6, 26.8, 35.2 ]
       functionalform: cubicspline
+      prefix: tasmax_rcspline
       variable: tasmax
       calculation:
         - YearlySumIrregular
+        - Rebase
