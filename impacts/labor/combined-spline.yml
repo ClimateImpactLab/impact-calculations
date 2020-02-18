@@ -1,7 +1,7 @@
 timerate: year
 climate: [ tasmax ]
 models:
-  - csvvs: social/parameters/labor/csvv_spline_jan2020_corrected/labor_spline.csvv
+  - csvvs: social/parameters/labor/csvv_spline_jan2020_corrected/*.csvv
     specification:
       csvv-organization: lowhigh
       covariates: [ loggdppc, climtasmax ]
