@@ -63,21 +63,27 @@ print(("IAM: " + iam))
 print(("SSP: " + ssp))
 print(("Region: " + region))
 
+lib.show_header("Merged configuration:")
+print yaml.dump(config)
+
 # Find the relevant CSVV
 foundcsvv = False
 for model, csvvpath, module, specconf in container.get_modules_csvv(config):
     basename = os.path.basename(csvvpath)[:-5]
+    
+    csvv_parts = container.csvv_organization(specconf)
+    if csvv_parts is not None:
+        for part in csvv_parts:
+            if basename + '-' + part == onlymodel:
+                foundcsvv = True
+                break
     if basename == onlymodel:
         foundcsvv = True
         break
 
-assert foundcsvv, "Could not find a CSVV correspondnig to %s." % onlymodel
+assert foundcsvv, "Could not find a CSVV corresponding to %s." % onlymodel
 
 ## Print the inputs
-
-lib.show_header("Merged configuration:")
-print((yaml.dump(config)))
-
 if 'within-season' in specconf:
     season_months = irvalues.load_culture_months(specconf['within-season'])[region]
     season_doys = irvalues.load_culture_doys(specconf['within-season'])[region]
