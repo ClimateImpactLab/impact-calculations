@@ -1,4 +1,5 @@
 module: impacts/labor/combined-spline.yml
 mode: writecalcs
 outputdir: /shares/gcp/outputs/labor/impacts-woodwork
+do_historical: true
 
