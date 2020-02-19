@@ -88,7 +88,7 @@ def parse_csvv_line(line):
 
     return line
 
-def get_csvv(filepath, index0=None, indexend=None):
+def get_csvv(filepath, index0=None, indexend=None, fracsubset=(0, 1)):
     csvv = {}
     with open(filepath, 'rU') as fp:
         printline = None
@@ -98,6 +98,10 @@ def get_csvv(filepath, index0=None, indexend=None):
                     csvv['gamma'] = list(map(float, parse_csvv_line(line)))
                 else:
                     csvv[printline] = [x.strip() for x in parse_csvv_line(line)]
+
+                if fracsubset != (0, 1) and index0 is None:
+                    index0 = fracsubset[0] * len(csvv[printline]) / fracsubset[1]
+                    indexend = (fracsubset[0] + 1) * len(csvv[printline]) / fracsubset[1]
 
                 if index0 is not None:
                     csvv[printline] = csvv[printline][index0:indexend]

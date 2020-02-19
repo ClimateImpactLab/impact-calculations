@@ -14,7 +14,78 @@ from openest.generate import diagnostic, formatting, selfdocumented
 from openest.generate.smart_curve import ZeroInterceptPolynomialCurve, CurveCurve
 from openest.models.curve import CubicSplineCurve, StepCurve
 
-class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
+class SmartCSVVCurveGenerator(curvegen.CSVVCurveGenerator):
+    """Provides additional structure for CSVVCurveGenerators that produce SmartCurves.
+
+    Parameters
+    ----------
+    indepunits : seq of str
+        The units for each independent variable.
+    depenunit : str
+        The unit of the dependent variable.
+    prefix : str
+        The prefix used in the CSVV for all terms.
+    knots : seq of float
+        The location of the knots in the cubic spline
+    variablename: str
+        Variable to apply the spline to.
+    csvv : csvv dictionary
+        Source for all parameter calculations.
+    diagprefix : str (optional)
+        The prefix used in the diagnostics files.
+    betalimits : dict of str -> float
+        Requires that all calculated betas are clipped to these limits.
+    """
+    def __init__(self, prednames, indepunits, depenunit, csvv, diagprefix='coeff-', betalimits={}, ignore_units=False):
+        super(SmartCSVVCurveGenerator, self).__init__(prednames, indepunits, depenunit, csvv, betalimits=betalimits, ignore_units=ignore_units)
+        self.diagprefix = diagprefix
+
+    def get_curve(self, region, year, covariates={}, recorddiag=True, **kwargs):
+        """
+        Parameters
+        ----------
+        regions : str
+            Target region.
+        year : int
+            Target year.
+        covariates : dict
+            Input covariates. Dictionary keys are variable name (str) with float values.
+        recorddiag : bool
+            Should a record be sent to ``diagnostic``?
+        kwargs :
+            Unused.
+
+        Returns
+        -------
+        openest.generate.smart_curve.SmartCurve
+        """
+        coefficients = self.get_coefficients(covariates)
+        yy = [coefficients[predname] for predname in self.prednames]
+
+        if recorddiag and diagnostic.is_recording():
+            for predname in self.prednames:
+                if year < 2015: # Only called once, so make the most of it
+                    for yr in range(year, 2015):
+                        diagnostic.record(region, yr, self.diagprefix + predname, coefficients[predname])
+                else:
+                    diagnostic.record(region, year, self.diagprefix + predname, coefficients[predname])
+
+        return self.get_smartcurve(yy)
+
+    def get_smartcurve(self, yy):
+        """
+        Parameters
+        ----------
+        yy : sequence of float
+            The coefficients for the polynomial curve.
+
+        Returns
+        -------
+        openest.generate.smart_curve.SmartCurve
+        """
+        raise NotImplementedError()
+
+class PolynomialCurveGenerator(SmartCSVVCurveGenerator):
     """A CurveGenerator for a series of polynomial terms. For a weather
     variable `T`, this consist of `T`, `T^2`, ..., `T^k`. Since this
     is a CSVVCurveGenerator, the PolynomialCurveGenerator defines how
@@ -56,36 +127,17 @@ class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
         self.prefix = prefix
         self.predinfix = predinfix
 
-    def get_curve(self, region, year, covariates={}, recorddiag=True, **kwargs):
+    def get_smartcurve(self, yy):
         """
         Parameters
         ----------
-        regions : str
-            Target region.
-        year : int
-            Target year.
-        covariates : dict
-            Input covariates. Dictionary keys are variable name (str) with float values.
-        recorddiag : bool
-            Should a record be sent to ``diagnostic``?
-        kwargs :
-            Unused.
+        yy : sequence of float
+            The coefficients for the polynomial curve.
 
         Returns
         -------
         openest.generate.smart_curve.ZeroInterceptPolynomialCurve
         """
-        coefficients = self.get_coefficients(covariates)
-        yy = [coefficients[predname] for predname in self.prednames]
-
-        if recorddiag and diagnostic.is_recording():
-            for predname in self.prednames:
-                if year < 2015: # Only called once, so make the most of it
-                    for yr in range(year, 2015):
-                        diagnostic.record(region, yr, self.diagprefix + predname, coefficients[predname])
-                else:
-                    diagnostic.record(region, year, self.diagprefix + predname, coefficients[predname])
-
         return ZeroInterceptPolynomialCurve(yy, self.weathernames, self.allow_raising)
 
     def get_lincom_terms_simple_each(self, predname, covarname, predictors, covariates={}):
@@ -150,7 +202,7 @@ class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
                                         weathernames=self.weathernames, betalimits=self.betalimits,
                                         allow_raising=self.allow_raising)
 
-class CubicSplineCurveGenerator(curvegen.CSVVCurveGenerator):
+class CubicSplineCurveGenerator(SmartCSVVCurveGenerator):
     """A CurveGenerator for a series of terms representing a restricted cubic spline.
 
     Currently, the code does not support the use of pre-computed terms.
@@ -169,27 +221,18 @@ class CubicSplineCurveGenerator(curvegen.CSVVCurveGenerator):
         Variable to apply the spline to.
     csvv : csvv dictionary
         Source for all parameter calculations.
+    diagprefix : str (optional)
+        The prefix used in the diagnostics files.
     betalimits : dict of str -> float
         Requires that all calculated betas are clipped to these limits.
     """
-    def __init__(self, indepunits, depenunit, prefix, knots, variablename, csvv, betalimits={}):
+    def __init__(self, indepunits, depenunit, prefix, knots, variablename, csvv, diagprefix='coeff-', betalimits={}):
         self.knots = knots
         self.variablename = str(variablename)
         prednames = [self.variablename] + [prefix + str(ii) for ii in range(1, len(knots)-1)]
         super(CubicSplineCurveGenerator, self).__init__(prednames, indepunits, depenunit, csvv, betalimits=betalimits)
 
-    def get_curve(self, region, year, covariates={}, recorddiag=True, **kwargs):
-        coefficients = self.get_coefficients(covariates)
-        yy = [coefficients[predname] for predname in self.prednames]
-
-        if recorddiag and diagnostic.is_recording():
-            for predname in self.prednames:
-                if year < 2015: # Only called once, so make the most of it
-                    for yr in range(year, 2015):
-                        diagnostic.record(region, yr, predname, coefficients[predname])
-                else:
-                    diagnostic.record(region, year, predname, coefficients[predname])
-
+    def get_smartcurve(self, yy):
         # Using smart_curve.CurveCurve to wraps a dumbcurve and mimic proper SmartCurve
         dumbcurve = CubicSplineCurve(self.knots, yy)
         return CurveCurve(dumbcurve, self.variablename)

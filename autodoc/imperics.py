@@ -67,6 +67,7 @@ lib.show_header("Merged configuration:")
 print yaml.dump(config)
 
 # Find the relevant CSVV
+fracsubset = (0, 1) # index and length of parts
 foundcsvv = False
 for model, csvvpath, module, specconf in container.get_modules_csvv(config):
     basename = os.path.basename(csvvpath)[:-5]
@@ -75,6 +76,7 @@ for model, csvvpath, module, specconf in container.get_modules_csvv(config):
     if csvv_parts is not None:
         for part in csvv_parts:
             if basename + '-' + part == onlymodel:
+                fracsubset = (csvv_parts.index(part), len(csvv_parts))
                 foundcsvv = True
                 break
     if basename == onlymodel:
@@ -104,7 +106,7 @@ with open(os.path.join("/shares/gcp/regions/hierarchy-flat.csv"), 'r') as fp:
             break
 
 lib.show_header("CSVV:")
-csvv = lib.get_csvv(csvvpath)
+csvv = lib.get_csvv(csvvpath, fracsubset=fracsubset)
 csvvobj = csvvfile.read(csvvpath)
 
 lib.show_header("Weather:")
