@@ -76,8 +76,8 @@ class TestSingleEnergy(unittest.TestCase):
         goal_shape = (120, 1)
         self.assertEqual(actual.shape, goal_shape)
 
-        goal_head = np.array([0.38048702,  16.431911,  153.75822])
-        goal_tail = np.array([-779.9211, -936.4386, -735.1447])
+        goal_head = np.array([20.582834,  108.4278,  449.78918])
+        goal_tail = np.array([-2572.8152, -3596.9329, -2827.6426])
         npt.assert_allclose(actual[:3, 0], goal_head, atol=1e-4, rtol=0)
         npt.assert_allclose(actual[-3:, 0], goal_tail, atol=1e-4, rtol=0)
 
@@ -235,8 +235,8 @@ class TestMonteCarloEnergy(unittest.TestCase):
         goal_shape = (120, 1)
         self.assertEqual(actual.shape, goal_shape)
 
-        goal_head = np.array([-2.4366903, 6.2031026, 145.13083])
-        goal_tail = np.array([-955.6651, -1132.2704,  -897.3365])
+        goal_head = np.array([182.74854, 138.99937, 432.08884])
+        goal_tail = np.array([4340.6616, 3850.7495, 3353.314])
         npt.assert_allclose(actual[:3, 0], goal_head, atol=1e-4, rtol=0)
         npt.assert_allclose(actual[-3:, 0], goal_tail, atol=1e-4, rtol=0)
 
@@ -247,8 +247,8 @@ class TestMonteCarloEnergy(unittest.TestCase):
         goal_shape = (120, 1)
         self.assertEqual(actual.shape, goal_shape)
 
-        goal_head = np.array([-2.4366903, 6.2031026, 145.13083])
-        goal_tail = np.array([-456.83188, -691.3481, -365.40518])
+        goal_head = np.array([182.74854, 138.99937, 432.08884])
+        goal_tail = np.array([2130.226, 1964.3873, 1609.678])
         npt.assert_allclose(actual[:3, 0], goal_head, atol=1e-4, rtol=0)
         npt.assert_allclose(actual[-3:, 0], goal_tail, atol=1e-4, rtol=0)
 
@@ -259,10 +259,10 @@ class TestMonteCarloEnergy(unittest.TestCase):
         goal_shape = (120, 1)
         self.assertEqual(actual.shape, goal_shape)
 
-        goal_head = np.array([-2.4366903, 6.2031026, 145.13083])
-        goal_tail = np.array([-456.83188, -691.3481, -365.40518])
-        npt.assert_allclose(actual[:3, 0], goal_head, atol=1e-4, rtol=0)
-        npt.assert_allclose(actual[-3:, 0], goal_tail, atol=1e-4, rtol=0)
+        goal_head = np.array([182.74854, 138.99937, 432.08884])
+        goal_tail = np.array([4839.495, 4291.672, 3885.245])
+        npt.assert_allclose(actual[:3, 0], goal_head, atol=1e-3, rtol=0)
+        npt.assert_allclose(actual[-3:, 0], goal_tail, atol=1e-3, rtol=0)
 
     def test_histclim_rebased(self):
         """Smoke test shape & (head, tail) of 'rebased' in results_low_histclim_nc4"""
@@ -271,8 +271,8 @@ class TestMonteCarloEnergy(unittest.TestCase):
         goal_shape = (120, 1)
         self.assertEqual(actual.shape, goal_shape)
 
-        goal_head = np.array([-50.942883,  59.279816,  59.279816])
-        goal_tail = np.array([-89.44237, -233.28142,  -51.416748])
+        goal_head = np.array([463.31558, 320.79092, 320.79092])
+        goal_tail = np.array([598.6438, 1263.2665,  689.26575])
         npt.assert_allclose(actual[:3, 0], goal_head, atol=1e-4, rtol=0)
         npt.assert_allclose(actual[-3:, 0], goal_tail, atol=1e-4, rtol=0)
 
