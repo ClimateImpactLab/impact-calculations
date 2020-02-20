@@ -108,6 +108,10 @@ with open(os.path.join("/shares/gcp/regions/hierarchy-flat.csv"), 'r') as fp:
 lib.show_header("CSVV:")
 csvv = lib.get_csvv(csvvpath, fracsubset=fracsubset)
 csvvobj = csvvfile.read(csvvpath)
+if fracsubset != (0, 1):
+    index0 = fracsubset[0] * len(csvv['gamma']) / fracsubset[1]
+    indexend = (fracsubset[0] + 1) * len(csvv['gamma']) / fracsubset[1]    
+    csvvobj = csvvfile.subset(csvvobj, slice(index0, indexend))
 
 lib.show_header("Weather:")
 clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel = loadmodels.single(container.get_bundle_iterator(configs.merge(config, {'only-models': [gcm]})))
