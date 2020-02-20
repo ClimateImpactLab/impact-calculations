@@ -14,26 +14,28 @@ filename = 'maize_seasonal_tasmax_test.nc4'
 only_missing = False
 non_leap_year = 2010
 
-if filename == 'maize_seasonal_tasmax_test.nc4':
+if filename == 'maize_seasonal_tasmax.nc4':
     discoverer = discover.discover_versioned(files.sharedpath('climate/BCSD/hierid/popwt/daily/tasmax'), 'tasmax')
     covar_names = ['seasonal_tasmax']
     seasons = 'daily'
     clim_var = 'tasmax'
     seasonal_filepath = "social/baselines/agriculture/world-combo-201710-growing-seasons-corn-1stseason.csv"
 
-if filename == 'prcp.nc4':
-    discoverer = discover.discover_versioned(files.sharedpath('climate/BCSD/hierid/cropwt/daily/tas'), 'tas')
-    covar_names = ['climtas']
-    annual_calcs = [lambda ds: np.mean(ds['tas'])] # Average within each year
+if filename == 'maize_seasonal_pr.nc4':
+    discoverer = discover.discover_versioned(files.sharedpath('climate/BCSD/hierid/cropwt/monthly/pr'), 'pr')
+    covar_names = ['seasonal_pr']
+    seasons = 'daily'
+    clim_var = 'pr'
+    seasonal_filepath = "social/baselines/agriculture/world-combo-201710-growing-seasons-corn-1stseason.csv"
 
     
 outputdir = '/shares/gcp/outputs/temps'
 culture_periods = irvalues.get_file_cached(seasonal_filepath, irvalues.load_culture_months)
 standard_running_mean_init = averages.BartlettAverager
 numtempyears = 30
+config={'rolling-years': 2}
 
 def get_seasonal_index(region, culture_periods, seasons):
-
     if seasons == 'daily':
         plant = datetime.date(non_leap_year, culture_periods[region][0],1).timetuple().tm_yday
         if culture_periods[region][1] <= 12: 
@@ -44,11 +46,10 @@ def get_seasonal_index(region, culture_periods, seasons):
             harvest = harvest_date.timetuple().tm_yday + 365
     elif seasons == 'monthly':
         plant, harvest = culture_periods[region]
-
     return int(plant - 1), int(harvest - 1) 
 
 
-for clim_scenario, clim_model, weatherbundle in weather.iterate_bundles(discoverer):
+for clim_scenario, clim_model, weatherbundle in weather.iterate_bundles(discoverer, **config):
 
     if (clim_model == 'CCSM4') and (clim_scenario == 'rcp85'):
 
@@ -104,7 +105,6 @@ for clim_scenario, clim_model, weatherbundle in weather.iterate_bundles(discover
             ii = 0
             for region, subds in fast_dataset.region_groupby(ds, year, regions, {regions[ii]: ii for ii in range(len(regions))}):
                 if region in culture_periods:
-                    kk = 0
                     for kk in range(len(covar_names)):
                         plantii, harvestii = get_seasonal_index(region, culture_periods, seasons)
                         annual_calcs = lambda ds: np.mean(ds[clim_var].values[plantii:harvestii])
@@ -112,7 +112,6 @@ for clim_scenario, clim_model, weatherbundle in weather.iterate_bundles(discover
                         annualdata[yy, ii, kk] = yearval
                         regiondata[ii][kk].update(yearval)
                         averageddata[yy, ii, kk] = regiondata[ii][kk].get()
-                        kk += 1
                 else:
                     print "Region {} not in growing season data set".format(region)
                 ii += 1
