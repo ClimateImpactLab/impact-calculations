@@ -574,7 +574,11 @@ def discover_day2year(discover_iterator, accumfunc):
         if 'yyyyddd' in used_coords:
             del used_coords['yyyyddd']
 
-        ds = fast_dataset.FastDataset({name: data_vars_time_conversion_year(name, ds, 'vars', accumfunc) for name in vars_only},
+        newvars = {}
+        for name in vars_only:
+            newvars[name] = data_vars_time_conversion_year(name, ds, 'vars', accumfunc)
+            newvars['daily' + name] = data_vars_time_conversion_year(name, ds, 'vars', lambda arr, dim: np.mean(arr, axis=dim))
+        ds = fast_dataset.FastDataset(newvars,
                                       coords={name: data_vars_time_conversion_year(name, ds, 'coords', accumfunc) for name in used_coords},
                                       attrs=ds.attrs)
         return ds
