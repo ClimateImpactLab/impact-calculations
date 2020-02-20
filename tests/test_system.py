@@ -267,6 +267,7 @@ class TestMonteCarloEnergy(unittest.TestCase):
         cls.results_incadapt_nc4 = None
         cls.results_histclim_nc4 = None
         cls.results_pvals_yml = None
+        cls.basename = 'FD_FGLS_inter_climGMFD_Exclude_all-issues_break2_semi-parametric_poly2_OTHERIND_other_energy_TINV_clim_income_spline_lininter'
         # This is a hack because the projection run scripts can only be launched
         # from the root of the impact-calculations directory.
         # I don't have a way around this as py2.7 unittest doesn't have mocks.
@@ -292,14 +293,14 @@ class TestMonteCarloEnergy(unittest.TestCase):
             # test too early.
             return_code = subprocess.call(['sh', 'tests/testmontecarloenergy.sh',
                                            str(conf_path)])
-            assert return_code == 0, 'command did not return code 0'
+            assert return_code == 0, 'command did not return code 0'  # In python 3 we should add a `check=True` arg instead of the assert
 
             # This is lazy of me.
             # Note these are for "low" projections
-            cls.results_low_base_nc4 = xr.open_dataset(os.path.join(*(results_dir_low_fragment + ['FD_FGLS_inter_climGMFD_Exclude_all-issues_break2_semi-parametric_poly2_OTHERIND_other_energy_TINV_clim_income_spline_lininter.nc4'])))
-            cls.results_low_noadapt_nc4 = xr.open_dataset(os.path.join(*(results_dir_low_fragment + ['FD_FGLS_inter_climGMFD_Exclude_all-issues_break2_semi-parametric_poly2_OTHERIND_other_energy_TINV_clim_income_spline_lininter-noadapt.nc4'])))
-            cls.results_low_incadapt_nc4 = xr.open_dataset(os.path.join(*(results_dir_low_fragment + ['FD_FGLS_inter_climGMFD_Exclude_all-issues_break2_semi-parametric_poly2_OTHERIND_other_energy_TINV_clim_income_spline_lininter-incadapt.nc4'])))
-            cls.results_low_histclim_nc4 = xr.open_dataset(os.path.join(*(results_dir_low_fragment + ['FD_FGLS_inter_climGMFD_Exclude_all-issues_break2_semi-parametric_poly2_OTHERIND_other_energy_TINV_clim_income_spline_lininter-histclim.nc4'])))
+            cls.results_low_base_nc4 = xr.open_dataset(os.path.join(*(results_dir_low_fragment + [cls.basename + '.nc4'])))
+            cls.results_low_noadapt_nc4 = xr.open_dataset(os.path.join(*(results_dir_low_fragment + [cls.basename + '-noadapt.nc4'])))
+            cls.results_low_incadapt_nc4 = xr.open_dataset(os.path.join(*(results_dir_low_fragment + [cls.basename + '-incadapt.nc4'])))
+            cls.results_low_histclim_nc4 = xr.open_dataset(os.path.join(*(results_dir_low_fragment + [cls.basename + '-histclim.nc4'])))
             with open(os.path.join(*(results_dir_low_fragment + ['pvals.yml'])), 'r') as fl:
                 cls.results_low_pvals_yml = yaml.load(fl, Loader=yaml.SafeLoader)
 
@@ -312,8 +313,7 @@ class TestMonteCarloEnergy(unittest.TestCase):
 
     def test_pvals(self):
         """Test contents of pvals ymls for low and high projections"""
-        goal = {'FD_FGLS_inter_climGMFD_Exclude_all-issues_break2_semi-parametric_poly2_OTHERIND_other_energy_TINV_clim_income_spline_lininter':
-                    {'seed-csvv': 123}, 'histclim': {'seed-yearorder': 123}}
+        goal = {self.basename: {'seed-csvv': 123}, 'histclim': {'seed-yearorder': 123}}
         self.assertEqual(self.results_low_pvals_yml, goal)
         self.assertEqual(self.results_high_pvals_yml, goal)
 
