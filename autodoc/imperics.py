@@ -79,6 +79,8 @@ for model, csvvpath, module, specconf in container.get_modules_csvv(config):
                 fracsubset = (csvv_parts.index(part), len(csvv_parts))
                 foundcsvv = True
                 break
+        if foundcsvv:
+            break
     if basename == onlymodel:
         foundcsvv = True
         break

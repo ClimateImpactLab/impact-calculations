@@ -1,4 +1,4 @@
-timerate: year
+timerate: day
 climate: [ tasmax ]
 models:
   - csvvs: social/parameters/labor/csvv_spline_jan2020_corrected/*.csvv
@@ -13,5 +13,5 @@ models:
       prefix: tasmax_rcspline
       variable: tasmax
       calculation:
-        - YearlySumIrregular
+        - YearlyAverageDay
         - Rebase
