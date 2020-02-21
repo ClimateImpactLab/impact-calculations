@@ -234,7 +234,6 @@ class CubicSplineCurveGenerator(SmartCSVVCurveGenerator):
         self.allow_raising = allow_raising
 
     def get_smartcurve(self, yy):
-        print yy
         # Using smart_curve.CurveCurve to wraps a dumbcurve and mimic proper SmartCurve
         dumbcurve = CubicSplineCurve(self.knots, yy)
         return CurveCurve(dumbcurve, self.variablename)
