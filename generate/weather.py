@@ -95,7 +95,7 @@ class WeatherBundle(object):
         if reader is not None:
             try:
                 self.regions = reader.get_regions()
-                if np.issubdtype(self.regions[0], np.integer):
+                if np.issubdtype(type(self.regions[0]), np.integer):
                     self.regions = irregions.load_regions(self.hierarchy, self.dependencies)
             except Exception as ex:
                 print("Exception but still doing stuff:")
@@ -174,7 +174,11 @@ class DailyWeatherBundle(WeatherBundle):
                 else:
                     allds.append(ds)
 
-            self.saved_baseline_values = fast_dataset.concat(allds, dim='time')
+            print allds[0]
+            if isinstance(allds[0], xr.Dataset):
+                self.saved_baseline_values = xr.concat(allds, dim='time') # slower but more reliable
+            else:
+                self.saved_baseline_values = fast_dataset.concat(allds, dim='time')
 
         # Yield the entire collection of values for each region
         for ii in range(len(self.regions)):
@@ -215,7 +219,7 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
             year = None # In case no additional years in pastreader
             for ds in self.pastfuturereaders[0][0].read_iterator_to(min(self.futureyear1, maxyear)):
                 assert ds.region.shape[0] == len(self.regions), "Region length mismatch: %d <> %d" % (ds.region.shape[0], len(self.regions))
-                year = ds['time.year'][0]
+                year = int(ds['time.year'][0])
                 for year2, ds2 in self.transformer.push(year, ds):
                     yield year2, ds2
 
@@ -225,7 +229,7 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
                 lastyear = year
             if maxyear > self.futureyear1:
                 for ds in self.pastfuturereaders[0][1].read_iterator_to(maxyear):
-                    year = ds['time.year'][0]
+                    year = int(ds['time.year'][0])
                     if year <= lastyear:
                         continue # allow for overlapping weather
                     assert ds.region.shape[0] == len(self.regions)
