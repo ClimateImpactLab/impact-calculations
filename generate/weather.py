@@ -172,7 +172,10 @@ class DailyWeatherBundle(WeatherBundle):
                 else:
                     allds.append(ds)
 
-            self.saved_baseline_values = fast_dataset.concat(allds, dim='time')
+            if isinstance(allds[0], xr.Dataset):
+                self.saved_baseline_values = xr.concat(allds, dim='time')
+            else:
+                self.saved_baseline_values = fast_dataset.concat(allds, dim='time')
 
         # Yield the entire collection of values for each region
         for ii in range(len(self.regions)):
@@ -391,5 +394,8 @@ class RollingYearTransfomer(WeatherTransformer):
             self.pastdses = self.pastdses[1:] + [ds]
 
         if len(self.pastdses) == self.rolling_years:
-            ds = fast_dataset.concat(self.pastdses, dim='time')
+            if isinstance(self.pastdses[0], xr.Dataset):
+                ds = xr.concat(self.pastdses, dim='time')
+            else:
+                ds = fast_dataset.concat(self.pastdses, dim='time')
             yield year - self.rolling_years + 1, ds

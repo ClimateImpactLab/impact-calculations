@@ -10,7 +10,7 @@ from datastore import irvalues
 import datetime
 from dateutil.relativedelta import relativedelta
 
-filename = 'maize_seasonal_tasmax_test.nc4'
+filename = 'maize_seasonal_tasmax.nc4'
 only_missing = False
 non_leap_year = 2010
 
