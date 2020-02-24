@@ -1,9 +1,9 @@
 """Classes for exposing readers from IRI forecasts."""
 
 from netCDF4 import Dataset
-from reader import WeatherReader
+from .reader import WeatherReader
 from scipy.stats import norm
-import netcdfs, forecasts
+from . import netcdfs, forecasts
 import numpy as np
 import xarray as xr
 from datastore import irregions
@@ -156,7 +156,7 @@ class CountryAveragedReader(TransformedReader):
     def __init__(self, source, variable):
         super(CountryAveragedReader, self).__init__(source)
 
-        self.regions = np.unique(map(lambda region: region[:3], source.regions))
+        self.regions = np.unique([region[:3] for region in source.regions])
         self.variable = variable
 
     def read_iterator(self):

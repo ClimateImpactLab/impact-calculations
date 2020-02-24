@@ -6,7 +6,7 @@ def simple_densities(dependencies):
     areas = {} # {region: area}
     with open(files.sharedpath('social/processed/LandScan2011/gcpregions.csv'), 'r') as fp:
         reader = csv.reader(header.deparse(fp, dependencies))
-        headrow = reader.next()
+        headrow = next(reader)
 
         for row in reader:
             region = row[headrow.index('hierid')]
@@ -24,7 +24,7 @@ def load_popop():
 
     with open(files.sharedpath('social/baselines/popop_baseline.csv'), 'r') as fp:
         reader = csv.reader(fp)
-        headrow = reader.next()
+        headrow = next(reader)
 
         for row in reader:
             value = row[headrow.index('popop')]

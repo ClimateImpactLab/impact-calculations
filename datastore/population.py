@@ -2,7 +2,7 @@ import csv, os
 import numpy as np
 from impactlab_tools.utils import files
 from helpers import header
-import spacetime
+from . import spacetime
 
 use_merged = True
 
@@ -16,13 +16,13 @@ def each_future_population(model, scenario, dependencies):
         if os.path.exists(populationfile):
             rowchecks = lambda row, headrow: True
         else:
-            print "Cannot find model-specific populations."
+            print("Cannot find model-specific populations.")
             populationfile = files.sharedpath('social/baselines/population/future/population-future.csv')
             rowchecks = lambda row, headrow: row[headrow.index('model')] == model and row[headrow.index('scenario')] == scenario
 
     with open(populationfile, 'r') as fp:
         reader = csv.reader(header.deparse(fp, dependencies))
-        headrow = reader.next()
+        headrow = next(reader)
 
         for row in reader:
             if not rowchecks(row, headrow):
@@ -33,9 +33,9 @@ def each_future_population(model, scenario, dependencies):
                 year = int(row[headrow.index('year')])
                 value = float(row[headrow.index('value')])
             except Exception as e:
-                print "Could not get all values for row from %s:" % populationfile
-                print headrow
-                print row
+                print("Could not get all values for row from %s:" % populationfile)
+                print(headrow)
+                print(row)
                 raise e
 
             yield region, year, value
@@ -44,7 +44,7 @@ def population_baseline_data(year0, year1, dependencies):
     baselinedata = {} # {region: {year: value}}
     with open(files.sharedpath("social/weightlines/population.csv"), 'r') as fp:
         reader = csv.reader(header.deparse(fp, dependencies))
-        headrow = reader.next()
+        headrow = next(reader)
 
         for row in reader:
             region = row[headrow.index('region')]
@@ -94,7 +94,7 @@ def read_population_allyears(year0, year1, regions, model, scenario, dependencie
     baselinedata = population_baseline_data(year0, year1, dependencies)
 
     if regions is None:
-        regions = baselinedata.keys()
+        regions = list(baselinedata.keys())
 
     return extend_population_future(baselinedata, year0, year1, regions, model, scenario, dependencies)
 
@@ -106,7 +106,7 @@ class SpaceTimeBipartiteData(spacetime.SpaceTimeBipartiteData):
         self.baselinedata = population_baseline_data(year0, year1, self.dependencies)
 
         if regions is None:
-            regions = self.baselinedata.keys()
+            regions = list(self.baselinedata.keys())
 
         super(SpaceTimeBipartiteData, self).__init__(year0, year1, regions)
 

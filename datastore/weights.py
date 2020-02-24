@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from impactlab_tools.utils import files
 from impactcommon.exogenous_economy import gdppc
-import population, agecohorts, spacetime
+from . import population, agecohorts, spacetime
 
 ## Regular expressions to interpret configuration options
 RE_FLOATING = r"[-+]?[0-9]*\.?[0-9]*" # matches floating point numbers, like 3.14
@@ -143,7 +143,7 @@ def get_weight_args(config):
 
 if __name__ == '__main__':
     import sys, csv
-    import irregions
+    from . import irregions
 
     dependencies = []
     regions = irregions.load_regions("hierarchy.csv", dependencies)

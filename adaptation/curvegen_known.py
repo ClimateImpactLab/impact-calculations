@@ -9,7 +9,7 @@ respect to a covariate to produce another known CurveGenerator.
 """
 
 import numpy as np
-import csvvfile, curvegen
+from . import csvvfile, curvegen
 from openest.generate import diagnostic, formatting, selfdocumented
 from openest.generate.smart_curve import ZeroInterceptPolynomialCurve
 from openest.models.curve import CubicSplineCurve, StepCurve
@@ -89,7 +89,7 @@ class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
         return ZeroInterceptPolynomialCurve(yy, self.weathernames, self.allow_raising)
 
     def get_lincom_terms_simple_each(self, predname, covarname, predictors, covariates={}):
-        if predname not in predictors._variables.keys():
+        if predname not in list(predictors._variables.keys()):
             predname = predname[:-1] + '-poly-' + predname[-1]
             
         pred = np.sum(predictors[predname]._values)

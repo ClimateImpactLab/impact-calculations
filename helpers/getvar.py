@@ -48,10 +48,10 @@ else:
     found_bundle = weatherbundle
 
 if found_bundle is None:
-    print "Cannot find valid weather data."
+    print("Cannot find valid weather data.")
     exit(-1)
     
 rr = found_bundle.regions.index(region)
 for year, ds in found_bundle.yearbundles():
-    print transform(ds)
+    print(transform(ds))
     exit(0)

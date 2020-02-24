@@ -7,9 +7,9 @@ Model computes mortality per day; MonthlyDayBins scales by 12, so further multip
 from openest.generate.stdlib import *
 
 def prepare_raw_spr(spreadrow, pvals, get_model, get_data):
-    print spreadrow['DMAS ID']
+    print(spreadrow['DMAS ID'])
     model_tas = get_model(spreadrow['DMAS ID'])
-    print model_tas
+    print(model_tas)
 
     return Transform(
         MonthlyDayBins(model_tas, 'deaths/100000people/day', pval=pvals['tas'], weather_change=c2f),

@@ -8,7 +8,7 @@ class UnivariateModelDescriber(UnivariateModel, MemoizableUnivariate):
         if colldict['xx_is_categorical']:
             super(UnivariateModelDescriber, self).__init__(colldict['xx_is_categorical'], colldict['xx_text'])
         else:
-            super(UnivariateModelDescriber, self).__init__(colldict['xx_is_categorical'], map(float, colldict['xx_text']))
+            super(UnivariateModelDescriber, self).__init__(colldict['xx_is_categorical'], list(map(float, colldict['xx_text'])))
 
         self.colldict = colldict
 
@@ -46,4 +46,4 @@ pvals = PvalsInfoDictionary()
 def latex(prepare):
     calculation, dependencies = prepare(pvals, get_model_info, get_data_info)
     for (key, value, units) in calculation.latex():
-        print key + ": " + str(value) + ' [' + units + ']'
+        print((key + ": " + str(value) + ' [' + units + ']'))

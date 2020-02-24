@@ -33,18 +33,18 @@ def get_bundle_iterator(config):
 def check_doit(targetdir, basename, suffix):
     filepath = os.path.join(targetdir, basename + suffix + '.nc4')
     if not os.path.exists(filepath):
-        print "REDO: Cannot find", filepath, suffix
+        print("REDO: Cannot find", filepath, suffix)
         return True
 
     # Check if has 100 valid years
     if not checks.check_result_100years(filepath):
-        print "REDO: Incomplete", basename, suffix
+        print("REDO: Incomplete", basename, suffix)
         return True
 
     return False
 
 def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callback=None, suffix='', profile=False, diagnosefile=False):
-    print config['do_only']
+    print(config['do_only'])
 
     if config['do_only'] is None or config['do_only'] == 'interpolation':
         if push_callback is None:
@@ -57,7 +57,7 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
             
         for filepath in csvvfiles:
             basename = os.path.basename(filepath)[:-5]
-            print basename
+            print(basename)
 
             if 'CSpline' in basename:
                 numpreds = 5
@@ -85,7 +85,7 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
 
                 # Full Adaptation
                 if check_doit(targetdir, subbasename, suffix):
-                    print "Smart Farmer"
+                    print("Smart Farmer")
                     calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(subcsvv, module, weatherbundle, economicmodel, pvals[subbasename], config=config)
 
                     effectset.generate(targetdir, subbasename + suffix, weatherbundle, calculation, "Mortality impacts, with interpolation and adaptation through interpolation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, subbasename), diagnosefile=diagnosefile.replace('.csv', '-' + subbasename + '.csv') if diagnosefile else False)
@@ -121,7 +121,7 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
                     if check_doit(targetdir, basename + '-combined' + assumption, suffix):
                         agglib.combine_results(targetdir, basename + '-combined' + assumption, basenames, get_stweights, "Combined mortality across age-groups for " + basename, suffix=suffix)
             except Exception as ex:
-                print "TO FIX: Combining failed."
+                print("TO FIX: Combining failed.")
                 traceback.print_exc()
 
     if 'csvvfile' not in config:
@@ -131,7 +131,7 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
 def produce_india(targetdir, weatherbundle, economicmodel, pvals, config, suffix='', diagnosefile=False):
     for filepath in glob.glob(files.sharedpath("social/parameters/mortality/India/*.csvv")):
         basename = os.path.basename(filepath)[:-5]
-        print basename
+        print(basename)
 
         if 'cubic_splines' in basename:
             numpreds = 5
@@ -148,13 +148,13 @@ def produce_india(targetdir, weatherbundle, economicmodel, pvals, config, suffix
             minpath_suffix = '-polymins'
 
         if check_doit(targetdir, basename, suffix):
-            print "India result"
+            print("India result")
             try:
                 calculation, dependencies = caller.call_prepare_interp(filepath, module, weatherbundle, economicmodel, pvals[basename], config=config)
 
                 effectset.generate(targetdir, basename + suffix, weatherbundle, calculation, "India-model mortality impacts for all ages.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, diagnosefile=diagnosefile.replace('.csv', '-' + basename + '.csv') if diagnosefile else False)
             except Exception as ex:
-                print ex
+                print(ex)
 
 def produce_external(targetdir, weatherbundle, economicmodel, pvals, config, suffix=''):
     if config['do_only'] is None or config['do_only'] == 'acp':

@@ -14,8 +14,8 @@ helps = set([])
 try:
     data = csvvfile.read(csvvpath)
 except Exception as e:
-    print "ERROR: Cannot read CSVV file."
-    print e
+    print("ERROR: Cannot read CSVV file.")
+    print(e)
     exit()
 
 for predname in set(data['prednames']):
@@ -23,20 +23,20 @@ for predname in set(data['prednames']):
         try:
             discoverer = discover.standard_variable(predname, 'day')
         except:
-            print "ERROR: Predictor %s is not a known weather variable." % predname
+            print("ERROR: Predictor %s is not a known weather variable." % predname)
             continue
 
-        scenario, model, pastreader, futurereader = discoverer.next()
+        scenario, model, pastreader, futurereader = next(discoverer)
         unit = pastreader.units
     else:
         unit = knownpreds[predname]
 
     if predname not in data['variables']:
-        print "ERROR: Predictor %s is not defined in the header information." % predname
+        print("ERROR: Predictor %s is not defined in the header information." % predname)
         continue
 
     if unit is not None and data['variables'][predname]['unit'] != unit:
-        print "ERROR: Units mismatch for predictor %s: %s <> %s." % (predname, data['variables'][predname]['unit'], pastreader.units)
+        print("ERROR: Units mismatch for predictor %s: %s <> %s." % (predname, data['variables'][predname]['unit'], pastreader.units))
         continue
 
 for covarname in data['covarnames']:
@@ -47,9 +47,9 @@ for covarname in data['covarnames']:
             try:
                 discoverer = discover.standard_variable(predname, 'year')
             except:
-                print "ERROR: Covariate %s is not a known weather variable." % covarname
+                print("ERROR: Covariate %s is not a known weather variable." % covarname)
                 continue
-        scenario, model, pastreader, futurereader = discoverer.next()
+        scenario, model, pastreader, futurereader = next(discoverer)
         unit = pastreader.units
     else:
         unit = knowncovars[covarname]        
@@ -58,11 +58,11 @@ for covarname in data['covarnames']:
         continue
 
     if covarname not in data['variables']:
-        print "ERROR: Covariate %s is not defined in the header information." % covarname
+        print("ERROR: Covariate %s is not defined in the header information." % covarname)
         continue
 
     if data['variables'][covarname]['unit'] != unit:
-        print "ERROR: Units mismatch for covariate %s: %s <> %s." % (covarname, data['variables'][covarname]['unit'], unit)
+        print("ERROR: Units mismatch for covariate %s: %s <> %s." % (covarname, data['variables'][covarname]['unit'], unit))
         continue
             
 assert len(data['gamma']) == len(data['prednames']), "ERROR: Must have as many gamma values as predictors."

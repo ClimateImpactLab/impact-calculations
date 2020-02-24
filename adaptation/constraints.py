@@ -45,7 +45,7 @@ def make_get_coeff_goodmoney(weatherbundle, covariator, curvegen, baselinemins, 
 
 def get_curve_minima(regions, curvegen, covariator, mint, maxt, analytic):
     # Determine minimum value of curve between mint and maxt
-    print "Determining minimum temperatures."
+    print("Determining minimum temperatures.")
     baselinecurves = {}
     baselinemins = {}
 
@@ -63,10 +63,10 @@ def get_curve_minima(regions, curvegen, covariator, mint, maxt, analytic):
                 mintemp = temps[np.argmin(curve(temps))]
                 mintemp2 = analytic(region, curve)
                 if np.abs(mintemp - mintemp2) > 1:
-                    print "WARNING: %s has unclear mintemp: %f, %f" % (region, mintemp, mintemp2)
+                    print(("WARNING: %s has unclear mintemp: %f, %f" % (region, mintemp, mintemp2)))
                 baselinemins[region] = mintemp2
                 writer.writerow([region, mintemp, mintemp2])
-        os.chmod(caller.callinfo['minpath'], 0664)
+        os.chmod(caller.callinfo['minpath'], 0o664)
     else:
         for region in regions:
             curve = curvegen.get_curve(region, 2005, covariator.get_current(region))
