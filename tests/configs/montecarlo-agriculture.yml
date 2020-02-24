@@ -1,0 +1,17 @@
+module: tests/configs/corn_prsplitmodel_partiald.yml
+mode: montecarlo
+outputdir: mc_output
+do_farmers: true
+do_historical: true
+only-models: [CCSM4]
+only-ssp: SSP3
+only-rcp: rcp85
+timeout: 24
+mc_n: 1
+pvals:
+    FD_FGLS_inter_climGMFD_Exclude_all-issues_break2_semi-parametric_poly2_OTHERIND_other_energy_TINV_clim_income_spline_lininter:
+        seed-csvv: 123
+    corn_global_t-tbar_pbar_lnincbr_ir_tp_binp-tbar_pbar_lnincbr_ir_tp_fe-A1TT_A0Y_clus-A1_A0Y_TINV-191220:
+        seed-csvv: 123
+    histclim:
+        seed-yearorder: 123
