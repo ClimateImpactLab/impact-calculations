@@ -8,7 +8,7 @@ def load_mortality_rates():
     scales = {}
     with open(files.sharedpath("social/mortality/cmf-1999-2010.txt")) as countyfp:
         reader = csv.reader(countyfp, delimiter='\t')
-        reader.next() # skip header
+        next(reader) # skip header
 
         total_numer = 0
         total_denom = 0
@@ -33,7 +33,7 @@ def load_mortality_age_rates(agename):
     scales_denom = {}
     with open(files.sharedpath("social/mortality/cmf-age-1999-2010.txt")) as countyfp:
         reader = csv.reader(countyfp, delimiter='\t')
-        reader.next() # skip header
+        next(reader) # skip header
 
         total_numer = 0
         total_denom = 0
@@ -61,7 +61,7 @@ def load_age_populations(agename, total_populations=None):
     populations = {}
     with open(files.sharedpath("social/mortality/cmf-age-1999-2010.txt")) as countyfp:
         reader = csv.reader(countyfp, delimiter='\t')
-        reader.next() # skip header
+        next(reader) # skip header
 
         for row in reader:
             if len(row) < 5 or row[1] not in groups:
@@ -88,4 +88,4 @@ def load_age_populations(agename, total_populations=None):
 
 if __name__ == '__main__':
     for group in age_group_mapping:
-        print group, load_mortality_age_rates(group)['mean']
+        print(group, load_mortality_age_rates(group)['mean'])

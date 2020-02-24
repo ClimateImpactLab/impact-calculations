@@ -11,7 +11,7 @@ from climate import discover
 def get_weatherbundle():
     """Get a simple weather bundle for tas."""
     bundleiterator = weather.iterate_bundles(discover.standard_variable('tas', 'year'))
-    scenario, model, weatherbundle = bundleiterator.next()
+    scenario, model, weatherbundle = next(bundleiterator)
     return weatherbundle
 
 def get_yearorder(temp2year, weatherbundle):

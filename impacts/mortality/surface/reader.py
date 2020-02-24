@@ -7,7 +7,7 @@ try:
     from openest.models.bin_model import BinModel
     from openest.models.spline_model import SplineModel
 except:
-    print "Cannot load open-estimate; conversion to models will fail."
+    print("Cannot load open-estimate; conversion to models will fail.")
 
 def csv_to_data(filename, prednames, ignores, dependencies, predcheck={}):
     # Headers separate
@@ -22,7 +22,7 @@ def csv_to_data(filename, prednames, ignores, dependencies, predcheck={}):
 
     with open(filename, 'r') as fp:
         reader = csv.reader(fp)
-        header = reader.next()
+        header = next(reader)
 
         omitted_column = header.index('omitted_bin')
 
@@ -58,7 +58,7 @@ def csv_to_data(filename, prednames, ignores, dependencies, predcheck={}):
                 continue
             assert row[0] not in regions_done, "The same region is represented twice."
             if row[omitted_column] == '':
-                print "Skipping row " + row[0]
+                print("Skipping row " + row[0])
                 continue
 
             coefs = []
@@ -133,7 +133,7 @@ def collate_models(prednames, ignores, filenames, groups, additionals, dependenc
     allmodels = {}
     allpredictors = {}
     for ii in range(len(filenames)):
-        print filenames[ii]
+        print(filenames[ii])
         for name, model, predictors in csv_to_models(files.sharedpath('social/adaptation/' + filenames[ii]), prednames, ignores, dependencies):
             fullname = groups[ii] + "." + name
             modelorder.append(fullname)
@@ -149,12 +149,12 @@ def collate_models(prednames, ignores, filenames, groups, additionals, dependenc
 
     # Make bins all consistent
     # Also check that same bins are missing
-    newmodels = BinModel.consistent_bins(allmodels.values())
+    newmodels = BinModel.consistent_bins(list(allmodels.values()))
     xx = newmodels[0].get_xx()
 
     allnas = [True] * (len(xx) - 1)
     for ii in range(len(newmodels)):
-        allmodels[allmodels.keys()[ii]] = newmodels[ii]
+        allmodels[list(allmodels.keys())[ii]] = newmodels[ii]
         for jj in range(len(xx) - 1):
             serr = newmodels[ii].get_sdev(index=jj)
             if not np.isnan(serr) and serr > 0:
@@ -183,7 +183,7 @@ if __name__ == '__main__':
             for name, binlos, binhis, coefs, serrs, predictors in csv_to_data(path, prednames, ignores, dependencies, predcheck):
                 pass
         except Exception as ex:
-            print path, "error:", ex
+            print(path, "error:", ex)
     else:
         for filename in os.listdir(path):
             if not os.path.isfile(path + filename) or filename[-4:] != '.csv':
@@ -192,6 +192,6 @@ if __name__ == '__main__':
                 for name, binlos, binhis, coefs, serrs, predictors in csv_to_data(path + filename, prednames, ignores, dependencies, predcheck):
                     pass
             except Exception as ex:
-                print filename, "error:", ex
+                print(filename, "error:", ex)
 
 

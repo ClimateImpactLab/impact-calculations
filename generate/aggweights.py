@@ -9,7 +9,7 @@ for econ_model, econ_scenario, economicmodel in covariates.iterate_econmodels():
     if econ_model == 'high':
         continue
     
-    print econ_scenario
+    print(econ_scenario)
 
     stweight = halfweight.load(1981, 2100, econ_model, econ_scenario)
 

@@ -70,7 +70,7 @@ def interpret_ds_transform(name, config):
         # Create a FastDataset populated with the name and scalar...
         def out(ds):
             # Get first available non-coordinate variable.
-            noncoord_var = [x for x in ds.variables.keys() if x not in ds.coords.keys()][0]
+            noncoord_var = [x for x in list(ds.variables.keys()) if x not in list(ds.coords.keys())][0]
             new_shape = ds[noncoord_var]._values.shape
             new_coords = list(ds.original_coords)
             darray = fast_dataset.FastDataArray(np.ones(new_shape) * use_scalar,
@@ -132,18 +132,18 @@ def post_process(ds, name, config):
             if culture is not None:
                 return fast_dataset.FastDataArray(dataarr[(culture[0]-1):culture[1]], dataarr.original_coords, ds)
         else:
-            print ds
+            print(ds)
             assert False, "Not expected number of elements: %s" % str(dataarr.shape)
 
     return dataarr
 
 def read_range(text):
-    items = map(lambda x: x.strip(), text.split(','))
+    items = [x.strip() for x in text.split(',')]
     indices = []
     for item in items:
         if ':' in item:
             limits = item.split(':')
-            indices.extend(range(int(limits[0]) - 1, int(limits[1])))
+            indices.extend(list(range(int(limits[0]) - 1, int(limits[1]))))
         else:
             indices.append(int(item) - 1)
 

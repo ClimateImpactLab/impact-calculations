@@ -8,19 +8,19 @@ def simultaneous_application(qval, weatherbundle, calculation, get_apply_args, r
     if regions is None:
         regions = weatherbundle.regions
 
-    print "Creating calculations..."
+    print("Creating calculations...")
     applications = []
     for region in regions:
         applyargs = get_apply_args(region) if get_apply_args else []
         applications.append(calculation.apply(region, *applyargs))
 
-    print "Processing months..."
+    print("Processing months...")
     for ds in weatherbundle.monthbundles(qval):
         if ds.regions.shape[0] < len(applications):
-            print "WARNING: fewer regions in weather than expected (%d < %d); dropping from end." % (ds.regions.shape[0], len(applications))
+            print("WARNING: fewer regions in weather than expected (%d < %d); dropping from end." % (ds.regions.shape[0], len(applications)))
             applications = applications[:ds.regions.shape[0]]
 
-        print "Push", ds.time.values[0]
+        print("Push", ds.time.values[0])
 
         for ii in range(len(applications)):
             for monthresult in applications[ii].push(ds.sel(region=regions[ii])):

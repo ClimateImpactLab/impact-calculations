@@ -15,11 +15,11 @@ from openest.generate import smart_curve, selfdocumented
 from openest.models.curve import ShiftedCurve, MinimumCurve, ClippedCurve
 from openest.generate.stdlib import *
 from impactcommon.math import minpoly, minspline
-import calculator, variables, configs
+from . import calculator, variables, configs
 
 def user_failure(message):
     """Prints an 'ERROR' message and exits program"""
-    print "ERROR: " + message
+    print("ERROR: " + message)
     exit()
 
 def user_assert(check, message):
@@ -53,7 +53,7 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config={}, quiet=F
     adaptation.covariates.Covariator
     """
     if isinstance(covar, dict):
-        return get_covariator(covar.keys()[0], covar.values()[0], weatherbundle, economicmodel, config=config, quiet=quiet)
+        return get_covariator(list(covar.keys())[0], list(covar.values())[0], weatherbundle, economicmodel, config=config, quiet=quiet)
     elif covar in ['loggdppc', 'logpopop', 'year']:
         return covariates.EconomicCovariator(economicmodel, 2015, config=configs.merge(config, 'econcovar'))
     elif covar == 'incbin':
@@ -63,7 +63,7 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config={}, quiet=F
     elif covar == 'ir-share':
         return covariates.ConstantCovariator('ir-share', irvalues.load_irweights("social/baselines/agriculture/world-combo-201710-irrigated-area.csv", 'irrigated_share'))
     elif '*' in covar:
-        sources = map(lambda x: get_covariator(x.strip(), args, weatherbundle, economicmodel, config=config, quiet=quiet), covar.split('*', 1))
+        sources = [get_covariator(x.strip(), args, weatherbundle, economicmodel, config=config, quiet=quiet) for x in covar.split('*', 1)]
         return covariates.ProductCovariator(sources[0], sources[1])
     elif '^' in covar:
         chunks = covar.split('^', 1)
@@ -139,7 +139,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}, getcs
     depenunit = specconf['depenunit']
 
     betalimits = specconf.get('beta-limits', {})
-    betalimits = {key: map(float, betalimits[key].split(',')) for key in betalimits}
+    betalimits = {key: list(map(float, betalimits[key].split(','))) for key in betalimits}
 
     if specconf['functionalform'] == 'polynomial':
         variable = specconf['variable']
@@ -206,7 +206,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}, getcs
             transform_descriptions.append(match.group(1))
             indepunits.append(match.group(2))
 
-        curr_curvegen = curvegen_arbitrary.SumCoefficientsCurveGenerator(ds_transforms.keys(), ds_transforms,
+        curr_curvegen = curvegen_arbitrary.SumCoefficientsCurveGenerator(list(ds_transforms.keys()), ds_transforms,
                                                                          transform_descriptions, indepunits, depenunit,
                                                                          csvv, betalimits=betalimits)
         weathernames = [] # Use curve directly

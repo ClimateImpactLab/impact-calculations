@@ -24,7 +24,7 @@ def iterate_bundles(*iterators_readers, **config):
     else:
         transformer = WeatherTransformer()
 
-    print "Loading weather..."
+    print("Loading weather...")
         
     if len(iterators_readers) == 1:
         for scenario, model, pastreader, futurereader in iterators_readers[0]:
@@ -98,7 +98,7 @@ class WeatherBundle(object):
                 if np.issubdtype(self.regions[0], np.integer):
                     self.regions = irregions.load_regions(self.hierarchy, self.dependencies)
             except Exception as ex:
-                print "WARNING: failure to read regions for " + str(reader.__class__)
+                print("WARNING: failure to read regions for " + str(reader.__class__))
                 self.regions = irregions.load_regions(self.hierarchy, self.dependencies)
         else:
             self.regions = irregions.load_regions(self.hierarchy, self.dependencies)
@@ -145,7 +145,7 @@ class DailyWeatherBundle(WeatherBundle):
 
         sumcount = 0
         for weatherslice in self.yearbundles(maxyear):
-            print weatherslice.get_years()[0]
+            print(weatherslice.get_years()[0])
 
             regionsums += np.mean(weatherslice.weathers, axis=0)
             sumcount += 1
@@ -164,7 +164,7 @@ class DailyWeatherBundle(WeatherBundle):
             # Append each year
             for year, ds in self.yearbundles(maxyear):
                 if not quiet:
-                    print year
+                    print(year)
 
                 # Stack this year below the previous years
                 if do_mean:
@@ -244,7 +244,7 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
                     else:
                         ds = futurereader.read_year(year)
                 except:
-                    print "Failed to get year", year
+                    print("Failed to get year", year)
                     traceback.print_exc()
                     return # No more!
 
@@ -293,7 +293,7 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
         else:
             # Randomly choose years with replacement
             np.random.seed(seed)
-            choices = range(int(self.pastyear_start), int(self.pastyear_end) + 1)
+            choices = list(range(int(self.pastyear_start), int(self.pastyear_end) + 1))
             self.pastyears = np.random.choice(choices, int(self.futureyear_end - self.pastyear_start + 1))
 
         self.load_readermeta(onereader)
@@ -335,7 +335,7 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
     def update_year(self, ds, pastyear, futureyear):
         # Correct the time - should generalize
         if isinstance(ds['time'][0], np.datetime64):
-            ds['time']._values = np.array(map(lambda date: str(futureyear) + str(date)[4:], ds['time']._values))
+            ds['time']._values = np.array([str(futureyear) + str(date)[4:] for date in ds['time']._values])
         elif ds['time'][0] < 10000:
             ds['time']._values += futureyear - pastyear # YYYY
         elif ds['time'][0] < 1000000:
@@ -345,7 +345,7 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
         return ds
             
     def get_years(self):
-        return range(int(self.pastyear_start), int(self.futureyear_end) + 1)
+        return list(range(int(self.pastyear_start), int(self.futureyear_end) + 1))
 
     def get_dimension(self):
         alldims = []

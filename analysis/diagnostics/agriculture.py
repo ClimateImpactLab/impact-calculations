@@ -18,7 +18,7 @@ bin_edges = [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
              31, 32, 33, 34, 35, 36, 37, 38, 39, 40]
 
 lib.show_header("The Predictors File (allcalcs):")
-calcs = lib.get_excerpt(os.path.join(dir, "allmodels-allcalcs-%s.csv" % model), 2, region, range(2000, 2011) + [futureyear-1, futureyear], hasmodel=False)
+calcs = lib.get_excerpt(os.path.join(dir, "allmodels-allcalcs-%s.csv" % model), 2, region, list(range(2000, 2011)) + [futureyear-1, futureyear], hasmodel=False)
 
 lib.show_header("Season range:")
 seasons = lib.get_region_data("/shares/gcp/social/baselines/agriculture/world-combo-201710-growing-seasons-soy.csv", region)
@@ -27,15 +27,15 @@ def sslice(suffix):
     return slice(int(seasons['plant_' + suffix]) - 1, int(seasons['harvest_' + suffix]) - 1)
 
 lib.show_header("Weather (tas):")
-wtas = lib.get_weather(weathertemplate_tas, [1981] + range(2001, 2011) + [futureyear-1, futureyear], region, variable='tas', subset=sslice('date'))
+wtas = lib.get_weather(weathertemplate_tas, [1981] + list(range(2001, 2011)) + [futureyear-1, futureyear], region, variable='tas', subset=sslice('date'))
 
 shapenum = lib.get_regionindex(region)
 
 lib.show_header("Weather (edd):")
-wedd = lib.get_weather(weathertemplate_edd, [1981] + range(2001, 2011) + [futureyear-1, futureyear], shapenum, variable='EDD_agg', regindex='SHAPENUM', subset=([bin_edges.index(8), bin_edges.index(30)], sslice('month')))
+wedd = lib.get_weather(weathertemplate_edd, [1981] + list(range(2001, 2011)) + [futureyear-1, futureyear], shapenum, variable='EDD_agg', regindex='SHAPENUM', subset=([bin_edges.index(8), bin_edges.index(30)], sslice('month')))
 
 lib.show_header("Weather (prm):")
-wprm = lib.get_weather(weathertemplate_prm, [1981] + range(2001, 2011) + [futureyear-1, futureyear], shapenum, variable='pr', regindex='SHAPENUM', subset=sslice('date'))
+wprm = lib.get_weather(weathertemplate_prm, [1981] + list(range(2001, 2011)) + [futureyear-1, futureyear], shapenum, variable='pr', regindex='SHAPENUM', subset=sslice('date'))
 
 lib.show_header("CSVV:")
 csvv = lib.get_csvv("/shares/gcp/social/parameters/agriculture/soy/%s.csvv" % csvvmodel)

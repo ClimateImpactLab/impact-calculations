@@ -551,7 +551,7 @@ class TestAggregateEnergy(unittest.TestCase):
         for ending in ['aggregated', 'levels']:
             glob_pattern = os.path.join(*[cfg_outpath] + resultspath_fragment[:-1] + ['*' + ending + '.nc4'])
             for target in glob(glob_pattern):
-                print('removing existing ' + target)
+                print(('removing existing ' + target))
                 os.remove(target)
 
         os.chdir(os.path.join(_here, os.pardir))
@@ -573,8 +573,8 @@ class TestAggregateEnergy(unittest.TestCase):
         """Test regions in *levels results file"""
         actual = self.results_levels['regions'].values
         self.assertEqual(actual.shape, (24378, ))
-        self.assertEqual(actual[0], u'CAN.1.2.28')
-        self.assertEqual(actual[-1], u'BWA.4.13')
+        self.assertEqual(actual[0], 'CAN.1.2.28')
+        self.assertEqual(actual[-1], 'BWA.4.13')
 
     def test_levels_rebased(self):
         """Test shape & (head, tail) values of 'rebased' in *levels file"""
@@ -591,8 +591,8 @@ class TestAggregateEnergy(unittest.TestCase):
         """Test regions in *aggregated results file"""
         actual = self.results_aggregated['regions'].values
         self.assertEqual(actual.shape, (5716, ))
-        self.assertEqual(actual[0], u'')
-        self.assertEqual(actual[-1], u'RUS.73.2026')
+        self.assertEqual(actual[0], '')
+        self.assertEqual(actual[-1], 'RUS.73.2026')
 
     def test_aggregated_rebased(self):
         """Test shape & (head, tail) values of 'rebased' in *aggregated file"""

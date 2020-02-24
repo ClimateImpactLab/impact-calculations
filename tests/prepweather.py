@@ -27,7 +27,7 @@ for scenario in os.listdir(sourcedir):
         for filename in os.listdir(srcpath):
             if filename[:-4] == '1.5' or os.path.isdir(os.path.join(srcpath, filename)):
                 continue # we have 1.6
-            print os.path.join(dstpath, filename)
+            print(os.path.join(dstpath, filename))
             if filename[-4:] == '.nc4':
                 reader = Dataset(os.path.join(srcpath, filename), 'r', format='NETCDF4')
                 writer = Dataset(os.path.join(dstpath, filename), 'w', format='NETCDF4')
@@ -42,7 +42,7 @@ for scenario in os.listdir(sourcedir):
                 writer.createDimension('time', None)
                 writer.createDimension('hierid', 1)
                 
-                for key in reader.variables.keys():
+                for key in list(reader.variables.keys()):
                     if key == 'time':
                         column = writer.createVariable(key, 'f4', (key,))
                         column[:] = reader.variables[key][:]

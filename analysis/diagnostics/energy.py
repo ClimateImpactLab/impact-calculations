@@ -17,12 +17,12 @@ lib.show_header("The Covariates File (allpreds):")
 preds = lib.get_excerpt(os.path.join(dir, "allmodels-allpreds.csv"), 3, region, [2001, 2009, futureyear-1, futureyear], onlymodel=onlymodel)
 
 lib.show_header("The Predictors File (allcalcs):")
-calcs = lib.get_excerpt(os.path.join(dir, "allmodels-allcalcs-" + onlymodel + ".csv"), 2, region, range(2000, 2011) + [futureyear-1, futureyear], hasmodel=False)
+calcs = lib.get_excerpt(os.path.join(dir, "allmodels-allcalcs-" + onlymodel + ".csv"), 2, region, list(range(2000, 2011)) + [futureyear-1, futureyear], hasmodel=False)
 
 shapenum = 0
 with open(os.path.join("/shares/gcp/regions/hierarchy-flat.csv"), 'r') as fp:
     reader = csv.reader(fp)
-    header = reader.next()
+    header = next(reader)
     for row in reader:
         if row[0] == region:
             shapenum = int(row[header.index('agglomid')]) - 1
@@ -32,7 +32,7 @@ lib.show_header("CSVV:")
 csvv = lib.get_csvv(csvvpath)
 
 lib.show_header("Weather:")
-weather = lib.get_weather(weathertemplate, range(2001, 2011) + [2049, 2050], shapenum)
+weather = lib.get_weather(weathertemplate, list(range(2001, 2011)) + [2049, 2050], shapenum)
 
 lib.show_header("Outputs:")
 outputs = lib.get_outputs(os.path.join(dir, onlymodel + '.nc4'), [2049, 2050], shapenum if not onlyreg else 0)

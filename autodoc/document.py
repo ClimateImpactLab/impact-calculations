@@ -11,7 +11,7 @@ for root, dirs, files in os.walk(path):
             if filename[-3:] == '.py' and filename != '__init__.py':
                 computations[filename[:-3]] = root[len(path)+1:]
 
-print "Computations:", len(computations)
+print(("Computations:", len(computations)))
 
 wikiroot = os.path.normpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), "../../wiki"))
 # Collect all wiki impacts
@@ -76,7 +76,7 @@ wks, header, ids = server.get_model_info()
 for gcpid in docsections:
     # Find the end of the section
     if (gcpid + '\n') not in alllines:
-        print "Could not find impact", gcpid
+        print(("Could not find impact", gcpid))
         continue
     startline = alllines.index(gcpid + '\n') + 2
     endline = None
@@ -87,7 +87,7 @@ for gcpid in docsections:
         if alllines[ii][0:5] == '=====':
             break
     if endline is None:
-        print "Could not find 'Impact calculation' after " + gcpid
+        print(("Could not find 'Impact calculation' after " + gcpid))
         continue
 
     autogen = template
@@ -95,7 +95,7 @@ for gcpid in docsections:
         autogen = autogen.split('\n')[0] + "\n\nCould not find Unique ID in Master DMAS Information spreadsheet.\n"
     else:
         values = wks.row_values(ids.index(gcpid) + 1)
-        print autogen
+        print(autogen)
         for ii in range(min(len(header), len(values))):
             if values[ii] is not None:
                 autogen = autogen.replace('[' + header[ii] + ']', values[ii])
