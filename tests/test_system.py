@@ -443,7 +443,13 @@ class TestMonteCarloAgcorn(unittest.TestCase):
 
     def test_pvals(self):
         """Test contents of pvals ymls for low and high projections"""
-        goal = {self.basename: {'seed-csvv': 123}, 'histclim': {'seed-yearorder': 123}}
+        goal = {
+            self.basename: {'seed-csvv': 123},
+            'FD_FGLS_inter_climGMFD_Exclude_all-issues_break2_semi-parametric_poly2_OTHERIND_other_energy_TINV_clim_income_spline_lininter': {
+                'seed-csvv': 123
+            },
+            'histclim': {'seed-yearorder': 123}
+         }
         self.assertEqual(self.results_low_pvals_yml, goal)
         self.assertEqual(self.results_high_pvals_yml, goal)
 
