@@ -1,5 +1,5 @@
 timerate: day
-climate: [ tasmax ]
+climate: [ tasmax, tasmax_rcspline ]
 models:
   - csvvs: social/parameters/labor/csvv_spline_jan2020_corrected/*.csvv
     specification:

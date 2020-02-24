@@ -174,11 +174,10 @@ class DailyWeatherBundle(WeatherBundle):
                 else:
                     allds.append(ds)
 
-            print allds[0]
-            if isinstance(allds[0], xr.Dataset):
-                self.saved_baseline_values = xr.concat(allds, dim='time') # slower but more reliable
-            else:
+            if isinstance(allds[0], fast_dataset.FastDataset):
                 self.saved_baseline_values = fast_dataset.concat(allds, dim='time')
+            else:
+                self.saved_baseline_values = xr.concat(allds, dim='time') # slower but more reliable
 
         # Yield the entire collection of values for each region
         for ii in range(len(self.regions)):
