@@ -11,8 +11,8 @@ respect to a covariate to produce another known CurveGenerator.
 import numpy as np
 from . import csvvfile, curvegen
 from openest.generate import diagnostic, formatting, selfdocumented
-from openest.generate.smart_curve import ZeroInterceptPolynomialCurve, CurveCurve
-from openest.models.curve import StepCurve, CubicSplineCurve
+from openest.generate.smart_curve import ZeroInterceptPolynomialCurve, CubicSplineCurve
+from openest.models.curve import StepCurve
 
 class SmartCSVVCurveGenerator(curvegen.CSVVCurveGenerator):
     """Provides additional structure for CSVVCurveGenerators that produce SmartCurves.
@@ -234,10 +234,7 @@ class CubicSplineCurveGenerator(SmartCSVVCurveGenerator):
         self.allow_raising = allow_raising
 
     def get_smartcurve(self, yy):
-        # Using smart_curve.CurveCurve to wraps a dumbcurve and mimic proper SmartCurve
-        dumbcurve = CubicSplineCurve(self.knots, yy)
-        return CurveCurve(dumbcurve, self.variablename)
-        #return CubicSplineCurve(yy, self.prednames, self.allow_raising)
+        return CubicSplineCurve(yy, self.knots, self.prednames, self.allow_raising)
 
 class BinnedStepCurveGenerator(curvegen.CSVVCurveGenerator):
     """A CurveGenerator for a series of cumulative bins.
