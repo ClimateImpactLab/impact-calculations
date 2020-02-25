@@ -85,6 +85,30 @@ class SmartCSVVCurveGenerator(curvegen.CSVVCurveGenerator):
         """
         raise NotImplementedError()
 
+    def format_call(self, lang, *args):
+        coeffs = [self.diagprefix + predname for predname in self.prednames]
+        coeffreps = [formatting.get_parametername(coeff, lang) for coeff in coeffs]
+
+        weatherreps = []
+        weatherdeps = []
+        for weather in self.weathernames:
+            if isinstance(weather, str):
+                weatherreps.append(formatting.get_parametername(weather, lang))
+                weatherdeps.append(weather)
+            else:
+                weatherreps.append(selfdocumented.get_repstr(weather, lang))
+                weatherdeps.extend(selfdocumented.get_dependencies(weather, lang))
+            
+        if lang == 'latex':
+            elements = {'main': formatting.FormatElement(' + '.join(["%s_k %s" % (beta, weatherreps[kk]) for kk in range(len(self.weathernames))]), coeffs + weatherdeps, is_primitive=True)}
+        elif lang == 'julia':
+            elements = {'main': formatting.FormatElement(' + '.join(["%s * %s" % (coeffreps[kk], weatherreps[kk]) for kk in range(len(self.weathernames))]), coeffs + weatherdeps, is_primitive=True)}
+
+        for ii in range(len(coeffs)):
+            elements[coeffs[ii]] = formatting.ParameterFormatElement(coeffs[ii], coeffreps[ii])
+
+        return elements
+    
 class PolynomialCurveGenerator(SmartCSVVCurveGenerator):
     """A CurveGenerator for a series of polynomial terms. For a weather
     variable `T`, this consist of `T`, `T^2`, ..., `T^k`. Since this
@@ -155,43 +179,21 @@ class PolynomialCurveGenerator(SmartCSVVCurveGenerator):
         return self.csvv['gammavcv']
 
     def format_call(self, lang, *args):
+        if self.weathernames:
+            return super(PolynomialCurveGenerator, self).format_call(lang, *args)
+
         coeffs = [self.diagprefix + predname for predname in self.prednames]
         coeffreps = [formatting.get_parametername(coeff, lang) for coeff in coeffs]
-        if self.weathernames:
-            weatherreps = []
-            weatherdeps = []
-            for weather in self.weathernames:
-                if isinstance(weather, str):
-                    weatherreps.append(formatting.get_parametername(weather, lang))
-                    weatherdeps.append(weather)
-                else:
-                    weatherreps.append(selfdocumented.get_repstr(weather, lang))
-                    weatherdeps.extend(selfdocumented.get_dependencies(weather, lang))
-        else:
-            weatherreps = None
-            weatherdeps = []
 
         if lang == 'latex':
-            if weatherreps is None:
-                beta = formatting.get_beta(lang)
-                elements = {'main': formatting.FormatElement(r"\sum_{k=1}^%d %s_k %s^k" % (self.order, beta, args[0]), [beta], is_primitive=True),
-                            beta: formatting.FormatElement('[' + ', '.join(coeffreps) + ']', coeffs)}
-            else:
-                elements = {'main': formatting.FormatElement(' + '.join(["%s_k %s" % (beta, weatherreps[kk]) for kk in range(self.order)]), coeffs + weatherdeps, is_primitive=True)}
+            beta = formatting.get_beta(lang)
+            elements = {'main': formatting.FormatElement(r"\sum_{k=1}^%d %s_k %s^k" % (self.order, beta, args[0]), [beta], is_primitive=True),
+                        beta: formatting.FormatElement('[' + ', '.join(coeffreps) + ']', coeffs)}
         elif lang == 'julia':
-            if weatherreps is None:
-                elements = {'main': formatting.FormatElement(' + '.join(["%s * %s^%d" % (coeffreps[kk], args[0], order+1) for kk in range(self.order)]), coeffs, is_primitive=True)}
-            else:
-                elements = {'main': formatting.FormatElement(' + '.join(["%s * %s" % (coeffreps[kk], weatherreps[kk]) for kk in range(self.order)]), coeffs + weatherdeps, is_primitive=True)}
+            elements = {'main': formatting.FormatElement(' + '.join(["%s * %s^%d" % (coeffreps[kk], args[0], order+1) for kk in range(self.order)]), coeffs, is_primitive=True)}
 
         for ii in range(len(coeffs)):
             elements[coeffs[ii]] = formatting.ParameterFormatElement(coeffs[ii], coeffreps[ii])
-        if weatherreps is not None:
-            for ii in range(len(self.weathernames)):
-                if isinstance(self.weathernames[ii], str):
-                    elements[self.weathernames[ii]] = formatting.ParameterFormatElement(self.weathernames[ii], weatherreps[ii])
-                else:
-                    elements.update(selfdocumented.format_nomain(self.weathernames[ii], lang))
 
         return elements
 
@@ -232,10 +234,15 @@ class CubicSplineCurveGenerator(SmartCSVVCurveGenerator):
         prednames = [self.variablename] + [prefix + str(ii) for ii in range(1, len(knots)-1)]
         super(CubicSplineCurveGenerator, self).__init__(prednames, indepunits, depenunit, csvv, betalimits=betalimits)
         self.allow_raising = allow_raising
+        self.weathernames = prednames
 
     def get_smartcurve(self, yy):
         return CubicSplineCurve(yy, self.knots, self.prednames, self.allow_raising)
 
+    def format_call(self, lang, *args):
+        assert self.weathernames, "Analytical representation of cubic spline not implemented."
+        return super(CubicSplineCurveGenerator, self).format_call(lang, *args)
+   
 class BinnedStepCurveGenerator(curvegen.CSVVCurveGenerator):
     """A CurveGenerator for a series of cumulative bins.
 
@@ -270,4 +277,3 @@ class BinnedStepCurveGenerator(curvegen.CSVVCurveGenerator):
             yy = np.maximum(min_beta, yy)
 
         return StepCurve(self.xxlimits, yy)
-
