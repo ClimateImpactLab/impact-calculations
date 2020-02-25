@@ -50,7 +50,9 @@ def tryprepare_argument(name, argument, models, argtype, extras={}):
     global last_tryprepare_error
     try:
         return prepare_argument(name, argument, models, argtype, extras=extras)
-    except:
+    except Exception as ex:
+        print("Exception but returning:")
+        print(ex)
         last_tryprepare_error = traceback.format_exc() # don't save actual exception (gc problems)
         return None
 
@@ -215,7 +217,9 @@ def create_calcstep(name, args, models, subcalc, extras={}):
 
     try:
         return cls(*tuple(arglist), **kwargs)
-    except:
+    except Exception as ex:
+        print("Exception but printing other stuff:")
+        print(ex)
         t, v, tb = sys.exc_info()
         print(cls)
         print(arglist)

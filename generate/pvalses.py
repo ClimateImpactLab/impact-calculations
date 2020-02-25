@@ -21,7 +21,9 @@ def interpret(config):
 
     try:
         pval = float(config['pvals'])
-    except:
+    except Exception as ex:
+        print("Exception, but assigning None:")
+        print(ex)
         pval = None
 
     if pval is not None:
@@ -121,7 +123,9 @@ def make_pval_file(targetdir, pvals):
         fp.write(yaml.dump(dict(pvals)))
     try:
         os.chmod(get_pval_file(targetdir), 0o664)
-    except:
+    except Exception as ex:
+        print("Exception but passing:")
+        print(ex)
         pass # This can fail if someone else created the file
 
 def has_pval_file(targetdir):

@@ -22,7 +22,9 @@ for predname in set(data['prednames']):
     if predname not in knownpreds:
         try:
             discoverer = discover.standard_variable(predname, 'day')
-        except:
+        except Exception as ex:
+            print("Exception but continuing:")
+            print(ex)
             print("ERROR: Predictor %s is not a known weather variable." % predname)
             continue
 
@@ -43,10 +45,14 @@ for covarname in data['covarnames']:
     if covarname not in knowncovars:
         try:
             discoverer = discover.standard_variable(predname, 'day')
-        except:
+        except Exception as ex:
+            print("Exception but trying something else:")
+            print(ex)
             try:
                 discoverer = discover.standard_variable(predname, 'year')
-            except:
+            except Exception as ex:
+                print("Exception but continuing:")
+                print(ex)
                 print("ERROR: Covariate %s is not a known weather variable." % covarname)
                 continue
         scenario, model, pastreader, futurereader = next(discoverer)

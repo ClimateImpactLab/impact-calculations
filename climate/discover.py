@@ -541,7 +541,9 @@ def data_vars_time_conversion(name, ds, varset, accumfunc):
     if isinstance(vardef, tuple):
         try:
             dimnum = vardef[0].index('time')
-        except:
+        except Exception as ex:
+            print("Exception but returning anyways:")
+            print(ex)
             return vardef
 
         myshape = list(vardef[1].shape)
@@ -611,7 +613,9 @@ def data_vars_time_conversion_year(name, ds, varset, accumfunc):
     if isinstance(vardef, tuple):
         try:
             dimnum = vardef[0].index('time')
-        except:
+        except Exception as ex:
+            print("Exception but returning anyways:")
+            print(ex)
             return vardef
 
         myshape = list(vardef[1].shape)

@@ -98,6 +98,8 @@ class WeatherBundle(object):
                 if np.issubdtype(self.regions[0], np.integer):
                     self.regions = irregions.load_regions(self.hierarchy, self.dependencies)
             except Exception as ex:
+                print("Exception but still doing stuff:")
+                print(ex)
                 print("WARNING: failure to read regions for " + str(reader.__class__))
                 self.regions = irregions.load_regions(self.hierarchy, self.dependencies)
         else:
@@ -243,7 +245,9 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
                         ds = pastreader.read_year(year)
                     else:
                         ds = futurereader.read_year(year)
-                except:
+                except Exception as ex:
+                    print("Got exception but returning:")
+                    print(ex)
                     print("Failed to get year", year)
                     traceback.print_exc()
                     return # No more!
