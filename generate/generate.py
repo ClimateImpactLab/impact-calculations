@@ -132,7 +132,9 @@ def main(config, runid):
 
             try:
                 version = module + config['outputdir'][config['outputdir'].rindex('-'):]
-            except:
+            except Exception as ex:
+                print("Exception but returning anyways:")
+                print(ex)
                 version = module + config['outputdir']
 
             metacsv.to_header(filepath, attrs=OrderedDict([('oneline', "Yearly covariates by region and year"), ('version', version), ('author', "James R."), ('contact', "jrising@berkeley.edu"), ('dependencies', [model + '.nc4'])]), variables=OrderedDict(variables))
@@ -208,7 +210,9 @@ def main(config, runid):
         if statman.is_claimed(targetdir) and mode_iterators[config['mode']] == iterate_single:
             try:
                 paralog.StatusManager.kill_active(targetdir, 'generate') # if do_fillin and crashed, could still exist
-            except:
+            except Exception as ex:
+                print("Got exception but passing anyways:")
+                print(ex)
                 pass
         elif not statman.claim(targetdir) and 'targetdir' not in config:
             continue

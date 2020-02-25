@@ -224,7 +224,9 @@ def combine_results(targetdir, basename, sub_basenames, get_stweights, descripti
         writer.version = readers[0].version
         writer.dependencies = sub_filepaths
         writer.author = readers[0].author
-    except:
+    except Exception as ex:
+        print("Exception raised, passing:")
+        print(ex)
         pass
 
     years = nc4writer.make_years_variable(writer)

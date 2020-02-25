@@ -13,11 +13,15 @@ def compare2ncdf(file1, file2):
     """
     try:
         ncd1 = Dataset(file1, 'r', format='NETCDF4')
-    except:
+    except Exception as ex:
+        print("Exception but returning:")
+        print(ex)
         return (5, file1, "", "", "")
     try:
         ncd2 = Dataset(file2, 'r', format='NETCDF4')
-    except:
+    except Exception as ex:
+        print("Exception but returning:")
+        print(ex)
         return (5, file2, "", "", "")
 
     dimensions = set(ncd1.variables) | set(ncd2.variables)
