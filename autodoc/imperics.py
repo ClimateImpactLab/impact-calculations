@@ -177,7 +177,7 @@ for year in [2001, futureyear]:
     for label, elements in formatting.format_labels:
         if label == 'rebased':
             break
-        
+
         while label in used_outputs:
             label += '2'
         last_label = label
