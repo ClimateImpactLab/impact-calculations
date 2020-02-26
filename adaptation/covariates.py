@@ -312,7 +312,7 @@ class SeasonalWeatherCovariator(MeanWeatherCovariator):
         self.byregion = {region: averages.interpret(config, standard_climate_config, []) for region in self.weatherbundle.regions}
 
         for year, ds in self.weatherbundle.yearbundles(maxyear=self.maxbaseline):
-            regions = np.array(ds.region)
+            regions = np.array(ds.coords["region"])
             for region, subds in fast_dataset.region_groupby(ds, year, regions, {regions[ii]: ii for ii in range(len(regions))}):
                 if region in self.culture_periods:
                     plantii = int(self.culture_periods[region][0] - 1)
