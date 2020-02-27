@@ -7,10 +7,10 @@ import os, re, copy
 import numpy as np
 from impactlab_tools.utils import files
 from openest.generate import fast_dataset
-from reader import *
-from dailyreader import DailyWeatherReader, YearlyBinnedWeatherReader, MonthlyBinnedWeatherReader, MonthlyDimensionedWeatherReader
-from yearlyreader import YearlyWeatherReader, YearlyDayLikeWeatherReader
-import pattern_matching
+from .reader import *
+from .dailyreader import DailyWeatherReader, YearlyBinnedWeatherReader, MonthlyBinnedWeatherReader, MonthlyDimensionedWeatherReader
+from .yearlyreader import YearlyWeatherReader, YearlyDayLikeWeatherReader
+from . import pattern_matching
 
 RE_FLOATING = r"[-+]?[0-9]*\.?[0-9]*"
 re_dotsplit = re.compile("\.(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)")
@@ -82,30 +82,30 @@ def standard_variable(name, mytimerate, **config):
         path = files.sharedpath(os.path.join("climate/BCSD/hierid", config['grid-weight'], timerate_translate[mytimerate], name))
         if os.path.exists(path):
             if config.get('show-source', False):
-                print path
+                print(path)
             return discover_versioned(path, name, version=version, **config)
 
-        print "WARNING: Cannot find new-style climate data %s, by %s, weighted by %s." % (name, mytimerate, config['grid-weight'])
+        print(("WARNING: Cannot find new-style climate data %s, by %s, weighted by %s." % (name, mytimerate, config['grid-weight'])))
 
     if mytimerate == 'day':
         polyedvars = ['tas', 'tasmax']
 
         if name in polyedvars:
             if config.get('show-source', False):
-                print files.sharedpath("climate/BCSD/hierid/popwt/daily/" + name)
+                print((files.sharedpath("climate/BCSD/hierid/popwt/daily/" + name)))
             return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/" + name), name, version=version, **config)
         for ii in range(2, 10):
             if name in ["%s-poly-%d" % (var, ii) for var in polyedvars]:
                 if config.get('show-source', False):
-                    print files.sharedpath("climate/BCSD/hierid/popwt/daily/" + name)
+                    print((files.sharedpath("climate/BCSD/hierid/popwt/daily/" + name)))
                 return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/" + name), name, version=version, **config)
             if name in ["%s%d" % (var, ii) for var in polyedvars]:
                 if config.get('show-source', False):
-                    print files.sharedpath("climate/BCSD/hierid/popwt/daily/%s-poly-%s" % (name[:-1], name[-1]))
+                    print((files.sharedpath("climate/BCSD/hierid/popwt/daily/%s-poly-%s" % (name[:-1], name[-1]))))
                 return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/%s-poly-%s" % (name[:-1], name[-1])), '%s-poly-%s' % (name[:-1], name[-1]), version=version, **config)
         if name == 'prmm':
             if config.get('show-source', False):
-                print files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level/*/pr')
+                print((files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level/*/pr')))
             return discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'pr', **config)
 
     if mytimerate == 'month':
@@ -113,24 +113,24 @@ def standard_variable(name, mytimerate, **config):
             return discover_day2month(standard_variable(name, 'day', **config),  lambda arr, dim: np.mean(arr, axis=dim))
         if name == 'tasbin':
             if config.get('show-source', False):
-                print files.sharedpath('climate/BCSD/aggregation/cmip5_bins/IR_level/*/tas')
+                print((files.sharedpath('climate/BCSD/aggregation/cmip5_bins/IR_level/*/tas')))
             return discover_binned(files.sharedpath('climate/BCSD/aggregation/cmip5_bins/IR_level'), 'year', # Should this be year?
                                    'tas/tas_Bindays_aggregated_%scenario_r1i1p1_%model_%d.nc', 'SHAPENUM', 'DayNumber')
         if name == 'edd':
             if config.get('show-source', False):
-                print files.sharedpath('climate/BCSD/hierid/cropwt/monthly/edd_monthly')
+                print((files.sharedpath('climate/BCSD/hierid/cropwt/monthly/edd_monthly')))
             return discover_rename(
                 discover_versioned_binned(files.sharedpath('climate/BCSD/hierid/cropwt/monthly/edd_monthly'),
                                           'edd_monthly', 'refTemp', version=version, **config),
                 {'edd_monthly': 'edd'})
         if name in ['pr', 'pr-poly-2']:
             if config.get('show-source', False):
-                print files.sharedpath('climate/BCSD/hierid/cropwt/monthly/' + name)
+                print((files.sharedpath('climate/BCSD/hierid/cropwt/monthly/' + name)))
             return discover_versioned(files.sharedpath('climate/BCSD/hierid/cropwt/monthly/' + name),
                                       name, version=version, **config)
         if name in ['prmm', 'prmm-poly-2']:
             if config.get('show-source', False):
-                print files.sharedpath('climate/BCSD/hierid/cropwt/monthly/' + name.replace('prmm', 'pr'))
+                print((files.sharedpath('climate/BCSD/hierid/cropwt/monthly/' + name.replace('prmm', 'pr'))))
             return discover_rename(
                 discover_versioned(files.sharedpath('climate/BCSD/hierid/cropwt/monthly/' + name.replace('prmm', 'pr')),
                                    name.replace('prmm', 'pr'), version=version, **config), {name.replace('prmm', 'pr'): name})
@@ -141,16 +141,16 @@ def standard_variable(name, mytimerate, **config):
 
         if name in polyedvars:
             if config.get('show-source', False):
-                print files.sharedpath("climate/BCSD/hierid/popwt/annual/" + name)
+                print((files.sharedpath("climate/BCSD/hierid/popwt/annual/" + name)))
             return discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/" + name), name, version=version, **config)
         for ii in range(2, 10):
             if name in ["%s-poly-%d" % (var, ii) for var in polyedvars]:
                 if config.get('show-source', False):
-                    print files.sharedpath("climate/BCSD/hierid/popwt/annual/" + name)
+                    print((files.sharedpath("climate/BCSD/hierid/popwt/annual/" + name)))
                 return discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/" + name), name, version=version, **config)
             if name in ["%s%d" % (var, ii) for var in polyedvars]:
                 if config.get('show-source', False):
-                    print files.sharedpath("climate/BCSD/hierid/popwt/annual/%s-poly-%s" % (name[:-1], name[-1]))
+                    print((files.sharedpath("climate/BCSD/hierid/popwt/annual/%s-poly-%s" % (name[:-1], name[-1]))))
                 return discover_versioned_yearly(files.sharedpath("climate/BCSD/hierid/popwt/annual/%s-poly-%s" % (name[:-1], name[-1])), '%s-poly-%s' % (name[:-1], name[-1]), version=version, **config)
 
         if name in polyedvars_daily:
@@ -181,7 +181,7 @@ def standard_variable(name, mytimerate, **config):
                 discover_day2year(standard_variable('tas', 'day', **config), lambda arr, dim: np.mean(arr, axis=dim)), {'tas': 'meantas'})
         if name == 'areatas-aggregated':
             if config.get('show-source', False):
-                print files.sharedpath("outputs/temps/*/*/areatas-aggregated.nc4")
+                print((files.sharedpath("outputs/temps/*/*/areatas-aggregated.nc4")))
             return discover_covariate(files.sharedpath("outputs/temps"), "areatas-aggregated.nc4", "annual")
             
     raise ValueError("Unknown %s variable: %s" % (mytimerate, name))
@@ -206,11 +206,11 @@ def interpret_transform(var, transform):
 
     if transform == 'country':
         def ds_conversion(ds):
-            subcountries = np.array(map(lambda region: region[:3], ds.region.values))
+            subcountries = np.array([region[:3] for region in ds.region.values])
             countries = np.unique(subcountries)
             def get_subcountryii(country):
                 return np.nonzero(subcountries == country)[0]
-            vars_only = ds.variables.keys()
+            vars_only = list(ds.variables.keys())
             for name in ds.coords:
                 if name in vars_only:
                     vars_only.remove(name)
@@ -283,7 +283,7 @@ def discover_models(basedir, **config):
         else:
             modelset = copy.copy(models)
             if config.get('include_patterns', True):
-                modelset += pattern_matching.rcp_models[scenario].keys()
+                modelset += list(pattern_matching.rcp_models[scenario].keys())
 
         for model in modelset:
             pastdir = os.path.join(basedir, 'historical', model)
@@ -297,7 +297,7 @@ def discover_models(basedir, **config):
                     pastdir = os.path.join(basedir, 'historical',
                                            pattern_matching.rcp_models[scenario][model])
                     if not os.path.exists(pastdir):
-                        print "Missing pattern-base for %s %s" % (scenario, model)
+                        print(("Missing pattern-base for %s %s" % (scenario, model)))
                         continue
 
             yield scenario, model, pastdir, futuredir
@@ -442,11 +442,11 @@ def discover_versioned(basedir, variable, version=None, reorder=True, **config):
     for scenario, model, pasttemplate, futuretemplate in discover_versioned_models(basedir, version, **config):
         precheck_past = DailyWeatherReader.precheck(pasttemplate, 1981, 'hierid', variable)
         if precheck_past:
-            print "Skipping %s %s (past): %s" % (scenario, model, precheck_past)
+            print(("Skipping %s %s (past): %s" % (scenario, model, precheck_past)))
             continue
         precheck_future = DailyWeatherReader.precheck(futuretemplate, 2006, 'hierid', variable)
         if precheck_future:
-            print "Skipping %s %s (future): %s" % (scenario, model, precheck_future)
+            print(("Skipping %s %s (future): %s" % (scenario, model, precheck_future)))
             continue
 
         if reorder:
@@ -507,7 +507,7 @@ def discover_day2month(discover_iterator, accumfunc):
     #time_conversion = lambda days: np.unique(np.floor((days % 1000) / 30.4167)) # Should just give 0 - 11
     time_conversion = lambda days: np.arange(12)
     def ds_conversion(ds):
-        vars_only = ds.variables.keys()
+        vars_only = list(ds.variables.keys())
         for name in ds.coords:
             if name in vars_only:
                 vars_only.remove(name)
@@ -541,7 +541,9 @@ def data_vars_time_conversion(name, ds, varset, accumfunc):
     if isinstance(vardef, tuple):
         try:
             dimnum = vardef[0].index('time')
-        except:
+        except Exception as ex:
+            print("Exception but returning anyways:")
+            print(ex)
             return vardef
 
         myshape = list(vardef[1].shape)
@@ -564,7 +566,7 @@ def data_vars_time_conversion(name, ds, varset, accumfunc):
 def discover_day2year(discover_iterator, accumfunc):
     time_conversion = lambda days: np.array([days[0] // 1000])
     def ds_conversion(ds):
-        vars_only = ds.variables.keys()
+        vars_only = list(ds.variables.keys())
         for name in ds.coords:
             if name in vars_only:
                 vars_only.remove(name)
@@ -590,7 +592,7 @@ def discover_map(name, unit, func, *iterators):
 
     for scenario, model in pastfutures:
         if len(pastfutures[(scenario, model)]) == len(iterators):
-            yield scenario, model, MapReader(name, unit, func, *map(lambda pastfuture: pastfuture[0], pastfutures[(scenario, model)])), MapReader(name, unit, func, *map(lambda pastfuture: pastfuture[1], pastfutures[(scenario, model)]))
+            yield scenario, model, MapReader(name, unit, func, *[pastfuture[0] for pastfuture in pastfutures[(scenario, model)]]), MapReader(name, unit, func, *[pastfuture[1] for pastfuture in pastfutures[(scenario, model)]])
 
 def data_vars_time_conversion_year(name, ds, varset, accumfunc):
     if isinstance(ds, fast_dataset.FastDataset):
@@ -611,7 +613,9 @@ def data_vars_time_conversion_year(name, ds, varset, accumfunc):
     if isinstance(vardef, tuple):
         try:
             dimnum = vardef[0].index('time')
-        except:
+        except Exception as ex:
+            print("Exception but returning anyways:")
+            print(ex)
             return vardef
 
         myshape = list(vardef[1].shape)

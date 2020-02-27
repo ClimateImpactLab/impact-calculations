@@ -13,8 +13,8 @@ for batch1 in range(100):
         if os.path.exists(targetdir):
             continue
 
-        print targetdir
-        os.makedirs(targetdir, 0775)
+        print(targetdir)
+        os.makedirs(targetdir, 0o775)
 
         pvals = pvalses.OnDemandRandomPvals()
 

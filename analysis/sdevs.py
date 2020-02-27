@@ -23,7 +23,7 @@ for ii in range(len(regions)):
         numsmall[regions[ii][:3]] = numsmall.get(regions[ii][:3], 0) + 1
     counts[regions[ii][:3]] = counts.get(regions[ii][:3], 0) + 1
 
-countryorder = sorted(counts.items(), key=operator.itemgetter(1), reverse=True)
+countryorder = sorted(list(counts.items()), key=operator.itemgetter(1), reverse=True)
     
 for country, county in countryorder:
-    print "%s: %f, %g, %d, %d" % (country, bycountry[country], bycountry2.get(country, np.nan), num0.get(country, 0), numsmall.get(country, 0))
+    print(("%s: %f, %g, %d, %d" % (country, bycountry[country], bycountry2.get(country, np.nan), num0.get(country, 0), numsmall.get(country, 0))))

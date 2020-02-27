@@ -3,8 +3,8 @@
 import os
 import numpy as np
 import xarray as xr
-import netcdfs
-from reader import WeatherReader, YearlySplitWeatherReader
+from . import netcdfs
+from .reader import WeatherReader, YearlySplitWeatherReader
 
 class YearlyWeatherReader(WeatherReader):
     """Exposes yearly weather data, with one file per GCM."""
@@ -110,7 +110,7 @@ class RandomYearlyAccess(object):
             self.current_ds = None
 
         while self.current_year is None or year > self.current_year:
-            ds = self.current_iterator.next() # If run off the end, allow exception
+            ds = next(self.current_iterator) # If run off the end, allow exception
             self.current_year = ds['time.year'][0]
             self.current_ds = ds
 

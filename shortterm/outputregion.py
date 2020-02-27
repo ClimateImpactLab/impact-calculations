@@ -1,5 +1,5 @@
 import csv, sys
-import weather
+from . import weather
 from climate import forecasts, forecastreader
 
 treader = forecastreader.MonthlyZScoreForecastReader(forecasts.temp_zscore_path, forecasts.temp_normstddev_path, 'ztemp', .5)
@@ -18,8 +18,8 @@ with open('region-values.csv', 'w') as fp:
     writer.writerow(['time', 'temp', 'prcp', 'climprcp'])
 
     for time in treader.get_times():
-        times1, temp = titer.next()
-        times2, prcp = piter.next()
+        times1, temp = next(titer)
+        times2, prcp = next(piter)
 
         assert times1 == times2
 

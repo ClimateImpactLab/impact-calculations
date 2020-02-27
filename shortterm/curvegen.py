@@ -31,13 +31,13 @@ class LinearCurveGenerator(CSVVCurveGenerator):
 if __name__ == '__main__':
     curvegen = LinearCurveGenerator('X', 'Y', 1234, [1, 1], [[.01, 0], [0, .01]], [0])
     curve = curvegen.get_curve([2])
-    print curve(0)
+    print(curve(0))
 
     from impacts.weather import HistoricalWeatherBundle
     from adaptation.econmodel import iterate_econmodels
 
     historicalbundle = HistoricalWeatherBundle("/shares/gcp/BCSD/grid2reg/cmip5/historical/CCSM4/{0}/{0}_day_aggregated_historical_r1i1p1_CCSM4_{1}.nc", 1991, 2005, ['pr', 'tas'], 'historical', 'CCSM4')
-    model, scenario, econmodel = (mse for mse in iterate_econmodels() if mse[0] == 'OECD Env-Growth').next()
+    model, scenario, econmodel = next((mse for mse in iterate_econmodels() if mse[0] == 'OECD Env-Growth'))
 
     predgen = TemperaturePrecipitationPredictorator(historicalbundle, econmodel, 15, 15, 2005)
-    print predgen.get_current('CAN.1.2.28')
+    print(predgen.get_current('CAN.1.2.28'))

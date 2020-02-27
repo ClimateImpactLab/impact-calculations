@@ -16,7 +16,7 @@ def get_arbitrary_variables(path):
                 variable = match.group(1)
                 filepath = os.path.join(root, filename)
                 variables[variable] = filepath # add to the result set
-                print "Found %s: %s" % (variable, filepath)
+                print(("Found %s: %s" % (variable, filepath)))
 
     return variables
 
@@ -35,7 +35,7 @@ def readmeta(filepath, variable):
     elif hasattr(rootgrp.variables[variable], 'unit'):
         units = rootgrp.variables[variable].unit
     else:
-        print "Warning: %s in %s has no units." % (variable, filepath)
+        print(("Warning: %s in %s has no units." % (variable, filepath)))
         units = None
         
     rootgrp.close()

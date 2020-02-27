@@ -33,7 +33,7 @@ from generate import caller, loadmodels, pvalses
 from adaptation import csvvfile
 from openest.generate import formatting
 from datastore import irvalues
-import lib
+from . import lib
 
 ## Configuration
 
@@ -45,7 +45,7 @@ futureyear = int(sys.argv[4]) if len(sys.argv) > 4 else 2050
 
 ## Starting
 
-print "Configuring system..."
+print("Configuring system...")
 with open(config['module'], 'r') as fp:
     config.update(yaml.load(fp))
 shortmodule = os.path.basename(config['module'])[:-4]
@@ -56,12 +56,12 @@ dir = os.path.dirname(allcalcs)
 
 batch, rcp, gcm, iam, ssp = tuple(dir.split('/')[-5:])
 
-print "Batch: " + batch
-print "RCP: " + rcp
-print "GCM: " + gcm
-print "IAM: " + iam
-print "SSP: " + ssp
-print "Region: " + region
+print(("Batch: " + batch))
+print(("RCP: " + rcp))
+print(("GCM: " + gcm))
+print(("IAM: " + iam))
+print(("SSP: " + ssp))
+print(("Region: " + region))
 
 # Find the relevant CSVV
 foundcsvv = False
@@ -76,22 +76,22 @@ assert foundcsvv, "Could not find a CSVV correspondnig to %s." % onlymodel
 ## Print the inputs
 
 lib.show_header("Merged configuration:")
-print yaml.dump(config)
+print((yaml.dump(config)))
 
 if 'within-season' in specconf:
     season_months = irvalues.load_culture_months(specconf['within-season'])[region]
     season_doys = irvalues.load_culture_doys(specconf['within-season'])[region]
-    print "\nSeason months: %d - %d; Season doys: %d - %d\n" % (season_months[0], season_months[1], season_doys[0], season_doys[1])
+    print(("\nSeason months: %d - %d; Season doys: %d - %d\n" % (season_months[0], season_months[1], season_doys[0], season_doys[1])))
 
 betalimits = lib.find_betalimits(config)
     
 lib.show_header("The Predictors File (allcalcs):")
-calcs = lib.get_excerpt(os.path.join(dir, allcalcs_prefix + onlymodel + ".csv"), 2, region, range(2000, 2011) + [futureyear-1, futureyear], hasmodel=False)
+calcs = lib.get_excerpt(os.path.join(dir, allcalcs_prefix + onlymodel + ".csv"), 2, region, list(range(2000, 2011)) + [futureyear-1, futureyear], hasmodel=False)
 
 shapenum = 0
 with open(os.path.join("/shares/gcp/regions/hierarchy-flat.csv"), 'r') as fp:
     reader = csv.reader(fp)
-    header = reader.next()
+    header = next(reader)
     for row in reader:
         if row[0] == region:
             shapenum = int(row[header.index('agglomid')]) - 1
@@ -106,7 +106,7 @@ clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmod
 
 weather = {}
 for year, ds in weatherbundle.yearbundles(futureyear + 2):
-    if year in range(2001, 2011) + [futureyear-1, futureyear]:
+    if year in list(range(2001, 2011)) + [futureyear-1, futureyear]:
         ds = ds.isel(region=shapenum)
         weather[str(year)] = {variable: ds[variable].values for variable in ds}
 
@@ -115,7 +115,7 @@ for variable in weather['2001']:
         continue
     lib.show_header("  %s:" % variable)
     for year in sorted(weather.keys()):
-        print "%s: %s..." % (year, ','.join(map(str, weather[year][variable][:10])))
+        print(("%s: %s..." % (year, ','.join(map(str, weather[year][variable][:10])))))
             
 lib.show_header("Outputs:")
 outputs = lib.get_outputs(os.path.join(dir, onlymodel + '.nc4'), [2001, futureyear], shapenum, deltamethod=config.get('deltamethod', False))

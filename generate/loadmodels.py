@@ -1,5 +1,5 @@
 import numpy as np
-import weather
+from . import weather
 from adaptation import covariates
 
 do_econ_model_only = None
@@ -40,7 +40,7 @@ def random_order(bundle_iterator, config={}):
     mydo_clim_scenario_only = config.get('rcp', config.get('only-rcp', do_clim_scenario_only))
     mydo_econ_model_only = config.get('iam', config.get('only-iam', do_econ_model_only))
 
-    print "Loading models..."
+    print("Loading models...")
     allecons = []
     for econ_model, econ_scenario, economicmodel in covariates.iterate_econmodels(config):
         allecons.append((econ_scenario, econ_model, economicmodel))
@@ -71,5 +71,5 @@ def random_order(bundle_iterator, config={}):
 
     allexogenous = np.random.permutation(allexogenous)
     for clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in allexogenous:
-        print clim_scenario, clim_model, econ_scenario, econ_model
+        print(clim_scenario, clim_model, econ_scenario, econ_model)
         yield clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel

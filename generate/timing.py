@@ -51,11 +51,11 @@ if __name__ == "__main__":
     time.sleep(5)
     _ = sum(random.random() - f for f in repeat(.5, 1000000))
     for start, timer in zip(start_times, timers):
-        print("\t%-12s %.3g" % (timer.__name__, timer() - start))
+        print(("\t%-12s %.3g" % (timer.__name__, timer() - start)))
 
     # measure overhead
     print("overhead (execute `pass` statement):")
     n = 10000000
     for timer in timers:
         t = min(Timer(timer=timer).repeat(number=n)) / n
-        print("\t%-12s  %.2f ns" % (timer.__name__, t*1e9))
+        print(("\t%-12s  %.2f ns" % (timer.__name__, t*1e9)))

@@ -1,13 +1,15 @@
-import urllib2, json, os
+import urllib.request, urllib.error, urllib.parse, json, os
 try:
     import gspread
     from oauth2client.client import SignedJwtAssertionCredentials
-except:
-    print "Failed to load gspread and oauth2client; Google functions will not work."
+except Exception as ex:
+    print("Exception but passing:")
+    print(ex)
+    print("Failed to load gspread and oauth2client; Google functions will not work.")
 
 def open_url(path):
-    req = urllib2.Request(full_url(path))
-    return urllib2.urlopen(req)
+    req = urllib.request.Request(full_url(path))
+    return urllib.request.urlopen(req)
 
 def full_url(path):
     return "http://dmas.berkeley.edu" + path

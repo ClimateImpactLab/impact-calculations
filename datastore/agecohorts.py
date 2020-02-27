@@ -2,7 +2,7 @@ import csv
 import numpy as np
 from impactlab_tools.utils import files
 from helpers import header
-import population, spacetime
+from . import population, spacetime
 
 columns = ['age0-4', 'age5-64', 'age65+']
 
@@ -12,9 +12,9 @@ def load_agecohorts(model, scenario):
     agefile = files.sharedpath('social/baselines/cohort_population_aggr.csv')
     with open(agefile, 'r') as fp:
         reader = csv.reader(fp)
-        header = map(lambda s: s.strip(), reader.next())
+        header = [s.strip() for s in next(reader)]
         for row in reader:
-            row = map(lambda s: s.strip(), row)
+            row = [s.strip() for s in row]
             if row[header.index('age0-4')] == '' or float(row[header.index('age0-4')]) == 0:
                 continue
             
@@ -107,5 +107,5 @@ class SpaceTimeBipartiteData(spacetime.SpaceTimeBipartiteData):
 if __name__ == '__main__':
     halfweight = SpaceTimeBipartiteData(2010, 2020, None)
     population = halfweight.load_population(2010, 2020, 'low', 'SSP5', 'age65+')
-    print population.get_time('BWA.4.13')
-    print population.get_time('CAN.1.2.28')
+    print(population.get_time('BWA.4.13'))
+    print(population.get_time('CAN.1.2.28'))
