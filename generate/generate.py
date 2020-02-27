@@ -4,13 +4,13 @@ Manages rcps and econ and climate models, and generate.effectset.simultaneous_ap
 
 import os, itertools, importlib, shutil, csv, time, yaml, tempfile
 from collections import OrderedDict
-import loadmodels
-import weather, pvalses, timing
+from . import loadmodels
+from . import weather, pvalses, timing
 from adaptation import curvegen
 from interpret import configs
 from openest.generate import diagnostic
 from impactlab_tools.utils import files, paralog
-import cProfile, pstats, StringIO, metacsv
+import cProfile, pstats, io, metacsv
 
 # Top-level configuration (for debugging)
 do_single = False
@@ -18,7 +18,7 @@ do_single = False
 def main(config, runid):
     """Main generate func, given run config dict and run ID str for logging
     """
-    print "Initializing..."
+    print("Initializing...")
 
     # Collect the configuration
     claim_timeout = config.get('timeout', 12) * 60*60
@@ -42,7 +42,7 @@ def main(config, runid):
         if mc_n is None:
             mc_batch_iter = itertools.count()
         else:
-            mc_batch_iter = range(int(mc_n))
+            mc_batch_iter = list(range(int(mc_n)))
 
         # If `only-batch-number` is in run config, overrides `mc_n`.
         only_batch_number = config.get('only-batch-number')
@@ -52,7 +52,7 @@ def main(config, runid):
         for batch in mc_batch_iter:
             for clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in loadmodels.random_order(mod.get_bundle_iterator(config), config):
                 # Use "pvals" seeds from config, if available.
-                if 'pvals' in config.keys():
+                if 'pvals' in list(config.keys()):
                     pvals = pvalses.load_pvals(config['pvals'])
                 else:
                     # Old default.
@@ -132,7 +132,9 @@ def main(config, runid):
 
             try:
                 version = module + config['outputdir'][config['outputdir'].rindex('-'):]
-            except:
+            except Exception as ex:
+                print("Exception but returning anyways:")
+                print(ex)
                 version = module + config['outputdir']
 
             metacsv.to_header(filepath, attrs=OrderedDict([('oneline', "Yearly covariates by region and year"), ('version', version), ('author', "James R."), ('contact', "jrising@berkeley.edu"), ('dependencies', [model + '.nc4'])]), variables=OrderedDict(variables))
@@ -157,7 +159,7 @@ def main(config, runid):
     mode_iterators = {'median': iterate_median, 'montecarlo': iterate_montecarlo, 'lincom': iterate_single, 'single': iterate_single, 'writesplines': iterate_single, 'writepolys': iterate_single, 'writecalcs': iterate_single, 'profile': iterate_nosideeffects, 'diagnostic': iterate_nosideeffects}
 
     assert 'mode' in config, "Configuration does not contain 'mode'."
-    assert config['mode'] in mode_iterators.keys()
+    assert config['mode'] in list(mode_iterators.keys())
 
     # Load the module for setting up the calculation
 
@@ -197,8 +199,8 @@ def main(config, runid):
         if 'gcm' in config and config['gcm'] != clim_model:
             continue
 
-        print clim_scenario, clim_model
-        print econ_scenario, econ_model
+        print(clim_scenario, clim_model)
+        print(econ_scenario, econ_model)
 
         if config['mode'] == 'profile':
             pr = cProfile.Profile()
@@ -208,12 +210,14 @@ def main(config, runid):
         if statman.is_claimed(targetdir) and mode_iterators[config['mode']] == iterate_single:
             try:
                 paralog.StatusManager.kill_active(targetdir, 'generate') # if do_fillin and crashed, could still exist
-            except:
+            except Exception as ex:
+                print("Got exception but passing anyways:")
+                print(ex)
                 pass
         elif not statman.claim(targetdir) and 'targetdir' not in config:
             continue
 
-        print targetdir
+        print(targetdir)
 
         # Load the pvals data, if available
         if pvalses.has_pval_file(targetdir):
@@ -237,12 +241,12 @@ def main(config, runid):
 
             statman.release(targetdir, "Profiled")
 
-            s = StringIO.StringIO()
+            s = io.StringIO()
             sortby = 'cumulative'
             ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
             ps.print_stats()
             #ps.print_callers(.5, 'sum')
-            print s.getvalue()
+            print(s.getvalue())
             exit()
 
         else:
@@ -252,7 +256,7 @@ def main(config, runid):
 
         if config['mode'] not in ['writesplines', 'writepolys', 'writecalcs', 'diagnostic'] or config.get('do_historical', False):
             # Generate historical baseline
-            print "Historical"
+            print("Historical")
             historybundle = weather.HistoricalWeatherBundle.make_historical(weatherbundle, None if config['mode'] == 'median' else pvals['histclim'].get_seed('yearorder'))
             pvals.lock()
 
@@ -266,7 +270,7 @@ def main(config, runid):
 
         os.system("chmod g+rw " + os.path.join(targetdir, "*"))
 
-        print "Process Time:", timing.process_time() - start
+        print("Process Time:", timing.process_time() - start)
 
         if do_single:
             break

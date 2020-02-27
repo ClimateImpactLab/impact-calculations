@@ -24,7 +24,7 @@ climateagg.py.
 import os, traceback
 import numpy as np
 from netCDF4 import Dataset
-import nc4writer, agglib, checks
+from . import nc4writer, agglib, checks
 from datastore import weights
 from impactlab_tools.utils import paralog
 
@@ -94,9 +94,9 @@ cached values as possible.
         return cached_weights[key]
 
     # Load weights; this may take a minute
-    print "Loading weights..."
+    print("Loading weights...")
     stweight = halfweight.load(minyear, maxyear, *weight_args)
-    print "Loaded."
+    print("Loaded.")
 
     # Save result to the cache
     cached_weights[key] = stweight
@@ -255,32 +255,32 @@ def make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, d
                     # Handle each year separately
                     for tt in range(len(years)):
                         if prefixes[ii] == debug_aggregate and tt == len(years) - 1:
-                            print original, wws[tt]
-                            print np.nan_to_num(srcvalues[:, tt, original_indices[original]]) * np.all(np.isfinite(srcvalues[:, tt, original_indices[original]]))
+                            print(original, wws[tt])
+                            print(np.nan_to_num(srcvalues[:, tt, original_indices[original]]) * np.all(np.isfinite(srcvalues[:, tt, original_indices[original]])))
                         numers[:, tt] += wws[tt] * np.nan_to_num(srcvalues[:, tt, original_indices[original]]) * np.all(np.isfinite(srcvalues[:, tt, original_indices[original]]))
                         if stweight_denom != weights.HALFWEIGHT_SUMTO1: # wait for sum-to-1
                             if prefixes[ii] == debug_aggregate and tt == len(years) - 1:
-                                print weights_denom[tt] * np.all(np.isfinite(srcvalues[:, tt, original_indices[original]]))
+                                print(weights_denom[tt] * np.all(np.isfinite(srcvalues[:, tt, original_indices[original]])))
                             denoms[tt] += weights_denom[tt] * np.all(np.isfinite(srcvalues[:, tt, original_indices[original]]))
 
                 # Fill in result
                 if stweight_denom == weights.HALFWEIGHT_SUMTO1: # wait for sum-to-1
                     coeffvalues[:, :, ii] = numers
                     if prefixes[ii] == debug_aggregate:
-                        print "Numerators"
-                        print numers[:, len(years) - 1]
+                        print("Numerators")
+                        print(numers[:, len(years) - 1])
                 else:
                     for tt in range(len(years)):
                         coeffvalues[:, tt, ii] = numers[:, tt] / denoms[tt]
                         if prefixes[ii] == debug_aggregate and tt == len(years) - 1:
-                            print "Numerators / Denominators"
-                            print numers[:, tt]
-                            print numers[:, tt] / denoms[tt]
+                            print("Numerators / Denominators")
+                            print(numers[:, tt])
+                            print(numers[:, tt] / denoms[tt])
                 # Now that we have the BCDE vectors, generate the new variance results
                 for tt in range(len(years)):
                     dstvalues[tt, ii] = vcv.dot(coeffvalues[:, tt, ii]).dot(coeffvalues[:, tt, ii])
                     if prefixes[ii] == debug_aggregate and tt == len(years) - 1:
-                        print dstvalues[tt, ii]
+                        print(dstvalues[tt, ii])
 
             # We have to specifically create this, since the key was just the variance version
             coeffcolumn = writer.createVariable(key + '_bcde', 'f4', ('coefficient', 'year', 'region'))
@@ -521,8 +521,8 @@ if __name__ == '__main__':
         if not agglib.config_targetdirfilter(clim_scenario, clim_model, econ_scenario, econ_model, targetdir, config):
             continue
         
-        print targetdir
-        print econ_model, econ_scenario
+        print(targetdir)
+        print(econ_model, econ_scenario)
 
         # Try to claim the directory
         if not isinstance(debug_aggregate, str) and not statman.claim(targetdir) and 'targetdir' not in config:
@@ -541,12 +541,12 @@ if __name__ == '__main__':
                         continue
 
                 # This looks like a valid file to consider!
-                print filename
+                print(filename)
 
                 # Check if this file is complete
                 variable = config.get('check-variable', 'rebased')
                 if not checks.check_result_100years(os.path.join(targetdir, filename), variable=variable, regioncount=regioncount):
-                    print "Incomplete."
+                    print("Incomplete.")
                     incomplete = True
                     continue
 
@@ -599,13 +599,13 @@ if __name__ == '__main__':
                                 hasall = True
                                 for basename in basenames:
                                     if not os.path.exists(os.path.join(targetdir, basename + '.nc4')):
-                                        print "Missing " + os.path.join(targetdir, basename + '.nc4')
+                                        print("Missing " + os.path.join(targetdir, basename + '.nc4'))
                                         hasall = False
                                         break
 
                                 if hasall:
                                     # Combine costs across age-groups
-                                    print "Has all component costs"
+                                    print("Has all component costs")
                                     get_stweights = [lambda year0, year1: halfweight_levels.load(1981, 2100, econ_model, econ_scenario, 'age0-4'), lambda year0, year1: halfweight_levels.load(1981, 2100, econ_model, econ_scenario, 'age5-64'), lambda year0, year1: halfweight_levels.load(1981, 2100, econ_model, econ_scenario, 'age65+')]
                                     agglib.combine_results(targetdir, filename[:-4] + costs_suffix, basenames, get_stweights, "Combined costs across age-groups for " + filename.replace('-combined.nc4', ''))
                             else:
@@ -637,7 +637,7 @@ if __name__ == '__main__':
                                     continue # Cannot calculate costs
 
                                 # Call the adaptation costs system
-                                print costs_command % (tavgpath, clim_scenario, clim_model, impactspath)
+                                print(costs_command % (tavgpath, clim_scenario, clim_model, impactspath))
                                 os.system(costs_command % (tavgpath, clim_scenario, clim_model, impactspath))
 
                         # Levels of costs
@@ -664,7 +664,7 @@ if __name__ == '__main__':
 
                 # On exception, report it and continue
                 except Exception as ex:
-                    print "Failed."
+                    print("Failed.")
                     traceback.print_exc()
                     incomplete = True
 

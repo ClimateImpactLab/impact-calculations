@@ -1,7 +1,7 @@
 import os
 import numpy as np
 from netCDF4 import Dataset
-import nc4writer, agglib
+from . import nc4writer, agglib
 from datastore import spacetime, irregions
 
 suffix = "-aggregated"
@@ -76,15 +76,15 @@ if __name__ == '__main__':
     area_stweight = halfweight.load(1981, 2099, 'high', 'SSP2')
 
     for rcp, gcm, targetdir in iterresults(outputdir):
-        print targetdir
+        print(targetdir)
 
         for filename in os.listdir(targetdir):
             if filename[-4:] == '.nc4' and suffix not in filename:
-                print filename
+                print(filename)
 
                 # Aggregate impacts
                 if filename == 'areatas.nc4':
-                    print "Using area weighting."
+                    print("Using area weighting.")
                     make_aggregates(targetdir, filename, area_stweight)
                 else:
                     make_aggregates(targetdir, filename, pop_stweight)

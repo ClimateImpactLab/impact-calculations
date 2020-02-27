@@ -26,7 +26,7 @@ but fed into two arguments in the creation of the Calculation object.
 import yaml, copy, sys, traceback
 from openest.generate import stdlib, arguments
 from generate import caller
-import curves
+from . import curves
 
 def prepare_argument(name, argument, models, argtype, extras={}):
     """Translate a configuration option `argument` into an object of type `argtype`."""
@@ -36,11 +36,11 @@ def prepare_argument(name, argument, models, argtype, extras={}):
 
     if argtype == arguments.calculationss:
         assert isinstance(argument, list)
-        return [create_calcstep(argii.keys()[0], argii.values()[0], models, None, extras=extras) for argii in argument]
+        return [create_calcstep(list(argii.keys())[0], list(argii.values())[0], models, None, extras=extras) for argii in argument]
 
     if argtype.isa(arguments.calculation):
         subcalc = extras.get('subcalc', None)
-        return create_calcstep(argument.keys()[0], argument.values()[0], models, subcalc, extras=extras)
+        return create_calcstep(list(argument.keys())[0], list(argument.values())[0], models, subcalc, extras=extras)
     
     return argument
 
@@ -50,7 +50,9 @@ def tryprepare_argument(name, argument, models, argtype, extras={}):
     global last_tryprepare_error
     try:
         return prepare_argument(name, argument, models, argtype, extras=extras)
-    except:
+    except Exception as ex:
+        print("Exception but returning:")
+        print(ex)
         last_tryprepare_error = traceback.format_exc() # don't save actual exception (gc problems)
         return None
 
@@ -59,7 +61,7 @@ def create_calculation(postconf, models, extras={}):
         with open(postconf, 'r') as fp:
             postconf = yaml.load(fp)
 
-    calculation = create_calcstep(postconf[0].keys()[0], postconf[0].values()[0], models, None, extras=extras)
+    calculation = create_calcstep(list(postconf[0].keys())[0], list(postconf[0].values())[0], models, None, extras=extras)
     return create_postspecification(postconf[1:], models, calculation, extras=extras)
 
 def create_postspecification(postconf, models, calculation, extras={}):
@@ -71,7 +73,7 @@ def create_postspecification(postconf, models, calculation, extras={}):
         if isinstance(calcstep, str):
             calculation = create_calcstep(calcstep, {}, models, calculation, extras=extras)
         else:
-            calculation = create_calcstep(calcstep.keys()[0], calcstep.values()[0], models, calculation, extras=extras)
+            calculation = create_calcstep(list(calcstep.keys())[0], list(calcstep.values())[0], models, calculation, extras=extras)
 
     return calculation
 
@@ -161,7 +163,7 @@ def create_calcstep(name, args, models, subcalc, extras={}):
                 calculations.append(calcarg)
                 remainingargs.pop(0)
             if len(calculations) == 0:
-                print last_tryprepare_error
+                print(last_tryprepare_error)
                 raise ValueError("Cannot interpret any arguments as calculations!")
             arglist.append(calculations)
         elif argtype in [arguments.model, arguments.curvegen, arguments.curve_or_curvegen]:
@@ -215,16 +217,18 @@ def create_calcstep(name, args, models, subcalc, extras={}):
 
     try:
         return cls(*tuple(arglist), **kwargs)
-    except:
+    except Exception as ex:
+        print("Exception but printing other stuff:")
+        print(ex)
         t, v, tb = sys.exc_info()
-        print cls
-        print arglist
-        raise t, v, tb
+        print(cls)
+        print(arglist)
+        raise t(v).with_traceback(tb)
 
 def sample_sequence(calculation, region):
     application = calculation.apply(region)
     for year, ds in weatherbundle.yearbundles():
-        print "%d:" % year
+        print("%d:" % year)
         subds = ds.sel(region=region)
         for yearresult in application.push(subds):
-            print "    ", yearresult
+            print("    ", yearresult)

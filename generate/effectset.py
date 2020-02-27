@@ -5,7 +5,7 @@ from netCDF4 import Dataset
 import helpers.header as headre
 from openest.generate import retrieve, diagnostic, fast_dataset
 from adaptation import curvegen
-import server, nc4writer
+from . import server, nc4writer
 
 
 def simultaneous_application(weatherbundle, calculation, regions=None, push_callback=None):
@@ -40,19 +40,19 @@ def simultaneous_application(weatherbundle, calculation, regions=None, push_call
     if regions is None:
         regions = weatherbundle.regions
 
-    print "Creating calculations..."
+    print("Creating calculations...")
     applications = {}
     for region in regions:
         applications[region] = calculation.apply(region)
 
     region_indices = {region: weatherbundle.regions.index(region) for region in regions}
 
-    print "Processing years..."
+    print("Processing years...")
     for year, ds in weatherbundle.yearbundles():
         if ds.region.shape[0] < len(applications):
-            print "WARNING: fewer regions in weather than expected; dropping from end."
+            print("WARNING: fewer regions in weather than expected; dropping from end.")
 
-        print "Push", year
+        print("Push", year)
         for region, subds in fast_dataset.region_groupby(ds, year, regions, region_indices):
             for yearresult in applications[region].push(subds):
                 yield (region, yearresult[0], yearresult[1:])
@@ -131,7 +131,7 @@ def write_ncdf(targetdir, basename, weatherbundle, calculation, description, cal
     try:
         rootgrp = Dataset(os.path.join(targetdir, basename + '.nc4'), 'w', format='NETCDF4')
     except Exception as ex:
-        print "Failed to open file for writing at " + os.path.join(targetdir, basename + '.nc4')
+        print("Failed to open file for writing at " + os.path.join(targetdir, basename + '.nc4'))
         raise ex
 
     rootgrp.description = description

@@ -31,7 +31,7 @@ import xarray as xr
 from pandas import read_csv
 from openest.generate import fast_dataset
 from impactlab_tools.utils import files
-from econmodel import *
+from .econmodel import *
 from datastore import agecohorts, irvalues, irregions
 from climate.yearlyreader import RandomYearlyAccess
 from interpret import averages
@@ -120,7 +120,7 @@ class EconomicCovariator(Covariator):
         if config.get('slowadapt', 'none') in ['income', 'both']:
             self.slowgrowth = True
             self.baseline_loggdppc = {region: self.econ_predictors[region]['loggdppc'].get() for region in self.econ_predictors}
-            self.baseline_loggdppc['mean'] = np.mean(self.baseline_loggdppc.values())
+            self.baseline_loggdppc['mean'] = np.mean(list(self.baseline_loggdppc.values()))
         else:
             self.slowgrowth = False
 
@@ -128,7 +128,7 @@ class EconomicCovariator(Covariator):
         econpreds = self.econ_predictors.get(region, None)
 
         if econpreds is None:
-            print "ERROR: Missing econpreds for %s." % region
+            print(("ERROR: Missing econpreds for %s." % region))
             loggdppc = self.econ_predictors['mean']['loggdppc']
         else:
             loggdppc = econpreds['loggdppc'].get()
@@ -220,14 +220,14 @@ class MeanWeatherCovariator(Covariator):
         self.variable = variable
 
         if not quiet:
-            print "Collecting baseline information..."
+            print("Collecting baseline information...")
         temp_predictors = {}
         for region, ds in weatherbundle.baseline_values(maxbaseline, quiet=quiet): # baseline through maxbaseline
             try:
                 temp_predictors[region] = averages.interpret(config, standard_climate_config, ds[variable][-self.numtempyears:])
             except Exception as ex:
-                print "Cannot retrieve baseline data for %s" % variable
-                print ds
+                print(("Cannot retrieve baseline data for %s" % variable))
+                print(ds)
                 raise ex
 
         self.temp_predictors = temp_predictors
@@ -273,7 +273,7 @@ class SubspanWeatherCovariator(MeanWeatherCovariator):
 
     def get_current(self, region):
         if self.all_values is None:
-            print "Collecting " + self.mustr
+            print(("Collecting " + self.mustr))
             # Read in all regions
             self.all_values = {}
             for year, ds in self.weatherbundle.yearbundles(maxyear=self.maxbaseline):
@@ -312,7 +312,7 @@ class SeasonalWeatherCovariator(MeanWeatherCovariator):
         self.byregion = {region: averages.interpret(config, standard_climate_config, []) for region in self.weatherbundle.regions}
 
         for year, ds in self.weatherbundle.yearbundles(maxyear=self.maxbaseline):
-            regions = np.array(ds.region)
+            regions = np.array(ds.coords["region"])
             for region, subds in fast_dataset.region_groupby(ds, year, regions, {regions[ii]: ii for ii in range(len(regions))}):
                 if region in self.culture_periods:
                     plantii = int(self.culture_periods[region][0] - 1)
@@ -396,7 +396,7 @@ class MeanBinsCovariator(Covariator):
         self.numtempyears = config.get('length', standard_climate_config['length'])
 
         if not quiet:
-            print "Collecting baseline information..."
+            print("Collecting baseline information...")
         temp_predictors = {} # {region: [rm-bin-1, ...]}
         for region, binyears in weatherbundle.baseline_values(maxbaseline, quiet=quiet): # baseline through maxbaseline
             usedbinyears = []
@@ -668,7 +668,7 @@ class ProductCovariator(Covariator):
         self.source2 = source2
 
     def make_product(self, covars1, covars2):
-        combos = itertools.product(covars1.keys(), covars2.keys())
+        combos = itertools.product(list(covars1.keys()), list(covars2.keys()))
         result = {"%s*%s" % (key1, key2): covars1[key1] * covars2[key2] for key1, key2 in combos}
         if 'year' in covars1:
             result['year'] = covars1['year']

@@ -1,7 +1,7 @@
 import csv, os
 import numpy as np
 from netCDF4 import Dataset
-import nc4writer
+from . import nc4writer
 from helpers import header
 from datastore import irregions
 from impactlab_tools.utils import files
@@ -116,16 +116,16 @@ def iter_timereg_variables(reader, timevar='year'):
         Yields each variable we can process
     """
     # Look through all variables
-    for key in reader.variables.keys():
+    for key in list(reader.variables.keys()):
         if (timevar, 'region') == reader.variables[key].dimensions:
             # Yield this (time, region) variable
-            print key
+            print(key)
             variable = reader.variables[key]
 
             yield key, variable
         elif (timevar, 'region') == reader.variables[key].dimensions[:2] and reader.variables[key].shape[2] == 1: # This is currently true of temps
             # Yield this (time, region, singleton dimension) variable
-            print key
+            print(key)
             variable = reader.variables[key][:, :, 0]
 
             yield key, variable
@@ -179,7 +179,7 @@ def get_aggregated_regions(regions):
     with open(files.sharedpath('regions/macro-regions.csv'), 'r') as fp:
         # Remove the metadata header
         aggreader = csv.reader(header.deparse(fp, dependencies))
-        headrow = aggreader.next()
+        headrow = next(aggreader)
         for row in aggreader:
             # Each row gives the FUND region for each ISO3 country code
             fundregion = 'FUND-' + row[headrow.index('FUND')]
@@ -224,7 +224,9 @@ def combine_results(targetdir, basename, sub_basenames, get_stweights, descripti
         writer.version = readers[0].version
         writer.dependencies = sub_filepaths
         writer.author = readers[0].author
-    except:
+    except Exception as ex:
+        print("Exception raised, passing:")
+        print(ex)
         pass
 
     years = nc4writer.make_years_variable(writer)
@@ -241,7 +243,7 @@ def combine_results(targetdir, basename, sub_basenames, get_stweights, descripti
             else:
                 all_variables[key].append(variable)
 
-    print {key: len(all_variables[key]) for key in all_variables}
+    print({key: len(all_variables[key]) for key in all_variables})
 
     for key in all_variables:
         if len(all_variables[key]) < len(readers):
@@ -293,7 +295,7 @@ def make_batchfilter(config):
         elif config['mode'] == 'xsingle':
             return lambda batch: batch == 'median' or 'batch' in batch
         else:
-            print "WARNING: Unknown mode %s" % config['mode']
+            print("WARNING: Unknown mode %s" % config['mode'])
     return lambda batch: True
 
 def config_targetdirfilter(clim_scenario, clim_model, econ_scenario, econ_model, targetdir, config):

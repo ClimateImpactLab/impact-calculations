@@ -38,7 +38,7 @@ class CombinedBundle(WeatherBundle):
             allds = Dataset()
 
             for iterator in iterators:
-                ds = iterator.next()
+                ds = next(iterator)
                 assert month == ds.time[0]
                 allds = xr.merge((allds, ds))
 
@@ -46,7 +46,7 @@ class CombinedBundle(WeatherBundle):
 
 if __name__ == '__main__':
     bundle = ForecastBundle(forecastreader.MonthlyStochasticForecastReader(forecasts.temp_path, 'temp', 0, .5))
-    print np.mean(bundle.monthbundles().next()[1])
+    print(np.mean(bundle.monthbundles().next()[1]))
 
     for monthvals in forecasts.readncdf_allpred(forecasts.temp_path, 'mean', 0):
-        print monthvals[1000]
+        print(monthvals[1000])

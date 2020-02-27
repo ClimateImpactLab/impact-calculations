@@ -1,4 +1,4 @@
-import os, Queue
+import os, queue
 import numpy as np
 from netCDF4 import Dataset
 from generate import nc4writer, agglib
@@ -78,14 +78,14 @@ if __name__ == '__main__':
     stweight = halfweight.load_population(1981, 2020, 'OECD Env-Growth', 'SSP2_v9_130325')
 
     for targetdir in iterresults(outputdir):
-        print targetdir
+        print(targetdir)
 
         if os.path.exists(os.path.join(targetdir, checkfile)):
             continue
 
         for filename in os.listdir(targetdir):
             if filename[-4:] == '.nc4' and suffix not in filename:
-                print filename
+                print(filename)
 
                 # Aggregate impacts
                 make_aggregates(targetdir, filename, stweight)

@@ -21,7 +21,7 @@ def get_data(id, units):
         dependencies = []
         with open(files.sharedpath("social/baselines/mortality-physical/combined.csv"), 'r') as fp:
             reader = csv.reader(header.deparse(fp, dependencies))
-            headrow = reader.next()
+            headrow = next(reader)
 
             yearcol = headrow.index('year')
             regcol = headrow.index('hierid')

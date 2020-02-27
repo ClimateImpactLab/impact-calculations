@@ -11,7 +11,7 @@ pvals[basename])` (and that's how you know that's which module it is).
 
 import importlib
 from datastore import library
-import server, effectset
+from . import server, effectset
 from adaptation import csvvfile
 from openest.generate.stdlib import *
 

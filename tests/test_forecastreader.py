@@ -24,7 +24,7 @@ class TestForecastReader(unittest.TestCase):
         zw_iterator = z_weatherreader.read_iterator()
 
         for ds1 in wz_iterator:
-            ds2 = zw_iterator.next()
+            ds2 = next(zw_iterator)
             self.assertAlmostEqual(ds1['z-scores'][3], ds2['mean'][3])
             return
 

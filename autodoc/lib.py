@@ -5,26 +5,26 @@ import xarray as xr
 from netCDF4 import Dataset
 
 def show_header(text):
-    print "\n\033[1m" + text + "\033[0m"
+    print(("\n\033[1m" + text + "\033[0m"))
 
 def show_julia(command, clipto=160):
     if isinstance(command, str):
-        print command
+        print(command)
         try:
-            print "# " + subprocess.check_output(["julia", "-e", "println(" + command + ")"])
+            print(("# " + subprocess.check_output(["julia", "-e", "println(" + command + ")"])))
         except Exception as ex:
-            print ex
+            print(ex)
     else:
         for line in command:
             if clipto is not None and len(line) > clipto:
-                print line[:(clipto-3)] + '...'
+                print((line[:(clipto-3)] + '...'))
             else:
-                print line
+                print(line)
 
         try:
-            print "# " + subprocess.check_output(["julia", "-e", "; ".join(command[:-1]) + "; println(" + command[-1] + ")"])
+            print(("# " + subprocess.check_output(["julia", "-e", "; ".join(command[:-1]) + "; println(" + command[-1] + ")"])))
         except Exception as ex:
-            print ex
+            print(ex)
 
 def get_julia(obj):
     if isinstance(obj, float):
@@ -42,19 +42,19 @@ def get_excerpt(filepath, first_col, regionid, years, hasmodel=True, onlymodel=N
             if line.rstrip() == '...':
                 break
         reader = csv.reader(fp)
-        header = reader.next()
+        header = next(reader)
         data['header'] = header[first_col:]
         # Find columns to hide
         showcols = np.array([col not in hidecols for col in header])
         
-        print ','.join(np.array(header)[showcols])
-        print "..."
+        print((','.join(np.array(header)[showcols])))
+        print("...")
         for row in reader:
             if 'e+06' in row[1]:
                 row[1] = str(int(float(row[1]) / 1000))
             if '.' in row[1]:
                 row[1] = str(int(float(row[1])))
-            if row[0] == regionid and row[1] in map(str, years):
+            if row[0] == regionid and row[1] in list(map(str, years)):
                 if hasmodel:
                     if onlymodel is not None and row[2] != onlymodel:
                         continue
@@ -62,16 +62,16 @@ def get_excerpt(filepath, first_col, regionid, years, hasmodel=True, onlymodel=N
                         model = row[2]
                     elif model != row[2]:
                         break
-                print ','.join(np.array(row)[showcols[:len(row)]])
+                print((','.join(np.array(row)[showcols[:len(row)]])))
                 if int(row[1]) + 1 not in years:
-                    print "..."
+                    print("...")
                 if row[1] in data:
                     # Just fill in NAs (until we figure out why dubling up lines)
                     for ii in range(len(data[row[1]])):
                         if np.isnan(data[row[1]][ii]) and row[first_col+ii] != 'NA':
                             data[row[1]][ii] = pflt(row[first_col+ii])
                 else:
-                    data[row[1]] = map(lambda x: pflt(x) if x != 'NA' else np.nan, row[first_col:])
+                    data[row[1]] = [pflt(x) if x != 'NA' else np.nan for x in row[first_col:]]
 
     return data
 
@@ -95,13 +95,13 @@ def get_csvv(filepath, index0=None, indexend=None):
         for line in fp:
             if printline is not None:
                 if printline == 'gamma':
-                    csvv['gamma'] = map(float, parse_csvv_line(line))
+                    csvv['gamma'] = list(map(float, parse_csvv_line(line)))
                 else:
-                    csvv[printline] = map(lambda x: x.strip(), parse_csvv_line(line))
+                    csvv[printline] = [x.strip() for x in parse_csvv_line(line)]
 
                 if index0 is not None:
                     csvv[printline] = csvv[printline][index0:indexend]
-                print ','.join(map(str, csvv[printline]))
+                print((','.join(map(str, csvv[printline]))))
                     
                 printline = None
             if line.rstrip() in ["prednames", "covarnames", "gamma"]:
@@ -134,7 +134,7 @@ def pflt(x):
     if x == 'False' or x == 'false':
         return 0.
     if x[0] == '[' and x[-1] == ']':
-        return np.array(map(float, x[1:-1].split()))
+        return np.array(list(map(float, x[1:-1].split())))
     return float(x)
     
 def show_coefficient(csvv, preds, year, coefname, covartrans={}, betalimits=None):
@@ -209,7 +209,7 @@ def get_outputs(outputpath, years, shapenum, timevar='year', deltamethod=False):
         
     outyears = list(rootgrp.variables[timevar])
     outvars = [var for var in rootgrp.variables if len(rootgrp.variables[var].shape) == 2 and var != 'vcv']
-    print 'year,' + ','.join(outvars)
+    print(('year,' + ','.join(outvars)))
     
     outputs = {}
     for year in years:
@@ -220,16 +220,16 @@ def get_outputs(outputpath, years, shapenum, timevar='year', deltamethod=False):
                 outputs[year][var + '_bcde'] = rootgrp.variables[var + '_bcde'][:, outyears.index(year), shapenum]
             outputs['vcv'] = rootgrp.variables['vcv']
             
-        print ','.join([str(year)] + [str(data[var]) for var in outvars])
+        print((','.join([str(year)] + [str(data[var]) for var in outvars])))
 
     return outputs
 
 def get_region_data(filepath, region, indexcol='hierid'):
     df = pd.read_csv(filepath, index_col=indexcol)
     header = df.columns.values
-    print ','.join(header)
+    print((','.join(header)))
     row = df.loc[region]
-    print ','.join(map(str, row))
+    print((','.join(map(str, row))))
 
     return {header[ii]: row[ii] for ii in range(len(header))}
 
@@ -242,7 +242,7 @@ def find_betalimits(config):
         return betalimits
 
     if 'beta-limits' in config:
-        betalimits = {key: map(float, config['beta-limits'][key].split(',')) for key in config['beta-limits']}
+        betalimits = {key: list(map(float, config['beta-limits'][key].split(','))) for key in config['beta-limits']}
     else:
         betalimits = {}
 

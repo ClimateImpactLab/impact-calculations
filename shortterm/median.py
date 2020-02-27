@@ -1,5 +1,5 @@
 import sys, os, importlib
-import weather
+from . import weather
 from adaptation import econmodel
 from generate import pvalses
 
@@ -15,8 +15,8 @@ targetdir = os.path.join(outputdir, 'median', 'median')
 if os.path.exists(targetdir):
     os.system("rm -r " + targetdir)
 
-print targetdir
-os.makedirs(targetdir, 0775)
+print(targetdir)
+os.makedirs(targetdir, 0o775)
 
 weatherbundle = mod.get_bundle(pvals['weather'])
 economicmodel = econmodel.get_economicmodel('SSP2', 'low')

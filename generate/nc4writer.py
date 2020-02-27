@@ -63,8 +63,8 @@ def create_derivative(targetdir, reader, dstname, description_suffix, extra_depe
             
         writer.author = reader.author
     except Exception as ex:
-        print "WARNING: Not all descriptive attributes are included in the source file."
-        print str(ex)
+        print("WARNING: Not all descriptive attributes are included in the source file.")
+        print(str(ex))
         pass
 
     # Construct the years variable

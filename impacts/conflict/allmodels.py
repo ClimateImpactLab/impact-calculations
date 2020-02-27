@@ -5,7 +5,7 @@ from adaptation.econmodel import iterate_econmodels
 from shortterm import weather, curvegen, effectset
 from climate import forecasts, forecastreader
 from adaptation import covariates
-import standard
+from . import standard
 
 def get_bundle(qvals):
     source_temp_reader = forecastreader.MonthlyStochasticForecastReader(forecasts.temp_path, 'tas', qvals['tmean'])
@@ -29,7 +29,7 @@ def get_bundle(qvals):
 
 def produce(targetdir, weatherbundle, economicmodel, qvals, do_only=None, suffix=''):
     historicalbundle = SingleWeatherBundle(DailyWeatherReader("/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level/historical/CCSM4/tas/tas_day_aggregated_historical_r1i1p1_CCSM4_%d.nc", 1991, 'SHAPENUM', 'tas'), 'historical', 'CCSM4')
-    model, scenario, econmodel = (mse for mse in iterate_econmodels() if mse[0] == 'high').next()
+    model, scenario, econmodel = next((mse for mse in iterate_econmodels() if mse[0] == 'high'))
 
     covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(historicalbundle, 2015), {'climtas': 'tas'}),
                                                            covariates.EconomicCovariator(economicmodel, 2015, {'length': 1})])
@@ -39,7 +39,7 @@ def produce(targetdir, weatherbundle, economicmodel, qvals, do_only=None, suffix
     ## Full interpolation
     for filepath in glob.glob("/shares/gcp/social/parameters/conflict/hierarchical_08102017/*.csvv"):
         basename = os.path.basename(filepath)[:-5]
-        print basename
+        print(basename)
         
         predicted_betas = {}
         def betas_callback(variable, region, predictors, betas):
@@ -61,7 +61,7 @@ def produce(targetdir, weatherbundle, economicmodel, qvals, do_only=None, suffix
 
         with open(os.path.join(targetdir, basename + '-final.csv'), 'w') as fp:
             writer = csv.writer(fp)
-            header = ['region'] + range(columns['sum'].shape[0])
+            header = ['region'] + list(range(columns['sum'].shape[0]))
             writer.writerow(header)
             for ii in range(len(weatherbundle.regions)):
                 row = [weatherbundle.regions[ii]] + list(columns['sum'][:, ii])
