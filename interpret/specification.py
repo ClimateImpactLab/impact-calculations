@@ -74,7 +74,7 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config={}, quiet=F
     elif covar[:8] == 'seasonal':
         return covariates.SeasonalWeatherCovariator(weatherbundle, 2015, config['within-season'], covar[8:], config=configs.merge(config, 'climcovar'))
     elif covar[:4] == 'clim': # climtas, climcdd-20, etc.
-        return covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, covar[4:], config=configs.merge(config, 'climcovar'), quiet=quiet), {covar: covar[4:]})
+        return covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, covar[4:], config=configs.merge(config, 'climcovar'), usedaily=True, quiet=quiet), {covar: covar[4:]})
     elif covar[:6] == 'hierid':
         return covariates.populate_constantcovariator_by_hierid(covar, list(args))
     else:
@@ -180,14 +180,15 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}, getcs
                                                                 depenunit, coeffvar, order, csvv, predinfix=predinfix,
                                                                 weathernames=weathernames, betalimits=betalimits, allow_raising=specconf.get('allow-raising', False))
         minfinder = lambda mintemp, maxtemp: lambda curve: minpoly.findpolymin([0] + curve.ccs, mintemp, maxtemp)
-            
+
     elif specconf['functionalform'] == 'cubicspline':
         knots = specconf['knots']
         prefix = specconf['prefix']
         indepunit = specconf['indepunit']
+        variable_name = specconf['variable']
 
         curr_curvegen = curvegen_known.CubicSplineCurveGenerator([indepunit] + ['%s^3' % indepunit] * (len(knots) - 2),
-                                                                 depenunit, prefix, knots, csvv, betalimits=betalimits)
+                                                                 depenunit, prefix, knots, variable_name, csvv, betalimits=betalimits)
         minfinder = lambda mintemp, maxtemp: lambda curve: minspline.findsplinemin(knots, curve.coeffs, mintemp, maxtemp)
         weathernames = [prefix]
     elif specconf['functionalform'] == 'coefficients':

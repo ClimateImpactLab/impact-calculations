@@ -115,7 +115,11 @@ class CSVVCurveGenerator(CurveGenerator):
         coefficients = {} # {predname: sum}
         for predname in set(self.prednames):
             if len(self.predgammas[predname]) == 0:
-                coefficients[predname] = self.constant[predname]
+                try:
+                    coefficients[predname] = self.constant[predname]
+                except KeyError as e:
+                    print("ERROR: Cannot find the uninteracted value for %s; is it in the CSVV?" % predname)
+                    raise
             else:
                 try:
                     coefficients[predname] = self.constant.get(predname, 0) + np.sum(self.predgammas[predname] * np.array([covariates[covar] for covar in self.predcovars[predname]]))

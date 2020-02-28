@@ -80,29 +80,30 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
         if profile:
             return
 
-def produce_csvv(basename, csvv, module, specconf, targetdir, weatherbundle, economicmodel, pvals, config, push_callback, suffix, profile, diagnosefile):
+def csvv_organization(specconf):
+    """Interpret the `csvv-organization` option in the configuration to split a CSVV up into pieces."""
     if specconf.get('csvv-organization', 'normal') == 'three-ages':
         print("Splitting into three ages.")
-        specconf_age = copy.copy(specconf)
-        specconf_age['csvv-organization'] = 'normal'
-        csvv = csvvfile.read(csvv)
-        produce_csvv(basename + '-young', csvvfile.subset(csvv, slice(0, len(csvv['gamma']) / 3)), module, specconf_age,
-                     targetdir, weatherbundle, economicmodel, pvals, config, push_callback, suffix, profile, diagnosefile)
-        produce_csvv(basename + '-older', csvvfile.subset(csvv, slice(len(csvv['gamma']) / 3, 2 * len(csvv['gamma']) / 3)), module, specconf_age,
-                     targetdir, weatherbundle, economicmodel, pvals, config, push_callback, suffix, profile, diagnosefile)
-        produce_csvv(basename + '-oldest', csvvfile.subset(csvv, slice(2 * len(csvv['gamma']) / 3, len(csvv['gamma']))), module, specconf_age,
-                     targetdir, weatherbundle, economicmodel, pvals, config, push_callback, suffix, profile, diagnosefile)
-        return
+        return ["young", "older", "oldest"]
     elif specconf.get('csvv-organization', 'normal') == 'lowhigh':
         print("Splitting into two risk groups.")
-        specconf_age = copy.copy(specconf)
-        specconf_age['csvv-organization'] = 'normal'
+        return ["lowrisk", "highrisk"]
+    else:
+        return None
+        
+def produce_csvv(basename, csvv, module, specconf, targetdir, weatherbundle, economicmodel, pvals, config, push_callback, suffix, profile, diagnosefile):
+    csvv_parts = csvv_organization(specconf)
+    if csvv_parts is not None:
+        specconf_part = copy.copy(specconf)
+        specconf_part['csvv-organization'] = 'normal'
         csvv = csvvfile.read(csvv)
-        n = len(csvv['gamma'])
-        produce_csvv(basename + '-lowrisk', csvvfile.subset(csvv, slice(0, n / 2)), module, specconf_age,
-                     targetdir, weatherbundle, economicmodel, pvals, config, push_callback, suffix, profile, diagnosefile)
-        produce_csvv(basename + '-highrisk', csvvfile.subset(csvv, slice(n / 2, n)), module, specconf_age,
-                     targetdir, weatherbundle, economicmodel, pvals, config, push_callback, suffix, profile, diagnosefile)
+        n_csvv = len(csvv['gamma'])
+        n_parts = len(csvv_parts)
+        for partii in range(n_parts):
+            produce_csvv(basename + '-' + csvv_parts[partii],
+                         csvvfile.subset(csvv, slice(int(partii * n_csvv / n_parts), int((partii + 1) * n_csvv / n_parts))),
+                         module, specconf_part, targetdir, weatherbundle, economicmodel, pvals, config, push_callback, suffix,
+                         profile, diagnosefile)
         return
 
     deltamethod_vcv = False

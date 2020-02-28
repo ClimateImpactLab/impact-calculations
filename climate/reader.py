@@ -182,10 +182,15 @@ class RegionReorderWeatherReader(WeatherReader):
             mapping[''.join(observed_regions[ii])] = ii
             
         self.reorder = np.array([mapping[region] for region in desired_regions])
+        self.reordered_regions = desired_regions
 
     def get_times(self):
         """Returns a list of all times available."""
         return self.reader.get_times()
+
+    def get_regions(self):
+        """Returns a list of all regions available."""
+        return self.reordered_regions
 
     def get_years(self):
         return self.reader.get_years()
