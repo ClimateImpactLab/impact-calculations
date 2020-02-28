@@ -439,18 +439,18 @@ def discover_versioned_models(basedir, version=None, **config):
 def precheck_pastfuture(scenario, model, pasttemplate, futuretemplate, regionid, *variables):
     precheck_past = DailyWeatherReader.precheck(pasttemplate, 1981, regionid, *variables)
     if precheck_past:
-        print "Skipping %s %s (past): %s" % (scenario, model, precheck_past)
+        print("Skipping %s %s (past): %s" % (scenario, model, precheck_past))
         return False
     precheck_future = DailyWeatherReader.precheck(futuretemplate, 2006, regionid, *variables)
     if precheck_future:
-        print "Skipping %s %s (future): %s" % (scenario, model, precheck_future)
+        print("Skipping %s %s (future): %s" % (scenario, model, precheck_future))
         return False
 
     return True
         
 def discover_versioned(basedir, variable, version=None, reorder=True, **config):
     if config.get('show-source', False):
-        print basedir
+        print(basedir)
     
     for scenario, model, pasttemplate, futuretemplate in discover_versioned_models(basedir, version, **config):
         if not precheck_pastfuture(scenario, model, pasttemplate, futuretemplate, 'hierid', variable):
@@ -467,7 +467,7 @@ def discover_versioned(basedir, variable, version=None, reorder=True, **config):
 
 def discover_versioned_iterated(basedir, prefix, count, version=None, reorder=True, **config):
     if config.get('show-source', False):
-        print basedir
+        print(basedir)
 
     variables = [prefix + str(ii + 1) for ii in range(count)]
         

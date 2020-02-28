@@ -118,7 +118,7 @@ class CSVVCurveGenerator(CurveGenerator):
                 try:
                     coefficients[predname] = self.constant[predname]
                 except KeyError as e:
-                    print "ERROR: Cannot find the uninteracted value for %s; is it in the CSVV?" % predname
+                    print("ERROR: Cannot find the uninteracted value for %s; is it in the CSVV?" % predname)
                     raise
             else:
                 try:
