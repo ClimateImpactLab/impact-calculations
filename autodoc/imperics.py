@@ -64,7 +64,7 @@ print(("SSP: " + ssp))
 print(("Region: " + region))
 
 lib.show_header("Merged configuration:")
-print yaml.dump(config)
+print(yaml.dump(config))
 
 # Find the relevant CSVV
 fracsubset = (0, 1) # index and length of parts
