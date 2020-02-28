@@ -101,7 +101,7 @@ def produce_csvv(basename, csvv, module, specconf, targetdir, weatherbundle, eco
         n_parts = len(csvv_parts)
         for partii in range(n_parts):
             produce_csvv(basename + '-' + csvv_parts[partii],
-                         csvvfile.subset(csvv, slice(partii * n_csvv / n_parts, (partii + 1) * n_csvv / n_parts)),
+                         csvvfile.subset(csvv, slice(int(partii * n_csvv / n_parts), int((partii + 1) * n_csvv / n_parts))),
                          module, specconf_part, targetdir, weatherbundle, economicmodel, pvals, config, push_callback, suffix,
                          profile, diagnosefile)
         return
