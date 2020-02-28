@@ -11,8 +11,6 @@ RUN bash -c "conda install anaconda-client \
     && conda env create ClimateImpactLab/risingverse \
     && source activate risingverse \
     && conda clean --all \
-    && pip install git+https://github.com/ClimateImpactLab/open-estimate.git \
-    && pip install git+https://github.com/ClimateImpactLab/impact-common.git \
     && pip install -e . \
     && echo "\""conda activate risingverse"\"" >> ~/.bashrc"
 
