@@ -177,7 +177,7 @@ def subset(csvv, toinclude):
             toinclude = np.array(toinclude)
         toinclist = toinclude
     else:
-        toinclist = list(range(toinclude.start, toinclude.stop))
+        toinclist = list(range(int(toinclude.start), int(toinclude.stop)))
 
     subcsvv = copy.copy(csvv)
     subcsvv['prednames'] = [csvv['prednames'][ii] for ii in toinclist]
