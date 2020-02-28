@@ -213,7 +213,7 @@ class ShiftedEconomicCovariator(EconomicCovariator):
 
 class MeanWeatherCovariator(Covariator):
     """Provides an average climate variable covariate."""
-    def __init__(self, weatherbundle, maxbaseline, variable, config={}, quiet=False):
+    def __init__(self, weatherbundle, maxbaseline, variable, config={}, usedaily=True, quiet=False):
         super(MeanWeatherCovariator, self).__init__(maxbaseline, config=config)
 
         self.numtempyears = config.get('length', standard_climate_config['length'])
@@ -221,10 +221,13 @@ class MeanWeatherCovariator(Covariator):
 
         if not quiet:
             print("Collecting baseline information...")
+        self.dsvar = variable # Save this to be consistent
+            
         temp_predictors = {}
         for region, ds in weatherbundle.baseline_values(maxbaseline, quiet=quiet): # baseline through maxbaseline
+            self.dsvar = 'daily' + variable if usedaily and 'daily' + variable in ds._variables else variable
             try:
-                temp_predictors[region] = averages.interpret(config, standard_climate_config, ds[variable][-self.numtempyears:])
+                temp_predictors[region] = averages.interpret(config, standard_climate_config, ds[self.dsvar][-self.numtempyears:])
             except Exception as ex:
                 print(("Cannot retrieve baseline data for %s" % variable))
                 print(ds)
@@ -242,6 +245,8 @@ class MeanWeatherCovariator(Covariator):
         else:
             self.slowadapt = False
 
+        self.usedaily = usedaily
+
     def get_current(self, region):
         #assert region in self.temp_predictors, "Missing " + region
         if self.slowadapt:
@@ -252,7 +257,7 @@ class MeanWeatherCovariator(Covariator):
     def get_update(self, region, year, ds):
         """Allow ds = None for incadapt farmer who cannot adapt to temperature."""
         if ds is not None and year > self.startupdateyear:
-            self.temp_predictors[region].update(np.mean(ds[self.variable]._values)) # if only yearly values
+            self.temp_predictors[region].update(np.mean(ds[self.dsvar]._values)) # if only yearly values
 
         if self.slowadapt:
             return {self.variable: (self.temp_predictors[region].get() + self.baseline_predictors[region]) / 2, 'year': self.get_yearcovar(region)}

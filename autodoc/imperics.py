@@ -63,21 +63,31 @@ print(("IAM: " + iam))
 print(("SSP: " + ssp))
 print(("Region: " + region))
 
+lib.show_header("Merged configuration:")
+print(yaml.dump(config))
+
 # Find the relevant CSVV
+fracsubset = (0, 1) # index and length of parts
 foundcsvv = False
 for model, csvvpath, module, specconf in container.get_modules_csvv(config):
     basename = os.path.basename(csvvpath)[:-5]
+    
+    csvv_parts = container.csvv_organization(specconf)
+    if csvv_parts is not None:
+        for part in csvv_parts:
+            if basename + '-' + part == onlymodel:
+                fracsubset = (csvv_parts.index(part), len(csvv_parts))
+                foundcsvv = True
+                break
+        if foundcsvv:
+            break
     if basename == onlymodel:
         foundcsvv = True
         break
 
-assert foundcsvv, "Could not find a CSVV correspondnig to %s." % onlymodel
+assert foundcsvv, "Could not find a CSVV corresponding to %s." % onlymodel
 
 ## Print the inputs
-
-lib.show_header("Merged configuration:")
-print((yaml.dump(config)))
-
 if 'within-season' in specconf:
     season_months = irvalues.load_culture_months(specconf['within-season'])[region]
     season_doys = irvalues.load_culture_doys(specconf['within-season'])[region]
@@ -98,8 +108,12 @@ with open(os.path.join("/shares/gcp/regions/hierarchy-flat.csv"), 'r') as fp:
             break
 
 lib.show_header("CSVV:")
-csvv = lib.get_csvv(csvvpath)
+csvv = lib.get_csvv(csvvpath, fracsubset=fracsubset)
 csvvobj = csvvfile.read(csvvpath)
+if fracsubset != (0, 1):
+    index0 = fracsubset[0] * len(csvv['gamma']) / fracsubset[1]
+    indexend = (fracsubset[0] + 1) * len(csvv['gamma']) / fracsubset[1]    
+    csvvobj = csvvfile.subset(csvvobj, slice(index0, indexend))
 
 lib.show_header("Weather:")
 clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel = loadmodels.single(container.get_bundle_iterator(configs.merge(config, {'only-models': [gcm]})))
@@ -163,7 +177,7 @@ for year in [2001, futureyear]:
     for label, elements in formatting.format_labels:
         if label == 'rebased':
             break
-        
+
         while label in used_outputs:
             label += '2'
         last_label = label

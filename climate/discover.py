@@ -7,6 +7,7 @@ import os, re, copy
 import numpy as np
 from impactlab_tools.utils import files
 from openest.generate import fast_dataset
+from interpret import configs
 from .reader import *
 from .dailyreader import DailyWeatherReader, YearlyBinnedWeatherReader, MonthlyBinnedWeatherReader, MonthlyDimensionedWeatherReader
 from .yearlyreader import YearlyWeatherReader, YearlyDayLikeWeatherReader
@@ -81,8 +82,6 @@ def standard_variable(name, mytimerate, **config):
         timerate_translate = dict(day='daily', month='monthly', year='annual')
         path = files.sharedpath(os.path.join("climate/BCSD/hierid", config['grid-weight'], timerate_translate[mytimerate], name))
         if os.path.exists(path):
-            if config.get('show-source', False):
-                print(path)
             return discover_versioned(path, name, version=version, **config)
 
         print(("WARNING: Cannot find new-style climate data %s, by %s, weighted by %s." % (name, mytimerate, config['grid-weight'])))
@@ -91,22 +90,25 @@ def standard_variable(name, mytimerate, **config):
         polyedvars = ['tas', 'tasmax']
 
         if name in polyedvars:
-            if config.get('show-source', False):
-                print((files.sharedpath("climate/BCSD/hierid/popwt/daily/" + name)))
             return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/" + name), name, version=version, **config)
         for ii in range(2, 10):
             if name in ["%s-poly-%d" % (var, ii) for var in polyedvars]:
-                if config.get('show-source', False):
-                    print((files.sharedpath("climate/BCSD/hierid/popwt/daily/" + name)))
                 return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/" + name), name, version=version, **config)
             if name in ["%s%d" % (var, ii) for var in polyedvars]:
-                if config.get('show-source', False):
-                    print((files.sharedpath("climate/BCSD/hierid/popwt/daily/%s-poly-%s" % (name[:-1], name[-1]))))
                 return discover_versioned(files.sharedpath("climate/BCSD/hierid/popwt/daily/%s-poly-%s" % (name[:-1], name[-1])), '%s-poly-%s' % (name[:-1], name[-1]), version=version, **config)
         if name == 'prmm':
             if config.get('show-source', False):
                 print((files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level/*/pr')))
             return discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'pr', **config)
+        if name == 'tasmax_rcspline':
+            found = configs.search(config, 'knots')
+            assert found, "Cannot find references to any knots in config."
+            assert len(found) == 1, "Multiple knots definitions in a config are not currently supported."
+            for key in found:
+                basedir = name + '_' + '_'.join(map(str, found[key]))
+                return discover_rename(
+                    discover_versioned_iterated(files.sharedpath("climate/BCSD/hierid/popwt/daily/" + basedir), 'tasmax_rcs_term_', len(found[key]) - 2, version=version, **config),
+                    {'tasmax_rcs_term_' + str(ii+1): 'tasmax_rcspline' + str(ii+1) for ii in range(len(found[key]) - 2)})
 
     if mytimerate == 'month':
         if name in ['tas', 'tasmax']:
@@ -124,13 +126,9 @@ def standard_variable(name, mytimerate, **config):
                                           'edd_monthly', 'refTemp', version=version, **config),
                 {'edd_monthly': 'edd'})
         if name in ['pr', 'pr-poly-2']:
-            if config.get('show-source', False):
-                print((files.sharedpath('climate/BCSD/hierid/cropwt/monthly/' + name)))
             return discover_versioned(files.sharedpath('climate/BCSD/hierid/cropwt/monthly/' + name),
                                       name, version=version, **config)
         if name in ['prmm', 'prmm-poly-2']:
-            if config.get('show-source', False):
-                print((files.sharedpath('climate/BCSD/hierid/cropwt/monthly/' + name.replace('prmm', 'pr'))))
             return discover_rename(
                 discover_versioned(files.sharedpath('climate/BCSD/hierid/cropwt/monthly/' + name.replace('prmm', 'pr')),
                                    name.replace('prmm', 'pr'), version=version, **config), {name.replace('prmm', 'pr'): name})
@@ -438,15 +436,24 @@ def discover_versioned_models(basedir, version=None, **config):
 
         yield scenario, model, pasttemplate, futuretemplate
 
+def precheck_pastfuture(scenario, model, pasttemplate, futuretemplate, regionid, *variables):
+    precheck_past = DailyWeatherReader.precheck(pasttemplate, 1981, regionid, *variables)
+    if precheck_past:
+        print("Skipping %s %s (past): %s" % (scenario, model, precheck_past))
+        return False
+    precheck_future = DailyWeatherReader.precheck(futuretemplate, 2006, regionid, *variables)
+    if precheck_future:
+        print("Skipping %s %s (future): %s" % (scenario, model, precheck_future))
+        return False
+
+    return True
+        
 def discover_versioned(basedir, variable, version=None, reorder=True, **config):
+    if config.get('show-source', False):
+        print(basedir)
+    
     for scenario, model, pasttemplate, futuretemplate in discover_versioned_models(basedir, version, **config):
-        precheck_past = DailyWeatherReader.precheck(pasttemplate, 1981, 'hierid', variable)
-        if precheck_past:
-            print(("Skipping %s %s (past): %s" % (scenario, model, precheck_past)))
-            continue
-        precheck_future = DailyWeatherReader.precheck(futuretemplate, 2006, 'hierid', variable)
-        if precheck_future:
-            print(("Skipping %s %s (future): %s" % (scenario, model, precheck_future)))
+        if not precheck_pastfuture(scenario, model, pasttemplate, futuretemplate, 'hierid', variable):
             continue
 
         if reorder:
@@ -455,6 +462,25 @@ def discover_versioned(basedir, variable, version=None, reorder=True, **config):
         else:
             pastreader = DailyWeatherReader(pasttemplate, 1981, 'hierid', variable)
             futurereader = DailyWeatherReader(futuretemplate, 2006, 'hierid', variable)
+
+        yield scenario, model, pastreader, futurereader
+
+def discover_versioned_iterated(basedir, prefix, count, version=None, reorder=True, **config):
+    if config.get('show-source', False):
+        print(basedir)
+
+    variables = [prefix + str(ii + 1) for ii in range(count)]
+        
+    for scenario, model, pasttemplate, futuretemplate in discover_versioned_models(basedir, version, **config):
+        if not precheck_pastfuture(scenario, model, pasttemplate, futuretemplate, 'hierid', *variables):
+            continue
+
+        if reorder:
+            pastreader = RegionReorderWeatherReader(DailyWeatherReader(pasttemplate, 1981, 'hierid', *variables))
+            futurereader = RegionReorderWeatherReader(DailyWeatherReader(futuretemplate, 2006, 'hierid', *variables))
+        else:
+            pastreader = DailyWeatherReader(pasttemplate, 1981, 'hierid', *variables)
+            futurereader = DailyWeatherReader(futuretemplate, 2006, 'hierid', *variables)
 
         yield scenario, model, pastreader, futurereader
 
@@ -574,7 +600,11 @@ def discover_day2year(discover_iterator, accumfunc):
         if 'yyyyddd' in used_coords:
             del used_coords['yyyyddd']
 
-        ds = fast_dataset.FastDataset({name: data_vars_time_conversion_year(name, ds, 'vars', accumfunc) for name in vars_only},
+        newvars = {}
+        for name in vars_only:
+            newvars[name] = data_vars_time_conversion_year(name, ds, 'vars', accumfunc)
+            newvars['daily' + name] = data_vars_time_conversion_year(name, ds, 'vars', lambda arr, dim: np.mean(arr, axis=dim))
+        ds = fast_dataset.FastDataset(newvars,
                                       coords={name: data_vars_time_conversion_year(name, ds, 'coords', accumfunc) for name in used_coords},
                                       attrs=ds.attrs)
         return ds
