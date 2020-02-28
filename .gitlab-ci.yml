@@ -9,8 +9,6 @@ test:
     - conda info -a
     - conda env create ClimateImpactLab/risingverse
     - source activate risingverse
-    - pip install git+https://github.com/ClimateImpactLab/open-estimate.git
-    - pip install git+https://github.com/ClimateImpactLab/impact-common.git
   script:
   - source activate risingverse
   - pytest -v -m "not imperics_shareddir"
