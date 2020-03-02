@@ -1,17 +1,15 @@
 timerate: day
 climate: [ tasmax, tasmax-poly-2, tasmax-poly-3, tasmax-poly-4 ]
 models:
-  - csvvs: "social/parameters/productivity/poly4.csvv"
-    covariates: [ loggdppc, climtasmax ]
+  - csvvs: "social/parameters/non-ag-productivity/*.csvv"
     specification:
+      covariates: [ loggdppc, climtasmax ]
       description: Annual revenue per worker
       depenunit: log 2011 $
       indepunit: C
       functionalform: polynomial
       variable: tasmax
       clipping: true
-      goodmoney: true
       calculation:
         - YearlySumIrregular
-	- Rebase
-	
+        - Rebase
