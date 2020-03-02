@@ -46,11 +46,19 @@ def make_get_coeff_goodmoney(weatherbundle, covariator, curvegen, baselinemins, 
 def get_curve_minima(regions, curvegen, covariator, mint, maxt, analytic):
     # Determine minimum value of curve between mint and maxt
     print "Determining minimum temperatures."
-    baselinecurves = {}
-    baselinemins = {}
+    return get_curve_extrema(regions, curvegen, covariator, mint, maxt, analytic, 'boatpose', 'minpath')
 
-    if caller.callinfo and 'minpath' in caller.callinfo:
-        with open(caller.callinfo['minpath'], 'w') as fp:
+def get_curve_maxima(regions, curvegen, covariator, mint, maxt, analytic):
+    # Determine maximum value of curve between mint and maxt
+    print "Determining maximum temperatures."
+    return get_curve_extrema(regions, curvegen, covariator, mint, maxt, analytic, 'downdog', 'maxpath')
+
+def get_curve_extrema(regions, curvegen, covariator, mint, maxt, analytic, direction, extpathkey):
+    baselinecurves = {}
+    baselineexts = {}
+
+    if caller.callinfo and extpathkey in caller.callinfo:
+        with open(caller.callinfo[extpathkey], 'w') as fp:
             writer = csv.writer(fp)
             writer.writerow(['region', 'brute', 'analytic'])
             for region in regions:
@@ -60,18 +68,21 @@ def get_curve_minima(regions, curvegen, covariator, mint, maxt, analytic):
                     temps = np.arange(np.floor(mint[region]), np.ceil(maxt[region])+1)
                 else:
                     temps = np.arange(mint, maxt+1)
-                mintemp = temps[np.argmin(curve(temps))]
-                mintemp2 = analytic(region, curve)
-                if np.abs(mintemp - mintemp2) > 1:
-                    print "WARNING: %s has unclear mintemp: %f, %f" % (region, mintemp, mintemp2)
-                baselinemins[region] = mintemp2
-                writer.writerow([region, mintemp, mintemp2])
-        os.chmod(caller.callinfo['minpath'], 0664)
+                if direction == 'boatpose':
+                    exttemp = temps[np.argmin(curve(temps))]
+                else:
+                    exttemp = temps[np.argmax(curve(temps))]
+                exttemp2 = analytic(region, curve)
+                if np.abs(exttemp - exttemp2) > 1:
+                    print "WARNING: %s has unclear exttemp: %f, %f" % (region, exttemp, exttemp2)
+                baselineexts[region] = exttemp2
+                writer.writerow([region, exttemp, exttemp2])
+        os.chmod(caller.callinfo[extpathkey], 0664)
     else:
         for region in regions:
             curve = curvegen.get_curve(region, 2005, covariator.get_current(region))
             baselinecurves[region] = curve
-            mintemp2 = analytic(region, curve)
-            baselinemins[region] = mintemp2
+            exttemp2 = analytic(region, curve)
+            baselineexts[region] = exttemp2
 
-    return baselinecurves, baselinemins
+    return baselinecurves, baselineexts

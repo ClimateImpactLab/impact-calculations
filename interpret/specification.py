@@ -15,6 +15,7 @@ from openest.generate import smart_curve, selfdocumented
 from openest.models.curve import ShiftedCurve, MinimumCurve, ClippedCurve
 from openest.generate.stdlib import *
 from impactcommon.math import minpoly, minspline
+from openest.curves import ushape_numeric
 import calculator, variables, configs
 
 def user_failure(message):
@@ -179,7 +180,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}, getcs
         curr_curvegen = curvegen_known.PolynomialCurveGenerator([indepunit] + ['%s^%d' % (indepunit, pow) for pow in range(2, order+1)],
                                                                 depenunit, coeffvar, order, csvv, predinfix=predinfix,
                                                                 weathernames=weathernames, betalimits=betalimits, allow_raising=specconf.get('allow-raising', False))
-        minfinder = lambda mintemp, maxtemp: lambda curve: minpoly.findpolymin([0] + curve.ccs, mintemp, maxtemp)
+        minfinder = lambda mintemp, maxtemp, sign: lambda curve: minpoly.findpolymin([0] + [sign * cc for cc in curve.ccs], mintemp, maxtemp)
             
     elif specconf['functionalform'] == 'cubicspline':
         knots = specconf['knots']
@@ -188,7 +189,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}, getcs
 
         curr_curvegen = curvegen_known.CubicSplineCurveGenerator([indepunit] + ['%s^3' % indepunit] * (len(knots) - 2),
                                                                  depenunit, prefix, knots, csvv, betalimits=betalimits)
-        minfinder = lambda mintemp, maxtemp: lambda curve: minspline.findsplinemin(knots, curve.coeffs, mintemp, maxtemp)
+        minfinder = lambda mintemp, maxtemp, sign: lambda curve: minspline.findsplinemin(knots, sign * curve.coeffs, mintemp, maxtemp)
         weathernames = [prefix]
     elif specconf['functionalform'] == 'coefficients':
         ds_transforms = {}
@@ -237,12 +238,24 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}, getcs
         maxtemp = specconf.get('clip-maxtemp', 25)
         # Determine minimum value of curve between 10C and 25C
         if covariator:
-            baselinecurves, baselinemins = constraints.get_curve_minima(regions, curr_curvegen, covariator,
-                                                                        mintemp, maxtemp, minfinder(mintemp, maxtemp))
+            if specconf['clipping'] == 'boatpose' or specconf['clipping'] == True:
+                baselinecurves, baselineexts = constraints.get_curve_minima(regions, curr_curvegen, covariator,
+                                                                            mintemp, maxtemp, minfinder(mintemp, maxtemp, 1))
+            elif specconf['clipping'] == 'downdog':
+                baselinecurves, baselineexts = constraints.get_curve_maxima(regions, curr_curvegen, covariator,
+                                                                            mintemp, maxtemp, minfinder(mintemp, maxtemp, -1))
+            else:
+                assert False, "Unknown option for configuration key 'clipping'."
         else:
             curve = curr_curvegen.get_curve('global', 2000, {})
-            curvemin = minfinder(mintemp, maxtemp)(curve)
-            baselinemins = {region: curvemin for region in regions}
+            if specconf['clipping'] == 'boatpose' or specconf['clipping'] == True:
+                curvemin = minfinder(mintemp, maxtemp, 1)(curve)
+            elif specconf['clipping'] == 'downdog':
+                curvemin = minfinder(mintemp, maxtemp, -1)(curve)
+            else:
+                assert False, "Unknown option for configuration key 'clipping'."
+                
+            baselineexts = {region: curvemin for region in regions}
 
     def transform(region, curve):
         if isinstance(curve, smart_curve.SmartCurve):
@@ -251,7 +264,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}, getcs
             final_curve = smart_curve.CoefficientsCurve(curve.ccs, weathernames)
 
         if specconf.get('clipping', False):
-            final_curve = ShiftedCurve(final_curve, -curve(baselinemins[region]))
+            final_curve = ShiftedCurve(final_curve, -curve(baselineexts[region]))
 
         if specconf.get('goodmoney', False):
             covars = covariator.get_current(region)
@@ -261,12 +274,18 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}, getcs
                 coeff_noincadapt_unshifted_curve = CoefficientsCurve(noincadapt_unshifted_curve.ccs, weathernames)
             else:
                 coeff_noincadapt_unshifted_curve = noincadapt_unshifted_curve
-            noincadapt_curve = ShiftedCurve(coeff_noincadapt_unshifted_curve, -noincadapt_unshifted_curve(baselinemins[region]))
+            noincadapt_curve = ShiftedCurve(coeff_noincadapt_unshifted_curve, -noincadapt_unshifted_curve(baselineexts[region]))
 
             final_curve = MinimumCurve(final_curve, noincadapt_curve)
 
-        if specconf.get('clipping', False):
+        if specconf.get('clipping', False) == True:
             return ClippedCurve(final_curve)
+        elif specconf.get('clipping', False) == 'boatpose':
+            final_curve = ClippedCurve(final_curve)
+            return ushape_numeric.UShapedCurve(final_curve, baselineexts[region], lambda ds: ds[weathernames[0]], fillxxs=fillins, fillyys=final_curve.get_univariate())
+        elif specconf.get('clipping', False) == 'downdog':
+            final_curve = ClippedCurve(final_curve, cliplow=False)
+            return ushape_numeric.UShapedCurve(final_curve, baselineexts[region], lambda ds: ds[weathernames[0]], fillxxs=fillins, fillyys=final_curve.get_univariate(), direction='downdog')
         else:
             return final_curve
 
