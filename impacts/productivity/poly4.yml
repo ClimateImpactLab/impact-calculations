@@ -9,7 +9,9 @@ models:
       indepunit: C
       functionalform: polynomial
       variable: tasmax
-      clipping: true
+      clipping: downdog
+      clip-mintemp: 12
+      clip-maxtemp: 32
       calculation:
         - YearlySumIrregular
         - Rebase
