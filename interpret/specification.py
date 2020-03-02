@@ -1,3 +1,13 @@
+"""Interpret the specifications sections of a configuration file.
+
+As we define them, specifications are segments of the full
+specification used by a sector's projection. For example, a projection
+can consist of one polynomial specification applied to temperatures
+over 20C and another for temperatures below 20C; or one polynomial
+specification can be used for temperature and another for
+precipitation.
+"""
+
 import re
 from adaptation import csvvfile, curvegen, curvegen_known, curvegen_arbitrary, covariates, constraints
 from datastore import irvalues
@@ -28,12 +38,11 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config={}, quiet=F
 
     Parameters
     ----------
-    covar : str
-        Covariate name.
+    covar : str or dict
+        Covariate name, or ``{name: extra_args}``. If dict, value is pased in as 
+        `args` recursively.
     args : list or None
-        Additional postional arguments to pass to 
-        ``covariates.BinnedEconomicCovariator`` if `covar` is 'incbin', 
-        ``get_covariator`` if '*' or `^` is in `covar`.
+        Additional postional arguments if `covar` values, if was dict.
     weatherbundle : generate.weather.DailyWeatherBundle
     economicmodel : adaptation.econmodel.SSPEconomicModel
     config : dict, optional
@@ -66,9 +75,11 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config={}, quiet=F
         return covariates.SeasonalWeatherCovariator(weatherbundle, 2015, config['within-season'], covar[8:], config=configs.merge(config, 'climcovar'))
     elif covar[:4] == 'clim': # climtas, climcdd-20, etc.
         return covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, covar[4:], config=configs.merge(config, 'climcovar'), quiet=quiet), {covar: covar[4:]})
+    elif covar[:6] == 'hierid':
+        return covariates.populate_constantcovariator_by_hierid(covar, list(args))
     else:
         user_failure("Covariate %s is unknown." % covar)
-        
+
 def create_covariator(specconf, weatherbundle, economicmodel, config={}, quiet=False):
     """Interprets the entire covariates dictionary in the configuration file.
 
@@ -170,7 +181,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}, getcs
                                                                 weathernames=weathernames, betalimits=betalimits, allow_raising=specconf.get('allow-raising', False))
         minfinder = lambda mintemp, maxtemp: lambda curve: minpoly.findpolymin([0] + curve.ccs, mintemp, maxtemp)
             
-    elif specconf['functionalform'] == 'cubic spline':
+    elif specconf['functionalform'] == 'cubicspline':
         knots = specconf['knots']
         prefix = specconf['prefix']
         indepunit = specconf['indepunit']

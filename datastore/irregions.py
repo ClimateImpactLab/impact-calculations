@@ -2,6 +2,35 @@ import csv
 from impactlab_tools.utils import files
 import helpers.header as headre
 
+def contains_region(parents, candidate, hierid_df):
+    """Test if parent region contains candidate region
+
+    Parameters
+    ----------
+    parents : Sequence of str
+        Parent region(s).
+    candidate : str
+        Region to test if within `parents`.
+    hierid_df : pandas.core.frame.DataFrame
+        DataFrame of hierarchical region relationships. Must index 
+        'region-key', with column 'parent-key' populated with str.
+
+    Returns
+    -------
+    bool
+    """
+    candidate = str(candidate)
+
+    try:
+        parent_key = hierid_df.loc[candidate, "parent-key"]
+    except KeyError:  # No parent_key, so at trunk of tree or bad candidate.
+        return False
+
+    if parent_key in parents:
+        return True
+
+    return contains_region(parents, parent_key, hierid_df)
+
 def load_regions(hierarchy, dependencies):
     """Load the rows of hierarchy.csv associated with all known regions."""
     mapping = {} # color to hierid

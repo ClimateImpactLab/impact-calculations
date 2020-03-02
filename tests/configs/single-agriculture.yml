@@ -1,0 +1,8 @@
+module: tests/configs/corn_prsplitmodel_partiald.yml
+mode: writecalcs
+outputdir: /shares/gcp/outputs/mc_output
+singledir: single
+do_farmers: no
+do_historical: no
+deltamethod: no
+timeout: 24

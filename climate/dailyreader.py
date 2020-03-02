@@ -1,3 +1,5 @@
+"""Classes for exposing weather data available at a daily or monthly timestep."""
+
 import os
 import numpy as np
 import xarray as xr
@@ -75,10 +77,12 @@ class MonthlyDimensionedWeatherReader(YearlySplitWeatherReader):
         self.regionvar = regionvar
         self.dim = dim
         self.regions = netcdfs.readncdf_single(self.file_for_year(year1), regionvar, allow_missing=True)
+        if self.regions is None:
+            print "WARNING: Cannot find %s variable in %s." % (regionvar, self.file_for_year(year1))
         if dimvariable is None:
             dimvariable = dim
         self.dim_values = netcdfs.readncdf_single(self.file_for_year(year1), dimvariable)
-
+        
     def get_regions(self):
         """Returns a list of all regions available."""
         return self.regions

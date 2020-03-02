@@ -93,6 +93,17 @@ def produce_csvv(basename, csvv, module, specconf, targetdir, weatherbundle, eco
         produce_csvv(basename + '-oldest', csvvfile.subset(csvv, slice(2 * len(csvv['gamma']) / 3, len(csvv['gamma']))), module, specconf_age,
                      targetdir, weatherbundle, economicmodel, pvals, config, push_callback, suffix, profile, diagnosefile)
         return
+    elif specconf.get('csvv-organization', 'normal') == 'lowhigh':
+        print "Splitting into two risk groups."
+        specconf_age = copy.copy(specconf)
+        specconf_age['csvv-organization'] = 'normal'
+        csvv = csvvfile.read(csvv)
+        n = len(csvv['gamma'])
+        produce_csvv(basename + '-lowrisk', csvvfile.subset(csvv, slice(0, n / 2)), module, specconf_age,
+                     targetdir, weatherbundle, economicmodel, pvals, config, push_callback, suffix, profile, diagnosefile)
+        produce_csvv(basename + '-highrisk', csvvfile.subset(csvv, slice(n / 2, n)), module, specconf_age,
+                     targetdir, weatherbundle, economicmodel, pvals, config, push_callback, suffix, profile, diagnosefile)
+        return
 
     deltamethod_vcv = False
     if config.get('deltamethod', False):
