@@ -2,6 +2,7 @@
 Provides iterators of WeatherReaders (typically a historical and a
 future reader).
 """
+
 import os, re, copy
 import numpy as np
 from impactlab_tools.utils import files
@@ -46,7 +47,7 @@ def standard_variable(name, mytimerate, **config):
             return discover_day2month(iterator, lambda arr, dim: np.sum(arr, axis=dim))
         elif mytimerate == 'year':
             return discover_day2year(iterator, lambda arr, dim: np.sum(arr, axis=dim))
-        
+
     if '.' in name:
         chunks = re_dotsplit.split(name)
         if len(chunks) > 1:
@@ -67,7 +68,7 @@ def standard_variable(name, mytimerate, **config):
                 return discover_day2month(var, lambda arr, dim: np.sum(arr, axis=dim))
             elif mytimerate == 'year':
                 return discover_day2year(var, lambda arr, dim: np.sum(arr, axis=dim))
-            
+
             return var
 
     version = None
@@ -75,7 +76,7 @@ def standard_variable(name, mytimerate, **config):
         chunks = name.split('==')
         name = chunks[0]
         version = chunks[1]
-        
+
     if 'grid-weight' in config:
         timerate_translate = dict(day='daily', month='monthly', year='annual')
         path = files.sharedpath(os.path.join("climate/BCSD/hierid", config['grid-weight'], timerate_translate[mytimerate], name))
@@ -85,10 +86,10 @@ def standard_variable(name, mytimerate, **config):
             return discover_versioned(path, name, version=version, **config)
 
         print "WARNING: Cannot find new-style climate data %s, by %s, weighted by %s." % (name, mytimerate, config['grid-weight'])
-    
+
     if mytimerate == 'day':
         polyedvars = ['tas', 'tasmax']
-    
+
         if name in polyedvars:
             if config.get('show-source', False):
                 print files.sharedpath("climate/BCSD/hierid/popwt/daily/" + name)
@@ -106,7 +107,7 @@ def standard_variable(name, mytimerate, **config):
             if config.get('show-source', False):
                 print files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level/*/pr')
             return discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'pr', **config)
-        
+
     if mytimerate == 'month':
         if name in ['tas', 'tasmax']:
             return discover_day2month(standard_variable(name, 'day', **config),  lambda arr, dim: np.mean(arr, axis=dim))
@@ -137,7 +138,7 @@ def standard_variable(name, mytimerate, **config):
     if mytimerate == 'year':
         polyedvars = ['tas-cdd-20', 'tas-hdd-20']
         polyedvars_daily = ['tas', 'tasmax'] # Currently do these as sums
-        
+
         if name in polyedvars:
             if config.get('show-source', False):
                 print files.sharedpath("climate/BCSD/hierid/popwt/annual/" + name)
@@ -154,11 +155,27 @@ def standard_variable(name, mytimerate, **config):
 
         if name in polyedvars_daily:
             return discover_day2year(standard_variable(name, 'day', **config), lambda arr, dim: np.sum(arr, axis=dim))
+
         for ii in range(2, 10):
             if name in ["%s-poly-%d" % (var, ii) for var in polyedvars_daily]:
                 return discover_day2year(standard_variable(name, 'day', **config), lambda arr, dim: np.sum(arr, axis=dim))
             if name in ["%s%d" % (var, ii) for var in polyedvars_daily]:
                 return discover_day2year(standard_variable(name, 'day', **config), lambda arr, dim: np.sum(arr, axis=dim))
+
+            # If "mean" appended to front of daily variable name, do mean instead of sum...
+            m = {"mean%s-poly-%d" % (v, ii): "%s-poly-%d" % (v, ii) for v in polyedvars_daily}
+            if name in m:
+                return discover_rename(
+                    discover_day2year(standard_variable(m[name], 'day', **config), lambda arr, dim: np.mean(arr, axis=dim)),
+                    {m[name]: name}
+                    )
+            m = {"mean%s%d" % (v, ii): "%s%d" % (v, ii) for v in polyedvars_daily}
+            if name in m:
+                return discover_rename(
+                    discover_day2year(standard_variable(m[name], 'day', **config), lambda arr, dim: np.mean(arr, axis=dim)),
+                    {m[name]: name}
+                    )
+
         if name == 'meantas':
             return discover_rename(
                 discover_day2year(standard_variable('tas', 'day', **config), lambda arr, dim: np.mean(arr, axis=dim)), {'tas': 'meantas'})
@@ -204,7 +221,7 @@ def interpret_transform(var, transform):
             return ds
 
         return discover_convert(var, None, ds_conversion)
-    
+
     assert False, "Cannot interpret transformation %s" % transform
 
 def data_vars_space_conversion(newregions, get_oldii, name, ds, varset, accumfunc):
@@ -222,7 +239,7 @@ def data_vars_space_conversion(newregions, get_oldii, name, ds, varset, accumfun
             vardef = ds.coords[name]
         else:
             assert False, "Unknown varset."
-            
+
     if isinstance(vardef, tuple):
         dimnum = vardef[0].index('region')
 
@@ -242,7 +259,7 @@ def data_vars_space_conversion(newregions, get_oldii, name, ds, varset, accumfun
         return vardef
 
     return np.array(newregions)
-    
+
 def discover_models(basedir, **config):
     """
     basedir points to directory with both 'historical', 'rcp*'
@@ -293,7 +310,7 @@ def discover_binned(basedir, timerate, template, regionvar, ncvar, **config):
         get_template = lambda scenario, model: template.replace("%scenario", scenario).replace("%model", model)
         pasttemplate = os.path.join(pastdir, get_template('historical', model))
         futuretemplate = os.path.join(futuredir, get_template(scenario, model))
-        
+
         if timerate == 'year':
             pastreader = YearlyBinnedWeatherReader(pasttemplate, 1981, regionvar, ncvar)
             futurereader = YearlyBinnedWeatherReader(futuretemplate, 2006, regionvar, ncvar)
@@ -350,7 +367,7 @@ def discover_derived_variable(basedir, variable, suffix, withyear=True, **config
             pastreader = YearlyWeatherReader(pastpath, variable)
             futurereader = YearlyWeatherReader(futurepath, variable)
 
-            yield scenario, model, pastreader, futurereader            
+            yield scenario, model, pastreader, futurereader
 
 def discover_yearly(basedir, vardir, rcp_only=None):
     """
@@ -372,7 +389,7 @@ def discover_yearly(basedir, vardir, rcp_only=None):
 
             if not os.path.exists(pastpath):
                 pastpath = filepath # Both contained in one file
-                
+
             yield scenario, model, pastpath, filepath
 
 def discover_yearly_variables(basedir, vardir, *variables, **kwargs):
@@ -414,13 +431,13 @@ def discover_versioned_models(basedir, version=None, **config):
     """Find the most recent version, if none specified."""
     if version is None:
         version = '%v'
-    
+
     for scenario, model, pastdir, futuredir in discover_models(basedir, **config):
         pasttemplate = os.path.join(pastdir, "%d", version + '.nc4')
         futuretemplate = os.path.join(futuredir, "%d", version + '.nc4')
 
         yield scenario, model, pasttemplate, futuretemplate
-        
+
 def discover_versioned(basedir, variable, version=None, reorder=True, **config):
     for scenario, model, pasttemplate, futuretemplate in discover_versioned_models(basedir, version, **config):
         precheck_past = DailyWeatherReader.precheck(pasttemplate, 1981, 'hierid', variable)
@@ -431,19 +448,19 @@ def discover_versioned(basedir, variable, version=None, reorder=True, **config):
         if precheck_future:
             print "Skipping %s %s (future): %s" % (scenario, model, precheck_future)
             continue
-        
+
         if reorder:
             pastreader = RegionReorderWeatherReader(DailyWeatherReader(pasttemplate, 1981, 'hierid', variable))
             futurereader = RegionReorderWeatherReader(DailyWeatherReader(futuretemplate, 2006, 'hierid', variable))
         else:
             pastreader = DailyWeatherReader(pasttemplate, 1981, 'hierid', variable)
             futurereader = DailyWeatherReader(futuretemplate, 2006, 'hierid', variable)
-            
+
         yield scenario, model, pastreader, futurereader
 
 def discover_versioned_binned(basedir, variable, dim, version=None, reorder=True, **config):
     post_process = lambda x: RegionReorderWeatherReader(x) if reorder else lambda x: x
-    
+
     for scenario, model, pasttemplate, futuretemplate in discover_versioned_models(basedir, version, **config):
         pastreader = MonthlyDimensionedWeatherReader(pasttemplate, 1981, 'hierid', variable, dim)
         futurereader = MonthlyDimensionedWeatherReader(futuretemplate, 2006, 'hierid', variable, dim)
@@ -458,7 +475,7 @@ def discover_versioned_yearly(basedir, variable, version=None, reorder=True, **c
         else:
             pastreader = YearlyDayLikeWeatherReader(pasttemplate, 1981, 'hierid', variable)
             futurereader = YearlyDayLikeWeatherReader(futuretemplate, 2006, 'hierid', variable)
-            
+
         yield scenario, model, pastreader, futurereader
 
 def discover_covariate(basedir, filename, variable):
@@ -502,7 +519,7 @@ def discover_day2month(discover_iterator, accumfunc):
                                       coords={name: data_vars_time_conversion(name, ds, 'coords', accumfunc) for name in used_coords},
                                       attrs=ds.attrs)
         return ds
-    
+
     return discover_convert(discover_iterator, time_conversion, ds_conversion)
 
 def data_vars_time_conversion(name, ds, varset, accumfunc):
@@ -520,7 +537,7 @@ def data_vars_time_conversion(name, ds, varset, accumfunc):
             vardef = ds.coords[name]
         else:
             assert False, "Unknown varset."
-            
+
     if isinstance(vardef, tuple):
         try:
             dimnum = vardef[0].index('time')
@@ -559,7 +576,7 @@ def discover_day2year(discover_iterator, accumfunc):
                                       coords={name: data_vars_time_conversion_year(name, ds, 'coords', accumfunc) for name in used_coords},
                                       attrs=ds.attrs)
         return ds
-    
+
     return discover_convert(discover_iterator, time_conversion, ds_conversion)
 
 def discover_map(name, unit, func, *iterators):
@@ -590,7 +607,7 @@ def data_vars_time_conversion_year(name, ds, varset, accumfunc):
             vardef = ds.coords[name]
         else:
             assert False, "Unknown varset."
-            
+
     if isinstance(vardef, tuple):
         try:
             dimnum = vardef[0].index('time')

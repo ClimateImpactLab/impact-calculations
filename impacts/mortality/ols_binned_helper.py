@@ -1,6 +1,6 @@
 import re
 import numpy as np
-from adaptation import csvvfile, curvegen, curvegen_step, covariates
+from adaptation import csvvfile, curvegen, curvegen_known, covariates
 from openest.generate.stdlib import *
 
 bin_limits = [-np.inf, -13, -8, -3, 2, 7, 12, 17, 22, 27, 32, np.inf]
@@ -20,7 +20,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
 
     csvvfile.collapse_bang(csvv, qvals.get_seed('csvv'))
 
-    curr_curvegen = curvegen_step.BinnedStepCurveGenerator(bin_limits, ['days / year'] * (len(bin_limits) - 1),
+    curr_curvegen = curvegen_known.BinnedStepCurveGenerator(bin_limits, ['days / year'] * (len(bin_limits) - 1),
                                                       '100,000 * death/population', csvv)
     farm_curvegen = curvegen.FarmerCurveGenerator(curr_curvegen, covariator, farmer)
 

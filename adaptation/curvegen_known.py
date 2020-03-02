@@ -1,10 +1,51 @@
+"""Subclasses of the CurveGenerator class for known specification types.
+
+These classes defined here are common specification structures in
+econometrics. Each curve generator class is based on a
+CSVVCurveGenerator, should know how to calculate itself either with
+pre-computed weather or on-the-fly, know how to determine its
+delta-method vector, and be able to take the partial derivative with
+respect to a covariate to produce another known CurveGenerator.
+"""
+
 import numpy as np
 import csvvfile, curvegen
 from openest.generate import diagnostic, formatting, selfdocumented
 from openest.generate.smart_curve import ZeroInterceptPolynomialCurve
-from openest.models.curve import CubicSplineCurve
+from openest.models.curve import CubicSplineCurve, StepCurve
 
 class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
+    """A CurveGenerator for a series of polynomial terms. For a weather
+    variable `T`, this consist of `T`, `T^2`, ..., `T^k`. Since this
+    is a CSVVCurveGenerator, the PolynomialCurveGenerator defines how
+    these will be named in the CSVV:
+    `<prefix>`, `<prefix><predinfix>2`, ..., `<prefix><predinfix>k`.
+
+    Parameters
+    ----------
+    indepunits : list of 1 str
+        The full set of units will be duplicates of this unit.
+    depenunit : str
+        The unit of the dependent variable.
+    prefix : str
+        The prefix used in the CSVV for all terms.
+    order : int
+        The number of terms in the polynomial. A quadratic has 2 terms.
+    csvv : csvv dictionary
+        Source for all parameter calculations.
+    diagprefix : str (optional)
+        The prefix used in the diagnostics files.
+    predindex : str (optional)
+        Used to name CSVV prednames. Often this takes the value "-poly-", so the terms are `prefix`, `prefix-poly-2`, etc.
+    weathernames : seq of str (optional)
+        The names as identified in the weather Dataset.
+    betalimits : dict of str -> float
+        Requires that all calculated betas are clipped to these limits.
+    allow_raising : bool
+        If the required weather cannot be found, can we calculate the terms on-the-fly, or should we produce an error?
+    ignore_units : bool
+        If the units do not match, should we produce an error?
+    """
     def __init__(self, indepunits, depenunit, prefix, order, csvv, diagprefix='coeff-', predinfix='', weathernames=None, betalimits={}, allow_raising=False, ignore_units=False):
         self.order = order
         prednames = [prefix + predinfix + str(ii) if ii > 1 else prefix for ii in range(1, order+1)]
@@ -16,6 +57,24 @@ class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
         self.predinfix = predinfix
 
     def get_curve(self, region, year, covariates={}, recorddiag=True, **kwargs):
+        """
+        Parameters
+        ----------
+        regions : str
+            Target region.
+        year : int
+            Target year.
+        covariates : dict
+            Input covariates. Dictionary keys are variable name (str) with float values.
+        recorddiag : bool
+            Should a record be sent to ``diagnostic``?
+        kwargs :
+            Unused.
+
+        Returns
+        -------
+        openest.generate.smart_curve.ZeroInterceptPolynomialCurve
+        """
         coefficients = self.get_coefficients(covariates)
         yy = [coefficients[predname] for predname in self.prednames]
 
@@ -92,6 +151,25 @@ class PolynomialCurveGenerator(curvegen.CSVVCurveGenerator):
                                         allow_raising=self.allow_raising)
 
 class CubicSplineCurveGenerator(curvegen.CSVVCurveGenerator):
+    """A CurveGenerator for a series of terms representing a restricted cubic spline.
+
+    Currently, the code does not support the use of pre-computed terms.
+
+    Parameters
+    ----------
+    indepunits : seq of str
+        This is generally formed of a unit, followed by unit^3 for the remaining terms.
+    depenunit : str
+        The unit of the dependent variable.
+    prefix : str
+        The prefix used in the CSVV for all terms.
+    knots : seq of float
+        The location of the knots in the cubic spline
+    csvv : csvv dictionary
+        Source for all parameter calculations.
+    betalimits : dict of str -> float
+        Requires that all calculated betas are clipped to these limits.
+    """
     def __init__(self, indepunits, depenunit, prefix, knots, csvv, betalimits={}):
         self.knots = knots
         prednames = [prefix + str(ii) for ii in range(len(knots)-1)]
@@ -110,3 +188,39 @@ class CubicSplineCurveGenerator(curvegen.CSVVCurveGenerator):
                     diagnostic.record(region, year, predname, coefficients[predname])
 
         return CubicSplineCurve(self.knots, yy)
+
+class BinnedStepCurveGenerator(curvegen.CSVVCurveGenerator):
+    """A CurveGenerator for a series of cumulative bins.
+
+    Currently, the code does not support the use of pre-computed terms.
+
+    Parameters
+    ----------
+    xxlimits : seq of float
+        The extremes and intermediate points for the bins; typically starts with -np.inf, ends with np.inf
+    indepunits : list of 1 str
+        The full set of units will be duplicates of this unit.
+    depenunit : str
+        The unit of the dependent variable.
+    csvv : csvv dictionary
+        Source for all parameter calculations.
+    """
+    def __init__(self, xxlimits, indepunits, depenunit, csvv):
+        self.xxlimits = xxlimits
+        prednames = csvvfile.binnames(xxlimits, 'bintas')
+        super(BinnedStepCurveGenerator, self).__init__(prednames, indepunits, depenunit, csvv)
+        self.min_betas = {}
+
+    def get_curve(self, region, year, covariates={}):
+        coefficients = self.get_coefficients(covariates)
+        yy = [coefficients[predname] for predname in self.prednames]
+
+        min_beta = self.min_betas.get(region, None)
+
+        if min_beta is None:
+            self.min_betas[region] = np.minimum(0, np.nanmin(np.array(yy)[4:-2]))
+        else:
+            yy = np.maximum(min_beta, yy)
+
+        return StepCurve(self.xxlimits, yy)
+

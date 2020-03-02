@@ -1,3 +1,5 @@
+"""Helper functions for working with NetCDF files."""
+
 import os, re
 import numpy as np
 from netCDF4 import Dataset

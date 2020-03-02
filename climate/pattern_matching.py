@@ -1,3 +1,5 @@
+"""Materials that support the interpreting of weather configurations."""
+
 rcp_models = {
     'rcp45': {
         'surrogate_CanESM2_89': 'CanESM2',

@@ -31,7 +31,7 @@ def main(config, runid):
     targetdir = None # The current targetdir
 
     ### Mode-specific iterators, yielding target directories to process
-    
+
     def iterate_median():
         for clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in loadmodels.random_order(mod.get_bundle_iterator(config), config):
             pvals = pvalses.ConstantPvals(.5)
@@ -39,11 +39,16 @@ def main(config, runid):
 
     def iterate_montecarlo():
         # How many monte carlo iterations do we do?
-        mc_n = config.get('mc_n')
+        mc_n = config.get('mc-n', config.get('mc_n'))
         if mc_n is None:
             mc_batch_iter = itertools.count()
         else:
             mc_batch_iter = range(int(mc_n))
+
+        # If `only-batch-number` is in run config, overrides `mc_n`.
+        only_batch_number = config.get('only-batch-number')
+        if only_batch_number is not None:
+            mc_batch_iter = [int(only_batch_number)]
 
         for batch in mc_batch_iter:
             for clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in loadmodels.random_order(mod.get_bundle_iterator(config), config):
@@ -77,7 +82,7 @@ def main(config, runid):
         yield singledir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
 
     ### Callback functions, for recording internal data
-        
+
     def splinepush_callback(region, year, application, get_predictors, model):
         if 'mortality' in config['module']:
             covars = ['climtas', 'loggdppc', 'logpopop']
@@ -153,14 +158,14 @@ def main(config, runid):
             diagnostic.record(region, year, 'population', economicmodel.get_population_year(region, year))
 
     # Select the iterator based on the mode
-            
+
     mode_iterators = {'median': iterate_median, 'montecarlo': iterate_montecarlo, 'lincom': iterate_single, 'single': iterate_single, 'writesplines': iterate_single, 'writepolys': iterate_single, 'writecalcs': iterate_single, 'profile': iterate_nosideeffects, 'diagnostic': iterate_nosideeffects}
 
     assert 'mode' in config, "Configuration does not contain 'mode'."
     assert config['mode'] in mode_iterators.keys()
 
     # Load the module for setting up the calculation
-    
+
     start = timing.process_time()
 
     if config['module'][-4:] == '.yml':
@@ -175,7 +180,7 @@ def main(config, runid):
     mod.preload()
 
     # Loop through target directories
-    
+
     for batchdir, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in mode_iterators[config['mode']]():
         # Check if we should process this directory
         if batchdir is not None:
@@ -224,7 +229,7 @@ def main(config, runid):
             pvalses.make_pval_file(targetdir, pvals)
 
         # Produce the results!
-        
+
         if config['mode'] == 'writesplines':
             mod.produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callback=splinepush_callback, diagnosefile=os.path.join(targetdir, shortmodule + "-allcalcs.csv"))
         elif config['mode'] in ['writepolys', 'lincom']:
@@ -249,8 +254,8 @@ def main(config, runid):
             mod.produce(targetdir, weatherbundle, economicmodel, pvals, config)
 
         # Also produce historical climate results
-        
-        if config.get('do_historical', True) and (config['mode'] not in ['writesplines', 'writepolys', 'writecalcs', 'diagnostic'] or config.get('do_historical', False)):
+
+        if config['mode'] not in ['writesplines', 'writepolys', 'writecalcs', 'diagnostic'] or config.get('do_historical', False):
             # Generate historical baseline
             print "Historical"
             historybundle = weather.HistoricalWeatherBundle.make_historical(weatherbundle, None if config['mode'] == 'median' else pvals['histclim'].get_seed('yearorder'))
@@ -259,7 +264,7 @@ def main(config, runid):
             mod.produce(targetdir, historybundle, economicmodel, pvals, config, suffix='-histclim')
 
         # Clean up
-        
+
         pvalses.make_pval_file(targetdir, pvals)
 
         statman.release(targetdir, "Generated")
