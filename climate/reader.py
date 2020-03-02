@@ -218,7 +218,7 @@ class RegionReorderWeatherReader(WeatherReader):
 
     def reorder_regions(self, ds):
         newvars = {}
-        for var in ds:
+        for var in ds.variables:
             if var in [self.timevar, 'region']:
                 continue
             #newds[var] = ds[var] # Automatically reordered
