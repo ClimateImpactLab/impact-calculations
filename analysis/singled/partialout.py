@@ -19,14 +19,14 @@ for pp in range(1, len(covars)):
 
 with open(allpreds, 'r') as predfp:
     predreader = csv.reader(predfp)
-    predheader = predreader.next()
+    predheader = next(predreader)
 
     for predrow in predreader:
         region = predrow[0]
         year = int(predrow[1])
         model = predrow[2]
 
-        preds = map(float, predrow[3:])
+        preds = list(map(float, predrow[3:]))
 
         if model not in savepreds:
             savepreds[model] = {}
@@ -38,7 +38,7 @@ with open(allpreds, 'r') as predfp:
 
 with open(allbins, 'r') as binfp:
     binreader = csv.reader(binfp)
-    binheader = binreader.next()
+    binheader = next(binreader)
 
     current_model = None
     baselines = {} # region => [bins]
@@ -49,15 +49,15 @@ with open(allbins, 'r') as binfp:
         year = int(binrow[1])
 
         if model != current_model:
-            print "New model:", model
+            print(("New model:", model))
             current_model = model
             baselines = {}
 
         if year == 1981:
-            baselines[region] = map(float, binrow[4:])
+            baselines[region] = list(map(float, binrow[4:]))
             continue
 
-        print year
+        print(year)
 
         csvv = csvvfile.read(os.path.join(csvvroot, model + '.csvv'))
         partialsum = np.zeros(11)
@@ -80,7 +80,7 @@ with open(allbins, 'r') as binfp:
                 partials = gammas * (newpreds - oldpreds)
                 partialsum += partials
 
-                writer.writerow(binrow[0:3] + list(np.array(filter(lambda v: not np.isnan(v), baselines[region])) + partials))
+                writer.writerow(binrow[0:3] + list(np.array([v for v in baselines[region] if not np.isnan(v)]) + partials))
 
         # mismatches = np.logical_not(np.isclose(np.array(filter(lambda v: not np.isnan(v), baselines[region])) + partialsum, filter(lambda v: not np.isnan(v), map(float, binrow[4:]))))
         # recorded = np.array(filter(lambda v: not np.isnan(v), map(float, binrow[4:])))[mismatches]

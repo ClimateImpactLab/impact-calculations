@@ -6,11 +6,11 @@ from climate.dailyreader import *
 class TestWeatherReader(unittest.TestCase):
     def test_bincompare(self):
         # Check the first month of daily values
-        print "Reading from the daily data files."
+        print("Reading from the daily data files.")
         template1 = "tests/testdata/tas_day_aggregated_historical_r1i1p1_CCSM4_%d.nc"
         weatherreader1 = DailyWeatherReader(template1, 1981, 'SHAPENUM', 'tas')
 
-        print weatherreader1.version, weatherreader1.units
+        print(weatherreader1.version, weatherreader1.units)
         self.assertEqual(weatherreader1.units, "Celsius")
 
         self.assertEqual(len(weatherreader1.get_dimension()), 1)
@@ -18,11 +18,11 @@ class TestWeatherReader(unittest.TestCase):
         alltimes1 = weatherreader1.get_times()
 
         # Compare it to the first month of binned values
-        print "Reading from the binned data files."
+        print("Reading from the binned data files.")
         template2 = "tests/testdata/tas_Bindays_aggregated_historical_r1i1p1_CCSM4_%d.nc"
         weatherreader2 = YearlyBinnedWeatherReader(template2, 1981, 'SHAPENUM', 'DayNumber', bindim='bins', binvariable='bin_edges')
 
-        print weatherreader2.version, weatherreader2.units
+        print(weatherreader2.version, weatherreader2.units)
         self.assertEqual(weatherreader2.units, "days")
 
         self.assertEqual(len(weatherreader2.get_dimension()), 12)
@@ -32,8 +32,8 @@ class TestWeatherReader(unittest.TestCase):
         iterator1 = weatherreader1.read_iterator()
         iterator2 = weatherreader2.read_iterator()
         while alltimes1 or alltimes2:
-            ds1 = iterator1.next()
-            ds2 = iterator2.next()
+            ds1 = next(iterator1)
+            ds2 = next(iterator2)
 
             yyyyddd1 = ds1.time.dt.year * 1000 + ds1.time.dt.dayofyear
             testing.assert_array_equal(alltimes1[:len(ds1.time)], yyyyddd1)

@@ -17,9 +17,9 @@ def get_weather(weathertemplate, years, shapenum, show_all_years=[], variable='t
             data = data[subset].values
 
         if year in show_all_years:
-            print str(year) + ': ' + ','.join(map(str, data))
+            print((str(year) + ': ' + ','.join(map(str, data))))
         else:
-            print str(year) + ': ' + ','.join(map(str, data[:10])) + '...'
+            print((str(year) + ': ' + ','.join(map(str, data[:10])) + '...'))
         weather[year] = data
 
     return weather

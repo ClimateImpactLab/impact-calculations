@@ -280,7 +280,7 @@ class SpaceTimeSpatialOnlyData(SpaceTimeBipartiteData):
         {region-key: value} mapping.
     """
     def __init__(self, mapping):
-        super(SpaceTimeSpatialOnlyData, self).__init__(-np.inf, np.inf, mapping.keys())
+        super(SpaceTimeSpatialOnlyData, self).__init__(-np.inf, np.inf, list(mapping.keys()))
         self.mapping = mapping
 
     def get_time(self, region):

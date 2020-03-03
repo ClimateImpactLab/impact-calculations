@@ -21,7 +21,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
                                                           weatherbundle.model, 'hotdd_agg')
     assert reader_hotdd is not None, "Cannot find corresponding weather to %s, %s, %s, %s" % (weatherbundle.scenario, 'Degreedays_tasmax', weatherbundle.model, 'hotdd_agg')
 
-    variables = ['tasmax'] + map(lambda p: 'tasmax%d' % p, range(2, 5))
+    variables = ['tasmax'] + ['tasmax%d' % p for p in range(2, 5)]
     
     predgen = covariates.CombinedCovariator([covariates.TranslateCovariator(
         covariates.YearlyWeatherCovariator(reader_hotdd, weatherbundle.regions, 2015, weatherbundle.is_historical(), config=config.get('climcovar', {})),
@@ -38,7 +38,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     csvvfile.collapse_bang(csvv, qvals.get_seed('csvv'))
 
     order = len(set(csvv['prednames'])) - 1 # -1 because of belowzero
-    print "Order", order
+    print("Order", order)
 
     # We calculate this by splitting the equation into a straight polynomial, and -gamma_H1 27 H - gamma_H2 27^2 H
     def shift_curvegen(poly_curvegen, *covars):
@@ -82,12 +82,12 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
         maxtemp = region_maxs[region]
 
         if maxtemp < 27:
-            return minpoly.findpolymin([0] + map(lambda x: -x, piecewise_curve.curves[0].curve.coeffs), mintemp, maxtemp)
+            return minpoly.findpolymin([0] + [-x for x in piecewise_curve.curves[0].curve.coeffs], mintemp, maxtemp)
         if mintemp > 27:
-            return minpoly.findpolymin([0] + map(lambda x: -x, piecewise_curve.curves[1].curve.coeffs), mintemp, maxtemp)
+            return minpoly.findpolymin([0] + [-x for x in piecewise_curve.curves[1].curve.coeffs], mintemp, maxtemp)
         
-        maxleft = minpoly.findpolymin([0] + map(lambda x: -x, piecewise_curve.curves[0].curve.coeffs), mintemp, 27)
-        maxright = minpoly.findpolymin([0] + map(lambda x: -x, piecewise_curve.curves[1].curve.coeffs), 27, maxtemp)
+        maxleft = minpoly.findpolymin([0] + [-x for x in piecewise_curve.curves[0].curve.coeffs], mintemp, 27)
+        maxright = minpoly.findpolymin([0] + [-x for x in piecewise_curve.curves[1].curve.coeffs], 27, maxtemp)
         maxvalues = [piecewise_curve(maxleft), piecewise_curve(maxright)]
         if maxvalues[0] <= maxvalues[1]:
             return maxleft

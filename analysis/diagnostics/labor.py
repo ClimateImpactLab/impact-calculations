@@ -14,10 +14,10 @@ lib.show_header("The Covariates File (allpreds):")
 preds = lib.get_excerpt(os.path.join(dir, "labor-allpreds.csv"), 3, region, [2000, futureyear-1, futureyear])
 
 lib.show_header("The Predictors File (allcalcs):")
-calcs = lib.get_excerpt(os.path.join(dir, "labor-allcalcs-%s.csv" % model), 2, region, range(2000, 2011) + [futureyear-1, futureyear], hasmodel=False)
+calcs = lib.get_excerpt(os.path.join(dir, "labor-allcalcs-%s.csv" % model), 2, region, list(range(2000, 2011)) + [futureyear-1, futureyear], hasmodel=False)
 
 lib.show_header("Weather:")
-weather = lib.get_weather(weathertemplate, [1981] + range(2001, 2011) + [futureyear-1, futureyear], region, variable='tasmax')
+weather = lib.get_weather(weathertemplate, [1981] + list(range(2001, 2011)) + [futureyear-1, futureyear], region, variable='tasmax')
 
 lib.show_header("CSVV:")
 csvv = lib.get_csvv("/shares/gcp/social/parameters/labor/csvvs/%s.csvv" % csvvmodel)

@@ -26,26 +26,26 @@ lib.show_header("The Result File (allcoeffs):")
 outputs = lib.get_outputs(os.path.join(dir, onlymodel + ".nc4"), [2009, futureyear-1, futureyear], region)
 
 lib.show_header("The Predictors File (allcalcs):")
-calcs = lib.get_excerpt(os.path.join(dir, module + "-allcalcs-" + onlymodel + ".csv"), 2, region, range(2000, 2011) + [futureyear-1, futureyear], hasmodel=False)
+calcs = lib.get_excerpt(os.path.join(dir, module + "-allcalcs-" + onlymodel + ".csv"), 2, region, list(range(2000, 2011)) + [futureyear-1, futureyear], hasmodel=False)
 
 if not skip_clipping:
     lib.show_header("The Minimum Temperature Point File:")
     shapenum = 0
     with open(os.path.join(dir, onlymodel + "-polymins.csv"), 'r') as fp:
         reader = csv.reader(fp)
-        header = reader.next()
-        print ','.join(header)
+        header = next(reader)
+        print((','.join(header)))
         for row in reader:
             if row[0] == region:
-                print ','.join(row)
-                mintemps = {'header': header[1:], '2009': map(float, row[1:])}
+                print((','.join(row)))
+                mintemps = {'header': header[1:], '2009': list(map(float, row[1:]))}
                 break
             shapenum += 1
 else:
     shapenum = 0
     with open(os.path.join("/shares/gcp/regions/hierarchy-flat.csv"), 'r') as fp:
         reader = csv.reader(fp)
-        header = reader.next()
+        header = next(reader)
         for row in reader:
             if row[0] == region:
                 shapenum = int(row[header.index('agglomid')]) - 1
@@ -55,7 +55,7 @@ lib.show_header("CSVV:")
 csvv = lib.get_csvv(csvvpath, *csvvargs)
 
 lib.show_header("Weather:")
-weather = lib.get_weather(weathertemplate, range(2001, 2011) + [2049, 2050], shapenum)
+weather = lib.get_weather(weathertemplate, list(range(2001, 2011)) + [2049, 2050], shapenum)
 
 lib.show_header("Outputs:")
 outputs = lib.get_outputs(os.path.join(dir, onlymodel + '.nc4'), [2049, 2050], shapenum if not onlyreg else 0)
@@ -72,7 +72,7 @@ coefflist = ['tas'] + ['tas%d' % ii for ii in range(2, polypower + 1)]
 if not skip_clipping:
     lib.show_header("Calc. of minimum point temperature (%f reported)" % lib.excind(mintemps, 2009, 'analytic'))
     curve = ZeroInterceptPolynomialCurve([-np.inf, np.inf], [lib.excind(calcs, 2000, coeff) for coeff in coefflist])
-    print ', '.join(["%f: %f" % (temp, curve(temp)) for temp in np.arange(10, 26)])
+    print((', '.join(["%f: %f" % (temp, curve(temp)) for temp in np.arange(10, 26)])))
 
 def get_preds(year):
     nonclipped = curve(weather[year]) > curve(lib.excind(mintemps, 2009, 'analytic'))

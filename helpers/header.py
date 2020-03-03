@@ -6,9 +6,9 @@ from collections import OrderedDict
 
 
 try:
-  unicode
+  str
 except NameError:
-  unicode = str # python3
+  str = str # python3
 
 endheader = "##########\n"
 endfinder = re.compile(r'^#{5,}[\t\s\n\r,\'\"]*$')
@@ -49,11 +49,11 @@ description can be many lines or missing."""
         if isinstance(sources, list):
             fp.write('{p}Sources:\n{p}{i}{s}\n'.format(p=prefix, i=indent, s=('\n'+prefix+indent).join(sources)))
         elif isinstance(sources, dict):
-            fp.write('{p}Sources:\n{p}{i}{s}\n'.format(p=prefix, i=indent, s=('\n'+prefix+indent).join(['{}: {}'.format(k,v) for k, v in sources.items()])))
+            fp.write('{p}Sources:\n{p}{i}{s}\n'.format(p=prefix, i=indent, s=('\n'+prefix+indent).join(['{}: {}'.format(k,v) for k, v in list(sources.items())])))
         else:
             fp.write('{p}Sources:\n{p}{i}{s}\n'.format(p=prefix, i=indent, s=str(sources)))
 
-    for kw, args in kwargs.items():
+    for kw, args in list(kwargs.items()):
         fp.write('{}{}:\n{}{}\n'.format(prefix, kw.title(), prefix+indent, args if isinstance(args, str) else ('\n'+prefix+indent).join(args)))
 
     if description:
@@ -106,7 +106,7 @@ def parse(fp, metafile=False):
 
     i = 0
 
-    if isinstance(fp, str) or isinstance(fp, unicode):
+    if isinstance(fp, str) or isinstance(fp, str):
         with open(fp, 'r') as fp2:
             return parse(fp2, metafile)
 
@@ -153,7 +153,7 @@ def parse(fp, metafile=False):
         splitline = linesplitter(line)
         if len(splitline) > 2:
             splitline = [splitline[0], splitline[-1]]
-        chunks = map(clean, splitline)
+        chunks = list(map(clean, splitline))
         chunks = tuple(chunks)
 
         if indented:
@@ -210,7 +210,7 @@ if __name__ == '__main__':
     def rlinput(prompt, prefill=''):
         readline.set_startup_hook(lambda: readline.insert_text(prefill))
         try:
-            return raw_input(prompt)
+            return input(prompt)
         finally:
             readline.set_startup_hook()
 
@@ -218,10 +218,10 @@ if __name__ == '__main__':
 
     if filename_in[-4:].lower() == '.fgh':
         filename_out = filename_in
-        print("Output file: ", filename_out)
+        print(("Output file: ", filename_out))
         filename_in = None
     else:
-        print("Input File: ", filename_in)
+        print(("Input File: ", filename_in))
         filename_out = rlinput("Output File: ", filename_in)
 
     oneline = rlinput("One line description: ")

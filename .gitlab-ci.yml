@@ -7,12 +7,10 @@ test:
   image: continuumio/anaconda:latest
   before_script:
     - conda info -a
-    - conda env create ClimateImpactLab/risingverse-py27
-    - source activate risingverse-py27
-    - pip install git+https://github.com/ClimateImpactLab/open-estimate.git
-    - pip install git+https://github.com/ClimateImpactLab/impact-common.git
+    - conda env create ClimateImpactLab/risingverse
+    - source activate risingverse
   script:
-  - source activate risingverse-py27
+  - source activate risingverse
   - pytest -v -m "not imperics_shareddir"
 
 deploy:

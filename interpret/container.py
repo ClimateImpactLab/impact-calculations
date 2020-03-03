@@ -12,7 +12,7 @@ def preload():
 
 def get_bundle_iterator(config):
     if 'timerate' not in config:
-        print "Warning: 'timerate' not found in the configuration; assuming daily."
+        print("Warning: 'timerate' not found in the configuration; assuming daily.")
     timerate = config.get('timerate', 'day')
     discoverers = []
     for variable in config['climate']:
@@ -23,7 +23,7 @@ def get_bundle_iterator(config):
 def check_doit(targetdir, basename, suffix, config, deletebad=False):
     filepath = os.path.join(targetdir, basename + suffix + '.nc4')
     if not os.path.exists(filepath):
-        print "REDO: Cannot find", filepath
+        print("REDO: Cannot find", filepath)
         return True
 
     # Check if has 100 valid years
@@ -31,7 +31,7 @@ def check_doit(targetdir, basename, suffix, config, deletebad=False):
     if 'filter-region' in config:
         checkargs['regioncount'] = 1
     if not checks.check_result_100years(filepath, **checkargs):
-        print "REDO: Incomplete", basename, suffix
+        print("REDO: Incomplete", basename, suffix)
         if deletebad:
             os.remove(filepath)
         return True
@@ -80,29 +80,30 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
         if profile:
             return
 
-def produce_csvv(basename, csvv, module, specconf, targetdir, weatherbundle, economicmodel, pvals, config, push_callback, suffix, profile, diagnosefile):
+def csvv_organization(specconf):
+    """Interpret the `csvv-organization` option in the configuration to split a CSVV up into pieces."""
     if specconf.get('csvv-organization', 'normal') == 'three-ages':
-        print "Splitting into three ages."
-        specconf_age = copy.copy(specconf)
-        specconf_age['csvv-organization'] = 'normal'
-        csvv = csvvfile.read(csvv)
-        produce_csvv(basename + '-young', csvvfile.subset(csvv, slice(0, len(csvv['gamma']) / 3)), module, specconf_age,
-                     targetdir, weatherbundle, economicmodel, pvals, config, push_callback, suffix, profile, diagnosefile)
-        produce_csvv(basename + '-older', csvvfile.subset(csvv, slice(len(csvv['gamma']) / 3, 2 * len(csvv['gamma']) / 3)), module, specconf_age,
-                     targetdir, weatherbundle, economicmodel, pvals, config, push_callback, suffix, profile, diagnosefile)
-        produce_csvv(basename + '-oldest', csvvfile.subset(csvv, slice(2 * len(csvv['gamma']) / 3, len(csvv['gamma']))), module, specconf_age,
-                     targetdir, weatherbundle, economicmodel, pvals, config, push_callback, suffix, profile, diagnosefile)
-        return
+        print("Splitting into three ages.")
+        return ["young", "older", "oldest"]
     elif specconf.get('csvv-organization', 'normal') == 'lowhigh':
-        print "Splitting into two risk groups."
-        specconf_age = copy.copy(specconf)
-        specconf_age['csvv-organization'] = 'normal'
+        print("Splitting into two risk groups.")
+        return ["lowrisk", "highrisk"]
+    else:
+        return None
+        
+def produce_csvv(basename, csvv, module, specconf, targetdir, weatherbundle, economicmodel, pvals, config, push_callback, suffix, profile, diagnosefile):
+    csvv_parts = csvv_organization(specconf)
+    if csvv_parts is not None:
+        specconf_part = copy.copy(specconf)
+        specconf_part['csvv-organization'] = 'normal'
         csvv = csvvfile.read(csvv)
-        n = len(csvv['gamma'])
-        produce_csvv(basename + '-lowrisk', csvvfile.subset(csvv, slice(0, n / 2)), module, specconf_age,
-                     targetdir, weatherbundle, economicmodel, pvals, config, push_callback, suffix, profile, diagnosefile)
-        produce_csvv(basename + '-highrisk', csvvfile.subset(csvv, slice(n / 2, n)), module, specconf_age,
-                     targetdir, weatherbundle, economicmodel, pvals, config, push_callback, suffix, profile, diagnosefile)
+        n_csvv = len(csvv['gamma'])
+        n_parts = len(csvv_parts)
+        for partii in range(n_parts):
+            produce_csvv(basename + '-' + csvv_parts[partii],
+                         csvvfile.subset(csvv, slice(int(partii * n_csvv / n_parts), int((partii + 1) * n_csvv / n_parts))),
+                         module, specconf_part, targetdir, weatherbundle, economicmodel, pvals, config, push_callback, suffix,
+                         profile, diagnosefile)
         return
 
     deltamethod_vcv = False
@@ -113,7 +114,7 @@ def produce_csvv(basename, csvv, module, specconf, targetdir, weatherbundle, eco
         
     # Full Adaptation
     if check_doit(targetdir, basename, suffix, config):
-        print "Full Adaptation"
+        print("Full Adaptation")
         calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals[basename], specconf=specconf, config=config, standard=False)
 
         effectset.generate(targetdir, basename + suffix, weatherbundle, calculation, specconf['description'] + ", with interpolation and adaptation through interpolation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, basename), diagnosefile=diagnosefile.replace('.csv', '-' + basename + '.csv') if diagnosefile else False, deltamethod_vcv=deltamethod_vcv)
@@ -126,11 +127,11 @@ def produce_csvv(basename, csvv, module, specconf, targetdir, weatherbundle, eco
         pvals[basename].lock()
 
         if check_doit(targetdir, basename + "-noadapt", suffix, config):
-            print "No adaptation"
+            print("No adaptation")
             calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals[basename], specconf=specconf, farmer='noadapt', config=config, standard=False)
             effectset.generate(targetdir, basename + "-noadapt" + suffix, weatherbundle, calculation, specconf['description'] + ", with no adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, basename), deltamethod_vcv=deltamethod_vcv)
 
         if check_doit(targetdir, basename + "-incadapt", suffix, config):
-            print "Income-only adaptation"
+            print("Income-only adaptation")
             calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals[basename], specconf=specconf, farmer='incadapt', config=config, standard=False)
             effectset.generate(targetdir, basename + "-incadapt" + suffix, weatherbundle, calculation, specconf['description'] + ", with interpolation and only environmental adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, basename), deltamethod_vcv=deltamethod_vcv)

@@ -29,7 +29,7 @@ dependencies = [has_gcp_data, has_gcp_code, is_gcp_generable]
 aggregate_task = LambdaTask(dependencies, lambda server: server.start_process("python -m generate.aggregate " + server.roots['output']))
 
 for server, name in servers.all_osdc():
-    print name
+    print(name)
     server.connect()
 
     server.verbose = True

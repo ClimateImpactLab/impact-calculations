@@ -4,10 +4,10 @@ import os
 import numpy as np
 import xarray as xr
 import pandas as pd
-import netcdfs
+from . import netcdfs
 from openest.generate.fast_dataset import FastDataset
 from impactcommon.math import gddkdd
-from reader import YearlySplitWeatherReader, ConversionWeatherReader
+from .reader import YearlySplitWeatherReader, ConversionWeatherReader
 
 class DailyWeatherReader(YearlySplitWeatherReader):
     """Exposes daily weather data, split into yearly files."""
@@ -55,7 +55,7 @@ class DailyWeatherReader(YearlySplitWeatherReader):
             ds.load() # Collect all data now
             return ds
         except Exception as ex:
-            print "Failed to prepare %s" % filename
+            print(("Failed to prepare %s" % filename))
             raise ex
 
     @staticmethod
@@ -78,7 +78,7 @@ class MonthlyDimensionedWeatherReader(YearlySplitWeatherReader):
         self.dim = dim
         self.regions = netcdfs.readncdf_single(self.file_for_year(year1), regionvar, allow_missing=True)
         if self.regions is None:
-            print "WARNING: Cannot find %s variable in %s." % (regionvar, self.file_for_year(year1))
+            print(("WARNING: Cannot find %s variable in %s." % (regionvar, self.file_for_year(year1))))
         if dimvariable is None:
             dimvariable = dim
         self.dim_values = netcdfs.readncdf_single(self.file_for_year(year1), dimvariable)
