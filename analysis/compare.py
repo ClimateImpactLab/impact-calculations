@@ -13,11 +13,15 @@ def compare2ncdf(file1, file2):
     """
     try:
         ncd1 = Dataset(file1, 'r', format='NETCDF4')
-    except:
+    except Exception as ex:
+        print("Exception but returning:")
+        print(ex)
         return (5, file1, "", "", "")
     try:
         ncd2 = Dataset(file2, 'r', format='NETCDF4')
-    except:
+    except Exception as ex:
+        print("Exception but returning:")
+        print(ex)
         return (5, file2, "", "", "")
 
     dimensions = set(ncd1.variables) | set(ncd2.variables)
@@ -63,9 +67,9 @@ def netCDFComparerFeeder(basedir1, basedir2, targetFileName):
         print("Missing files:")
         for diffFile in diffList:
             if diffFile in dir1:
-                print("%s missing: %s" % (basedir1, diffFile))
+                print(("%s missing: %s" % (basedir1, diffFile)))
             else:
-                print("%s missing: %s" % (basedir2, diffFile))
+                print(("%s missing: %s" % (basedir2, diffFile)))
 
     missingVar = []
     missingYear = []
@@ -85,19 +89,19 @@ def netCDFComparerFeeder(basedir1, basedir2, targetFileName):
     if missingVar:
         print("Files Missing Vars:")
         for filex in missingVar:
-            print("%s missing: %s" % (filex[0], filex[1]))
+            print(("%s missing: %s" % (filex[0], filex[1])))
     if missingYear:
         print("Vars Missing Year (Check both basedirs):")
         for filex in missingYear:
-            print("%s has weird year counts for %s" % (filex[0], filex[1]))
+            print(("%s has weird year counts for %s" % (filex[0], filex[1])))
     if missingRegn:
         print("Vars Missing Region:")
         for filex in missingRegn:
-            print("%s has weird region counts for year %s, %s" % (filex[0], filex[2], filex[1]))
+            print(("%s has weird region counts for year %s, %s" % (filex[0], filex[2], filex[1])))
     if diffData:
         print("Files are different:")
         for filex in missingRegn:
-            print("Data of %s is different for %s, year %s, region %s" % (filex[0], filex[1], filex[2], filex[3]))
+            print(("Data of %s is different for %s, year %s, region %s" % (filex[0], filex[1], filex[2], filex[3])))
     return 
 
 

@@ -14,7 +14,7 @@ import os, glob
 import numpy as np
 import xarray as xr
 import pandas as pd
-import netcdfs
+from . import netcdfs
 from datastore import irregions
 
 class WeatherReader(object):
@@ -112,8 +112,8 @@ class YearlySplitWeatherReader(WeatherReader):
         if len(options) == 0:
             return template.replace("%v", "unknown") % (year)
 
-        options = map(lambda s: os.path.splitext(os.path.basename(s))[0], options)
-        options.sort(key=lambda s: map(int, s.split('.')))
+        options = [os.path.splitext(os.path.basename(s))[0] for s in options]
+        options.sort(key=lambda s: list(map(int, s.split('.'))))
         return template.replace("%v", options[-1]) % (year)
 
     @staticmethod
@@ -140,7 +140,7 @@ class ConversionWeatherReader(WeatherReader):
         """Returns a list of all regions available."""
         ds = next(self.reader.read_iterator())
         ds2 = self.ds_conversion(ds)
-        return ds2.region
+        return ds2["region"].values.tolist()
 
     def get_dimension(self):
         """Returns a list of length K, describing the number of elements
@@ -182,10 +182,15 @@ class RegionReorderWeatherReader(WeatherReader):
             mapping[''.join(observed_regions[ii])] = ii
             
         self.reorder = np.array([mapping[region] for region in desired_regions])
+        self.reordered_regions = desired_regions
 
     def get_times(self):
         """Returns a list of all times available."""
         return self.reader.get_times()
+
+    def get_regions(self):
+        """Returns a list of all regions available."""
+        return self.reordered_regions
 
     def get_years(self):
         return self.reader.get_years()
@@ -213,7 +218,7 @@ class RegionReorderWeatherReader(WeatherReader):
 
     def reorder_regions(self, ds):
         newvars = {}
-        for var in ds:
+        for var in ds.variables:
             if var in [self.timevar, 'region']:
                 continue
             #newds[var] = ds[var] # Automatically reordered
@@ -235,7 +240,7 @@ class RegionReorderWeatherReader(WeatherReader):
                     indices[tindex] = self.reorder
                     newvars[var] = (ds[var].dims, ds[var].values[tuple(indices)])
             except Exception as ex:
-                print "Failed to reorder %s for %s" % (var, self.reader)
+                print(("Failed to reorder %s for %s" % (var, self.reader)))
                 raise
 
         newds = xr.Dataset(newvars, coords={self.timevar: ds[self.timevar], 'region': ds.region[self.reorder]})
@@ -264,11 +269,11 @@ class RenameReader(WeatherReader):
         describing the weather in each region and time period.
         """
         if callable(self.renamer):
-            return map(self.renamer, self.reader.get_dimension())
+            return list(map(self.renamer, self.reader.get_dimension()))
         elif isinstance(self.renamer, str):
             return [self.renamer]
         else:
-            return self.renamer.keys()
+            return list(self.renamer.keys())
 
     def read_iterator(self):
         """Yields an xarray Dataset in whatever chunks are convenient.
@@ -312,7 +317,7 @@ class HistoricalCycleReader(WeatherReader):
         """Returns a list of length K, describing the number of elements
         describing the weather in each region and time period.
         """
-        return map(lambda x: x + '.histclim', self.futurereader.get_dimension())
+        return [x + '.histclim' for x in self.futurereader.get_dimension()]
 
     def read_iterator(self):
         """Yields an xarray Dataset in whatever chunks are convenient.
@@ -341,7 +346,7 @@ class HistoricalCycleReader(WeatherReader):
 class MapReader(WeatherReader):
     """Applies a function to all combinations of component readers."""
     def __init__(self, name, unit, func, *readers):
-        super(MapReader, self).__init__(max(map(lambda reader: reader.version, readers)),
+        super(MapReader, self).__init__(max([reader.version for reader in readers]),
                                         unit, readers[0].time_units)
         self.name = name
         self.func = func
@@ -361,9 +366,9 @@ class MapReader(WeatherReader):
 
     def read_iterator(self):
         """Yields an xarray Dataset in whatever chunks are convenient."""
-        iterators = map(lambda reader: reader.read_iterator(), self.readers)
+        iterators = [reader.read_iterator() for reader in self.readers]
         for ds0 in iterators[0]:
-            dsn = map(lambda iterator: iterator.next(), iterators[1:])
+            dsn = [next(iterator) for iterator in iterators[1:]]
             allds = [ds0] + dsn
             yield self.prepare_ds(ds0, allds)
 

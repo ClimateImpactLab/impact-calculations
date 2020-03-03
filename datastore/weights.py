@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from impactlab_tools.utils import files
 from impactcommon.exogenous_economy import gdppc
-import population, agecohorts, spacetime
+from . import population, agecohorts, spacetime, irregions
 
 ## Regular expressions to interpret configuration options
 RE_FLOATING = r"[-+]?[0-9]*\.?[0-9]*" # matches floating point numbers, like 3.14
@@ -114,6 +114,10 @@ def interpret_halfweight(weighting):
         return agecohorts.SpaceTimeBipartiteData(1981, 2100, None)
     if weighting == 'income':
         return spacetime.SpaceTimeBipartiteFromProviderData(gdppc.GDPpcProvider, 2000, 2100, None)
+    if weighting == 'area':
+        dependencies = []
+        areas = irregions.load_region_attr("regions/region-attributes-geom.csv", "hierid", "area", dependencies)
+        return spacetime.SpaceTimeSpatialOnlyData(areas)
 
     raise ValueError("Unknown weighting.")
 
@@ -143,7 +147,7 @@ def get_weight_args(config):
 
 if __name__ == '__main__':
     import sys, csv
-    import irregions
+    from . import irregions
 
     dependencies = []
     regions = irregions.load_regions("hierarchy.csv", dependencies)

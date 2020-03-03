@@ -82,9 +82,9 @@ else:
     pcmean0 = pcmeanN = None
     pcmeanmean0 = pcmeanmeanN = None
 
-print ','.join(['month', 'calmonth', 'tas', 'tmean', 'tstd', 'pr', 'pr_mean', 'country-tz', 'country-pr', 'country-pr-clim'])
-print ','.join(map(str, [month0, calmonth0, tas0, tmean0, tstd0, pr0, prmean0, tzmean0, pcmean0, pcmeanmean0]))
-print ','.join(map(str, [monthN, calmonthN, tasN, tmeanN, tstdN, prN, prmeanN, tzmeanN, pcmeanN, pcmeanmeanN]))
+print((','.join(['month', 'calmonth', 'tas', 'tmean', 'tstd', 'pr', 'pr_mean', 'country-tz', 'country-pr', 'country-pr-clim'])))
+print((','.join(map(str, [month0, calmonth0, tas0, tmean0, tstd0, pr0, prmean0, tzmean0, pcmean0, pcmeanmean0]))))
+print((','.join(map(str, [monthN, calmonthN, tasN, tmeanN, tstdN, prN, prmeanN, tzmeanN, pcmeanN, pcmeanmeanN]))))
 
 lib.show_header("CSVV:")
 csvv = lib.get_csvv(os.path.join(csvvdir, onlymodel + ".csvv"))

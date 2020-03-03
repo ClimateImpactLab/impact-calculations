@@ -1,7 +1,7 @@
 import sys, os
 import numpy as np
 from netCDF4 import Dataset
-import weather, nc4writer
+from . import weather, nc4writer
 from climate import discover
 from openest.generate import fast_dataset
 from impactlab_tools.utils import files
@@ -53,16 +53,16 @@ for clim_scenario, clim_model, weatherbundle in weather.iterate_bundles(discover
 
     if (clim_model == 'CCSM4') and (clim_scenario == 'rcp85'):
 
-        print clim_scenario, clim_model
+        print(clim_scenario, clim_model)
 
         targetdir = os.path.join(outputdir, clim_scenario, clim_model)
 
         if only_missing and os.path.exists(os.path.join(targetdir, filename)):
             continue
             
-        print targetdir
+        print(targetdir)
         if not os.path.exists(targetdir):
-            os.makedirs(targetdir, 0775)
+            os.makedirs(targetdir, 0o775)
 
         # Initiate netcdf and dimensions, variables.
         rootgrp = Dataset(os.path.join(targetdir, filename), 'w', format='NETCDF4')
@@ -97,10 +97,10 @@ for clim_scenario, clim_model, weatherbundle in weather.iterate_bundles(discover
                 covardata.append(standard_running_mean_init([], numtempyears))
             regiondata.append(covardata)
 
-        print "Processing years..."
+        print("Processing years...")
         yy = 0
         for year, ds in weatherbundle.yearbundles():
-            print "Push", year      
+            print("Push", year)      
             regions = np.array(ds.region)
             ii = 0
             for region, subds in fast_dataset.region_groupby(ds, year, regions, {regions[ii]: ii for ii in range(len(regions))}):
@@ -113,7 +113,7 @@ for clim_scenario, clim_model, weatherbundle in weather.iterate_bundles(discover
                         regiondata[ii][kk].update(yearval)
                         averageddata[yy, ii, kk] = regiondata[ii][kk].get()
                 else:
-                    print "Region {} not in growing season data set".format(region)
+                    print("Region {} not in growing season data set".format(region))
                 ii += 1
             yy += 1
 

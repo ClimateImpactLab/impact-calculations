@@ -11,7 +11,7 @@ import csv, copy, re
 import numpy as np
 import metacsv
 from scipy.stats import multivariate_normal
-import csvvfile_legacy
+from . import csvvfile_legacy
 
 def read(filename):
     """Interpret a CSVV file into a dictionary of the included information.
@@ -38,7 +38,7 @@ def read(filename):
             else:
                 raise ValueError("Unknown version " + attrs['csvv-version'])
         else:
-            print "Warning: Using unsupported no-version CSVV reader."
+            print("Warning: Using unsupported no-version CSVV reader.")
             return csvvfile_legacy.read(data, fp)
 
 def read_girdin(data, fp):
@@ -75,8 +75,8 @@ def read_girdin(data, fp):
             variable_reading = row[0]
         else:
             if variable_reading is None:
-                print "No variable queued."
-                print row
+                print("No variable queued.")
+                print(row)
             assert variable_reading is not None
             if len(row) == 1:
                 row = row[0].split(',')
@@ -84,14 +84,14 @@ def read_girdin(data, fp):
                 row = row[0].split('\t')
             if len(row) == 1:
                 row = re.split(r'\s', row[0])
-            data[variable_reading].append(map(lambda x: x.strip(), row))
+            data[variable_reading].append([x.strip() for x in row])
 
     data['observations'] = float(data['observations'][0][0])
     data['prednames'] = data['prednames'][0]
     data['covarnames'] = data['covarnames'][0]
-    data['gamma'] = np.array(map(float, data['gamma'][0]))
-    data['gammavcv'] = np.array(map(lambda row: map(float, row), data['gammavcv']))
-    data['residvcv'] = np.array(map(lambda row: map(float, row), data['residvcv']))
+    data['gamma'] = np.array(list(map(float, data['gamma'][0])))
+    data['gammavcv'] = np.array([list(map(float, row)) for row in data['gammavcv']])
+    data['residvcv'] = np.array([list(map(float, row)) for row in data['residvcv']])
 
     return data
 
@@ -169,7 +169,7 @@ def subset(csvv, toinclude):
     `toinclude` may be either a list of predictor names from prednames, or a list of indices or booleans."""
     if not isinstance(toinclude, slice):
         if isinstance(toinclude[0], str):
-            toinclude = map(lambda predname: predname in toinclude, csvv['prednames'])
+            toinclude = [predname in toinclude for predname in csvv['prednames']]
             toinclude = np.nonzero(toinclude)[0]
         elif isinstance(toinclude[0], bool):
             toinclude = np.nonzero(toinclude)[0]
@@ -177,7 +177,7 @@ def subset(csvv, toinclude):
             toinclude = np.array(toinclude)
         toinclist = toinclude
     else:
-        toinclist = range(toinclude.start, toinclude.stop)
+        toinclist = list(range(int(toinclude.start), int(toinclude.stop)))
 
     subcsvv = copy.copy(csvv)
     subcsvv['prednames'] = [csvv['prednames'][ii] for ii in toinclist]
@@ -205,7 +205,7 @@ def filtered(csvv, func):
     dict
         A CSVV dictionary for a subset of the original coefficients.
     """
-    toinclude = filter(lambda ii: func(csvv['prednames'][ii], csvv['covarnames'][ii]), range(len(csvv['prednames'])))
+    toinclude = [ii for ii in range(len(csvv['prednames'])) if func(csvv['prednames'][ii], csvv['covarnames'][ii])]
     return subset(csvv, toinclude)
 
 def get_gamma(csvv, predname, covarname):
@@ -261,8 +261,8 @@ def partial_derivative(csvv, covariate, covarunit):
 
     if len(missing_prednames) > 0:
         csvvpart['prednames'] = np.append(csvvpart['prednames'], missing_prednames)
-        csvvpart['covarnames'] = np.append(csvvpart['covarnames'], map(lambda x: '1', missing_prednames))
-        csvvpart['gamma'] = np.append(csvvpart['gamma'], map(lambda x: 0, missing_prednames))
+        csvvpart['covarnames'] = np.append(csvvpart['covarnames'], ['1' for x in missing_prednames])
+        csvvpart['gamma'] = np.append(csvvpart['gamma'], [0 for x in missing_prednames])
         # gammavcv already was collapsed, because we successfully called subset
     
     return csvvpart

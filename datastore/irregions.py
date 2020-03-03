@@ -37,7 +37,7 @@ def load_regions(hierarchy, dependencies):
 
     with open(files.sharedpath("regions/" + hierarchy), 'r') as fp:
         reader = csv.reader(headre.deparse(fp, dependencies))
-        header = reader.next()
+        header = next(reader)
         for row in reader:
             if row[header.index('agglomid')]:
                 mapping[int(row[header.index('agglomid')])] = row[0]
@@ -54,7 +54,7 @@ def load_region_attr(filepath, indexcol, valcol, dependencies):
 
     with open(files.sharedpath(filepath), 'r') as fp:
         reader = csv.reader(headre.deparse(fp, dependencies))
-        header = reader.next()
+        header = next(reader)
         for row in reader:
             mapping[row[header.index(indexcol)]] = float(row[header.index(valcol)])
 

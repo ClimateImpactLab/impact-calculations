@@ -6,25 +6,25 @@ def mysend(session, command, response=None):
     stdout = "none"
     while stdout[-2:] != '$ ':
         if server.session.recv_ready():
-            stdout = server.session.recv(sys.maxint)
+            stdout = server.session.recv(sys.maxsize)
 
             if len(stdout) == 0:
                 pass
             elif stdout[-2:] == ': ':
                 if response is None:
-                    response = raw_input(stdout)
+                    response = eval(input(stdout))
                 server.session.sendall(response + '\n')
             elif stdout[-2:] == '? ':
                 server.session.sendall('yes\n')
             else:
-                print stdout
+                print(stdout)
 
         time.sleep(0.1)
 
-response = raw_input("Password: ")
+response = eval(input("Password: "))
 
 for server, name in servers.all_osdc():
-    print name
+    print(name)
     server.connect()
     if name in ["172.17.192.43", "172.17.192.44"]:
         mysend(server.session, "with_proxy rsync -avz /mnt/gcp/output-clipped2/batch0/ 172.17.192.30:/mnt/gcp/output-clipped2/" + name + "-batch0/\n", response=response)

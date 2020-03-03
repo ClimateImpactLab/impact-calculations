@@ -33,7 +33,7 @@ from generate import caller, loadmodels, pvalses
 from adaptation import csvvfile
 from openest.generate import formatting
 from datastore import irvalues
-import lib
+from . import lib
 
 ## Configuration
 
@@ -45,7 +45,7 @@ futureyear = int(sys.argv[4]) if len(sys.argv) > 4 else 2050
 
 ## Starting
 
-print "Configuring system..."
+print("Configuring system...")
 with open(config['module'], 'r') as fp:
     config.update(yaml.load(fp))
 shortmodule = os.path.basename(config['module'])[:-4]
@@ -56,57 +56,71 @@ dir = os.path.dirname(allcalcs)
 
 batch, rcp, gcm, iam, ssp = tuple(dir.split('/')[-5:])
 
-print "Batch: " + batch
-print "RCP: " + rcp
-print "GCM: " + gcm
-print "IAM: " + iam
-print "SSP: " + ssp
-print "Region: " + region
+print(("Batch: " + batch))
+print(("RCP: " + rcp))
+print(("GCM: " + gcm))
+print(("IAM: " + iam))
+print(("SSP: " + ssp))
+print(("Region: " + region))
+
+lib.show_header("Merged configuration:")
+print(yaml.dump(config))
 
 # Find the relevant CSVV
+fracsubset = (0, 1) # index and length of parts
 foundcsvv = False
 for model, csvvpath, module, specconf in container.get_modules_csvv(config):
     basename = os.path.basename(csvvpath)[:-5]
+    
+    csvv_parts = container.csvv_organization(specconf)
+    if csvv_parts is not None:
+        for part in csvv_parts:
+            if basename + '-' + part == onlymodel:
+                fracsubset = (csvv_parts.index(part), len(csvv_parts))
+                foundcsvv = True
+                break
+        if foundcsvv:
+            break
     if basename == onlymodel:
         foundcsvv = True
         break
 
-assert foundcsvv, "Could not find a CSVV correspondnig to %s." % onlymodel
+assert foundcsvv, "Could not find a CSVV corresponding to %s." % onlymodel
 
 ## Print the inputs
-
-lib.show_header("Merged configuration:")
-print yaml.dump(config)
-
 if 'within-season' in specconf:
     season_months = irvalues.load_culture_months(specconf['within-season'])[region]
     season_doys = irvalues.load_culture_doys(specconf['within-season'])[region]
-    print "\nSeason months: %d - %d; Season doys: %d - %d\n" % (season_months[0], season_months[1], season_doys[0], season_doys[1])
+    print(("\nSeason months: %d - %d; Season doys: %d - %d\n" % (season_months[0], season_months[1], season_doys[0], season_doys[1])))
 
 betalimits = lib.find_betalimits(config)
     
 lib.show_header("The Predictors File (allcalcs):")
-calcs = lib.get_excerpt(os.path.join(dir, allcalcs_prefix + onlymodel + ".csv"), 2, region, range(2000, 2011) + [futureyear-1, futureyear], hasmodel=False)
+calcs = lib.get_excerpt(os.path.join(dir, allcalcs_prefix + onlymodel + ".csv"), 2, region, list(range(2000, 2011)) + [futureyear-1, futureyear], hasmodel=False)
 
 shapenum = 0
 with open(os.path.join("/shares/gcp/regions/hierarchy-flat.csv"), 'r') as fp:
     reader = csv.reader(fp)
-    header = reader.next()
+    header = next(reader)
     for row in reader:
         if row[0] == region:
             shapenum = int(row[header.index('agglomid')]) - 1
             break
 
 lib.show_header("CSVV:")
-csvv = lib.get_csvv(csvvpath)
+csvv = lib.get_csvv(csvvpath, fracsubset=fracsubset)
 csvvobj = csvvfile.read(csvvpath)
+if fracsubset != (0, 1):
+    index0 = fracsubset[0] * len(csvv['gamma']) / fracsubset[1]
+    indexend = (fracsubset[0] + 1) * len(csvv['gamma']) / fracsubset[1]    
+    csvvobj = csvvfile.subset(csvvobj, slice(index0, indexend))
 
 lib.show_header("Weather:")
 clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel = loadmodels.single(container.get_bundle_iterator(configs.merge(config, {'only-models': [gcm]})))
 
 weather = {}
 for year, ds in weatherbundle.yearbundles(futureyear + 2):
-    if year in range(2001, 2011) + [futureyear-1, futureyear]:
+    if year in list(range(2001, 2011)) + [futureyear-1, futureyear]:
         ds = ds.isel(region=shapenum)
         weather[str(year)] = {variable: ds[variable].values for variable in ds}
 
@@ -115,7 +129,7 @@ for variable in weather['2001']:
         continue
     lib.show_header("  %s:" % variable)
     for year in sorted(weather.keys()):
-        print "%s: %s..." % (year, ','.join(map(str, weather[year][variable][:10])))
+        print(("%s: %s..." % (year, ','.join(map(str, weather[year][variable][:10])))))
             
 lib.show_header("Outputs:")
 outputs = lib.get_outputs(os.path.join(dir, onlymodel + '.nc4'), [2001, futureyear], shapenum, deltamethod=config.get('deltamethod', False))
@@ -163,7 +177,7 @@ for year in [2001, futureyear]:
     for label, elements in formatting.format_labels:
         if label == 'rebased':
             break
-        
+
         while label in used_outputs:
             label += '2'
         last_label = label

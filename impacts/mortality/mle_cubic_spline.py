@@ -31,7 +31,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     farm_curvegen = curvegen.FarmerCurveGenerator(curr_curvegen, covariator, farmer)
 
     # Determine minimum value of curve between 10C and 25C
-    print "Determining minimum temperatures."
+    print("Determining minimum temperatures.")
     with open(caller.callinfo['splineminpath'], 'w') as fp:
         writer = csv.writer(fp)
         writer.writerow(['region', 'brute', 'analytic'])
@@ -42,10 +42,10 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
             mintemp = temps[np.argmin(curve(temps))]
             mintemp2 = minspline.findsplinemin(knots, curve.coeffs, 10, 25)
             if np.abs(mintemp - mintemp2) > 1:
-                print "WARNING: %s has unclear mintemp: %f, %f" % (region, mintemp, mintemp2)
+                print("WARNING: %s has unclear mintemp: %f, %f" % (region, mintemp, mintemp2))
             baselinemins[region] = mintemp2
             writer.writerow([region, mintemp, mintemp2])
-    print "Finishing calculation setup."
+    print("Finishing calculation setup.")
 
     # Generating all curves, for baseline
     baseline_loggdppc = {}
@@ -54,8 +54,8 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
 
     loggdppc_marginals = curr_curvegen.get_marginals('loggdppc')
     loggdppc_marginals = np.array([loggdppc_marginals[predname] for predname in curr_curvegen.prednames]) # same order as temps
-    print "MARGINALS"
-    print loggdppc_marginals
+    print("MARGINALS")
+    print(loggdppc_marginals)
 
     def coeff_getter_positive(region, year, temps, curve):
         return curve.curr_curve.coeffs

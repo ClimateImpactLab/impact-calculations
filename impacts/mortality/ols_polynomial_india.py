@@ -14,7 +14,7 @@ def prepare_raw(csvv, weatherbundle, economicmodel, qvals):
     # Determine minimum value of curve between 10C and 25C
     curvemin = minpoly.findpolymin([0] + curve.ccs, 10, 25)
 
-    coeff_curve = SelectiveInputCurve(CoefficientsCurve(curve.ccs), range(order))
+    coeff_curve = SelectiveInputCurve(CoefficientsCurve(curve.ccs), list(range(order)))
     shifted_curve = ShiftedCurve(coeff_curve, -curve(curvemin))
     clipped_curve = ClippedCurve(shifted_curve)
 

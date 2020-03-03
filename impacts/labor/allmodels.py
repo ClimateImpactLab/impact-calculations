@@ -19,12 +19,12 @@ do_csvv_grep = None #'Poly2'
 def check_doit(targetdir, basename, suffix, deletebad=False):
     filepath = os.path.join(targetdir, basename + suffix + '.nc4')
     if not os.path.exists(filepath):
-        print "REDO: Cannot find", filepath
+        print("REDO: Cannot find", filepath)
         return True
 
     # Check if has 100 valid years
     if not checks.check_result_100years(filepath):
-        print "REDO: Incomplete", basename, suffix
+        print("REDO: Incomplete", basename, suffix)
         if deletebad:
             os.remove(filepath)
         return True
@@ -51,7 +51,7 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
 
                     # Full Adaptation
                     if check_doit(targetdir, fullbasename, suffix):
-                        print "Full Adaptation"
+                        print("Full Adaptation")
                         calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.labor.global20170809', weatherbundle, economicmodel, pvals[basename], clipping=clipping, config={'econcovar': {'length': econspan}})
 
                         effectset.generate(targetdir, fullbasename + suffix, weatherbundle, calculation, "Extensive margin labor impacts, with interpolation and adaptation through interpolation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, fullbasename), diagnosefile=diagnosefile.replace('.csv', '-' + fullbasename + '.csv') if diagnosefile else False)
@@ -62,12 +62,12 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
 
                         # No Adaptation
                         if check_doit(targetdir, fullbasename + "-noadapt", suffix):
-                            print "No Adaptation"
+                            print("No Adaptation")
                             calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.labor.global20170809', weatherbundle, economicmodel, pvals[basename], farmer='noadapt', clipping=clipping, config={'econcovar': {'length': econspan}})
                             effectset.generate(targetdir, fullbasename + "-noadapt" + suffix, weatherbundle, calculation, "Extensive margin labor impacts, with no adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, fullbasename))
 
                         # Income-only Adaptation
                         if check_doit(targetdir, fullbasename + "-incadapt", suffix):
-                            print "Income-only adaptation"
+                            print("Income-only adaptation")
                             calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(filepath, 'impacts.labor.global20170809', weatherbundle, economicmodel, pvals[basename], farmer='incadapt', clipping=clipping, config={'econcovar': {'length': econspan}})
                             effectset.generate(targetdir, fullbasename + "-incadapt" + suffix, weatherbundle, calculation, "Extensive margin labor impacts, with interpolation and only environmental adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, fullbasename))

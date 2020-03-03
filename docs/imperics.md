@@ -173,6 +173,7 @@ The cubic spline form has the following additional options:
 * `prefix` (required): The prefix for cubic spline variables.
 * `knots` (required): The weather values for the knots of the cubic spline.
 * `indepunit` (required): The unit for the independent variable.
+* `variable` (required): The name of variable to apply the spline to.
 
 The coefficients form has the following additional options:
 

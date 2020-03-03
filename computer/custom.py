@@ -1,4 +1,4 @@
-import os, sys, cStringIO
+import os, sys, io
 sys.path.append("../extract/lib")
 sys.path.append("../../../../../research/gcp/impact-calculations")
 
@@ -10,7 +10,7 @@ do_fast = True
 
 def count_results(iterator, check_doit):
     stdout_ = sys.stdout
-    sys.stdout = stream = cStringIO.StringIO()
+    sys.stdout = stream = io.StringIO()
 
     complete = 0
     missingness = 0
@@ -37,12 +37,12 @@ def count_results(iterator, check_doit):
                 
                 for aggregate in aggregated:
                     if not os.path.exists(os.path.join(targetdir, model + variation + aggregate + '.nc4')):
-                        print "Missing", os.path.join(targetdir, model + variation + aggregate + '.nc4')
+                        print(("Missing", os.path.join(targetdir, model + variation + aggregate + '.nc4')))
                         status = 'toaggregate'
                         break
 
                     if variation != '-costs' and not checks.check_result_100years(os.path.join(targetdir, model + variation + aggregate + '.nc4'), regioncount=5665):
-                        print "Failed aggregate", os.path.join(targetdir, model + variation + aggregate + '.nc4')
+                        print(("Failed aggregate", os.path.join(targetdir, model + variation + aggregate + '.nc4')))
 
                         status = 'toaggregate'
                         break
@@ -71,31 +71,31 @@ def count_results(iterator, check_doit):
 if do_fast:
     checks.do_skip_check = True
 
-print 'C', 'M', 'I', 'A'
+print(('C', 'M', 'I', 'A'))
 
 models = ['global_interaction_Tmean-POLY-4-AgeSpec-' + cohort for cohort in ['young', 'older', 'oldest', 'combined']]
 variations = ['', '-noadapt', '-incadapt', '-histclim', '-costs']
 aggregated = ['-aggregated', '-levels']
 
-print "4th-order Polynomial Median:"
+print("4th-order Polynomial Median:")
 iterator = results.iterate_batch("/shares/gcp/outputs/mortality/impacts-harvester", 'median')
 complete, missingness, incomplete, toaggregate, output4 = count_results(iterator, mortality.allmodels.check_doit)
-print complete, missingness, incomplete, toaggregate
+print((complete, missingness, incomplete, toaggregate))
 
-print output4
+print(output4)
 
-print "4th-order Polynomial Monte Carlo:"
+print("4th-order Polynomial Monte Carlo:")
 iterator = results.iterate_montecarlo("/shares/gcp/outputs/mortality/impacts-harvester")
 complete, missingness, incomplete, toaggregate, output3 = count_results(iterator, mortality.allmodels.check_doit)
-print complete, missingness, incomplete, toaggregate
+print((complete, missingness, incomplete, toaggregate))
 
 models = ['global_interaction_Tmean-CSpline-LS-AgeSpec-' + cohort for cohort in ['young', 'older', 'oldest', 'combined']]
 variations = ['', '-noadapt', '-incadapt', '-histclim', '-costs']
 aggregated = ['-aggregated', '-levels']
 
-print "Cubic Spline Median:"
+print("Cubic Spline Median:")
 iterator = results.iterate_batch("/shares/gcp/outputs/mortality/impacts-subterran", 'median')
 complete, missingness, incomplete, toaggregate, output2 = count_results(iterator, mortality.allmodels.check_doit)
-print complete, missingness, incomplete, toaggregate
+print((complete, missingness, incomplete, toaggregate))
 
-print output2
+print(output2)

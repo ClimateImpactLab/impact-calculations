@@ -21,7 +21,9 @@ def interpret(config):
 
     try:
         pval = float(config['pvals'])
-    except:
+    except Exception as ex:
+        print("Exception, but assigning None:")
+        print(ex)
         pval = None
 
     if pval is not None:
@@ -102,7 +104,7 @@ class OnDemandRandomDictionary:
         fullname = "seed-%s" % name
         if self.locked:
             if fullname not in self.values:
-                print "WARNING: Missing seed in locked MC.  Assuming median."
+                print("WARNING: Missing seed in locked MC.  Assuming median.")
                 return None
             return self.values[fullname] + plus
 
@@ -120,8 +122,10 @@ def make_pval_file(targetdir, pvals):
     with open(get_pval_file(targetdir), 'w') as fp:
         fp.write(yaml.dump(dict(pvals)))
     try:
-        os.chmod(get_pval_file(targetdir), 0664)
-    except:
+        os.chmod(get_pval_file(targetdir), 0o664)
+    except Exception as ex:
+        print("Exception but passing:")
+        print(ex)
         pass # This can fail if someone else created the file
 
 def has_pval_file(targetdir):

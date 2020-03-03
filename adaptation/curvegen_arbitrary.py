@@ -16,7 +16,7 @@ reduces to a dot-product.
 import numpy as np
 from openest.generate import formatting, diagnostic, selfdocumented
 from openest.generate.smart_curve import TransformCoefficientsCurve
-import curvegen, csvvfile
+from . import curvegen, csvvfile
 
 class CoefficientsCurveGenerator(curvegen.CSVVCurveGenerator):
     """Wrapper class for an arbitrary curve generation function.
@@ -160,8 +160,8 @@ class MLECoefficientsCurveGenerator(CoefficientsCurveGenerator):
                 try:
                     coefficients[predname] = self.constant[predname] * np.exp(np.sum(self.predgammas[predname] * np.array([covariates[covar] for covar in self.predcovars[predname]])))
                 except Exception as e:
-                    print "Available covariates:"
-                    print covariates
+                    print("Available covariates:")
+                    print(covariates)
                     raise e
 
         return coefficients

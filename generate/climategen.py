@@ -15,7 +15,7 @@ data from the climate data xarray object.
 import sys, os
 import numpy as np
 from netCDF4 import Dataset
-import weather, nc4writer
+from . import weather, nc4writer
 from climate import discover
 from impactlab_tools.utils import files
 from impactcommon.math import averages
@@ -48,16 +48,16 @@ if filename == 'areatas.nc4': # area-weighted tas
 
 # Iterate through weather datasets
 for clim_scenario, clim_model, weatherbundle in weather.iterate_bundles(discoverer):
-    print clim_scenario, clim_model
+    print(clim_scenario, clim_model)
     targetdir = os.path.join(outputdir, clim_scenario, clim_model)
 
     # Check if we should generate a file for this targetdir
     if only_missing and os.path.exists(os.path.join(targetdir, filename)):
         continue
         
-    print targetdir
+    print(targetdir)
     if not os.path.exists(targetdir):
-        os.makedirs(targetdir, 0775)
+        os.makedirs(targetdir, 0o775)
 
     # Construct the NetCDF file
     rootgrp = Dataset(os.path.join(targetdir, filename), 'w', format='NETCDF4')
@@ -93,10 +93,10 @@ for clim_scenario, clim_model, weatherbundle in weather.iterate_bundles(discover
         regiondata.append(covardata)
 
     # Handle data for each year and region
-    print "Processing years..."
+    print("Processing years...")
     yy = 0
     for year, ds in weatherbundle.yearbundles():
-        print "Push", year
+        print("Push", year)
 
         for ii in range(len(weatherbundle.regions)):
             # Extract each weather variable
