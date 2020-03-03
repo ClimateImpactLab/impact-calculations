@@ -140,7 +140,7 @@ class ConversionWeatherReader(WeatherReader):
         """Returns a list of all regions available."""
         ds = next(self.reader.read_iterator())
         ds2 = self.ds_conversion(ds)
-        return ds2.region
+        return ds2["region"].values.tolist()
 
     def get_dimension(self):
         """Returns a list of length K, describing the number of elements
