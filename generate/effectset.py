@@ -127,6 +127,7 @@ def write_ncdf(targetdir, basename, weatherbundle, calculation, description, cal
             else:
                 if filter_region(weatherbundle.regions[ii]):
                     my_regions.append(weatherbundle.regions[ii])
+        assert my_regions != [], "No regions remain after filter."
 
     try:
         rootgrp = Dataset(os.path.join(targetdir, basename + '.nc4'), 'w', format='NETCDF4')

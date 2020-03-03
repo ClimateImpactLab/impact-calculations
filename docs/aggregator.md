@@ -92,6 +92,7 @@ of scaling terms and constants.
 Possible components:
 
  - Constant (e.g., 10).
+ - `area`: Weight aggregation by land area.
  - `population`: Total population in each region.
  - `age0-4`, `age5-64`, or `age65+`: Age-specific population in each
    region.

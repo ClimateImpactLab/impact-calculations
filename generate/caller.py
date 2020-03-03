@@ -27,7 +27,16 @@ def get_model_by_gcpid(gcpid):
 
 def standardize(calculation, **kwargs):
     unit = calculation.unitses[0]
-    return SpanInstabase(calculation, 2001, 2010, func=lambda x, y: x - y, units=unit, **kwargs)
+    if 'year1' in kwargs and 'year2' in kwargs:
+        year1 = kwargs['year1']
+        year2 = kwargs['year2']
+        del kwargs['year1']
+        del kwargs['year2']
+    else:
+        year1 = 2001
+        year2 = 2010
+        
+    return SpanInstabase(calculation, year1, year2, func=lambda x, y: x - y, units=unit, **kwargs)
 
 def call_prepare(module, weatherbundle, economicmodel, pvals, getmodel=get_model, standard=True, getdata=get_data):
     economicmodel.reset()

@@ -94,8 +94,8 @@ class WeatherBundle(object):
         """Load the rows of hierarchy.csv associated with all known regions."""
         if reader is not None:
             try:
-                self.regions = reader.get_regions()
-                if np.issubdtype(type(self.regions[0]), np.integer):
+                self.regions = list(reader.get_regions())
+                if not isinstance(self.regions[0], str) and np.issubdtype(self.regions[0], np.integer):
                     self.regions = irregions.load_regions(self.hierarchy, self.dependencies)
             except Exception as ex:
                 print("Exception but still doing stuff:")
@@ -218,7 +218,8 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
             year = None # In case no additional years in pastreader
             for ds in self.pastfuturereaders[0][0].read_iterator_to(min(self.futureyear1, maxyear)):
                 assert ds.region.shape[0] == len(self.regions), "Region length mismatch: %d <> %d" % (ds.region.shape[0], len(self.regions))
-                year = int(ds['time.year'][0])
+                year = ds['time.year'][0]
+                year = int(year.values) if isinstance(year, xr.DataArray) else int(year)
                 for year2, ds2 in self.transformer.push(year, ds):
                     yield year2, ds2
 
@@ -228,10 +229,11 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
                 lastyear = year
             if maxyear > self.futureyear1:
                 for ds in self.pastfuturereaders[0][1].read_iterator_to(maxyear):
-                    year = int(ds['time.year'][0])
+                    year = ds['time.year'][0]
+                    year = int(year.values) if isinstance(year, xr.DataArray) else int(year)
                     if year <= lastyear:
                         continue # allow for overlapping weather
-                    assert ds.region.shape[0] == len(self.regions)
+                    assert ds.region.shape[0] == len(self.regions), "Region length mismatch: %d <> %d" % (ds.region.shape[0], len(self.regions))
                     for year2, ds2 in self.transformer.push(year, ds):
                         yield year2, ds2
             return
