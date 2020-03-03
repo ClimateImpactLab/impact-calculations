@@ -17,7 +17,7 @@ If you are working on Sacagawea, you can skip steps -1 and 0.
    | BRC | /global/scratch/groups/co_laika/gcp |
    | OSDC | /mnt/gcp/data |
 
--0. Ensure that you have Python 2.7 and the `numpy` and `scipy` libraries installed
+-0. Ensure that you have Python 3+ and the `numpy` and `scipy` libraries installed
 ```
 $ python --version
 $ pip install numpy
@@ -26,19 +26,16 @@ $ pip install scipy
 
 On BRC, these are provided as modules.  Execute,
 ```
-module load python/2.7.8
+module load python/3
 module load numpy
 module load scipy
 ```
 
 OPTIONAL. Use a virtual environment to keep python packages separate across projects; and always use it on BRC.
 
-On BRC, load the `virtualenv` module: `module load virtualenv`.
-Elsewhere, `pip install virtualenv`.
-
 Then make a new virtual environment directory, execuing from your project directory:
 ```
-virtualenv env
+python -m venv env
 ```
 
 This will create a directory `env` within the current directory.
