@@ -5,7 +5,7 @@ models:
     clipping: false
     specification:
       functionalform: polynomial
-      variable: meantas
+      variable: annual
       coeffvar: tas
       description: Change in ln(GDP per capita) from Burke et al.
       allow-raising: true
@@ -13,4 +13,6 @@ models:
       indepunit: C
       calculation:
         - YearlyApply
-        - Rebase
+        - Rebase:
+           year1: 1981
+           year2: 2000

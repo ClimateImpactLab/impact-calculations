@@ -62,13 +62,13 @@ class CSVVCurveGenerator(CurveGenerator):
         if not ignore_units:
             for ii, predname in enumerate(prednames):
                 if predname not in csvv['variables']:
-                    print "WARNING: Predictor %s definition not found in CSVV." % predname
+                    print(("WARNING: Predictor %s definition not found in CSVV." % predname))
                 else:
                     if 'unit' in csvv['variables'][predname]:
                         assert checks.loosematch(csvv['variables'][predname]['unit'], indepunits[ii]), "Units error for %s: %s <> %s" % (predname, csvv['variables'][predname]['unit'], indepunits[ii])
 
             if 'outcome' not in csvv['variables']:
-                print "WARNING: Dependent variable definition not in CSVV."
+                print("WARNING: Dependent variable definition not in CSVV.")
             else:
                 assert checks.loosematch(csvv['variables']['outcome']['unit'], depenunit), "Dependent units %s does not match %s." % (csvv['variables']['outcome']['unit'], depenunit)
 
@@ -115,7 +115,11 @@ class CSVVCurveGenerator(CurveGenerator):
         coefficients = {} # {predname: sum}
         for predname in set(self.prednames):
             if len(self.predgammas[predname]) == 0:
-                coefficients[predname] = self.constant[predname]
+                try:
+                    coefficients[predname] = self.constant[predname]
+                except KeyError as e:
+                    print("ERROR: Cannot find the uninteracted value for %s; is it in the CSVV?" % predname)
+                    raise
             else:
                 try:
                     coefficients[predname] = self.constant.get(predname, 0) + np.sum(self.predgammas[predname] * np.array([covariates[covar] for covar in self.predcovars[predname]]))
@@ -123,12 +127,12 @@ class CSVVCurveGenerator(CurveGenerator):
                         coefficients[predname] = min(max(self.betalimits[predname][0], coefficients[predname]), self.betalimits[predname][1])
                     
                     if debug:
-                        print predname, coefficients[predname], self.constant.get(predname, 0), self.predgammas[predname], np.array([covariates[covar] for covar in self.predcovars[predname]])
+                        print((predname, coefficients[predname], self.constant.get(predname, 0), self.predgammas[predname], np.array([covariates[covar] for covar in self.predcovars[predname]])))
                 except Exception as e:
-                    print "Available covariates:"
-                    print covariates
-                    print "Requested covariates:"
-                    print self.predcovars[predname]
+                    print("Available covariates:")
+                    print(covariates)
+                    print("Requested covariates:")
+                    print((self.predcovars[predname]))
                     raise
 
         return coefficients
@@ -286,11 +290,11 @@ class DifferenceCurveGenerator(CurveGenerator):
         self.twofunc = twofunc
 
     def get_lincom_terms_simple(self, predictors, covariates):
-        one_preds = fast_dataset.FastDataset.subset(predictors, map(self.onefunc, self.prednames))
+        one_preds = fast_dataset.FastDataset.subset(predictors, list(map(self.onefunc, self.prednames)))
         one_covars = {covar: covariates[self.onefunc(covar)] if covar != '1' else 1 for covar in self.covarnames}
         one_terms = self.one.get_lincom_terms_simple(one_preds, one_covars)
 
-        two_preds = fast_dataset.FastDataset.subset(predictors, map(self.twofunc, self.prednames)).rename({self.twofunc(name): name for name in set(self.prednames)})
+        two_preds = fast_dataset.FastDataset.subset(predictors, list(map(self.twofunc, self.prednames))).rename({self.twofunc(name): name for name in set(self.prednames)})
         two_covars = {covar: covariates[self.twofunc(covar)] if covar != '1' else 1 for covar in self.covarnames}
         two_terms = self.two.get_lincom_terms_simple(two_preds, two_covars)
         

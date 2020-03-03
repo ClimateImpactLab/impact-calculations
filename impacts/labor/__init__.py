@@ -1,1 +1,1 @@
-import allmodels
+from . import allmodels

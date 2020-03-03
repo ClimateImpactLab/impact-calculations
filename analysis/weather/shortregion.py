@@ -14,4 +14,4 @@ region = "IRQ.10.55"
 rr = weatherbundle.regions.index(region)
 for month, values in weatherbundle.monthbundles(.5):
     assert regions[rr] == region
-    print month, values[0][rr], values[1][rr], prcp_climate_mean[int(month) % 12][rr]
+    print((month, values[0][rr], values[1][rr], prcp_climate_mean[int(month) % 12][rr]))

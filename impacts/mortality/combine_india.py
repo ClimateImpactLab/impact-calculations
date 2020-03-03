@@ -15,11 +15,11 @@ for batch, clim_scenario, clim_model, econ_scenario, econ_model, targetdir in ag
     if not statman.claim(targetdir):
         continue
 
-    print "Claimed " + targetdir
+    print("Claimed " + targetdir)
     
     for filename in os.listdir(targetdir):
         if filename[-4:] == '.nc4' and '-combined' in filename and '-aggregated' not in filename and '-levels' not in filename and '-indiamerge' not in filename:
-            print filename
+            print(filename)
 
             if os.path.exists(os.path.join(targetdir, filename[:-4] + '-indiamerge.nc4')):
                 continue
@@ -38,11 +38,11 @@ for batch, clim_scenario, clim_model, econ_scenario, econ_model, targetdir in ag
                 if '-histclim' in filename:
                     india_basename = india_basename + '-histclim'
             else:
-                print "Could not find India file to correspond to " + filename
+                print("Could not find India file to correspond to " + filename)
                 continue
 
             if '-costs' not in filename:
-                print "Normal Merge"
+                print("Normal Merge")
                 try:
                     reader_rich = Dataset(os.path.join(targetdir, filename), 'r', format='NETCDF4')
                     reader_poor = Dataset(os.path.join(targetdir, india_basename + '.nc4'), 'r', format='NETCDF4')
@@ -54,12 +54,12 @@ for batch, clim_scenario, clim_model, econ_scenario, econ_model, targetdir in ag
                     srcvalues_rich = reader_rich.variables['rebased'][:, :]
                     srcvalues_poor = reader_poor.variables['rebased'][:, :]
                 except Exception as ex:
-                    print ex
+                    print(ex)
                     continue
                 
                 dstvalues = np.zeros((len(years), len(regions)))
                 for tt in range(len(years)):
-                    print years[tt]
+                    print(years[tt])
                     for ii in range(len(regions)):
                         covars = covariator.get_econ_predictors(regions[ii])
                         if years[tt] >= 2015:
@@ -80,14 +80,14 @@ for batch, clim_scenario, clim_model, econ_scenario, econ_model, targetdir in ag
                 writer.close()
 
             else: # Costs!
-                print "Costs Merge"
+                print("Costs Merge")
                 try:
                     reader_rich = Dataset(os.path.join(targetdir, filename), 'r', format='NETCDF4')
                     reader_rich_base = Dataset(os.path.join(targetdir, filename.replace('-costs', '')), 'r', format='NETCDF4')
 
                     writer, regions, years = nc4writer.create_derivative(targetdir, reader_rich_base, filename[:-4] + '-indiamerge', " combined with India", [])
                 except Exception as ex:
-                    print ex
+                    print(ex)
                     continue
 
                 dstvalues = np.zeros((len(years), len(regions)))
@@ -97,7 +97,7 @@ for batch, clim_scenario, clim_model, econ_scenario, econ_model, targetdir in ag
 
                     srcvalues_rich = reader_rich.variables[key][:, :]
                     for tt in range(len(years)):
-                        print years[tt]
+                        print(years[tt])
                         for ii in range(len(regions)):
                             covars = covariator.get_econ_predictors(regions[ii])
                             if years[tt] >= 2015:

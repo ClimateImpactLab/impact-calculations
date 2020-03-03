@@ -2,7 +2,7 @@
 Performs a prediction for a single model and a single adaptation assumption and aggregates.
 """
 
-print "Initializing..."
+print("Initializing...")
 
 import os
 from impactlab_tools.utils import files
@@ -10,8 +10,8 @@ from climate import discover
 from datastore import weights
 from adaptation import farming, econmodel, csvvfile
 from interpret import variables
-import weather, pvalses, caller, effectset, aggregate
-import cProfile, pstats, StringIO
+from . import weather, pvalses, caller, effectset, aggregate
+import cProfile, pstats, io
 
 do_profile = False
 
@@ -24,7 +24,7 @@ clim_model = config['gcm']
 econ_scenario = config['ssp']
 econ_model = config['iam']
 
-print "Loading weather..."
+print("Loading weather...")
 variable_generators = [discover.standard_variable(name, 'day') for name in config['climate']]
 weatherbundle = weather.get_weatherbundle(clim_scenario, clim_model, variable_generators)
 
@@ -34,10 +34,10 @@ if 'historical' in config and config['historical']:
     weatherbundle = weather.HistoricalWeatherBundle.make_historical(weatherbundle, pvals['histclim'].get_seed('yearorder'))
     pvals.lock()
 
-print "Loading economics..."
+print("Loading economics...")
 economicmodel = econmodel.get_economicmodel(econ_scenario, econ_model)
 
-print "Loading estimates..."
+print("Loading estimates...")
 csvvpath = config['csvvpath']
 basename = os.path.basename(csvvpath)[:-5]
 
@@ -50,14 +50,14 @@ if 'csvvsubset' in config:
 
 suffix, farmer = farming.interpret(config)
 
-print "Loading weights..."
+print("Loading weights...")
 halfweight = weights.interpret(config)
 halfweight_args = weights.get_weight_args(config)
 
 if not os.path.exists(targetdir):
-    os.makedirs(targetdir, 0775)
+    os.makedirs(targetdir, 0o775)
 
-print "Loading specification..."
+print("Loading specification...")
 
 if do_profile:
     config['mode'] = 'profile'
@@ -66,21 +66,21 @@ if do_profile:
     pr.enable()
 
 if 'module' in config:
-    print "Loading from module."
+    print("Loading from module.")
     module = "impacts." + config['module']
     calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals[basename], farmer=farmer, standard=False)
 
 elif 'specification' in config:
-    print "Loading from specification configuration."
+    print("Loading from specification configuration.")
     from interpret import specification
     specconf = config['specification']
     calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, 'interpret.specification', weatherbundle, economicmodel, pvals[basename], specconf=specconf, standard=False)
 
 else:
-    print "ERROR: Unknown model specification method."
+    print("ERROR: Unknown model specification method.")
     exit()
 
-print "Loading post-specification..."
+print("Loading post-specification...")
 if 'calculation' in config:
     calculation = calculator.create_postspecification(config['calculation'], {}, calculation)
 else:
@@ -91,11 +91,11 @@ effectset.generate(targetdir, basename + suffix, weatherbundle, calculation, "Si
 if do_profile:
     pr.disable()
 
-    s = StringIO.StringIO()
+    s = io.StringIO()
     ps = pstats.Stats(pr, stream=s).sort_stats('cumulative')
     ps.print_stats(.5)
     #ps.print_callers('__getitem__')
-    print s.getvalue()
+    print(s.getvalue())
     
     exit()
 

@@ -1,11 +1,11 @@
 import servers
 
 for server, name in servers.all_osdc():
-    print name
+    print(name)
     server.connect()
 
     #print server.run_command("killall python")[0]
-    print server.run_command("rm -r /mnt/gcp/output-clipped2")[0]
+    print((server.run_command("rm -r /mnt/gcp/output-clipped2")[0]))
     #print server.run_command("with_proxy git pull", 'openest')[0]
     #print server.run_command("git stash; with_proxy git pull; git stash apply", 'src')[0]
     #print server.run_command("scp 172.17.192.43:~/gcp/src/generate/loadmodels.py generate/", 'src')[0]

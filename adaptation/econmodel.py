@@ -33,7 +33,7 @@ def iterate_econmodels(config={}):
     # Look for scenarios in the GDPpc baseline data
     with open(files.sharedpath('social/baselines/gdppc-merged-baseline.csv'), 'r') as fp:
         reader = csv.reader(header.deparse(fp, dependencies))
-        headrow = reader.next()
+        headrow = next(reader)
 
         for row in reader:
             model = row[headrow.index('model')]
@@ -79,12 +79,12 @@ class SSPEconomicModel(object):
 
         # Prepare densitiy factor
         self.densities = popdensity.load_popop()
-        mean_density = np.mean(self.densities.values())
+        mean_density = np.mean(list(self.densities.values()))
         
         econ_predictors = {} # {region: {loggdppc: loggdppc, popop: popop}
 
         # Iterate through pop_baseline, since it has all regions
-        for region in pop_baseline.keys():
+        for region in list(pop_baseline.keys()):
             # Get the income timeseries
             gdppcs = self.income_model.get_timeseries(region)
             baseline_gdppcs = gdppcs[:maxbaseline - self.income_model.get_startyear()]

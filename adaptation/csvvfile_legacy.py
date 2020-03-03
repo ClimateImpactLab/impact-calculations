@@ -17,18 +17,18 @@ def read(data, fp):
         if row[0] in ['NN', 'L', 'K']:
             data[row[0]] = int(row[1])
             if row[0] == 'K':
-                data['coefnames'] = map(lambda s: s.strip(), row[2:])
+                data['coefnames'] = [s.strip() for s in row[2:]]
             elif row[0] == 'L':
-                data['prednames'] = map(lambda s: s.strip(), row[2:])
+                data['prednames'] = [s.strip() for s in row[2:]]
         elif row[0] in ['gamma', 'gammavcv', 'residvcv']:
             data[row[0]] = []
             lastappend = row[0]
         else:
             if lastappend is None:
-                print "Expected lastappend to be available."
-                print row
+                print("Expected lastappend to be available.")
+                print(row)
             assert lastappend is not None
-            data[lastappend].append(map(float, row))
+            data[lastappend].append(list(map(float, row)))
 
     data['attrs']['csvv-version'] = 'legacy'
     data['gamma'] = np.array(data['gamma'][0])

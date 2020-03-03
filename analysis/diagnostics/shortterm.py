@@ -4,13 +4,13 @@ import lib
 def get_excerpt(filepath, regionid):
     with open(filepath, 'r') as fp:
         reader = csv.reader(fp)
-        header = reader.next()
-        print ','.join(header)
-        print "..."
+        header = next(reader)
+        print((','.join(header)))
+        print("...")
         for row in reader:
             if row[0] == regionid:
-                print ','.join(row)
-                return header[1:], map(float, row[1:])
+                print((','.join(row)))
+                return header[1:], list(map(float, row[1:]))
 
 def show_coefficient(csvv, pred_header, preds, coefname, covartrans):
     terms = []

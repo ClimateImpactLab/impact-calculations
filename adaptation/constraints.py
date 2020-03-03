@@ -45,12 +45,12 @@ def make_get_coeff_goodmoney(weatherbundle, covariator, curvegen, baselinemins, 
 
 def get_curve_minima(regions, curvegen, covariator, mint, maxt, analytic):
     # Determine minimum value of curve between mint and maxt
-    print "Determining minimum temperatures."
+    print("Determining minimum temperatures.")
     return get_curve_extrema(regions, curvegen, covariator, mint, maxt, analytic, 'boatpose', 'minpath')
 
 def get_curve_maxima(regions, curvegen, covariator, mint, maxt, analytic):
     # Determine maximum value of curve between mint and maxt
-    print "Determining maximum temperatures."
+    print("Determining maximum temperatures.")
     return get_curve_extrema(regions, curvegen, covariator, mint, maxt, analytic, 'downdog', 'maxpath')
 
 def get_curve_extrema(regions, curvegen, covariator, mint, maxt, analytic, direction, extpathkey):
@@ -74,7 +74,7 @@ def get_curve_extrema(regions, curvegen, covariator, mint, maxt, analytic, direc
                     exttemp = temps[np.argmax(curve(temps))]
                 exttemp2 = analytic(region, curve)
                 if np.abs(exttemp - exttemp2) > 1:
-                    print "WARNING: %s has unclear exttemp: %f, %f" % (region, exttemp, exttemp2)
+                    print("WARNING: %s has unclear exttemp: %f, %f" % (region, exttemp, exttemp2))
                 baselineexts[region] = exttemp2
                 writer.writerow([region, exttemp, exttemp2])
         os.chmod(caller.callinfo[extpathkey], 0664)

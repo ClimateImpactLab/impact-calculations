@@ -27,8 +27,8 @@ else:
     model = specification.create_curvegen(csvv, covariator, ['universe'], farmer='full', specconf=specconf)
     calculation = calculator.create_calculation(specconf['calculation'], dict(default=model))
 
-print "\nLaTeX:"
-print formatting.format_latex(calculation)
+print("\nLaTeX:")
+print((formatting.format_latex(calculation)))
 
-print "\nJulia:"
-print formatting.format_julia(calculation)
+print("\nJulia:")
+print((formatting.format_julia(calculation)))
