@@ -12,7 +12,7 @@ setup(name='impactcalculations',
       long_description_content_type='text/markdown',
       install_requires=['numpy', 'xarray', 'netCDF4', 'statsmodels',
                         'scipy', 'click', 'impactcommon', 'impactlab-tools',
-                        'openest>3', 'metacsv'],
+                        'openest>=3', 'metacsv'],
       extras_require={
             "test": ["pytest", "pytest-mock", "black", "flake8"],
       },
