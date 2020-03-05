@@ -77,7 +77,7 @@ def get_curve_extrema(regions, curvegen, covariator, mint, maxt, analytic, direc
                     print("WARNING: %s has unclear exttemp: %f, %f" % (region, exttemp, exttemp2))
                 baselineexts[region] = exttemp2
                 writer.writerow([region, exttemp, exttemp2])
-        os.chmod(caller.callinfo[extpathkey], 0664)
+        os.chmod(caller.callinfo[extpathkey], 0o664)
     else:
         for region in regions:
             curve = curvegen.get_curve(region, 2005, covariator.get_current(region))
