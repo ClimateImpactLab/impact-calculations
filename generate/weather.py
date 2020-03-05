@@ -237,7 +237,7 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
                     for year2, ds2 in self.transformer.push(year, ds):
                         yield year2, ds2
             return
-        
+
         for year in self.get_years():
             if year == maxyear:
                 break
@@ -400,8 +400,5 @@ class RollingYearTransfomer(WeatherTransformer):
             self.pastdses = self.pastdses[1:] + [ds]
 
         if len(self.pastdses) == self.rolling_years:
-            if isinstance(self.pastdses[0], xr.Dataset):
-                ds = xr.concat(self.pastdses, dim='time')
-            else:
-                ds = fast_dataset.concat(self.pastdses, dim='time')
+            ds = fast_dataset.concat(self.pastdses, dim='time')
             yield year - self.rolling_years + 1, ds
