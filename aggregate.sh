@@ -1,4 +1,13 @@
 #!/bin/bash
+# Aggregate results produced by the generate.sh script to largers spatial resolutions.
+# 
+# Syntax:
+#   ./aggregate.sh <config> [<#>] ...
+# 
+# The <config> configuration file should be an aggregation
+# configuration file. See docs/aggregator.sh.
+# The option <#> argument starts up multiple CPUs, if this is not run on BRC.
+# Additional arguments (...) are configuration options, specified as "--key=value".
 
 if [ "$#" -ne 1 ]; then
     for ln in $(seq 0 8); do
