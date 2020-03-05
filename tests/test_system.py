@@ -23,19 +23,6 @@ import pytest
 _here = os.path.abspath(os.path.dirname(__file__))
 
 
-def test_alwayspass():
-    """Work around CI failing run with all deselected tests
-
-    A temporary hack. Currently pytest in CI deselects all tests because of
-    infrastructure limits. This returns exit status 5 rather than 0, causing
-    CI to fail its  testing stage.
-
-    This test is added so that one test always passes, thus returning status
-    code 0.
-    """
-    pass
-
-
 @pytest.mark.imperics_shareddir
 class TestSingleEnergy(unittest.TestCase):
     """Check diagnostic projection run for energy sector"""
