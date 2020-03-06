@@ -1,3 +1,14 @@
+"""Generates long-run growing-season averages of climate variables.
+
+Config parameters are mostly consistent with the impact-calculations arguments.
+Outputs netCDF `filename` to `/shares/gcp/outputs/temps/{RCP}/{GCM}`
+
+`get_seasonal_index` and `get_monthbin_index` are helper functions for defining
+the relevant months within a year. `calculate_edd` transforms the edd dataset
+into gdds and kdds.
+
+"""
+
 import sys, os
 import datetime
 import numpy as np
@@ -15,10 +26,10 @@ non_leap_year = 2010
 gdd_cutoff, kdd_cutoff, monthbin = None, None, None
 
 if filename == 'maize_seasonaltasmax.nc4':
-    clim_var = ['tasmax']
+    clim_var = ['tasmax'] # Relevant climate variables.
     seasonal_filepath = "social/baselines/agriculture/world-combo-201710-growing-seasons-corn-1stseason.csv"
-    func = np.mean
-    covars = ['seasonal' + c for c in clim_var]
+    func = np.mean # Within-year aggregation.
+    covars = ['seasonal' + c for c in clim_var] # Covariate prefix.
 
 if filename == 'maize_seasonalpr.nc4':
     clim_var = ['pr']
@@ -38,7 +49,7 @@ if filename == 'maize_monthbinpr.nc4':
     clim_var = ['pr', 'pr-poly-2']
     seasonal_filepath = "social/baselines/agriculture/world-combo-201710-growing-seasons-corn-1stseason.csv"
     func = np.sum
-    monthbin = [1, 3, 6]
+    monthbin = [1, 3, 6] # Months of growing-season bins.
     clim_var = [c + '_bin' + str(m+1) for m in range(len(monthbin)) for c in clim_var]
     covars = ['monthbin' + c for c in clim_var]
 
@@ -58,8 +69,8 @@ standard_running_mean_init = averages.BartlettAverager
 numtempyears = 30
 
 def get_seasonal_index(region, culture_periods, timerate):
-    '''Parse growing season lengths in `culture_periods` and return ds indicies.
-    '''
+    """Parse growing season lengths in `culture_periods` and return ds indices.
+    """
     if timerate == 'day':
         plant = datetime.date(non_leap_year, culture_periods[region][0],1).timetuple().tm_yday
         if culture_periods[region][1] <= 12: 
@@ -73,8 +84,8 @@ def get_seasonal_index(region, culture_periods, timerate):
     return int(plant - 1), int(harvest) 
 
 def get_monthbin_index(region, culture_periods, clim_var, monthbin):
-    '''Allocates growing seasons to months-of-season precip bins.
-    '''
+    """Allocates growing seasons to months-of-season precip bins.
+    """
     plant, harvest = culture_periods[region]
     bindex = int(clim_var[-1]) - 1
     allmonths = [*range(plant, harvest+1)]
@@ -88,8 +99,8 @@ def get_monthbin_index(region, culture_periods, clim_var, monthbin):
         return 0, 0
 
 def calculate_edd(ds, gdd_cutoff, kdd_cutoff):
-    '''Calculate gdd and kdd from edd dataset.
-    '''
+    """Calculate gdd and kdd from edd dataset.
+    """
     kdd = ds.sel(refTemp=kdd_cutoff)['edd'].values
     gdd = kdd - ds.sel(refTemp=kdd_cutoff)['edd'].values
     out = fast_dataset.FastDataset({'kdd': (('time', 'region'), kdd),
@@ -121,7 +132,7 @@ for clim_scenario, clim_model, weatherbundle in get_bundle_iterator(config):
     covars = rootgrp.createVariable('covars', str, ('covar',))
     covars.long_title = "Covariate name"
 
-    #  Set variables.
+    # Set variables.
     for kk in range(len(config['covariates'])):
         covars[kk] = config['covariates'][kk]
 
@@ -154,7 +165,7 @@ for clim_scenario, clim_model, weatherbundle in get_bundle_iterator(config):
             if region in culture_periods:
                 for kk in range(len(config['covariates'])):
 
-                    # Get indicies for (1) month of season bin or (2) full growing season.
+                    # Get indices for (1) month of season bin or (2) full growing season.
                     if monthbin:
                         plantii, harvestii = get_monthbin_index(region, culture_periods, config['covariates'][kk], monthbin)
                     else:
