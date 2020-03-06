@@ -88,7 +88,7 @@ class TestRebased:
         """Test head of variable array"""
         npt.assert_allclose(
             projection_netcdf[self.target_variable].values[:3],
-            np.array([[-0.16533269, -0.0223633,  0.02246693]]).T,
+            np.array([[-0.16533269, -0.0223633, 0.02246693]]).T,
             atol=self.atol,
             rtol=self.rtol,
         )
@@ -132,7 +132,6 @@ class TestDdseasonaltasmax:
             atol=self.atol,
             rtol=self.rtol,
         )
-
 
 
 class TestDdseasonalpr:
