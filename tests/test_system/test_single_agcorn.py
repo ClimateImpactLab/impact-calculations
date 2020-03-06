@@ -88,7 +88,7 @@ class TestRebased:
         """Test head of variable array"""
         npt.assert_allclose(
             projection_netcdf[self.target_variable].values[:3],
-            np.array([-0.16533269, -0.0223633,  0.02246693]),
+            np.array([[-0.16533269, -0.0223633,  0.02246693]]).T,
             atol=self.atol,
             rtol=self.rtol,
         )
@@ -97,7 +97,7 @@ class TestRebased:
         """Test tail of variable array"""
         npt.assert_allclose(
             projection_netcdf[self.target_variable].values[-3:],
-            np.array([-0.59789735, -0.10988867, np.nan]),
+            np.array([[-0.59789735, -0.10988867, np.nan]]).T,
             atol=self.atol,
             rtol=self.rtol,
         )
@@ -119,7 +119,7 @@ class TestDdseasonaltasmax:
         """Test head of variable array"""
         npt.assert_allclose(
             projection_netcdf[self.target_variable].values[:3],
-            np.array([-0.04894612, -0.03128264, -0.02922709]),
+            np.array([[-0.04894612, -0.03128264, -0.02922709]]).T,
             atol=self.atol,
             rtol=self.rtol,
         )
@@ -128,7 +128,7 @@ class TestDdseasonaltasmax:
         """Test tail of variable array"""
         npt.assert_allclose(
             projection_netcdf[self.target_variable].values[-3:],
-            np.array([-0.08493597, -0.06603191, np.nan]),
+            np.array([[-0.08493597, -0.06603191, np.nan]]).T,
             atol=self.atol,
             rtol=self.rtol,
         )
@@ -151,7 +151,7 @@ class TestDdseasonalpr:
         """Test head of variable array"""
         npt.assert_allclose(
             projection_netcdf[self.target_variable].values[:3],
-            np.array([0.00524488, 0.00486552, 0.00480848]),
+            np.array([[0.00524488, 0.00486552, 0.00480848]]).T,
             atol=self.atol,
             rtol=self.rtol,
         )
@@ -160,7 +160,7 @@ class TestDdseasonalpr:
         """Test tail of variable array"""
         npt.assert_allclose(
             projection_netcdf[self.target_variable].values[-3:],
-            np.array([0.01309601, 0.01345166, np.nan]),
+            np.array([[0.01309601, 0.01345166, np.nan]]).T,
             atol=self.atol,
             rtol=self.rtol,
         )
