@@ -86,6 +86,8 @@ $ cd ..
     - libffi-dev (if not on Sacagawea): `apt-get install libffi-dev`
     - statsmodels: `pip install statsmodels`
     - scipy: `apt-get install libblas-dev liblapack-dev gfortran` (if not on Sacagawea); `pip install scipy`
+    - xarray: `pip install xarray==0.10.9`
+    - pandas: `pip install pandas==0.25.3`
 
 6. Copy the necessary data from Sacagawea into your `$DATA` directory, if you are not on Sacagawea:
    ```$ rsync -avz sacagawea.gspp.berkeley.edu:/shares/gcp/social $DATA/social```
