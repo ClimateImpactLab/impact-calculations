@@ -237,7 +237,7 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
                     for year2, ds2 in self.transformer.push(year, ds):
                         yield year2, ds2
             return
-
+        
         for year in self.get_years():
             if year == maxyear:
                 break
