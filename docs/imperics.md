@@ -145,8 +145,8 @@ The specification configuration options are described below:
   curve.
 * `depenunit` (required): The units of the dependent units.
 * `functionalform` (required): The functional form of the
-  coefficients.  It may be one of `polynomial`, `cubicspline`, or
-  `coefficients`.
+  coefficients.  It may be one of `polynomial`, `cubicspline`,
+  `coefficients`, or `sum-by-time`.
 * `beta-limits` (optional): Specifies minimum and maximum values for
   each beta (post-covariated) coefficient, as in:
   ```
@@ -181,6 +181,21 @@ The coefficients form has the following additional options:
   may be a mini-calculation or a known variable, but must be of the
   form:
   `<variable-name>: <variable definition> [<unit>]`
+
+The sum-by-time functional form represents a sum of multiple other
+terms, all of the same functional form. Each of those terms is
+specific to a timestep of the weather within a year, with the result
+calculation for a given year. It was has the following additional
+options:
+
+* `suffixes` (required): A list of suffixes for the CSVV
+  coefficients. The CSVV predictors will be `<variable>-<suffix>`,
+  where `<variable>` is determined by the sub-specification functional
+  form. The last suffix is used for all remaining timesteps within a
+  year.
+* `subspec` (required): A specification configuration dictionary for
+  the sub-specification. This should include a `functionalform`
+  option and any other options specific to that functional form.
 
 ## Covariates Expressions:
 
