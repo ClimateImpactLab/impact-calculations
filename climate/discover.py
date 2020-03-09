@@ -111,7 +111,7 @@ def standard_variable(name, mytimerate, **config):
                     {'tasmax_rcs_term_' + str(ii+1): 'tasmax_rcspline' + str(ii+1) for ii in range(len(found[key]) - 2)})
 
     if mytimerate == 'month':
-        if name in ['tas', 'tasmax']:
+        if name in ['tas', 'tasmax', 'tasmin']:
             return discover_day2month(standard_variable(name, 'day', **config),  lambda arr, dim: np.mean(arr, axis=dim))
         if name == 'tasbin':
             if config.get('show-source', False):
