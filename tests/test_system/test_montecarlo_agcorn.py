@@ -35,11 +35,9 @@ RUN_CONFIGS = {
         "FD_FGLS_inter_climGMFD_Exclude_all-issues_break2_semi-parametric_poly2_OTHERIND_other_energy_TINV_clim_income_spline_lininter": {
             "seed-csvv": 123
         },
-        RUN_BASENAME: {
-            "seed-csvv": 123
-        },
+        RUN_BASENAME: {"seed-csvv": 123},
         "histclim": {"seed-yearorder": 123},
-    }
+    },
 }
 
 
@@ -49,7 +47,10 @@ def projection_payload():
     """
     # Read output files from projection into named tuple of xr.Datasets and dicts.
     # Tests read in named tuple instances.
-    McResults = namedtuple("McResults", ["base_ds", "noadapt_ds", "incadapt_ds", "histclim_ds", "pvals_dict"])
+    McResults = namedtuple(
+        "McResults",
+        ["base_ds", "noadapt_ds", "incadapt_ds", "histclim_ds", "pvals_dict"],
+    )
 
     # Trigger projection run in temprary directory:
     with tmpdir_projection(RUN_CONFIGS, "montecarlo energy test") as tmpdirname:
@@ -61,8 +62,12 @@ def projection_payload():
         test_payload = McResults(
             base_ds=xr.open_dataset(Path(resultsdir, f"{RUN_BASENAME}.nc4")),
             noadapt_ds=xr.open_dataset(Path(resultsdir, f"{RUN_BASENAME}-noadapt.nc4")),
-            incadapt_ds=xr.open_dataset(Path(resultsdir, f"{RUN_BASENAME}-incadapt.nc4")),
-            histclim_ds=xr.open_dataset(Path(resultsdir, f"{RUN_BASENAME}-histclim.nc4")),
+            incadapt_ds=xr.open_dataset(
+                Path(resultsdir, f"{RUN_BASENAME}-incadapt.nc4")
+            ),
+            histclim_ds=xr.open_dataset(
+                Path(resultsdir, f"{RUN_BASENAME}-histclim.nc4")
+            ),
             pvals_dict=results_pvals,
         )
         yield test_payload
@@ -70,21 +75,18 @@ def projection_payload():
 
 def test_pvals(projection_payload):
     expected = {
-        RUN_BASENAME: {'seed-csvv': 123}, 
-        'FD_FGLS_inter_climGMFD_Exclude_all-issues_break2_semi-parametric_poly2_OTHERIND_other_energy_TINV_clim_income_spline_lininter': {
-            'seed-csvv': 123
+        RUN_BASENAME: {"seed-csvv": 123},
+        "FD_FGLS_inter_climGMFD_Exclude_all-issues_break2_semi-parametric_poly2_OTHERIND_other_energy_TINV_clim_income_spline_lininter": {
+            "seed-csvv": 123
         },
-        'histclim': {'seed-yearorder': 123}
+        "histclim": {"seed-yearorder": 123},
     }
     assert projection_payload.pvals_dict == expected
 
 
-@pytest.mark.parametrize("result_file", [
-    ("base_ds"),
-    ("noadapt_ds"),
-    ("incadapt_ds"),
-    ("histclim_ds"),
-])
+@pytest.mark.parametrize(
+    "result_file", [("base_ds"), ("noadapt_ds"), ("incadapt_ds"), ("histclim_ds"),]
+)
 def test_region(projection_payload, result_file):
     """Test the 'regions' dimension of output netCDF
     """
@@ -92,15 +94,13 @@ def test_region(projection_payload, result_file):
     assert str(projection_netcdf["regions"].values.item()) == "USA.14.608"
 
 
-@pytest.mark.parametrize("result_file", [
-    ("base_ds"),
-    ("noadapt_ds"),
-    ("incadapt_ds"),
-    ("histclim_ds"),
-])
+@pytest.mark.parametrize(
+    "result_file", [("base_ds"), ("noadapt_ds"), ("incadapt_ds"), ("histclim_ds"),]
+)
 class TestYear:
     """Test netCDF output 'year' dimension
     """
+
     target_variable = "year"
 
     def test_shape(self, projection_payload, result_file):
@@ -128,27 +128,28 @@ class TestYear:
 class TestRebased:
     """Test netCDF output 'rebased' variable
     """
+
     target_variable = "rebased"
     atol = 1
     rtol = 0
 
-    @pytest.mark.parametrize("result_file", [
-        ("base_ds"),
-        ("noadapt_ds"),
-        ("incadapt_ds"),
-        ("histclim_ds"),
-    ])
+    @pytest.mark.parametrize(
+        "result_file", [("base_ds"), ("noadapt_ds"), ("incadapt_ds"), ("histclim_ds"),]
+    )
     def test_shape(self, projection_payload, result_file):
         """Test variable array shape"""
         projection_netcdf = getattr(projection_payload, result_file)
         assert projection_netcdf[self.target_variable].values.shape == (118, 1)
 
-    @pytest.mark.parametrize("result_file,expected", [
-        ("base_ds", np.array([[18437142.0, 15240259.0, 13820419.0]]).T),
-        ("noadapt_ds", np.array([[18437142.0, 15240259.0, 13820419.0]]).T),
-        ("incadapt_ds", np.array([[18437142.0, 15240259.0, 13820419.0]]).T),
-        ("histclim_ds", np.array([[-2261668.0,  3017162.0, 3017162.0]]).T),
-    ])
+    @pytest.mark.parametrize(
+        "result_file,expected",
+        [
+            ("base_ds", np.array([[18437142.0, 15240259.0, 13820419.0]]).T),
+            ("noadapt_ds", np.array([[18437142.0, 15240259.0, 13820419.0]]).T),
+            ("incadapt_ds", np.array([[18437142.0, 15240259.0, 13820419.0]]).T),
+            ("histclim_ds", np.array([[-2261668.0, 3017162.0, 3017162.0]]).T),
+        ],
+    )
     def test_head(self, projection_payload, result_file, expected):
         """Test head of variable array"""
         projection_netcdf = getattr(projection_payload, result_file)
@@ -159,12 +160,15 @@ class TestRebased:
             rtol=self.rtol,
         )
 
-    @pytest.mark.parametrize("result_file,expected", [
-        ("base_ds", np.array([[18277254.0, -23021556.0, np.nan]]).T),
-        ("noadapt_ds", np.array([[18388806.0, -21105998.0, np.nan]]).T),
-        ("incadapt_ds", np.array([[18388806.0, -21105956.0, np.nan]]).T),
-        ("histclim_ds", np.array([[2662714.8, -6997009.5, np.nan]]).T),
-    ])
+    @pytest.mark.parametrize(
+        "result_file,expected",
+        [
+            ("base_ds", np.array([[18277254.0, -23021556.0, np.nan]]).T),
+            ("noadapt_ds", np.array([[18388806.0, -21105998.0, np.nan]]).T),
+            ("incadapt_ds", np.array([[18388806.0, -21105956.0, np.nan]]).T),
+            ("histclim_ds", np.array([[2662714.8, -6997009.5, np.nan]]).T),
+        ],
+    )
     def test_tail(self, projection_payload, result_file, expected):
         """Test tail of variable array"""
         projection_netcdf = getattr(projection_payload, result_file)
