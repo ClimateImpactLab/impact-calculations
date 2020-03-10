@@ -91,7 +91,7 @@ class TestRebased:
         """Test head of variable array"""
         npt.assert_allclose(
             projection_netcdf[self.target_variable].values[:3],
-            np.array([20.582834, 108.4278, 449.78918]),
+            np.array([[20.582834, 108.4278, 449.78918]]).T,
             atol=self.atol,
             rtol=self.rtol,
         )
@@ -100,7 +100,7 @@ class TestRebased:
         """Test tail of variable array"""
         npt.assert_allclose(
             projection_netcdf[self.target_variable].values[-3:],
-            np.array([-2572.8152, -3596.9329, -2827.6426]),
+            np.array([[-2572.8152, -3596.9329, -2827.6426]]).T,
             atol=self.atol,
             rtol=self.rtol,
         )
