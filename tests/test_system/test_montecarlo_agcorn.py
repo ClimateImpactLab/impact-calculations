@@ -144,10 +144,10 @@ class TestRebased:
         assert projection_netcdf[self.target_variable].values.shape == (118, 1)
 
     @pytest.mark.parametrize("result_file,expected", [
-        ("base_ds", np.array([18437142.0, 15240259.0, 13820419.0])),
-        ("noadapt_ds", np.array([18437142.0, 15240259.0, 13820419.0])),
-        ("incadapt_ds", np.array([18437142.0, 15240259.0, 13820419.0])),
-        ("histclim_ds", np.array([-2261668.0,  3017162.0, 3017162.0])),
+        ("base_ds", np.array([[18437142.0, 15240259.0, 13820419.0]]).T),
+        ("noadapt_ds", np.array([[18437142.0, 15240259.0, 13820419.0]]).T),
+        ("incadapt_ds", np.array([[18437142.0, 15240259.0, 13820419.0]]).T),
+        ("histclim_ds", np.array([[-2261668.0,  3017162.0, 3017162.0]]).T),
     ])
     def test_head(self, projection_payload, result_file, expected):
         """Test head of variable array"""
@@ -160,10 +160,10 @@ class TestRebased:
         )
 
     @pytest.mark.parametrize("result_file,expected", [
-        ("base_ds", np.array([18277254.0, -23021556.0, np.nan])),
-        ("noadapt_ds", np.array([18388806.0, -21105998.0, np.nan])),
-        ("incadapt_ds", np.array([18388806.0, -21105956.0, np.nan])),
-        ("histclim_ds", np.array([ 2662714.8, -6997009.5, np.nan])),
+        ("base_ds", np.array([[18277254.0, -23021556.0, np.nan]]).T),
+        ("noadapt_ds", np.array([[18388806.0, -21105998.0, np.nan]]).T),
+        ("incadapt_ds", np.array([[18388806.0, -21105956.0, np.nan]]).T),
+        ("histclim_ds", np.array([[2662714.8, -6997009.5, np.nan]]).T),
     ])
     def test_tail(self, projection_payload, result_file, expected):
         """Test tail of variable array"""
