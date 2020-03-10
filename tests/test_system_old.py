@@ -89,6 +89,7 @@ class TestSingleMortality(unittest.TestCase):
         self.assertEqual(actual, goal)
 
 
+@pytest.mark.skip(reason="aggregate test is insecure and destructive")
 @pytest.mark.imperics_shareddir
 class TestAggregateEnergy(unittest.TestCase):
     """Check projection aggregation for energy sector
