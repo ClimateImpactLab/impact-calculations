@@ -4,6 +4,10 @@ Manages rcps and econ and climate models, and generate.effectset.simultaneous_ap
 
 import os, itertools, importlib, shutil, csv, time, yaml, tempfile
 from collections import OrderedDict
+from contextlib import contextmanager
+from tempfile import TemporaryDirectory
+from pathlib import Path
+from copy import deepcopy
 import numpy as np
 from . import loadmodels
 from . import weather, pvalses, timing
@@ -279,6 +283,30 @@ def main(config, runid):
 
         if do_single:
             break
+
+
+@contextmanager
+def tmpdir_projection(cfg, runid):
+    """Context manager to generate projection in tmpdir, then cleanup output
+
+    Parameters
+    ----------
+    cfg : dict
+        Run configuration dict.
+    runid : str
+
+    Yields
+    ------
+    tempdir_path : pathlib.Path
+    """
+    cfg = deepcopy(cfg)  # so we don't overwrite values in `cfg`.
+    with TemporaryDirectory() as tmpdirname:
+
+        tempdir_path = Path(tmpdirname)
+        cfg["outputdir"] = str(tempdir_path)
+
+        main(cfg, runid)
+        yield tempdir_path
 
 
 if __name__ == '__main__':
