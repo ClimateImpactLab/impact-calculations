@@ -12,7 +12,7 @@ import xarray as xr
 import numpy as np
 import numpy.testing as npt
 
-from generate.generate import tmpdir_projection
+from utils import tmpdir_projection
 
 
 pytestmark = pytest.mark.imperics_shareddir
