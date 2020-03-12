@@ -80,7 +80,7 @@ class TestRebased:
     """
 
     target_variable = "rebased"
-    atol = 1e-4
+    atol = 1e-3
     rtol = 0
 
     def test_shape(self, projection_netcdf):
@@ -91,7 +91,7 @@ class TestRebased:
         """Test head of variable array"""
         npt.assert_allclose(
             projection_netcdf[self.target_variable].values[:3],
-            np.array([[20.582834, 108.4278, 449.78918]]).T,
+            np.array([[20.576303, 108.616135, 451.51030]]).T,
             atol=self.atol,
             rtol=self.rtol,
         )
@@ -100,7 +100,7 @@ class TestRebased:
         """Test tail of variable array"""
         npt.assert_allclose(
             projection_netcdf[self.target_variable].values[-3:],
-            np.array([[-2572.8152, -3596.9329, -2827.6426]]).T,
+            np.array([[-2595.0160, -3619.1338, -2849.8433]]).T,
             atol=self.atol,
             rtol=self.rtol,
         )
