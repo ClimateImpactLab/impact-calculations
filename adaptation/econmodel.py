@@ -14,7 +14,7 @@ from impactcommon.exogenous_economy import provider, gdppc
 from helpers import header
 from datastore import population, popdensity
 
-def iterate_econmodels(config={}):
+def iterate_econmodels(config=None):
     """Discover and yield each known scenario as a SSPEconomicModel.
     
     Parameters
@@ -27,6 +27,8 @@ def iterate_econmodels(config={}):
     tuple of str, str, SSPEconomicModel
         The first str is the model producing the data; the second is the scenario.
     """
+    if config is None:
+        config = {}
     modelscenarios = set() # keep track of model-scenario pairs
 
     dependencies = []

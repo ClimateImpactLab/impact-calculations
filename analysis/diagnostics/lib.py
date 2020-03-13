@@ -1,6 +1,8 @@
 from autodoc.lib import *
 
-def get_weather(weathertemplate, years, shapenum, show_all_years=[], variable='tas', regindex='hierid', subset=None):
+def get_weather(weathertemplate, years, shapenum, show_all_years=None, variable='tas', regindex='hierid', subset=None):
+    if show_all_years is None:
+        show_all_years = []
     weather = {}
     for year in years:
         filepath = weathertemplate.format('historical' if year < 2006 else 'rcp85', year)
