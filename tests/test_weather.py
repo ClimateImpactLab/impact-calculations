@@ -25,8 +25,10 @@ def get_yearorder(temp2year, weatherbundle):
 
 # Provides data for all tests
 @pytest.fixture
-def temp2year():
+def temp2year(monkeypatch):
     """Return a mapping between observed temperatures and the year they are observed."""
+    monkeypatch.setenv("IMPERICS_SHAREDDIR", "tests/testdata")
+
     temp2year = {}
     weatherbundle = get_weatherbundle()
     for year, ds in weatherbundle.yearbundles():
