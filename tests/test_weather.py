@@ -28,7 +28,7 @@ def get_yearorder(temp2year, weatherbundle):
 @pytest.fixture
 def temp2year(monkeypatch):
     """Return a mapping between observed temperatures and the year they are observed."""
-    monkeypatch.setattr(files.server_config, 'shareddir', 'tests/testdata')
+    monkeypatch.setattr(files, 'server_config', {'shareddir': 'tests/testdata'})
 
     temp2year = {}
     weatherbundle = get_weatherbundle()
