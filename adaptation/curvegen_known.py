@@ -46,7 +46,7 @@ class SmartCSVVCurveGenerator(curvegen.CSVVCurveGenerator):
         """
         Parameters
         ----------
-        regions : str
+        region : str
             Target region.
         year : int
             Target year.
