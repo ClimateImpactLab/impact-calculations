@@ -12,7 +12,9 @@ from climate import discover
 from impactlab_tools.utils import files
 from impactcommon.math import minpoly
 
-def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', clipping=True, config={}):
+def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', clipping=True, config=None):
+    if config is None:
+        config = {}
     reader_coldd = discover.discover_yearly_corresponding(files.sharedpath('climate/BCSD/aggregation/cmip5_new/IR_level'),
                                                           weatherbundle.scenario, 'Degreedays_tasmax',
                                                           weatherbundle.model, 'coldd_agg')
