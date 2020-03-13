@@ -123,9 +123,9 @@ def get_gamma(csvv, predname, covarname):
     return None
 
 def jstr(x):
-    if x == True:
+    if x:
         return 'true'
-    elif x == False:
+    elif not x:
         return 'false'
     elif x == np.inf:
         return 'Inf'
