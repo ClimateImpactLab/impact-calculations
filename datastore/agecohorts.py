@@ -1,26 +1,57 @@
+"""Functions to access age cohort projection data.
+
+We use three age groups: <5, called "young"; 5 - 64, called "older",
+and >64, called "oldest". The portions of the population within each
+of these age groups can be used as a weighting variable or a
+covariate.
+
+This data is derived from the SSP dataset, using the script
+baselines/AgeGroupAggr.py in the socioeconomics repository:
+https://bitbucket.org/ClimateImpactLab/socioeconomics/src/master/baselines/AgeGroupAggr.py
+
+"""
+
 import csv
 import numpy as np
 from impactlab_tools.utils import files
 from helpers import header
 from . import population, spacetime
 
+# The three age groups; results returned in same order
 columns = ['age0-4', 'age5-64', 'age65+']
 
 def load_agecohorts(model, scenario):
+    """Load the age cohort data for a given model and scenario.
+
+    Parameters
+    ----------
+    model : str
+        SSP model, such as "IIASA-WiC POP"
+    scenario : str
+        SSP scenario, such as "SSP3_v9_130115"
+
+    Returns
+    -------
+    dict{str => dict{int => list}}
+        A dictionary with a key for each ISO region; the value is a
+        dictionary which maps years to a list of cohort portions.
+    """
     data = {}
 
     agefile = files.sharedpath('social/baselines/cohort_population_aggr.csv')
     with open(agefile, 'r') as fp:
         reader = csv.reader(fp)
-        header = [s.strip() for s in next(reader)]
+        header = [s.strip() for s in next(reader)] # drop extra whitespace
         for row in reader:
             row = [s.strip() for s in row]
             if row[header.index('age0-4')] == '' or float(row[header.index('age0-4')]) == 0:
-                continue
-            
+                continue # row contains no data
+
+            # Check if this corresponds to the requested model-scenario
             if (model is None or row[header.index('MODEL')] == model) and row[header.index('Scenario')][0:4] == scenario[0:4]:
                 region = row[header.index('REGION')]
-                
+
+                # Fill in the data
                 if region not in data:
                     data[region] = {}
 
