@@ -77,7 +77,7 @@ class Covariator(object):
     def get_current(self, region):
         """
         This can be called as many times as we want.
-        
+
         Parameters
         ----------
         region : str
@@ -130,7 +130,7 @@ class Covariator(object):
 
 class GlobalExogenousCovariator(Covariator):
     """Produces a externally given sequence of covariate values for all regions.
-     
+
     {'covarname': `baseline`} will returned up to (and including) `startupdateyear`.
     In `startupdateyear` + N, the Nth value of `values` will be returned (`values[N-1]`).
 
@@ -138,7 +138,7 @@ class GlobalExogenousCovariator(Covariator):
     ----------
     startupdateyear : year
         Last year to report `baseline` value.
-    covarname : str 
+    covarname : str
         Covariate name to report.
     baseline : float or int
         The value to report up to `startupdateyear`.
@@ -172,9 +172,19 @@ class GlobalExogenousCovariator(Covariator):
             self.cached_index += 1
             self.cached_value = self.values[self.cached_index]
         return self.get_current(region)
-    
+
 class EconomicCovariator(Covariator):
-    """Provides information on log GDP per capita and Population-weight population density."""
+    """Provides income as a series of indicator values for the income bin.
+
+    Parameters
+    ----------
+    economicmodel : adaptation.SSPEconomicModel
+    maxbaseline : int
+        Value up to which the covariate baseline is calculated.
+    limits : Sequence of float
+    conf : dict, optional
+        Configuration dict.
+    """
     def __init__(self, economicmodel, maxbaseline, config={}):
         super(EconomicCovariator, self).__init__(maxbaseline, config=config)
 
@@ -191,6 +201,17 @@ class EconomicCovariator(Covariator):
             self.slowgrowth = False
 
     def get_econ_predictors(self, region):
+        """
+        Parameters
+        ----------
+        region : str
+
+        Returns
+        -------
+        dict
+            Output has keys "loggdppc" and "popop" giving the nautral log per
+            capita GDP and some other value.
+        """
         econpreds = self.econ_predictors.get(region, None)
 
         if econpreds is None:
@@ -214,12 +235,31 @@ class EconomicCovariator(Covariator):
         return dict(loggdppc=loggdppc, popop=density)
 
     def get_current(self, region):
+        """Get year's economic values for a given region
+        Parameters
+        ----------
+        region : str
+
+        Returns
+        -------
+        dict
+            Output has keys "loggdppc", "logpopop" "year", which give the
+            natural log of per capita GDP, the natural log of popop, and
+            the year.
+        """
         econpreds = self.get_econ_predictors(region)
         return dict(loggdppc=econpreds['loggdppc'],
                     logpopop=np.log(econpreds['popop']),
                     year=self.get_yearcovar(region))
 
     def get_update(self, region, year, ds):
+        """
+        Parameters
+        ----------
+        region : str
+        year : int
+        ds : xarray.Dataset
+        """
         assert year < 10000
         self.lastyear[region] = year
 
