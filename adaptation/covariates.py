@@ -134,11 +134,16 @@ class GlobalExogenousCovariator(Covariator):
     {'covarname': `baseline`} will returned up to (and including) `startupdateyear`.
     In `startupdateyear` + N, the Nth value of `values` will be returned (`values[N-1]`).
 
-    Args:
-        startupdateyear (year): Last year to report `baseline` value.
-        covarname (str): Covariate name to report.
-        baseline (numeric): The value to report up to `startupdateyear`.
-        values (list-like of numeric): Values to report after `startupdateyear`.
+    Parameters
+    ----------
+    startupdateyear : year
+        Last year to report `baseline` value.
+    covarname : str 
+        Covariate name to report.
+    baseline : float or int
+        The value to report up to `startupdateyear`.
+    values : Sequence of floats
+        Values to report after `startupdateyear`.
     """
     def __init__(self, startupdateyear, covarname, baseline, values):
         super(GlobalExogenousCovariator, self).__init__(startupdateyear)
@@ -148,9 +153,21 @@ class GlobalExogenousCovariator(Covariator):
         self.cached_index = -1
 
     def get_current(self, region):
+        """
+        Parameters
+        ----------
+        region : str
+        """
         return {self.covarname: self.cached_value}
 
     def get_update(self, region, year, ds):
+        """
+        Parameters
+        ----------
+        region : str
+        year : int
+        ds : xarray.Dataset
+        """
         if year > self.startupdateyear:
             self.cached_index += 1
             self.cached_value = self.values[self.cached_index]
