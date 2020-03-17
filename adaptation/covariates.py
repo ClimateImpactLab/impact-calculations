@@ -48,7 +48,7 @@ class Covariator(object):
     Parameters
     ----------
     maxbaseline : int
-        Value up to which the covariate baseline is calculated.
+        Year up to which the covariate baseline is calculated.
     conf : dict, optional
         Configuration dict.
     """
@@ -180,7 +180,7 @@ class EconomicCovariator(Covariator):
     ----------
     economicmodel : adaptation.SSPEconomicModel
     maxbaseline : int
-        Value up to which the covariate baseline is calculated.
+        Year up to which the covariate baseline is calculated.
     limits : Sequence of float
     conf : dict, optional
         Configuration dict.
@@ -245,7 +245,7 @@ class EconomicCovariator(Covariator):
         dict
             Output has keys "loggdppc", "logpopop" "year", which give the
             natural log of per capita GDP, the natural log of popop, and
-            the year.
+            the year, respectively.
         """
         econpreds = self.get_econ_predictors(region)
         return dict(loggdppc=econpreds['loggdppc'],
@@ -278,12 +278,30 @@ class EconomicCovariator(Covariator):
         return dict(loggdppc=loggdppc, logpopop=np.log(popop), year=self.get_yearcovar(region))
 
 class BinnedEconomicCovariator(EconomicCovariator):
-    """Provides income as a series of indicator values for the income bin."""
+    """Provides income as a series of indicator values for the income bin.
+
+    Parameters
+    ----------
+    economicmodel : adaptation.SSPEconomicModel
+    maxbaseline : int
+        Year up to which the covariate baseline is calculated.
+    limits : Sequence of float
+    conf : dict, optional
+        Configuration dict.
+    """
     def __init__(self, economicmodel, maxbaseline, limits, config={}):
         super(BinnedEconomicCovariator, self).__init__(economicmodel, maxbaseline, config=config)
         self.limits = limits
 
     def add_bins(self, covars):
+        """
+        Parameters
+        ----------
+        covars : dict
+            A dictionary with keys "loggdppc", "logpopop", and "year", giving 
+            the natural log of per capita GDP, the natural log of popop, and
+            the year, respectively.
+        """
         bin_limits = np.array(self.limits, dtype='float')
         incbin = np.digitize(covars['loggdppc'], bin_limits) # starts at 1
         for ii in range(1, len(self.limits)):
@@ -291,10 +309,22 @@ class BinnedEconomicCovariator(EconomicCovariator):
         return covars
         
     def get_current(self, region):
+        """
+        Parameters
+        ----------
+        region : str
+        """
         covars = super(BinnedEconomicCovariator, self).get_current(region)
         return self.add_bins(covars)
 
     def get_update(self, region, year, ds):
+        """
+        Parameters
+        ----------
+        region : str
+        year : int
+        ds : xarray.Dataset
+        """
         covars = super(BinnedEconomicCovariator, self).get_update(region, year, ds)
         return self.add_bins(covars)
 
