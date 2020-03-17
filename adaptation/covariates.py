@@ -44,6 +44,13 @@ standard_climate_config = {'class': 'bartlett', 'length': 30}
 class Covariator(object):
     """
     Provides both baseline data and updated covariates in response to each year's values.
+
+    Parameters
+    ----------
+    maxbaseline : int
+        Value up to which the covariate baseline is calculated.
+    conf : dict, optional
+        Configuration dict.
     """
     def __init__(self, maxbaseline, config={}):
         self.startupdateyear = maxbaseline
@@ -51,6 +58,16 @@ class Covariator(object):
         self.yearcovarscale = config.get('yearcovarscale', 1)
 
     def get_yearcovar(self, region):
+        """
+        Parameters
+        ----------
+        region : str
+            Target impact region.
+
+        Returns
+        -------
+        year
+        """
         year = self.lastyear.get(region, self.startupdateyear)
         if year > self.startupdateyear:
             return (year - self.startupdateyear) * self.yearcovarscale + self.startupdateyear
@@ -58,11 +75,26 @@ class Covariator(object):
             return year
         
     def get_current(self, region):
-        """This can be called as many times as we want."""
+        """
+        This can be called as many times as we want.
+        
+        Parameters
+        ----------
+        region : str
+        """
         raise NotImplementedError
 
     def offer_update(self, region, year, ds):
-        """This can be called as many times as we want."""
+        """
+
+        This can be called as many times as we want.
+
+        Parameters
+        ----------
+        region : str
+        year : int
+        ds : xarray.Dataset
+        """
         assert year < 10000
         # Ensure that we aren't called with a year twice
         assert self.lastyear.get(region, -np.inf) <= year, "Called with %d, but previously did %d" % (year, self.lastyear.get(region, -np.inf))
@@ -73,10 +105,27 @@ class Covariator(object):
         return self.get_current(region)
 
     def get_update(self, region, year, ds):
-        """This should only be called by offer_update, because it can only be called once per year-region combination."""
+        """
+        This should only be called by `offer_update`, because it can only be called once per year-region combination.
+
+        Parameters
+        ----------
+        region : str
+        year : int
+        ds : xarray.Dataset
+        """
         raise NotImplementedError
 
     def get_current_args(self, region):
+        """
+        Parameters
+        ----------
+        region : str
+
+        Returns
+        -------
+        tuple
+        """
         return (self.get_current(region),)
 
 class GlobalExogenousCovariator(Covariator):
