@@ -3,6 +3,7 @@ import numpy as np
 import numpy.testing as npt
 from generate import weather
 from climate import discover
+from impactlab_tools.utils import files
 
 ## Test that weather bundles are working properly.
 
@@ -25,8 +26,10 @@ def get_yearorder(temp2year, weatherbundle):
 
 # Provides data for all tests
 @pytest.fixture
-def temp2year():
+def temp2year(monkeypatch):
     """Return a mapping between observed temperatures and the year they are observed."""
+    monkeypatch.setattr(files, 'server_config', {'shareddir': 'tests/testdata'})
+
     temp2year = {}
     weatherbundle = get_weatherbundle()
     for year, ds in weatherbundle.yearbundles():
