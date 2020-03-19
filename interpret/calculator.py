@@ -28,8 +28,10 @@ from openest.generate import stdlib, arguments
 from generate import caller
 from . import curves
 
-def prepare_argument(name, argument, models, argtype, extras={}):
+def prepare_argument(name, argument, models, argtype, extras=None):
     """Translate a configuration option `argument` into an object of type `argtype`."""
+    if extras is None:
+        extras = {}
     if argtype in [arguments.model, arguments.curvegen, arguments.curve_or_curvegen]:
         assert argument in models, "Unknonwn model %s" % argument
         return models[argument]
@@ -45,8 +47,10 @@ def prepare_argument(name, argument, models, argtype, extras={}):
     return argument
 
 last_tryprepare_error = None
-def tryprepare_argument(name, argument, models, argtype, extras={}):
+def tryprepare_argument(name, argument, models, argtype, extras=None):
     """Attempt to interpret argument as an argtype and return it; if this fails, return None."""
+    if extras is None:
+        extras = {}
     global last_tryprepare_error
     try:
         return prepare_argument(name, argument, models, argtype, extras=extras)
@@ -56,7 +60,9 @@ def tryprepare_argument(name, argument, models, argtype, extras={}):
         last_tryprepare_error = traceback.format_exc() # don't save actual exception (gc problems)
         return None
 
-def create_calculation(postconf, models, extras={}):
+def create_calculation(postconf, models, extras=None):
+    if extras is None:
+        extras = {}
     if isinstance(postconf, str):
         with open(postconf, 'r') as fp:
             postconf = yaml.load(fp)
@@ -64,7 +70,9 @@ def create_calculation(postconf, models, extras={}):
     calculation = create_calcstep(list(postconf[0].keys())[0], list(postconf[0].values())[0], models, None, extras=extras)
     return create_postspecification(postconf[1:], models, calculation, extras=extras)
 
-def create_postspecification(postconf, models, calculation, extras={}):
+def create_postspecification(postconf, models, calculation, extras=None):
+    if extras is None:
+        extras = {}
     if isinstance(postconf, str):
         with open(postconf, 'r') as fp:
             postconf = yaml.load(fp)
@@ -109,7 +117,9 @@ def get_namedarg(args, name):
 
     raise KeyError(name)
 
-def create_calcstep(name, args, models, subcalc, extras={}):
+def create_calcstep(name, args, models, subcalc, extras=None):
+    if extras is None:
+        extras = {}
     if name == 'Rebase':
         if isinstance(args, dict):
             kwargs = args
