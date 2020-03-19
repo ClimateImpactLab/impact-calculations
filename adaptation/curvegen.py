@@ -51,9 +51,11 @@ class CSVVCurveGenerator(CurveGenerator):
         CSVV dict as produced by `interpret.container.produce_csvv`.
     betalimits: dict
     """
-    def __init__(self, prednames, indepunits, depenunit, csvv, betalimits={}, ignore_units=False):
+    def __init__(self, prednames, indepunits, depenunit, csvv, betalimits=None, ignore_units=False):
         super(CSVVCurveGenerator, self).__init__(indepunits, depenunit)
 
+        if betalimits is None:
+            betalimits = {}
         assert isinstance(prednames, list) or isinstance(prednames, set) or isinstance(prednames, tuple)
         self.prednames = prednames
         self.csvv = csvv
@@ -143,14 +145,18 @@ class CSVVCurveGenerator(CurveGenerator):
             marginals[predname] = self.predgammas[predname][self.predcovars[predname].index(covar)]
         return marginals
 
-    def get_curve(self, region, year, covariates={}):
+    def get_curve(self, region, year, covariates=None):
+        if covariates is None:
+            covariates = {}
         raise NotImplementedError()
 
     def get_lincom_terms(self, region, year, predictors):
         raise NotImplementedError()
 
-    def get_lincom_terms_simple(self, predictors, covariates={}):
+    def get_lincom_terms_simple(self, predictors, covariates=None):
         # Return in the order of the CSVV
+        if covariates is None:
+            covariates = {}
         terms = []
         for ii in range(len(self.csvv['prednames'])):
             predname = self.csvv['prednames'][ii]
@@ -241,8 +247,10 @@ class FarmerCurveGenerator(DelayedCurveGenerator):
         return FarmerCurveGenerator(self.curvegen.get_partial_derivative_curvegen(covariate, covarunit),
                                     self.covariator, self.farmer, self.save_curve)
         
-    def get_lincom_terms(self, region, year, predictors={}, origds=None):
+    def get_lincom_terms(self, region, year, predictors=None, origds=None):
         # Get last covariates
+        if predictors is None:
+            predictors = {}
         if self.lincom_last_year.get(region, None) == year:
             covariates = self.lincom_last_covariates[region]
         else:
@@ -266,7 +274,9 @@ class FarmerCurveGenerator(DelayedCurveGenerator):
         
         return self.curvegen.get_lincom_terms_simple(predictors, covariates)
 
-    def get_lincom_terms_simple(self, predictors, covariates={}):
+    def get_lincom_terms_simple(self, predictors, covariates=None):
+        if covariates is None:
+            covariates = {}
         raise NotImplementedError()
     
     def get_csvv_coeff(self):
@@ -332,7 +342,9 @@ class SumCurveGenerator(CurveGenerator):
         self.curvegens = curvegens
         self.coeffsuffixes = coeffsuffixes
 
-    def get_curve(self, region, year, covariates={}, **kwargs):
+    def get_curve(self, region, year, covariates=None, **kwargs):
+        if covariates is None:
+            covariates = {}
         curves = [curvegen.get_curve(region, year, covariates, **kwargs) for curvegen in self.curvegens]
         return smart_curve.SumCurve(curves)
 

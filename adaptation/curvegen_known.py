@@ -36,15 +36,17 @@ class SmartCSVVCurveGenerator(curvegen.CSVVCurveGenerator):
     betalimits : dict of str -> float
         Requires that all calculated betas are clipped to these limits.
     """
-    def __init__(self, prednames, indepunits, depenunit, csvv, diagprefix='coeff-', betalimits={}, ignore_units=False):
+    def __init__(self, prednames, indepunits, depenunit, csvv, diagprefix='coeff-', betalimits=None, ignore_units=False):
         super(SmartCSVVCurveGenerator, self).__init__(prednames, indepunits, depenunit, csvv, betalimits=betalimits, ignore_units=ignore_units)
+        if betalimits is None:
+            betalimits = {}
         self.diagprefix = diagprefix
 
-    def get_curve(self, region, year, covariates={}, recorddiag=True, **kwargs):
+    def get_curve(self, region, year, covariates=None, recorddiag=True, **kwargs):
         """
         Parameters
         ----------
-        regions : str
+        region : str
             Target region.
         year : int
             Target year.
@@ -59,6 +61,8 @@ class SmartCSVVCurveGenerator(curvegen.CSVVCurveGenerator):
         -------
         openest.generate.smart_curve.SmartCurve
         """
+        if covariates is None:
+            covariates = {}
         coefficients = self.get_coefficients(covariates)
         yy = [coefficients[predname] for predname in self.prednames]
 
@@ -144,7 +148,10 @@ class PolynomialCurveGenerator(SmartCSVVCurveGenerator):
     ignore_units : bool
         If the units do not match, should we produce an error?
     """
-    def __init__(self, indepunits, depenunit, prefix, order, csvv, diagprefix='coeff-', predinfix='', weathernames=None, betalimits={}, allow_raising=False, ignore_units=False):
+    def __init__(self, indepunits, depenunit, prefix, order, csvv, diagprefix='coeff-', predinfix='', weathernames=None,
+                 betalimits=None, allow_raising=False, ignore_units=False):
+        if betalimits is None:
+            betalimits = {}
         self.order = order
         prednames = [prefix + predinfix + str(ii) if ii > 1 else prefix for ii in range(1, order+1)]
         super(PolynomialCurveGenerator, self).__init__(prednames, indepunits * order, depenunit, csvv, betalimits=betalimits, ignore_units=ignore_units)
@@ -167,7 +174,9 @@ class PolynomialCurveGenerator(SmartCSVVCurveGenerator):
         """
         return ZeroInterceptPolynomialCurve(yy, self.weathernames, self.allow_raising)
 
-    def get_lincom_terms_simple_each(self, predname, covarname, predictors, covariates={}):
+    def get_lincom_terms_simple_each(self, predname, covarname, predictors, covariates=None):
+        if covariates is None:
+            covariates = {}
         if predname not in list(predictors._variables.keys()):
             predname = predname[:-1] + '-poly-' + predname[-1]
             
@@ -231,7 +240,9 @@ class CubicSplineCurveGenerator(SmartCSVVCurveGenerator):
     betalimits : dict of str -> float
         Requires that all calculated betas are clipped to these limits.
     """
-    def __init__(self, indepunits, depenunit, prefix, knots, variablename, csvv, diagprefix='coeff-', betalimits={}, allow_raising=False):
+    def __init__(self, indepunits, depenunit, prefix, knots, variablename, csvv, diagprefix='coeff-', betalimits=None, allow_raising=False):
+        if betalimits is None:
+            betalimits = {}
         self.knots = knots
         self.variablename = str(variablename)
         prednames = [self.variablename] + [prefix + str(ii) for ii in range(1, len(knots)-1)]
@@ -268,7 +279,9 @@ class BinnedStepCurveGenerator(curvegen.CSVVCurveGenerator):
         super(BinnedStepCurveGenerator, self).__init__(prednames, indepunits, depenunit, csvv)
         self.min_betas = {}
 
-    def get_curve(self, region, year, covariates={}):
+    def get_curve(self, region, year, covariates=None):
+        if covariates is None:
+            covariates = {}
         coefficients = self.get_coefficients(covariates)
         yy = [coefficients[predname] for predname in self.prednames]
 

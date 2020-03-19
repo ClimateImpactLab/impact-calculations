@@ -7,7 +7,9 @@ from impactcommon.math import minspline
 
 knots = [-10, 0, 10, 20, 28, 33]
 
-def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', config={}):
+def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', config=None):
+    if config is None:
+        config = {}
     covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, 'tas', config=config.get('climcovar', {}), varindex=0), {'climtas': 'tas'}),
                                                 covariates.EconomicCovariator(economicmodel, 2015, config=config.get('econcovar', {}))])
 
