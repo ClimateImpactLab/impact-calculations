@@ -17,7 +17,6 @@ from utils import tmpdir_projection
 
 pytestmark = pytest.mark.imperics_shareddir
 
-
 @pytest.fixture(scope="module")
 def projection_netcdf():
     """Runs the projection in tmpdir, gets results netCDF, cleans output on exit
@@ -88,7 +87,7 @@ class TestRebased:
         """Test head of variable array"""
         npt.assert_allclose(
             projection_netcdf[self.target_variable].values[:3],
-            np.array([[-0.16533269, -0.0223633, 0.02246693]]).T,
+            np.array([[-0.15186098, -0.02401909,  0.01957218]]).T,
             atol=self.atol,
             rtol=self.rtol,
         )
@@ -97,7 +96,7 @@ class TestRebased:
         """Test tail of variable array"""
         npt.assert_allclose(
             projection_netcdf[self.target_variable].values[-3:],
-            np.array([[-0.59789735, -0.10988867, np.nan]]).T,
+            np.array([[-0.6244463, -0.13643758, np.nan]]).T,
             atol=self.atol,
             rtol=self.rtol,
         )
@@ -119,7 +118,7 @@ class TestDdseasonaltasmax:
         """Test head of variable array"""
         npt.assert_allclose(
             projection_netcdf[self.target_variable].values[:3],
-            np.array([[-0.04894612, -0.03128264, -0.02922709]]).T,
+            np.array([[-0.05384747, -0.03535344, -0.03308476]]).T,
             atol=self.atol,
             rtol=self.rtol,
         )
@@ -150,7 +149,7 @@ class TestDdseasonalpr:
         """Test head of variable array"""
         npt.assert_allclose(
             projection_netcdf[self.target_variable].values[:3],
-            np.array([[0.00524488, 0.00486552, 0.00480848]]).T,
+            np.array([[0.00369034, 0.00358236, 0.00359436]]).T,
             atol=self.atol,
             rtol=self.rtol,
         )
