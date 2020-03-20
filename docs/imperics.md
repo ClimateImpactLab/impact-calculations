@@ -20,6 +20,9 @@ calculation translates high-resolution weather data to yearly values,
 and these calculations rely on a "specification", which describes how
 the dose-response curve varies across space and time.
 
+For information about CSVV files, see the CSVV File Format
+Specification.docx document.
+
 Configuration file structure paradigms:
 
 The configuration file consists of a tree of sub-configurations.  At
