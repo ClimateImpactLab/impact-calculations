@@ -168,7 +168,7 @@ class GDDKDDReader(ConversionWeatherReader):
         self.tmaxvar = tmaxvar
         super(GDDKDDReader, self).__init__(reader, lambda x: x, lambda ds: self.convert(ds, lower, upper))
          
-    def convert(ds, lower, upper):
+    def convert(self, ds, lower, upper):
         allgdd = np.zeros((len(ds.time), len(ds.region)))
         allkdd = np.zeros((len(ds.time), len(ds.region)))
         for ii in range(len(ds.region)):
