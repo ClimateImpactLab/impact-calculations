@@ -9,8 +9,10 @@ try:
 except:
     print("Cannot load open-estimate; conversion to models will fail.")
 
-def csv_to_data(filename, prednames, ignores, dependencies, predcheck={}):
+def csv_to_data(filename, prednames, ignores, dependencies, predcheck=None):
     # Headers separate
+    if predcheck is None:
+        predcheck = {}
     headerfilename = filename.replace('.csv', '.fgh').replace('_65+', '').replace('_jr', '').replace('_alternate', '')
     with open(headerfilename, 'r') as fp:
         headre.deparse(fp, dependencies)
