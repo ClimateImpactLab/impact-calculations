@@ -17,6 +17,7 @@ from utils import tmpdir_projection
 
 pytestmark = pytest.mark.imperics_shareddir
 
+
 @pytest.fixture(scope="module")
 def projection_netcdf():
     """Runs the projection in tmpdir, gets results netCDF, cleans output on exit
