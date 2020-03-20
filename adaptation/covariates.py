@@ -335,7 +335,7 @@ class SeasonalWeatherCovariator(MeanWeatherCovariator):
             for region, subds in fast_dataset.region_groupby(ds, year, regions, {regions[ii]: ii for ii in range(len(regions))}):
                 if region in self.culture_periods:
                     plantii = int(self.culture_periods[region][0] - 1)
-                    harvestii = int(self.culture_periods[region][1] - 1)
+                    harvestii = int(self.culture_periods[region][1])
                     self.byregion[region].update(np.mean(subds[self.variable]._values[plantii:harvestii]))
 
     def get_current(self, region):
