@@ -5,7 +5,9 @@ from openest.generate.stdlib import *
 
 bin_limits = [-np.inf, -13, -8, -3, 2, 7, 12, 17, 22, 27, 32, np.inf]
 
-def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', ageshare=False, config={}):
+def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', ageshare=False, config=None):
+    if config is None:
+        config = {}
     if ageshare:
         covariator = covariates.CombinedCovariator([covariates.MeanBinsCovariator(weatherbundle, bin_limits, 8, 2015, config=config.get('climcovar', {})),
                                                     covariates.EconomicCovariator(economicmodel, 2015, config=config.get('econcovar', {})),

@@ -45,7 +45,9 @@ class Covariator(object):
     """
     Provides both baseline data and updated covariates in response to each year's values.
     """
-    def __init__(self, maxbaseline, config={}):
+    def __init__(self, maxbaseline, config=None):
+        if config is None:
+            config = {}
         self.startupdateyear = maxbaseline
         self.lastyear = {}
         self.yearcovarscale = config.get('yearcovarscale', 1)
@@ -109,9 +111,11 @@ class GlobalExogenousCovariator(Covariator):
     
 class EconomicCovariator(Covariator):
     """Provides information on log GDP per capita and Population-weight population density."""
-    def __init__(self, economicmodel, maxbaseline, config={}):
+    def __init__(self, economicmodel, maxbaseline, config=None):
         super(EconomicCovariator, self).__init__(maxbaseline, config=config)
 
+        if config is None:
+            config = {}
         self.numeconyears = config.get('length', standard_economic_config['length'])
 
         self.econ_predictors = economicmodel.baseline_prepared(maxbaseline, self.numeconyears, lambda values: averages.interpret(config, standard_economic_config, values))
@@ -173,8 +177,10 @@ class EconomicCovariator(Covariator):
 
 class BinnedEconomicCovariator(EconomicCovariator):
     """Provides income as a series of indicator values for the income bin."""
-    def __init__(self, economicmodel, maxbaseline, limits, config={}):
+    def __init__(self, economicmodel, maxbaseline, limits, config=None):
         super(BinnedEconomicCovariator, self).__init__(economicmodel, maxbaseline, config=config)
+        if config is None:
+            config = {}
         self.limits = limits
 
     def add_bins(self, covars):
@@ -194,8 +200,10 @@ class BinnedEconomicCovariator(EconomicCovariator):
 
 class ShiftedEconomicCovariator(EconomicCovariator):
     """Provides a 'loggdppc-delta' covariate, which is the loggdppc with a constant subtracted."""
-    def __init__(self, economicmodel, maxbaseline, config={}):
+    def __init__(self, economicmodel, maxbaseline, config=None):
         super(ShiftedEconomicCovariator, self).__init__(economicmodel, maxbaseline, config=config)
+        if config is None:
+            config = {}
         assert 'loggdppc-delta' in config, "Must define loggdppc-delta to use loggdppc-shifted."
         self.delta = config['loggdppc-delta']
 
@@ -213,9 +221,11 @@ class ShiftedEconomicCovariator(EconomicCovariator):
 
 class MeanWeatherCovariator(Covariator):
     """Provides an average climate variable covariate."""
-    def __init__(self, weatherbundle, maxbaseline, variable, config={}, usedaily=True, quiet=False):
+    def __init__(self, weatherbundle, maxbaseline, variable, config=None, usedaily=True, quiet=False):
         super(MeanWeatherCovariator, self).__init__(maxbaseline, config=config)
 
+        if config is None:
+            config = {}
         self.numtempyears = config.get('length', standard_climate_config['length'])
         self.variable = variable
 
@@ -266,8 +276,10 @@ class MeanWeatherCovariator(Covariator):
 
 class SubspanWeatherCovariator(MeanWeatherCovariator):
     """Provides an average climate variable covariate, using only data from a span of days in each year."""
-    def __init__(self, weatherbundle, maxbaseline, day_start, day_end, variable, config={}):
+    def __init__(self, weatherbundle, maxbaseline, day_start, day_end, variable, config=None):
         super(SubspanWeatherCovariator, self).__init__(weatherbundle, maxbaseline, variable, config=config)
+        if config is None:
+            config = {}
         self.maxbaseline = maxbaseline
         self.day_start = day_start
         self.day_end = day_end
@@ -307,8 +319,10 @@ class SubspanWeatherCovariator(MeanWeatherCovariator):
 
 class SeasonalWeatherCovariator(MeanWeatherCovariator):
     """Provides an average climate variable covariate, using planting and harvesting dates that are IR-specific."""
-    def __init__(self, weatherbundle, maxbaseline, filepath, variable, config={}):
+    def __init__(self, weatherbundle, maxbaseline, filepath, variable, config=None):
         super(SeasonalWeatherCovariator, self).__init__(weatherbundle, maxbaseline, variable, config=config)
+        if config is None:
+            config = {}
         self.maxbaseline = maxbaseline
         assert config['timerate'] == 'month', "Cannot handle daily seasons."
         self.culture_periods = irvalues.get_file_cached(filepath, irvalues.load_culture_months)
@@ -356,9 +370,11 @@ class YearlyWeatherCovariator(Covariator):
     data from it as needed, rather than depending on the
     weatherbundle.
     """
-    def __init__(self, yearlyreader, regions, baseline_end, is_historical, config={}):
+    def __init__(self, yearlyreader, regions, baseline_end, is_historical, config=None):
         super(YearlyWeatherCovariator, self).__init__(baseline_end)
 
+        if config is None:
+            config = {}
         predictors = {region: averages.interpret(config, standard_climate_config, []) for region in regions}
 
         for ds in yearlyreader.read_iterator():
@@ -393,9 +409,11 @@ class YearlyWeatherCovariator(Covariator):
 class MeanBinsCovariator(Covariator):
     """Provides binned weather data.
     This class has not been updated to reflect xarray use."""
-    def __init__(self, weatherbundle, binlimits, dropbin, maxbaseline, config={}, quiet=False):
+    def __init__(self, weatherbundle, binlimits, dropbin, maxbaseline, config=None, quiet=False):
         super(MeanBinsCovariator, self).__init__(maxbaseline)
 
+        if config is None:
+            config = {}
         self.binlimits = binlimits
         self.dropbin = dropbin
         self.numtempyears = config.get('length', standard_climate_config['length'])
@@ -444,9 +462,11 @@ class MeanBinsCovariator(Covariator):
 
 class AgeShareCovariator(Covariator):
     """Provides the share of the population in each age group."""
-    def __init__(self, economicmodel, maxbaseline, config={}):
+    def __init__(self, economicmodel, maxbaseline, config=None):
         super(AgeShareCovariator, self).__init__(maxbaseline)
 
+        if config is None:
+            config = {}
         self.config = config
 
         self.ageshares = agecohorts.load_ageshares(economicmodel.model, economicmodel.scenario)
@@ -571,8 +591,10 @@ class CombinedCovariator(Covariator):
 
 class TranslateCovariator(Covariator):
     """Rename or otherwise transform the results of another Covariator."""
-    def __init__(self, covariator, renames, transforms={}):
+    def __init__(self, covariator, renames, transforms=None):
         super(TranslateCovariator, self).__init__(covariator.startupdateyear)
+        if transforms is None:
+            transforms = {}
         self.covariator = covariator
         self.renames = renames
         self.transforms = transforms
