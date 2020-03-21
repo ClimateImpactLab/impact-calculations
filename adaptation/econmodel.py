@@ -40,8 +40,6 @@ def iterate_econmodels(config=None):
         for row in reader:
             model = row[headrow.index('model')]
             scenario = row[headrow.index('scenario')]
-            if scenario == 'SSP5' and (config.get('ssp', None) or config.get('only-ssp', None)) != 'SSP5':
-                continue # Dropping entire scenario unless explicitly choosen.
 
             # Yield each newly discovered model, scenario combination
             if (model, scenario) not in modelscenarios:
