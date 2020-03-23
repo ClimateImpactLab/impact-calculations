@@ -44,6 +44,13 @@ standard_climate_config = {'class': 'bartlett', 'length': 30}
 class Covariator(object):
     """
     Provides both baseline data and updated covariates in response to each year's values.
+
+    Parameters
+    ----------
+    maxbaseline : int
+        Year up to which the covariate baseline is calculated.
+    conf : dict, optional
+        Configuration dict.
     """
     def __init__(self, maxbaseline, config=None):
         if config is None:
@@ -53,6 +60,16 @@ class Covariator(object):
         self.yearcovarscale = config.get('yearcovarscale', 1)
 
     def get_yearcovar(self, region):
+        """
+        Parameters
+        ----------
+        region : str
+            Target impact region.
+
+        Returns
+        -------
+        year
+        """
         year = self.lastyear.get(region, self.startupdateyear)
         if year > self.startupdateyear:
             return (year - self.startupdateyear) * self.yearcovarscale + self.startupdateyear
@@ -60,11 +77,26 @@ class Covariator(object):
             return year
         
     def get_current(self, region):
-        """This can be called as many times as we want."""
+        """
+        This can be called as many times as we want.
+
+        Parameters
+        ----------
+        region : str
+        """
         raise NotImplementedError
 
     def offer_update(self, region, year, ds):
-        """This can be called as many times as we want."""
+        """
+
+        This can be called as many times as we want.
+
+        Parameters
+        ----------
+        region : str
+        year : int
+        ds : xarray.Dataset
+        """
         assert year < 10000
         # Ensure that we aren't called with a year twice
         assert self.lastyear.get(region, -np.inf) <= year, "Called with %d, but previously did %d" % (year, self.lastyear.get(region, -np.inf))
@@ -75,23 +107,45 @@ class Covariator(object):
         return self.get_current(region)
 
     def get_update(self, region, year, ds):
-        """This should only be called by offer_update, because it can only be called once per year-region combination."""
+        """
+        This should only be called by `offer_update`, because it can only be called once per year-region combination.
+
+        Parameters
+        ----------
+        region : str
+        year : int
+        ds : xarray.Dataset
+        """
         raise NotImplementedError
 
     def get_current_args(self, region):
+        """
+        Parameters
+        ----------
+        region : str
+
+        Returns
+        -------
+        tuple
+        """
         return (self.get_current(region),)
 
 class GlobalExogenousCovariator(Covariator):
     """Produces a externally given sequence of covariate values for all regions.
-     
+
     {'covarname': `baseline`} will returned up to (and including) `startupdateyear`.
     In `startupdateyear` + N, the Nth value of `values` will be returned (`values[N-1]`).
 
-    Args:
-        startupdateyear (year): Last year to report `baseline` value.
-        covarname (str): Covariate name to report.
-        baseline (numeric): The value to report up to `startupdateyear`.
-        values (list-like of numeric): Values to report after `startupdateyear`.
+    Parameters
+    ----------
+    startupdateyear : year
+        Last year to report `baseline` value.
+    covarname : str
+        Covariate name to report.
+    baseline : float or int
+        The value to report up to `startupdateyear`.
+    values : Sequence of floats
+        Values to report after `startupdateyear`.
     """
     def __init__(self, startupdateyear, covarname, baseline, values):
         super(GlobalExogenousCovariator, self).__init__(startupdateyear)
@@ -101,16 +155,38 @@ class GlobalExogenousCovariator(Covariator):
         self.cached_index = -1
 
     def get_current(self, region):
+        """
+        Parameters
+        ----------
+        region : str
+        """
         return {self.covarname: self.cached_value}
 
     def get_update(self, region, year, ds):
+        """
+        Parameters
+        ----------
+        region : str
+        year : int
+        ds : xarray.Dataset
+        """
         if year > self.startupdateyear:
             self.cached_index += 1
             self.cached_value = self.values[self.cached_index]
         return self.get_current(region)
-    
+
 class EconomicCovariator(Covariator):
-    """Provides information on log GDP per capita and Population-weight population density."""
+    """Provides information on log GDP per capita and Population-weight population density.
+
+    Parameters
+    ----------
+    economicmodel : adaptation.SSPEconomicModel
+    maxbaseline : int
+        Year up to which the covariate baseline is calculated.
+    limits : Sequence of float
+    conf : dict, optional
+        Configuration dict.
+    """
     def __init__(self, economicmodel, maxbaseline, config=None):
         super(EconomicCovariator, self).__init__(maxbaseline, config=config)
 
@@ -129,6 +205,17 @@ class EconomicCovariator(Covariator):
             self.slowgrowth = False
 
     def get_econ_predictors(self, region):
+        """
+        Parameters
+        ----------
+        region : str
+
+        Returns
+        -------
+        dict
+            Output has keys "loggdppc" and "popop" giving the nautral log per
+            capita GDP and some other value.
+        """
         econpreds = self.econ_predictors.get(region, None)
 
         if econpreds is None:
@@ -152,12 +239,31 @@ class EconomicCovariator(Covariator):
         return dict(loggdppc=loggdppc, popop=density)
 
     def get_current(self, region):
+        """Get year's economic values for a given region
+        Parameters
+        ----------
+        region : str
+
+        Returns
+        -------
+        dict
+            Output has keys "loggdppc", "logpopop" "year", which give the
+            natural log of per capita GDP, the natural log of popop, and
+            the year, respectively.
+        """
         econpreds = self.get_econ_predictors(region)
         return dict(loggdppc=econpreds['loggdppc'],
                     logpopop=np.log(econpreds['popop']),
                     year=self.get_yearcovar(region))
 
     def get_update(self, region, year, ds):
+        """
+        Parameters
+        ----------
+        region : str
+        year : int
+        ds : xarray.Dataset
+        """
         assert year < 10000
         self.lastyear[region] = year
 
@@ -176,7 +282,17 @@ class EconomicCovariator(Covariator):
         return dict(loggdppc=loggdppc, logpopop=np.log(popop), year=self.get_yearcovar(region))
 
 class BinnedEconomicCovariator(EconomicCovariator):
-    """Provides income as a series of indicator values for the income bin."""
+    """Provides income as a series of indicator values for the income bin.
+
+    Parameters
+    ----------
+    economicmodel : adaptation.SSPEconomicModel
+    maxbaseline : int
+        Year up to which the covariate baseline is calculated.
+    limits : Sequence of float
+    conf : dict, optional
+        Configuration dict.
+    """
     def __init__(self, economicmodel, maxbaseline, limits, config=None):
         super(BinnedEconomicCovariator, self).__init__(economicmodel, maxbaseline, config=config)
         if config is None:
@@ -184,6 +300,14 @@ class BinnedEconomicCovariator(EconomicCovariator):
         self.limits = limits
 
     def add_bins(self, covars):
+        """
+        Parameters
+        ----------
+        covars : dict
+            A dictionary with keys "loggdppc", "logpopop", and "year", giving 
+            the natural log of per capita GDP, the natural log of popop, and
+            the year, respectively.
+        """
         bin_limits = np.array(self.limits, dtype='float')
         incbin = np.digitize(covars['loggdppc'], bin_limits) # starts at 1
         for ii in range(1, len(self.limits)):
@@ -191,10 +315,22 @@ class BinnedEconomicCovariator(EconomicCovariator):
         return covars
         
     def get_current(self, region):
+        """
+        Parameters
+        ----------
+        region : str
+        """
         covars = super(BinnedEconomicCovariator, self).get_current(region)
         return self.add_bins(covars)
 
     def get_update(self, region, year, ds):
+        """
+        Parameters
+        ----------
+        region : str
+        year : int
+        ds : xarray.Dataset
+        """
         covars = super(BinnedEconomicCovariator, self).get_update(region, year, ds)
         return self.add_bins(covars)
 
