@@ -177,6 +177,8 @@ class RegionReorderWeatherReader(WeatherReader):
         if observed_regions is None:
             raise ValueError("No regions produced by " + str(self.reader))
 
+        assert isinstance(observed_regions[0], str), "Region variable in climate data is not string: " + str(self.reader)
+        
         mapping = {} ## mapping maps from region to index in observed_regions
         for ii in range(len(observed_regions)):
             mapping[''.join(observed_regions[ii])] = ii

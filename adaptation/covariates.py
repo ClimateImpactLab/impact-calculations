@@ -249,20 +249,26 @@ class MeanWeatherCovariator(Covariator):
 
     def get_current(self, region):
         #assert region in self.temp_predictors, "Missing " + region
+        value = self.temp_predictors[region].get()
+        if not np.isscalar(value):
+            value = value[0]
         if self.slowadapt:
-            return {self.variable: (self.temp_predictors[region].get() + self.baseline_predictors[region]) / 2}
+            return {self.variable: (value + self.baseline_predictors[region]) / 2}
         else:
-            return {self.variable: self.temp_predictors[region].get()}
+            return {self.variable: value}
 
     def get_update(self, region, year, ds):
         """Allow ds = None for incadapt farmer who cannot adapt to temperature."""
         if ds is not None and year > self.startupdateyear:
             self.temp_predictors[region].update(np.mean(ds[self.dsvar]._values)) # if only yearly values
 
+        value = self.temp_predictors[region].get()
+        if not np.isscalar(value):
+            value = value[0]
         if self.slowadapt:
-            return {self.variable: (self.temp_predictors[region].get() + self.baseline_predictors[region]) / 2, 'year': self.get_yearcovar(region)}
+            return {self.variable: (value + self.baseline_predictors[region]) / 2, 'year': self.get_yearcovar(region)}
         else:
-            return {self.variable: self.temp_predictors[region].get(), 'year': self.get_yearcovar(region)}
+            return {self.variable: value, 'year': self.get_yearcovar(region)}
 
 class SubspanWeatherCovariator(MeanWeatherCovariator):
     """Provides an average climate variable covariate, using only data from a span of days in each year."""

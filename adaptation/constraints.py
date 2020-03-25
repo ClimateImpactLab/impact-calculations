@@ -72,7 +72,7 @@ def get_curve_extrema(regions, curvegen, covariator, mint, maxt, analytic, direc
                     exttemp = temps[np.argmin(curve(temps))]
                 else:
                     exttemp = temps[np.argmax(curve(temps))]
-                exttemp2 = analytic(region, curve)
+                exttemp2 = analytic(curve)
                 if np.abs(exttemp - exttemp2) > 1:
                     print("WARNING: %s has unclear exttemp: %f, %f" % (region, exttemp, exttemp2))
                 baselineexts[region] = exttemp2
@@ -82,7 +82,7 @@ def get_curve_extrema(regions, curvegen, covariator, mint, maxt, analytic, direc
         for region in regions:
             curve = curvegen.get_curve(region, 2005, covariator.get_current(region))
             baselinecurves[region] = curve
-            exttemp2 = analytic(region, curve)
+            exttemp2 = analytic(curve)
             baselineexts[region] = exttemp2
 
     return baselinecurves, baselineexts
