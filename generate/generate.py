@@ -16,9 +16,20 @@ import cProfile, pstats, io, metacsv
 # Top-level configuration (for debugging)
 do_single = False
 
-def main(config, runid):
+def main(config, runid=None):
     """Main generate func, given run config dict and run ID str for logging
+
+    Parameters
+    ----------
+    config : MutableMapping
+        Run configurations.
+    runid : str or None, optional
+        Run ID, used for logging and output filenames if `config` is missing
+        "module". If `None`, then uses `config["runid"]`.
     """
+    if runid == None:
+        runid == config["runid"]
+
     print("Initializing...")
 
     # Collect the configuration
