@@ -28,7 +28,7 @@ def main(config, runid=None):
         "module". If `None`, then uses `config["runid"]`. This argument is
         for legacy purposes. Prefer using "runid" in `config`.
     """
-    if runid == None:
+    if runid is None:
         runid == config["runid"]
 
     print("Initializing...")
