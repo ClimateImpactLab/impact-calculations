@@ -25,7 +25,8 @@ def main(config, runid=None):
         Run configurations.
     runid : str or None, optional
         Run ID, used for logging and output filenames if `config` is missing
-        "module". If `None`, then uses `config["runid"]`.
+        "module". If `None`, then uses `config["runid"]`. This argument is
+        for legacy purposes. Prefer using "runid" in `config`.
     """
     if runid == None:
         runid == config["runid"]
