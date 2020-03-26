@@ -37,7 +37,7 @@ def main(config, runid=None):
     elif config.get("runid"):
         # For backwards compatibility, if runid is passed in *and* in config, 
         # then use arg.
-        print(f"WARNING: Overriding configuration runid:{config["runid"]} with argument runid:{runid}")
+        print(f"WARNING: Overriding configuration runid:{config['runid']} with argument runid:{runid}")
         config["runid"] = runid
 
     # Collect the configuration
