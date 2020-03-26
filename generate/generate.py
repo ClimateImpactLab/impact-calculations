@@ -170,12 +170,18 @@ def main(config, runid):
 
     start = timing.process_time()
 
-    if config['module'][-4:] == '.yml':
+    if not config.get('module'):
+        # Specification and run config already together.
+        mod = importlib.import_module("interpret.container")
+        shortmodule = str(runid)
+    elif config['module'][-4:] == '.yml':
+        # Specification config in another yaml file.
         mod = importlib.import_module("interpret.container")
         with open(config['module'], 'r') as fp:
             config.update(yaml.load(fp))
         shortmodule = os.path.basename(config['module'])[:-4]
     else:
+        # Specification config uses old module/script system, module needs to be imported.
         mod = importlib.import_module("impacts." + config['module'] + ".allmodels")
         shortmodule = config['module']
 
