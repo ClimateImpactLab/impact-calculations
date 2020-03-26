@@ -1,6 +1,6 @@
 # impact-calculations
 
-The impacts-calculations contains the code necessary to generate, aggregate, and analyze physical impacts from econometric response functions.
+`impacts-calculations` contains the code necessary to generate, aggregate, and analyze physical impacts from econometric response functions.
 
 The package can be installed locally as a python package but it also includes several additional scripts.
 
@@ -34,7 +34,7 @@ Generating projections, diagnostics, and projection aggregations depends on addi
 # Configs for impact projection runs
 export IMPERICS_SHAREDDIR=/shares/gcp
 ```
-to our `~/.bashrc` file.
+to `~/.bashrc`.
 
 ## Projections with the `imperics` CLI
 
