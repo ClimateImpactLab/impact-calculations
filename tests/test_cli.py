@@ -1,5 +1,5 @@
 """
-White-box testing to ensure the CLI can be invoked and that it passes 
+White-box testing to ensure the CLI can be invoked and that it passes
 args correctly.
 """
 
