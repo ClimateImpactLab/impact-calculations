@@ -26,12 +26,19 @@ def main(config, runid=None):
     runid : str or None, optional
         Run ID, used for logging and output filenames if `config` is missing
         "module". If `None`, then uses `config["runid"]`. This argument is
-        for legacy purposes. Prefer using "runid" in `config`.
+        for legacy purposes. Prefer using "runid" in `config`. If `runid` is
+        given and "runid" is also in `config` then uses `runid` arg and a 
+        warning is printed. This is for backwards compatibility.
     """
+    print("Initializing...")
+
     if runid is None:
         runid == config["runid"]
-
-    print("Initializing...")
+    elif config.get("runid"):
+        # For backwards compatibility, if runid is passed in *and* in config, 
+        # then use arg.
+        print(f"WARNING: Overriding configuration runid:{config["runid"]} with argument runid:{runid}")
+        config["runid"] = runid
 
     # Collect the configuration
     claim_timeout = config.get('timeout', 12) * 60*60
