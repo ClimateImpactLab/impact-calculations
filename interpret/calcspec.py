@@ -1,8 +1,12 @@
 from interpret import specification, configs, calculator
 from adaptation import csvvfile
 
-def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', specconf={}, config={}):
+def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', specconf=None, config=None):
     # specconf here is the model containing 'specification' and 'calculation' keys
+    if specconf is None:
+        specconf = {}
+    if config is None:
+        config = {}
     assert 'calculation' in specconf
     assert 'specifications' in specconf
 

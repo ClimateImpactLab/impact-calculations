@@ -14,7 +14,7 @@ import xarray as xr
 import numpy as np
 import numpy.testing as npt
 
-from generate.generate import tmpdir_projection
+from utils import tmpdir_projection
 
 
 pytestmark = pytest.mark.imperics_shareddir
@@ -122,7 +122,7 @@ class TestRebased:
     """
 
     target_variable = "rebased"
-    atol = 1e-4
+    atol = 1e-3
     rtol = 0
 
     @pytest.mark.parametrize(
@@ -136,10 +136,10 @@ class TestRebased:
     @pytest.mark.parametrize(
         "result_file,expected",
         [
-            ("base_ds", np.array([[182.74854, 138.99937, 432.08884]]).T),
-            ("noadapt_ds", np.array([[182.74854, 138.99937, 432.08884]]).T),
-            ("incadapt_ds", np.array([[182.74854, 138.99937, 432.08884]]).T),
-            ("histclim_ds", np.array([[463.31558, 320.79092, 320.79092]]).T),
+            ("base_ds", np.array([[182.65338, 139.14749, 433.79944]]).T),
+            ("noadapt_ds", np.array([[182.65338, 139.14749, 433.79944]]).T),
+            ("incadapt_ds", np.array([[182.65338, 139.14749, 433.79944]]).T),
+            ("histclim_ds", np.array([[465.45935, 318.4206, 318.4206]]).T),
         ],
     )
     def test_head(self, projection_payload, result_file, expected):
@@ -155,10 +155,10 @@ class TestRebased:
     @pytest.mark.parametrize(
         "result_file,expected",
         [
-            ("base_ds", np.array([[4340.6616, 3850.7495, 3353.314]]).T),
-            ("noadapt_ds", np.array([[2130.226, 1964.3873, 1609.678]]).T),
-            ("incadapt_ds", np.array([[4839.495, 4291.672, 3885.245]]).T),
-            ("histclim_ds", np.array([[598.6438, 1263.2665, 689.26575]]).T),
+            ("base_ds", np.array([[4314.9644, 3825.0522, 3327.6165]]).T),
+            ("noadapt_ds", np.array([[2124.3157, 1955.8206, 1604.8887]]).T),
+            ("incadapt_ds", np.array([[4833.5845, 4283.1055, 3880.456]]).T),
+            ("histclim_ds", np.array([[710.44824, 1375.0709, 801.07025]]).T),
         ],
     )
     def test_tail(self, projection_payload, result_file, expected):

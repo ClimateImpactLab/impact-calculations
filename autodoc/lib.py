@@ -34,7 +34,9 @@ def get_julia(obj):
     else:
         return str(obj)
 
-def get_excerpt(filepath, first_col, regionid, years, hasmodel=True, onlymodel=None, hidecols=[]):
+def get_excerpt(filepath, first_col, regionid, years, hasmodel=True, onlymodel=None, hidecols=None):
+    if hidecols is None:
+        hidecols = []
     data = {}
     model = None
     with open(filepath, 'r') as fp:
@@ -121,9 +123,9 @@ def get_gamma(csvv, predname, covarname):
     return None
 
 def jstr(x):
-    if x == True:
+    if x is True:
         return 'true'
-    elif x == False:
+    elif x is False:
         return 'false'
     elif x == np.inf:
         return 'Inf'
@@ -141,7 +143,9 @@ def pflt(x):
         return np.array(list(map(float, x[1:-1].split())))
     return float(x)
     
-def show_coefficient(csvv, preds, year, coefname, covartrans={}, betalimits=None):
+def show_coefficient(csvv, preds, year, coefname, covartrans=None, betalimits=None):
+    if covartrans is None:
+        covartrans = {}
     predyear = year - 1 if year > 2015 else year
 
     terms = []

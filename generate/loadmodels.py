@@ -35,7 +35,9 @@ def single(bundle_iterator):
 
             return clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
 
-def random_order(bundle_iterator, config={}):
+def random_order(bundle_iterator, config=None):
+    if config is None:
+        config = {}
     mydo_econ_scenario_only = config.get('ssp', config.get('only-ssp', do_econ_scenario_only))
     mydo_clim_scenario_only = config.get('rcp', config.get('only-rcp', do_clim_scenario_only))
     mydo_econ_model_only = config.get('iam', config.get('only-iam', do_econ_model_only))
@@ -61,9 +63,16 @@ def random_order(bundle_iterator, config={}):
                 continue
             if mydo_clim_scenario_only is not None and clim_scenario not in mydo_clim_scenario_only:
                 continue
+
+            ## By default, we drop SSP1/RCP8.5 and all of SSP5 except SSP5/RCP8.5.
+            ## These are allowed only if they are explicitly requested.
             # Drop SSP1 with RCP 8.5
             if econ_scenario[:4] == 'SSP1' and clim_scenario == 'rcp85':
                 if mydo_econ_scenario_only != 'SSP1' or mydo_clim_scenario_only != 'rcp85': # Don't stop if requested
+                    continue
+            # Drop SSP5 except with RCP 8.5
+            if econ_scenario[:4] == 'SSP5' and clim_scenario != 'rcp85':
+                if mydo_econ_scenario_only != 'SSP5' or mydo_clim_scenario_only != clim_scenario: # Don't stop if requested
                     continue
 
             allexogen = (clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel)
