@@ -97,3 +97,8 @@ option to the run configuration, like so:
 ```
 yearcovarscale: 2
 ```
+
+# Resulting files and directories
+
+See the Projection Directory Structures.docx document for the
+structure of the results.

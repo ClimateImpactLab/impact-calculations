@@ -1,3 +1,20 @@
+"""Handling of impact regions and impact region hierarchy data.
+
+"Impact regions" are the high-resolution regions at which CIL results
+are projected. These were developed using an agglomeration algorithm,
+which is in the socioeconomics repository:
+https://bitbucket.org/ClimateImpactLab/socioeconomics/src/master/aggloms/
+
+While much of the data used as inputs to the projection system is at
+the impact region level, the functions in this file are for handling
+the regions themselves, and the small amount of information stored
+within the region definitions.
+
+The hierarchy file, which describes the impact regions, is stored in
+the regions/hierarchy.csv file in the shared directory.
+
+"""
+
 import csv
 from impactlab_tools.utils import files
 import helpers.header as headre

@@ -33,7 +33,7 @@ def user_assert(check, message):
     if not check:
         user_failure(message)
 
-def get_covariator(covar, args, weatherbundle, economicmodel, config={}, quiet=False):
+def get_covariator(covar, args, weatherbundle, economicmodel, config=None, quiet=False):
     """Intreprets a single entry in the covariates dictionary.
 
     Parameters
@@ -52,6 +52,8 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config={}, quiet=F
     -------
     adaptation.covariates.Covariator
     """
+    if config is None:
+        config = {}
     if isinstance(covar, dict):
         return get_covariator(list(covar.keys())[0], list(covar.values())[0], weatherbundle, economicmodel, config=config, quiet=quiet)
     elif covar in ['loggdppc', 'logpopop', 'year']:
@@ -80,7 +82,7 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config={}, quiet=F
     else:
         user_failure("Covariate %s is unknown." % covar)
 
-def create_covariator(specconf, weatherbundle, economicmodel, config={}, quiet=False):
+def create_covariator(specconf, weatherbundle, economicmodel, config=None, quiet=False):
     """Interprets the entire covariates dictionary in the configuration file.
 
     Parameters
@@ -96,6 +98,8 @@ def create_covariator(specconf, weatherbundle, economicmodel, config={}, quiet=F
     -------
     covariator : adaptation.covariates.Covariator or None
     """
+    if config is None:
+        config = {}
     if 'covariates' in specconf:
         covariators = []
         for covar in specconf['covariates']:
@@ -111,7 +115,7 @@ def create_covariator(specconf, weatherbundle, economicmodel, config={}, quiet=F
 
     return covariator
         
-def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}, getcsvvcurve=False):
+def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, getcsvvcurve=False):
     """Create a CurveGenerator instance from specifications
 
     Parameters
@@ -131,6 +135,8 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}, getcs
     -------
     openest.generate.CurveGenerator
     """
+    if specconf is None:
+        specconf = {}
     user_assert('depenunit' in specconf, "Specification configuration missing 'depenunit' string.")
     user_assert('functionalform' in specconf, "Specification configuration missing 'functionalform' string.")
     if specconf['functionalform'] in ['polynomial', 'cubicspline']:
@@ -286,7 +292,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}, getcs
 
     return final_curvegen
 
-def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', specconf={}, config={}):
+def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', specconf=None, config=None):
     """
 
     Parameters
@@ -308,6 +314,10 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     list
     object
     """
+    if specconf is None:
+        specconf = {}
+    if config is None:
+        config = {}
     user_assert('depenunit' in specconf, "Specification configuration missing 'depenunit' string.")
     user_assert('calculation' in specconf, "Specification configuration missing 'calculation' list.")
     user_assert('description' in specconf, "Specification configuration missing 'description' list.")

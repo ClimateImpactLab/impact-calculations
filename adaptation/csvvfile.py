@@ -97,7 +97,7 @@ def read_girdin(data, fp):
 
 def collapse_bang(data, seed):
     """collapse_bang draws from the multivariate uncertainty in the parameters of a CSVV, and changes those values accordingly."""
-    if seed == None:
+    if seed is None:
         data['gammavcv'] = None
     else:
         np.random.seed(seed)

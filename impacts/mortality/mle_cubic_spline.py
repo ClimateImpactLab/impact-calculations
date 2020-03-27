@@ -9,7 +9,7 @@ from impactcommon.math import minspline
 
 knots = [-12, -7, 0, 10, 18, 23, 28, 33]
 
-def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', config={}):
+def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', config=None):
     """Computes f(x_t | \theta(z_t)) - f(x_0 | \theta(z_t)), where f is
     the adaptation-estimated cubic spline, x_t is the set of weather
     predictors, and \theta(z_t) relates how the set of parameters that
@@ -18,6 +18,8 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     updated twice in the calculation.
     """
 
+    if config is None:
+        config = {}
     covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, 'tas', config=config.get('climcovar', {})), {'climtas': 'tas_sum'}, {'climtas': lambda x: x / 365}),
                                                 covariates.EconomicCovariator(economicmodel, 2015, config=config.get('econcovar', {}))])
     covariator2 = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, 'tas', config=config.get('climcovar', {})), {'climtas': 'tas_sum'}, {'climtas': lambda x: x / 365}),
