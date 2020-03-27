@@ -14,7 +14,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     covariator = specification.create_covariator(specconf, weatherbundle, economicmodel, config, quiet=config.get('quiet', False))
 
     models = {}
-    extras = {}
+    extras = dict(errorvar=csvvfile.get_errorvar(csvv))
     for key in specconf['specifications']:
         modelspecconf = configs.merge(specconf, specconf['specifications'][key])
         model = specification.create_curvegen(csvv, covariator, weatherbundle.regions,
