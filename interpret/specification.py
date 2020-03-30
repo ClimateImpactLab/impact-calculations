@@ -12,7 +12,6 @@ import re
 from adaptation import csvvfile, curvegen, curvegen_known, curvegen_arbitrary, covariates, constraints
 from datastore import irvalues
 from openest.generate import smart_curve, selfdocumented
-from openest.models.curve import ShiftedCurve, MinimumCurve, ClippedCurve
 from openest.generate.stdlib import *
 from impactcommon.math import minpoly, minspline
 from openest.curves import ushape_numeric
@@ -265,28 +264,28 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}, getcs
             final_curve = smart_curve.CoefficientsCurve(curve.ccs, weathernames)
 
         if specconf.get('clipping', False):
-            final_curve = ShiftedCurve(final_curve, -curve.get_univariate()(baselineexts[region]))
+            final_curve = smart_curve.ShiftedCurve(final_curve, -curve.get_univariate()(baselineexts[region]))
 
         if specconf.get('goodmoney', False):
             covars = covariator.get_current(region)
             covars['loggdppc'] = baselineloggdppcs[region]
             noincadapt_unshifted_curve = curr_curvegen.get_curve(region, None, covars, recorddiag=False)
             if len(weathernames) > 1:
-                coeff_noincadapt_unshifted_curve = CoefficientsCurve(noincadapt_unshifted_curve.ccs, weathernames)
+                coeff_noincadapt_unshifted_curve = smart_curve.CoefficientsCurve(noincadapt_unshifted_curve.ccs, weathernames)
             else:
                 coeff_noincadapt_unshifted_curve = noincadapt_unshifted_curve
-            noincadapt_curve = ShiftedCurve(coeff_noincadapt_unshifted_curve, -noincadapt_unshifted_curve(baselineexts[region]))
+            noincadapt_curve = smart_curve.ShiftedCurve(coeff_noincadapt_unshifted_curve, -noincadapt_unshifted_curve(baselineexts[region]))
 
-            final_curve = MinimumCurve(final_curve, noincadapt_curve)
+            final_curve = smart_curve.MinimumCurve(final_curve, noincadapt_curve)
 
         if specconf.get('clipping', False) == True:
-            return ClippedCurve(final_curve)
+            return smart_curve.ClippedCurve(final_curve)
         elif specconf.get('clipping', False) == 'boatpose':
-            final_curve = ClippedCurve(final_curve)
-            return ushape_numeric.UShapedCurveDynamic(final_curve, baselineexts[region], lambda ds: ds[weathernames[0]], final_curve.get_univariate())
+            final_curve = smart_curve.ClippedCurve(final_curve)
+            return ushape_numeric.UShapedDynamicCurve(final_curve, baselineexts[region], lambda ds: ds[weathernames[0]], final_curve.get_univariate())
         elif specconf.get('clipping', False) == 'downdog':
-            final_curve = ClippedCurve(final_curve, cliplow=False)
-            return ushape_numeric.UShapedCurveDynamic(final_curve, baselineexts[region], lambda ds: ds[weathernames[0]], final_curve.get_univariate(), direction='downdog')
+            final_curve = smart_curve.ClippedCurve(final_curve, cliplow=False)
+            return ushape_numeric.UShapedDynamicCurve(final_curve, baselineexts[region], lambda ds: ds[weathernames[0]], final_curve.get_univariate(), direction='downdog')
         else:
             return final_curve
 
