@@ -92,7 +92,7 @@ def tryprepare_argument(name, argument, models, argtype, extras=None):
         return None
 
 def create_calculation(postconf, models, extras=None):
-    """Creates a calculation step based on some fancy specifications
+    """Creates initial calculation step based on some fancy specifications
 
     Parameters
     ----------
@@ -119,6 +119,23 @@ def create_calculation(postconf, models, extras=None):
     return create_postspecification(postconf[1:], models, calculation, extras=extras)
 
 def create_postspecification(postconf, models, calculation, extras=None):
+    """Loop through non-initial calculation step(s) based on more fancy specs
+
+    Parameters
+    ----------
+    postconf : str or Sequence
+        Path to yaml file or sequence of Calculation configurations.
+    models : MutableMapping
+        Mapping with str names and ``adaptation.curvegen.FarmerCurveGenerator``
+        values.
+    extra : MutableMapping or None, optional
+        Might contain subcalculation information as the value under the
+        "subcalc" key, along with additional keys/values to pass to
+        ``create_calcstep()``.
+
+    Returns
+    -------
+    """
     if extras is None:
         extras = {}
     if isinstance(postconf, str):
