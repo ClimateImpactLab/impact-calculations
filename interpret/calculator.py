@@ -29,7 +29,24 @@ from generate import caller
 from . import curves
 
 def prepare_argument(name, argument, models, argtype, extras=None):
-    """Translate a configuration option `argument` into an object of type `argtype`."""
+    """Translate a configuration option `argument` into an object of type `argtype`.
+    
+    Parameters
+    ----------
+    name : str
+    argument : MutableMapping or List
+    models : MutableMapping
+        Mapping with str names and ``adaptation.curvegen.FarmerCurveGenerator``
+        values.
+    argtype : openest.generate.arguments_base.ArgumentType
+    extra : MutableMapping or None, optional
+        Might contain subcalculation information as the value under the
+        "subcalc" key, along with additional keys/values to pass to 
+        ``create_calcstep()``.
+
+    Returns
+    -------
+    """
     if extras is None:
         extras = {}
     if argtype in [arguments.model, arguments.curvegen, arguments.curve_or_curvegen]:
