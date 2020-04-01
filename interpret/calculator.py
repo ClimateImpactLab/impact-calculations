@@ -65,7 +65,24 @@ def prepare_argument(name, argument, models, argtype, extras=None):
 
 last_tryprepare_error = None
 def tryprepare_argument(name, argument, models, argtype, extras=None):
-    """Attempt to interpret argument as an argtype and return it; if this fails, return None."""
+    """Attempt to interpret argument as an argtype and return it; if this fails, return None.
+
+    Parameters
+    ----------
+    name : str
+    argument : MutableMapping or List
+    models : MutableMapping
+        Mapping with str names and ``adaptation.curvegen.FarmerCurveGenerator``
+        values.
+    argtype : openest.generate.arguments_base.ArgumentType
+    extra : MutableMapping or None, optional
+        Might contain subcalculation information as the value under the
+        "subcalc" key, along with additional keys/values to pass to 
+        ``create_calcstep()``.
+
+    Returns
+    -------
+    """
     if extras is None:
         extras = {}
     global last_tryprepare_error
