@@ -102,9 +102,7 @@ def create_calculation(postconf, models, extras=None):
         Mapping with str names and ``adaptation.curvegen.FarmerCurveGenerator``
         values.
     extra : MutableMapping or None, optional
-        Might contain subcalculation information as the value under the
-        "subcalc" key, along with additional keys/values to pass to 
-        ``create_calcstep()`` and then ``create_postspecification``.
+        Passed to ``create_calcstep()`` and then ``create_postspecification``.
 
     Returns
     -------
@@ -129,9 +127,7 @@ def create_postspecification(postconf, models, calculation, extras=None):
         Mapping with str names and ``adaptation.curvegen.FarmerCurveGenerator``
         values.
     extra : MutableMapping or None, optional
-        Might contain subcalculation information as the value under the
-        "subcalc" key, along with additional keys/values to pass to
-        ``create_calcstep()``.
+        Passed along to ``create_calcstep()``.
 
     Returns
     -------
