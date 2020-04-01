@@ -30,7 +30,7 @@ from . import curves
 
 def prepare_argument(name, argument, models, argtype, extras=None):
     """Translate a configuration option `argument` into an object of type `argtype`.
-    
+
     Parameters
     ----------
     name : str
