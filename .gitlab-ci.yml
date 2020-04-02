@@ -2,7 +2,7 @@ stages:
   - test
   - deploy
 
-test:
+test-short:
   stage: test
   image: continuumio/anaconda:latest
   before_script:
@@ -12,6 +12,32 @@ test:
   script:
   - source activate risingverse
   - pytest -v -m "not imperics_shareddir"
+
+test-full:
+  stage: test
+  image: continuumio/anaconda:latest
+  before_script:
+    - conda info -a
+    - export GCSFUSE_REPO=gcsfuse-`lsb_release -c -s`
+    - echo "deb http://packages.cloud.google.com/apt $GCSFUSE_REPO main" | sudo tee /etc/apt/sources.list.d/gcsfuse.list
+    - curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+    - sudo apt-get update
+    - sudo apt-get install gcsfuse
+    - export GOOGLE_APPLICATION_CREDENTIALS="/ci-key.json"
+    - echo "$GCR_KEY" > /ci-key.json
+    - gcsfuse impact-calculations-cicd /gcs
+    - export IMPERICS_SHAREDDIR="/gcs/impact-calculations-cicd"
+    - conda env create ClimateImpactLab/risingverse
+    - source activate risingverse
+  script:
+  - source activate risingverse
+  - pip install .
+  - pytest -v
+  after_script:
+  - fusermount -u /gcs
+  rules:
+  - if: $CI_MERGE_REQUEST_ID          # Execute jobs in merge request context
+  - if: $CI_COMMIT_BRANCH == 'master' # Execute jobs when a new commit is pushed to master branch
 
 deploy:
   stage: deploy
