@@ -33,7 +33,7 @@ def main(config, runid=None):
     print("Initializing...")
 
     if runid is None:
-        runid == config["runid"]
+        runid = config["runid"]
     elif config.get("runid"):
         # For backwards compatibility, if runid is passed in *and* in config, 
         # then use arg.
