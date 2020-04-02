@@ -29,7 +29,24 @@ from generate import caller
 from . import curves
 
 def prepare_argument(name, argument, models, argtype, extras=None):
-    """Translate a configuration option `argument` into an object of type `argtype`."""
+    """Translate a configuration option `argument` into an object of type `argtype`.
+
+    Parameters
+    ----------
+    name : str
+    argument : MutableMapping or List
+    models : MutableMapping
+        Mapping with str names and ``adaptation.curvegen.FarmerCurveGenerator``
+        values.
+    argtype : openest.generate.arguments_base.ArgumentType
+    extra : MutableMapping or None, optional
+        Might contain subcalculation information as the value under the
+        "subcalc" key, along with additional keys/values to pass to 
+        ``create_calcstep()``.
+
+    Returns
+    -------
+    """
     if extras is None:
         extras = {}
     if argtype in [arguments.model, arguments.curvegen, arguments.curve_or_curvegen]:
@@ -48,7 +65,21 @@ def prepare_argument(name, argument, models, argtype, extras=None):
 
 last_tryprepare_error = None
 def tryprepare_argument(name, argument, models, argtype, extras=None):
-    """Attempt to interpret argument as an argtype and return it; if this fails, return None."""
+    """Attempt to interpret argument as an argtype and return it; if this fails, return None.
+
+    All parameters are passed to ``prepare_argument()``.
+
+    Parameters
+    ----------
+    name : str
+    argument : MutableMapping or List
+    models : MutableMapping
+    argtype : openest.generate.arguments_base.ArgumentType
+    extra : MutableMapping or None, optional
+
+    Returns
+    -------
+    """
     if extras is None:
         extras = {}
     global last_tryprepare_error
@@ -61,6 +92,21 @@ def tryprepare_argument(name, argument, models, argtype, extras=None):
         return None
 
 def create_calculation(postconf, models, extras=None):
+    """Creates initial calculation step based on some fancy specifications
+
+    Parameters
+    ----------
+    postconf : str or Sequence
+        Path to yaml file or sequence of Calculation configurations.
+    models : MutableMapping
+        Mapping with str names and ``adaptation.curvegen.FarmerCurveGenerator``
+        values.
+    extra : MutableMapping or None, optional
+        Passed to ``create_calcstep()`` and then ``create_postspecification``.
+
+    Returns
+    -------
+    """
     if extras is None:
         extras = {}
     if isinstance(postconf, str):
@@ -71,6 +117,21 @@ def create_calculation(postconf, models, extras=None):
     return create_postspecification(postconf[1:], models, calculation, extras=extras)
 
 def create_postspecification(postconf, models, calculation, extras=None):
+    """Loop through non-initial calculation step(s) based on more fancy specs
+
+    Parameters
+    ----------
+    postconf : str or Sequence
+        Path to yaml file or sequence of Calculation configurations.
+    models : MutableMapping
+        Mapping with str names and ``adaptation.curvegen.FarmerCurveGenerator``
+        values.
+    extra : MutableMapping or None, optional
+        Passed along to ``create_calcstep()``.
+
+    Returns
+    -------
+    """
     if extras is None:
         extras = {}
     if isinstance(postconf, str):
@@ -92,7 +153,17 @@ def extract_units(argstr, savedargs):
     savedargs['output_unit'] = output_unit
 
 def get_unitsarg(name, argtype, get_argument, has_argument, savedargs, extras):
-    """Try to get the given requested unit argument, handling all cases. Arguments must have come as dictionary."""
+    """Try to get the given requested unit argument, handling all cases. Arguments must have come as dictionary.
+
+    Parameters
+    ----------
+    name : str
+    argtype : openest.generate.arguments_base.ArgumentType
+    get_argument : Callable
+    has_argument : Callable
+    savedargs : MutableMapping
+    extras : MutableMapping
+    """
     if has_argument(argtype.name):
         return get_argument(argtype.name)
     if argtype.name in savedargs:
@@ -118,6 +189,25 @@ def get_namedarg(args, name):
     raise KeyError(name)
 
 def create_calcstep(name, args, models, subcalc, extras=None):
+    """Create one step of a calculation
+
+    This handles much of the parsing and tinkering needed to translate
+    configurations into arguments that can be read by
+    ``openest.generate.calculation.Calculation`` subclasses.
+
+    Parameters
+    ----------
+    name : str
+    args : dict or list
+    models : MutableMapping
+        Mapping with str names and ``adaptation.curvegen.FarmerCurveGenerator``
+        values.
+    subcalc : None
+    extras : MutableMapping or None, optional
+
+    Returns
+    -------
+    """
     if extras is None:
         extras = {}
     if name == 'Rebase':
