@@ -153,7 +153,17 @@ def extract_units(argstr, savedargs):
     savedargs['output_unit'] = output_unit
 
 def get_unitsarg(name, argtype, get_argument, has_argument, savedargs, extras):
-    """Try to get the given requested unit argument, handling all cases. Arguments must have come as dictionary."""
+    """Try to get the given requested unit argument, handling all cases. Arguments must have come as dictionary.
+
+    Parameters
+    ----------
+    name : str
+    argtype : openest.generate.arguments_base.ArgumentType
+    get_argument : Callable
+    has_argument : Callable
+    savedargs : MutableMapping
+    extras : MutableMapping
+    """
     if has_argument(argtype.name):
         return get_argument(argtype.name)
     if argtype.name in savedargs:
@@ -179,6 +189,25 @@ def get_namedarg(args, name):
     raise KeyError(name)
 
 def create_calcstep(name, args, models, subcalc, extras=None):
+    """Create one step of a calculation
+
+    This handles much of the parsing and tinkering needed to translate
+    configurations into arguments that can be read by
+    ``openest.generate.calculation.Calculation`` subclasses.
+
+    Parameters
+    ----------
+    name : str
+    args : dict or list
+    models : MutableMapping
+        Mapping with str names and ``adaptation.curvegen.FarmerCurveGenerator``
+        values.
+    subcalc : None
+    extras : MutableMapping or None, optional
+
+    Returns
+    -------
+    """
     if extras is None:
         extras = {}
     if name == 'Rebase':
