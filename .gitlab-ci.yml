@@ -26,7 +26,7 @@ test-full:
     - apt-get update
     - apt-get install -y gcsfuse
     - mkdir /gcs
-    - gcsfuse -ro --key-file $GCR_KEY impact-calculations-cicd /gcs
+    - gcsfuse -o ro --key-file $GCR_KEY impact-calculations-cicd /gcs
     - ls -lha /gcs  # DEBUG
     - export IMPERICS_SHAREDDIR="/gcs"
     - source activate risingverse
