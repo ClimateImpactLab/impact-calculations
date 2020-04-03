@@ -19,11 +19,11 @@ test-full:
   before_script:
     - conda info -a
     - export GCSFUSE_REPO=gcsfuse-`lsb_release -c -s`
-    - apt install gnupg2
+    - apt-get install -y gnupg2
     - echo "deb http://packages.cloud.google.com/apt $GCSFUSE_REPO main" | tee /etc/apt/sources.list.d/gcsfuse.list
     - curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
-    - apt update
-    - apt install gcsfuse
+    - apt-get update
+    - apt-get install -y gcsfuse
     - export GOOGLE_APPLICATION_CREDENTIALS="/ci-key.json"
     - echo "$GCR_KEY" > /ci-key.json
     - gcsfuse impact-calculations-cicd /gcs
