@@ -19,6 +19,7 @@ deploy:
   services:
     - docker:dind
   script:
+    - export DOCKER_HOST="tcp://localhost:2375"
     - cat $GCR_KEY | docker login -u _json_key --password-stdin https://$GCR_HOST
     - docker info
     - docker build -t imperics .
