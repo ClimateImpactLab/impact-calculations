@@ -30,6 +30,7 @@ test-long:
   script:
   - source activate risingverse
   - gcsfuse --key-file $GCR_KEY impact-calculations-cicd /gcs
+  - ls -lha /gcs/impact-calculations-cicd  # DEBUG
   - export IMPERICS_SHAREDDIR="/gcs/impact-calculations-cicd"
   - pip install .
   - pytest -v -m "imperics_shareddir"
