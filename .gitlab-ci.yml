@@ -25,7 +25,7 @@ test-imperics_shareddir:
     - apt-get update
     - apt-get install -y gcsfuse
     - export GOOGLE_APPLICATION_CREDENTIALS="/ci-key.json"
-    - echo "$GCR_KEY" > /ci-key.json
+    - printf "%s" "$GCR_KEY" > /ci-key.json
     - gcsfuse impact-calculations-cicd /gcs
     - export IMPERICS_SHAREDDIR="/gcs/impact-calculations-cicd"
     - conda env create ClimateImpactLab/risingverse
