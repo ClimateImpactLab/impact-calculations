@@ -26,18 +26,18 @@ test-long:
     - apt-get update
     - apt-get install -y gcsfuse
     - mkdir /gcs
+    - gcsfuse --key-file $GCR_KEY impact-calculations-cicd /gcs
+    - ls -lha /gcs  # DEBUG
+    - export IMPERICS_SHAREDDIR="/gcs"
     - source activate risingverse
   script:
   - source activate risingverse
-  - gcsfuse --key-file $GCR_KEY impact-calculations-cicd /gcs
-  - ls -lha /gcs/impact-calculations-cicd  # DEBUG
-  - export IMPERICS_SHAREDDIR="/gcs/impact-calculations-cicd"
   - pip install .
   - pytest -v -m "imperics_shareddir"
   after_script:
   - fusermount -u /gcs
   tags:
-    - long
+  - long
   rules:
   - if: $CI_MERGE_REQUEST_ID          # Execute jobs in merge request context
   - if: $CI_COMMIT_BRANCH == 'master' # Execute jobs when a new commit is pushed to master branch
