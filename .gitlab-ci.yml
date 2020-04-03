@@ -30,7 +30,7 @@ test-long:
     - export IMPERICS_SHAREDDIR="/gcs/impact-calculations-cicd"
     - source activate risingverse
   script:
-  - ls -lha /gcs/impact-calculations-cicd  # DEBUG
+  - ls -lha /  # DEBUG
   - source activate risingverse
   - pip install .
 #   - pytest -v -m "imperics_shareddir"
