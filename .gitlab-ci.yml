@@ -2,7 +2,7 @@ stages:
   - test
   - deploy
 
-test-short:
+test:
   stage: test
   image: continuumio/anaconda:latest
   before_script:
@@ -13,23 +13,22 @@ test-short:
   - source activate risingverse
   - pytest -v -m "not imperics_shareddir"
 
-test-imperics_shareddir:
+test-long:
   stage: test
   image: continuumio/anaconda:latest
   before_script:
     - conda info -a
     - conda env create ClimateImpactLab/risingverse
-    - source activate risingverse
-    - conda install google-cloud-sdk -c conda-forge
     - export GCSFUSE_REPO="gcsfuse-stretch"
     - apt-get install -y gnupg2
     - echo "deb http://packages.cloud.google.com/apt $GCSFUSE_REPO main" | tee /etc/apt/sources.list.d/gcsfuse.list
     - curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
     - apt-get update
     - apt-get install -y gcsfuse
-    - export GOOGLE_APPLICATION_CREDENTIALS="$GCR_KEY"
+    - mkdir /gcs
     - gcsfuse --key-file $GCR_KEY impact-calculations-cicd /gcs
     - export IMPERICS_SHAREDDIR="/gcs/impact-calculations-cicd"
+    - source activate risingverse
 
   script:
   - source activate risingverse
