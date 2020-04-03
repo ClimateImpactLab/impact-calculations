@@ -20,7 +20,7 @@ test-imperics_shareddir:
     - conda info -a
     - conda env create ClimateImpactLab/risingverse
     - source activate risingverse
-    - conda install google-cloud-sdk
+    - conda install google-cloud-sdk -c conda-forge
     - export GCSFUSE_REPO="gcsfuse-stretch"
     - apt-get install -y gnupg2
     - echo "deb http://packages.cloud.google.com/apt $GCSFUSE_REPO main" | tee /etc/apt/sources.list.d/gcsfuse.list
