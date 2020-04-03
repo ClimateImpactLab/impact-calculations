@@ -13,7 +13,7 @@ test-short:
   - source activate risingverse
   - pytest -v -m "not imperics_shareddir"
 
-test-full:
+test-imperics_shareddir:
   stage: test
   image: continuumio/anaconda:latest
   before_script:
@@ -33,7 +33,7 @@ test-full:
   script:
   - source activate risingverse
   - pip install .
-  - pytest -v
+  - pytest -v -m "imperics_shareddir"
   after_script:
   - fusermount -u /gcs
   rules:
