@@ -29,7 +29,7 @@ test-imperics_shareddir:
     - apt-get install -y gcsfuse
     - export GOOGLE_APPLICATION_CREDENTIALS="$GCR_KEY"
     - printf '%s\n' "$GCR_KEY" > /ci-key.json
-    - cat /ci-key.json  # DEBUG 
+    - echo $GOOGLE_APPLICATION_CREDENTIALS  # DEBUG 
     - gcloud auth activate-service-account --key-file=/ci-key.json
     - gcsfuse impact-calculations-cicd /gcs
     - export IMPERICS_SHAREDDIR="/gcs/impact-calculations-cicd"
