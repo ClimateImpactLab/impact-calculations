@@ -26,15 +26,13 @@ test-long:
     - apt-get update
     - apt-get install -y gcsfuse
     - mkdir /gcs
+    - gcsfuse --key-file $GCR_KEY impact-calculations-cicd /gcs
+    - export IMPERICS_SHAREDDIR="/gcs/impact-calculations-cicd"
     - source activate risingverse
   script:
-  - gcsfuse --key-file $GCR_KEY impact-calculations-cicd /gcs
-  - export IMPERICS_SHAREDDIR="/gcs/impact-calculations-cicd"
-  - echo "DEBUG"  # DEBUG
-  - ls -lha /gcs  # DEBUG
   - source activate risingverse
   - pip install .
-#   - pytest -v -m "imperics_shareddir"
+  - pytest -v -m "imperics_shareddir"
   after_script:
   - fusermount -u /gcs
   rules:
