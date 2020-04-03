@@ -309,8 +309,9 @@ def main(config, runid=None):
 if __name__ == '__main__':
     # Legacy run from command line.
     import sys
+    from pathlib import Path
 
-    run_id = sys.argv[1]
+    run_id = Path(sys.argv[1]).stem
     run_config = configs.standardize(files.get_allargv_config())
 
     main(run_config, run_id)
