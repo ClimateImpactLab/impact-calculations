@@ -16,10 +16,29 @@ import cProfile, pstats, io, metacsv
 # Top-level configuration (for debugging)
 do_single = False
 
-def main(config, runid):
+def main(config, runid=None):
     """Main generate func, given run config dict and run ID str for logging
+
+    Parameters
+    ----------
+    config : MutableMapping
+        Run configurations.
+    runid : str or None, optional
+        Run ID, used for logging and output filenames if `config` is missing
+        "module". If `None`, then uses `config["runid"]`. This argument is
+        for legacy purposes. Prefer using "runid" in `config`. If `runid` is
+        given and "runid" is also in `config` then uses `runid` arg and a 
+        warning is printed. This is for backwards compatibility.
     """
     print("Initializing...")
+
+    if runid is None:
+        runid = config["runid"]
+    elif config.get("runid"):
+        # For backwards compatibility, if runid is passed in *and* in config, 
+        # then use arg.
+        print(f"WARNING: Overriding configuration runid:{config['runid']} with argument runid:{runid}")
+        config["runid"] = runid
 
     # Collect the configuration
     claim_timeout = config.get('timeout', 12) * 60*60
@@ -170,12 +189,18 @@ def main(config, runid):
 
     start = timing.process_time()
 
-    if config['module'][-4:] == '.yml':
+    if not config.get('module'):
+        # Specification and run config already together.
+        mod = importlib.import_module("interpret.container")
+        shortmodule = str(runid)
+    elif config['module'][-4:] == '.yml':
+        # Specification config in another yaml file.
         mod = importlib.import_module("interpret.container")
         with open(config['module'], 'r') as fp:
             config.update(yaml.load(fp))
         shortmodule = os.path.basename(config['module'])[:-4]
     else:
+        # Specification config uses old module/script system, module needs to be imported.
         mod = importlib.import_module("impacts." + config['module'] + ".allmodels")
         shortmodule = config['module']
 
@@ -284,8 +309,9 @@ def main(config, runid):
 if __name__ == '__main__':
     # Legacy run from command line.
     import sys
+    from pathlib import Path
 
-    run_id = sys.argv[1]
+    run_id = Path(sys.argv[1]).stem
     run_config = configs.standardize(files.get_allargv_config())
 
     main(run_config, run_id)

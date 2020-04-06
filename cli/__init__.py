@@ -3,6 +3,7 @@
 
 import os
 import click
+from pathlib import Path
 from impactlab_tools.utils.files import get_file_config
 from generate.generate import main as ggmain
 from generate.aggregate import main as gamain
@@ -36,10 +37,16 @@ def aggregate(confpath):
 )
 def generate(confpath, conf):
     """Run the impact projection generate system with configuration file"""
+    confpath = Path(confpath)
     file_configs = get_file_config(confpath)
     arg_configs = dict(arg.strip().split("=") for arg in conf)
     file_configs.update(arg_configs)
-    ggmain(file_configs, str(confpath))
+
+    # For legacy purposes
+    if not file_configs.get("runid"):
+        file_configs["runid"] = str(confpath.stem)
+
+    ggmain(file_configs)
 
 
 @impactcalculations_cli.command(
@@ -48,7 +55,12 @@ def generate(confpath, conf):
 @click.argument("confpath", type=click.Path())
 def diagnostic(confpath):
     """Run the impact projection diagnostic system with configuration path"""
+    confpath = Path(confpath)
     file_configs = get_file_config(confpath)
+
+    # For legacy purposes
+    if not file_configs.get("runid"):
+        file_configs["runid"] = str(confpath.stem)
 
     diagnostic_configs = {
         "filter-region": "USA.14.608",
@@ -58,4 +70,4 @@ def diagnostic(confpath):
     }
 
     file_configs.update(diagnostic_configs)
-    ggmain(file_configs, str(confpath))
+    ggmain(file_configs)
