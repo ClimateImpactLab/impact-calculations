@@ -13,6 +13,7 @@ from . import csvvfile, curvegen
 from openest.generate import diagnostic, formatting, selfdocumented
 from openest.generate.smart_curve import ZeroInterceptPolynomialCurve, CubicSplineCurve
 from openest.models.curve import StepCurve
+from openest.generate.curvegen import CurveGenerator
 
 class SmartCSVVCurveGenerator(curvegen.CSVVCurveGenerator):
     """Provides additional structure for CSVVCurveGenerators that produce SmartCurves.
