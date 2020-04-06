@@ -22,7 +22,6 @@ pytestmark = pytest.mark.imperics_shareddir
 
 RUN_BASENAME = "corn_global_t-tbar_pbar_lnincbr_ir_tp_binp-tbar_pbar_lnincbr_ir_tp_fe-A1TT_A0Y_clus-A1_A0Y_TINV-191220"
 RUN_CONFIGS = {
-    "module": "tests/configs/corn_prsplitmodel_partiald.yml",
     "filter-region": "USA.14.608",
     "mode": "montecarlo",
     "do_farmers": True,
@@ -38,6 +37,86 @@ RUN_CONFIGS = {
         RUN_BASENAME: {"seed-csvv": 123},
         "histclim": {"seed-yearorder": 123},
     },
+    "climate": ["tasmax", "edd", "pr", "pr-poly-2 = pr-monthsum-poly-2"],
+    "grid-weight": "cropwt",
+    "models": [
+        {
+            "calculation": [
+                {
+                    "Sum": [
+                        {"YearlySumIrregular": {"model": "gddkdd"}},
+                        {"YearlySumIrregular": {"model": "precip"}},
+                    ]
+                },
+                {
+                    "AuxillaryResult": [
+                        {
+                            "PartialDerivative": {
+                                "covariate": "seasonaltasmax",
+                                "covarunit": "C",
+                            }
+                        },
+                        "ddseasonaltasmax",
+                    ]
+                },
+                {
+                    "AuxillaryResult": [
+                        {
+                            "PartialDerivative": {
+                                "covariate": "seasonalpr",
+                                "covarunit": "mm",
+                            }
+                        },
+                        "ddseasonalpr",
+                    ]
+                },
+                "Rebase",
+                "Exponentiate",
+                {
+                    "KeepOnly": [
+                        "ddseasonaltasmax",
+                        "ddseasonalpr",
+                        "rebased",
+                        "response",
+                        "response2",
+                    ]
+                },
+            ],
+            "clipping": False,
+            "covariates": [
+                "loggdppc",
+                "seasonaltasmax",
+                "seasonalpr",
+                "ir-share",
+                "seasonaltasmax*seasonalpr",
+            ],
+            "csvvs": "social/parameters/agriculture/corn/corn_global_t-tbar_pbar_lnincbr_ir_tp_binp-tbar_pbar_lnincbr_ir_tp_fe-A1TT_A0Y_clus-A1_A0Y_TINV-191220.csvv",
+            "description": "Yield rate for corn",
+            "specifications": {
+                "gddkdd": {
+                    "beta-limits": {"kdd-31": "-inf, 0"},
+                    "depenunit": "log kg / Ha",
+                    "description": "Temperature-driven " "yield rate for corn",
+                    "functionalform": "coefficients",
+                    "variables": {
+                        "gdd-8-31": "edd.bin(8) " "- " "edd.bin(31) " "[C day]",
+                        "kdd-31": "edd.bin(31) " "[C day]",
+                    },
+                },
+                "precip": {
+                    "depenunit": "log kg / Ha",
+                    "description": "Precipitation-driven " "yield rate for corn",
+                    "functionalform": "sum-by-time",
+                    "indepunit": "mm",
+                    "subspec": {"functionalform": "polynomial", "variable": "pr"},
+                    "suffixes": [1, 2, 3, 4, 5, 6, 7, 8, 9, "r", "r", "r"],
+                },
+            },
+            "within-season": "social/baselines/agriculture/world-combo-201710-growing-seasons-corn-1stseason.csv",
+        }
+    ],
+    "rolling-years": 2,
+    "timerate": "month",
 }
 
 

@@ -23,7 +23,6 @@ def projection_netcdf():
     """Runs the projection in tmpdir, gets results netCDF, cleans output on exit
     """
     run_configs = {
-        "module": "impacts/energy/hddcddspline_t_OTHERIND_other_energy.yml",
         "mode": "writecalcs",
         "singledir": "single",
         "filter-region": "USA.14.608",
@@ -33,6 +32,147 @@ def projection_netcdf():
         "econcovar": {"class": "mean", "length": 15},
         "climcovar": {"class": "mean", "length": 15},
         "loggdppc-delta": 9.087,
+        "timerate": "year",
+        "climate": [
+            "tas",
+            "tas-poly-2",
+            "tas-cdd-20",
+            "tas-cdd-20-poly-2",
+            "tas-hdd-20",
+            "tas-hdd-20-poly-2",
+        ],
+        "models": [
+            {
+                "csvvs": "social/parameters/energy/projectionT/*.csvv",
+                "covariates": [
+                    {
+                        "incbin": [
+                            "-inf",
+                            7.246,
+                            7.713,
+                            8.136,
+                            8.475,
+                            8.776,
+                            9.087,
+                            9.385,
+                            9.783,
+                            10.198,
+                            "inf",
+                        ]
+                    },
+                    {
+                        "year*incbin": [
+                            "-inf",
+                            7.246,
+                            7.713,
+                            8.136,
+                            8.475,
+                            8.776,
+                            9.087,
+                            9.385,
+                            9.783,
+                            10.198,
+                            "inf",
+                        ]
+                    },
+                    "climtas-cdd-20",
+                    "climtas-hdd-20",
+                    {
+                        "climtas-cdd-20*incbin": [
+                            "-inf",
+                            7.246,
+                            7.713,
+                            8.136,
+                            8.475,
+                            8.776,
+                            9.087,
+                            9.385,
+                            9.783,
+                            10.198,
+                            "inf",
+                        ]
+                    },
+                    {
+                        "climtas-hdd-20*incbin": [
+                            "-inf",
+                            7.246,
+                            7.713,
+                            8.136,
+                            8.475,
+                            8.776,
+                            9.087,
+                            9.385,
+                            9.783,
+                            10.198,
+                            "inf",
+                        ]
+                    },
+                    {
+                        "loggdppc-shifted*incbin": [
+                            "-inf",
+                            7.246,
+                            7.713,
+                            8.136,
+                            8.475,
+                            8.776,
+                            9.087,
+                            9.385,
+                            9.783,
+                            10.198,
+                            "inf",
+                        ]
+                    },
+                    {
+                        "loggdppc-shifted*year*incbin": [
+                            "-inf",
+                            7.246,
+                            7.713,
+                            8.136,
+                            8.475,
+                            8.776,
+                            9.087,
+                            9.385,
+                            9.783,
+                            10.198,
+                            "inf",
+                        ]
+                    },
+                ],
+                "clipping": False,
+                "description": "Change in energy usage driven by a single day's mean temperature",
+                "depenunit": "kWh/pc",
+                "specifications": {
+                    "tas": {
+                        "description": "Uninteracted term.",
+                        "indepunit": "C",
+                        "functionalform": "polynomial",
+                        "variable": "tas",
+                    },
+                    "hdd-20": {
+                        "description": "Below 20C days.",
+                        "indepunit": "C",
+                        "functionalform": "polynomial",
+                        "variable": "tas-hdd-20",
+                    },
+                    "cdd-20": {
+                        "description": "Above 20C days.",
+                        "indepunit": "C",
+                        "functionalform": "polynomial",
+                        "variable": "tas-cdd-20",
+                    },
+                },
+                "calculation": [
+                    {
+                        "Sum": [
+                            {"YearlyApply": {"model": "tas"}},
+                            {"YearlyApply": {"model": "hdd-20"}},
+                            {"YearlyApply": {"model": "cdd-20"}},
+                        ]
+                    },
+                    "Rebase",
+                ],
+            }
+        ],
     }
     # Trigger projection run in temprary directory:
     with tmpdir_projection(run_configs, "single energy test") as tmpdirname:
