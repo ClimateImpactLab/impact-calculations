@@ -124,8 +124,8 @@ class BetaLimitsDerivativeSmartCSVVCurveGenerator(CurveGenerator):
         coeffs = self.curvegen.get_coefficients(covariates)
 
         for predname in coeffs:
-            if predname in self.betalimits:
-                if prederiv_coeffs[predname] == self.betalimits[predname][0] or prederiv_coeffs[predname] == self.betalimits[predname][1]:
+            if predname in self.prederiv_curvegen.betalimits:
+                if prederiv_coeffs[predname] == self.prederiv_curvegen.betalimits[predname][0] or prederiv_coeffs[predname] == self.prederiv_curvegen.betalimits[predname][1]:
                     coeffs[predname] = 0
 
         yy = [coeffs[predname] for predname in self.curvegen.prednames]
