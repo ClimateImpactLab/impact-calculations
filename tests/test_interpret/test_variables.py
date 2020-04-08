@@ -3,12 +3,12 @@ from interpret.variables import interpret_ds_transform
 
 
 def test_interpret_ds_transform_scalarname():
-    """Tests that interpret_ds_transform() gives scalar if `name` arg is int
+    """Tests that interpret_ds_transform() gives scalar if `name` arg is float
 
     If this fails it might be that FastDataset interface has changed. I'm so
     sorry if you're reading this.
     """
-    scalar = 2
+    scalar = 2.5
 
     class MockFastDataset(object):
         """Mocking FastDataset because I'm allergic to FastData*s.
