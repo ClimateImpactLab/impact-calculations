@@ -154,7 +154,7 @@ class SumCoefficientsCurveGenerator(curvegen.CSVVCurveGenerator):
         indepunits = [self.indepunits[ii] for ii in range(len(self.prednames)) if incpreds[ii]]
         return SumCoefficientsCurveGenerator(prednames, self.ds_transforms, self.transform_descriptions,
                                              indepunits, self.depenunit + '/' + covarunit,
-                                             csvvpart, diagprefix=self.diagprefix + 'dd' + covariate, betalimits=self.betalimits)
+                                             csvvpart, diagprefix=self.diagprefix + 'dd' + covariate)
     
 class MLECoefficientsCurveGenerator(CoefficientsCurveGenerator):
     """Implementation of CoefficientsCurveGenerator for standard MLE curves.

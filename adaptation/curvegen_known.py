@@ -213,8 +213,7 @@ class PolynomialCurveGenerator(SmartCSVVCurveGenerator):
         csvvpart = csvvfile.partial_derivative(self.csvv, covariate, covarunit)
         return PolynomialCurveGenerator(self.indepunits, self.depenunit + '/' + covarunit, self.prefix,
                                         self.order, csvvpart, diagprefix=self.diagprefix + 'dd' + covariate, predinfix=self.predinfix,
-                                        weathernames=self.weathernames, betalimits=self.betalimits,
-                                        allow_raising=self.allow_raising)
+                                        weathernames=self.weathernames, allow_raising=self.allow_raising)
 
 class CubicSplineCurveGenerator(SmartCSVVCurveGenerator):
     """A CurveGenerator for a series of terms representing a restricted cubic spline.
