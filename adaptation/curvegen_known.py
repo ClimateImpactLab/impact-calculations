@@ -13,6 +13,7 @@ from . import csvvfile, curvegen
 from openest.generate import diagnostic, formatting, selfdocumented
 from openest.generate.smart_curve import ZeroInterceptPolynomialCurve, CubicSplineCurve
 from openest.models.curve import StepCurve
+from openest.generate.curvegen import CurveGenerator
 
 class SmartCSVVCurveGenerator(curvegen.CSVVCurveGenerator):
     """Provides additional structure for CSVVCurveGenerators that produce SmartCurves.
@@ -38,11 +39,9 @@ class SmartCSVVCurveGenerator(curvegen.CSVVCurveGenerator):
     """
     def __init__(self, prednames, indepunits, depenunit, csvv, diagprefix='coeff-', betalimits=None, ignore_units=False):
         super(SmartCSVVCurveGenerator, self).__init__(prednames, indepunits, depenunit, csvv, betalimits=betalimits, ignore_units=ignore_units)
-        if betalimits is None:
-            betalimits = {}
         self.diagprefix = diagprefix
 
-    def get_curve(self, region, year, covariates=None, recorddiag=True, **kwargs):
+    def get_curve(self, region, year, covariates, recorddiag=True, **kwargs):
         """
         Parameters
         ----------
@@ -61,8 +60,6 @@ class SmartCSVVCurveGenerator(curvegen.CSVVCurveGenerator):
         -------
         openest.generate.smart_curve.SmartCurve
         """
-        if covariates is None:
-            covariates = {}
         coefficients = self.get_coefficients(covariates)
         yy = [coefficients[predname] for predname in self.prednames]
 
@@ -115,7 +112,34 @@ class SmartCSVVCurveGenerator(curvegen.CSVVCurveGenerator):
                 elements[self.weathernames[ii]] = formatting.ParameterFormatElement(self.weathernames[ii], weatherreps[ii])
             
         return elements
-    
+
+class BetaLimitsDerivativeSmartCSVVCurveGenerator(CurveGenerator):
+    def __init__(self, prederiv_curvegen, curvegen):
+        super(BetaLimitsDerivativeSmartCSVVCurveGenerator, self).__init__(curveben.indepunits, curvegen.depenunit)
+        self.prederiv_curvegen = prederiv_curvegen
+        self.curvegen = curvegen
+
+    def get_curve(self, region, year, covariates, recorddiag=True, **kwargs):
+        prederiv_coeffs = self.prederiv_curvegen.get_coefficients(covariates)
+        coeffs = self.curvegen.get_coefficients(covariates)
+
+        for predname in coeffs:
+            if predname in self.prederiv_curvegen.betalimits:
+                if prederiv_coeffs[predname] == self.prederiv_curvegen.betalimits[predname][0] or prederiv_coeffs[predname] == self.prederiv_curvegen.betalimits[predname][1]:
+                    coeffs[predname] = 0
+
+        yy = [coeffs[predname] for predname in self.curvegen.prednames]
+
+        if recorddiag and diagnostic.is_recording():
+            for predname in self.prednames:
+                if year < 2015: # Only called once, so make the most of it
+                    for yr in range(year, 2015):
+                        diagnostic.record(region, yr, self.diagprefix + predname, coefficients[predname])
+                else:
+                    diagnostic.record(region, year, self.diagprefix + predname, coefficients[predname])
+
+        return self.curvegen.get_smartcurve(yy)
+        
 class PolynomialCurveGenerator(SmartCSVVCurveGenerator):
     """A CurveGenerator for a series of polynomial terms. For a weather
     variable `T`, this consist of `T`, `T^2`, ..., `T^k`. Since this
@@ -150,8 +174,6 @@ class PolynomialCurveGenerator(SmartCSVVCurveGenerator):
     """
     def __init__(self, indepunits, depenunit, prefix, order, csvv, diagprefix='coeff-', predinfix='', weathernames=None,
                  betalimits=None, allow_raising=False, ignore_units=False):
-        if betalimits is None:
-            betalimits = {}
         self.order = order
         prednames = [prefix + predinfix + str(ii) if ii > 1 else prefix for ii in range(1, order+1)]
         super(PolynomialCurveGenerator, self).__init__(prednames, indepunits * order, depenunit, csvv, betalimits=betalimits, ignore_units=ignore_units)
@@ -211,9 +233,13 @@ class PolynomialCurveGenerator(SmartCSVVCurveGenerator):
 
     def get_partial_derivative_curvegen(self, covariate, covarunit):
         csvvpart = csvvfile.partial_derivative(self.csvv, covariate, covarunit)
-        return PolynomialCurveGenerator(self.indepunits, self.depenunit + '/' + covarunit, self.prefix,
-                                        self.order, csvvpart, diagprefix=self.diagprefix + 'dd' + covariate, predinfix=self.predinfix,
-                                        weathernames=self.weathernames, allow_raising=self.allow_raising)
+        ddpoly = PolynomialCurveGenerator(self.indepunits, self.depenunit + '/' + covarunit, self.prefix,
+                                          self.order, csvvpart, diagprefix=self.diagprefix + 'dd' + covariate, predinfix=self.predinfix,
+                                          weathernames=self.weathernames, allow_raising=self.allow_raising)
+        if not self.betalimits:
+            return ddpoly
+
+        return BetaLimitsDerivativeSmartCSVVCurveGenerator(self, ddpoly)
 
 class CubicSplineCurveGenerator(SmartCSVVCurveGenerator):
     """A CurveGenerator for a series of terms representing a restricted cubic spline.
@@ -240,8 +266,6 @@ class CubicSplineCurveGenerator(SmartCSVVCurveGenerator):
         Requires that all calculated betas are clipped to these limits.
     """
     def __init__(self, indepunits, depenunit, prefix, knots, variablename, csvv, diagprefix='coeff-', betalimits=None, allow_raising=False):
-        if betalimits is None:
-            betalimits = {}
         self.knots = knots
         self.variablename = str(variablename)
         prednames = [self.variablename] + [prefix + str(ii) for ii in range(1, len(knots)-1)]

@@ -18,7 +18,14 @@ from openest.generate import formatting, diagnostic, selfdocumented
 from openest.generate.smart_curve import TransformCoefficientsCurve
 from . import curvegen, csvvfile
 
-class CoefficientsCurveGenerator(curvegen.CSVVCurveGenerator):
+class LinearCSVVCurveGenerator(curvegen.CSVVCurveGenerator):
+    def get_curve_parameters(self, region, year, covariates=None):
+        if covariates is None:
+            covariates = {}
+        allcoeffs = self.get_coefficients(covariates)
+        return [allcoeffs[predname] for predname in self.prednames]
+
+class CoefficientsCurveGenerator(LinearCSVVCurveGenerator):
     """Wrapper class for an arbitrary curve generation function.
     
     The CSVV coefficients are assumed to be named either prefix0,
@@ -45,8 +52,6 @@ class CoefficientsCurveGenerator(curvegen.CSVVCurveGenerator):
 
     """
     def __init__(self, curvefunc, indepunits, depenunit, prefix, order, csvv, zerostart=True, betalimits=None):
-        if betalimits is None:
-            betalimits = {}
         self.curvefunc = curvefunc
         if zerostart:
             prednames = [prefix + str(ii) for ii in range(order)]
@@ -55,19 +60,13 @@ class CoefficientsCurveGenerator(curvegen.CSVVCurveGenerator):
 
         super(CoefficientsCurveGenerator, self).__init__(prednames, indepunits, depenunit, csvv, betalimits=betalimits)
 
-    def get_curve_parameters(self, region, year, covariates=None):
-        if covariates is None:
-            covariates = {}
-        allcoeffs = self.get_coefficients(covariates)
-        return [allcoeffs[predname] for predname in self.prednames]
-
     def get_curve(self, region, year, covariates=None):
         if covariates is None:
             covariates = {}
         mycoeffs = self.get_curve_parameters(region, year, covariates)
         return self.curvefunc(mycoeffs)
 
-class SumCoefficientsCurveGenerator(curvegen.CSVVCurveGenerator):
+class SumCoefficientsCurveGenerator(LinearCSVVCurveGenerator):
     """Arbitrary OLS gamma regression curve generator.
 
     Each predictor can be a transformation of the information in the
@@ -98,18 +97,10 @@ class SumCoefficientsCurveGenerator(curvegen.CSVVCurveGenerator):
     def __init__(self, prednames, ds_transforms, transform_descriptions, indepunits, depenunit, csvv, diagprefix='coeff-',
                  betalimits=None):
         super(SumCoefficientsCurveGenerator, self).__init__(prednames, indepunits, depenunit, csvv, betalimits=betalimits)
-        if betalimits is None:
-            betalimits = {}
         self.ds_transforms = ds_transforms
         self.transform_descriptions = transform_descriptions
         self.diagprefix = diagprefix
     
-    def get_curve_parameters(self, region, year, covariates=None):
-        if covariates is None:
-            covariates = {}
-        allcoeffs = self.get_coefficients(covariates)
-        return [allcoeffs[predname] for predname in self.prednames]
-
     def get_curve(self, region, year, covariates=None, recorddiag=True, **kwargs):
         if covariates is None:
             covariates = {}
@@ -152,9 +143,30 @@ class SumCoefficientsCurveGenerator(curvegen.CSVVCurveGenerator):
         incpreds = [predname in csvvpart['prednames'] for predname in self.prednames]
         prednames = [self.prednames[ii] for ii in range(len(self.prednames)) if incpreds[ii]]
         indepunits = [self.indepunits[ii] for ii in range(len(self.prednames)) if incpreds[ii]]
-        return SumCoefficientsCurveGenerator(prednames, self.ds_transforms, self.transform_descriptions,
-                                             indepunits, self.depenunit + '/' + covarunit,
-                                             csvvpart, diagprefix=self.diagprefix + 'dd' + covariate)
+        if not self.betalimits:
+            return SumCoefficientsCurveGenerator(prednames, self.ds_transforms, self.transform_descriptions,
+                                                 indepunits, self.depenunit + '/' + covarunit,
+                                                 csvvpart, diagprefix=self.diagprefix + 'dd' + covariate)
+
+        return BetaLimitsDerivativeSumCoefficientsCurveGenerator(self, prednames, self.ds_transforms, self.transform_descriptions,
+                                                                 indepunits, self.depenunit + '/' + covarunit,
+                                                                 csvvpart, diagprefix=self.diagprefix + 'dd' + covariate)
+
+class BetaLimitsDerivativeSumCoefficientsCurveGenerator(SumCoefficientsCurveGenerator):
+    def __init__(self, prederiv_curvegen, prednames, ds_transforms, transform_descriptions, indepunits, depenunit, csvv, diagprefix='coeff-'):
+        super(BetaLimitsDerivativeSumCoefficientsCurveGenerator, self).__init__(prednames, ds_transforms, transform_descriptions, indepunits, depenunit, csvv, diagprefix)
+        self.prederiv_curvegen = prederiv_curvegen
+
+    def get_curve_parameters(self, region, year, covariates, **kwargs):
+        prederiv_coeffs = self.prederiv_curvegen.get_coefficients(covariates)
+        coeffs = self.get_coefficients(covariates)
+
+        for predname in coeffs:
+            if predname in self.prederiv_curvegen.betalimits:
+                if prederiv_coeffs[predname] == self.prederiv_curvegen.betalimits[predname][0] or prederiv_coeffs[predname] == self.prederiv_curvegen.betalimits[predname][1]:
+                    coeffs[predname] = 0
+
+        return [coeffs[predname] for predname in self.prednames]
     
 class MLECoefficientsCurveGenerator(CoefficientsCurveGenerator):
     """Implementation of CoefficientsCurveGenerator for standard MLE curves.
