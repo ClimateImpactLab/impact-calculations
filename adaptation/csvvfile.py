@@ -266,3 +266,7 @@ def partial_derivative(csvv, covariate, covarunit):
         # gammavcv already was collapsed, because we successfully called subset
     
     return csvvpart
+
+def get_errorvar(csvv):
+    assert csvv['residvcv'].shape == (1, 1)
+    return csvv['residvcv'][0, 0]
