@@ -1,4 +1,5 @@
 import re, copy
+from contextlib import suppress
 import numpy as np
 from openest.generate import fast_dataset, selfdocumented
 from datastore import irvalues
@@ -28,6 +29,21 @@ def interpret_ds_transform(name, config):
     -------
     openest.generate.selfdocumented.DocumentedFunction
     """
+    # If can cast name into float (no ValueError), simply use as float value.
+    with suppress(ValueError):
+        use_scalar = float(name)
+        # Create a FastDataset populated with the name and scalar...
+        def out(ds):
+            # Get first available non-coordinate variable.
+            noncoord_var = [x for x in list(ds.variables.keys()) if x not in list(ds.coords.keys())][0]
+            new_shape = ds[noncoord_var]._values.shape
+            new_coords = list(ds.original_coords)
+            darray = fast_dataset.FastDataArray(np.ones(new_shape) * use_scalar,
+                                                new_coords, ds)
+            return darray
+        return selfdocumented.DocumentedFunction(out, name)
+
+    # Otherwise interpret variable names and possible implied transformations.
     if ' ** ' in name:
         chunks = name.split(' ** ', 1)
         internal_left = interpret_ds_transform(chunks[0], config)
@@ -62,25 +78,6 @@ def interpret_ds_transform(name, config):
             for chunk in chunks[1:]:
                 internal = interpret_wrap_transform(chunk, internal)
             return internal
-
-    # If can cast into float, simply use as scalar value.
-    try:
-        use_scalar = float(name)
-
-        # Create a FastDataset populated with the name and scalar...
-        def out(ds):
-            # Get first available non-coordinate variable.
-            noncoord_var = [x for x in list(ds.variables.keys()) if x not in list(ds.coords.keys())][0]
-            new_shape = ds[noncoord_var]._values.shape
-            new_coords = list(ds.original_coords)
-            darray = fast_dataset.FastDataArray(np.ones(new_shape) * use_scalar,
-                                                new_coords, ds)
-            return darray
-
-        return selfdocumented.DocumentedFunction(out, name)
-
-    except ValueError:
-        pass
 
     return get_post_process(name, config)
 
