@@ -22,7 +22,6 @@ pytestmark = pytest.mark.imperics_shareddir
 
 RUN_BASENAME = "FD_FGLS_inter_climGMFD_Exclude_all-issues_break2_semi-parametric_poly2_OTHERIND_other_energy_TINV_clim_income_spline_lininter"
 RUN_CONFIGS = {
-    "module": "impacts/energy/hddcddspline_t_OTHERIND_other_energy.yml",
     "filter-region": "USA.14.608",
     "mode": "montecarlo",
     "do_farmers": True,
@@ -36,6 +35,147 @@ RUN_CONFIGS = {
     "loggdppc-delta": 9.087,
     "mc-n": 1,
     "pvals": {RUN_BASENAME: {"seed-csvv": 123}, "histclim": {"seed-yearorder": 123},},
+    "timerate": "year",
+    "climate": [
+        "tas",
+        "tas-poly-2",
+        "tas-cdd-20",
+        "tas-cdd-20-poly-2",
+        "tas-hdd-20",
+        "tas-hdd-20-poly-2",
+    ],
+    "models": [
+        {
+            "csvvs": "social/parameters/energy/projectionT/*.csvv",
+            "covariates": [
+                {
+                    "incbin": [
+                        "-inf",
+                        7.246,
+                        7.713,
+                        8.136,
+                        8.475,
+                        8.776,
+                        9.087,
+                        9.385,
+                        9.783,
+                        10.198,
+                        "inf",
+                    ]
+                },
+                {
+                    "year*incbin": [
+                        "-inf",
+                        7.246,
+                        7.713,
+                        8.136,
+                        8.475,
+                        8.776,
+                        9.087,
+                        9.385,
+                        9.783,
+                        10.198,
+                        "inf",
+                    ]
+                },
+                "climtas-cdd-20",
+                "climtas-hdd-20",
+                {
+                    "climtas-cdd-20*incbin": [
+                        "-inf",
+                        7.246,
+                        7.713,
+                        8.136,
+                        8.475,
+                        8.776,
+                        9.087,
+                        9.385,
+                        9.783,
+                        10.198,
+                        "inf",
+                    ]
+                },
+                {
+                    "climtas-hdd-20*incbin": [
+                        "-inf",
+                        7.246,
+                        7.713,
+                        8.136,
+                        8.475,
+                        8.776,
+                        9.087,
+                        9.385,
+                        9.783,
+                        10.198,
+                        "inf",
+                    ]
+                },
+                {
+                    "loggdppc-shifted*incbin": [
+                        "-inf",
+                        7.246,
+                        7.713,
+                        8.136,
+                        8.475,
+                        8.776,
+                        9.087,
+                        9.385,
+                        9.783,
+                        10.198,
+                        "inf",
+                    ]
+                },
+                {
+                    "loggdppc-shifted*year*incbin": [
+                        "-inf",
+                        7.246,
+                        7.713,
+                        8.136,
+                        8.475,
+                        8.776,
+                        9.087,
+                        9.385,
+                        9.783,
+                        10.198,
+                        "inf",
+                    ]
+                },
+            ],
+            "clipping": False,
+            "description": "Change in energy usage driven by a single day's mean temperature",
+            "depenunit": "kWh/pc",
+            "specifications": {
+                "tas": {
+                    "description": "Uninteracted term.",
+                    "indepunit": "C",
+                    "functionalform": "polynomial",
+                    "variable": "tas",
+                },
+                "hdd-20": {
+                    "description": "Below 20C days.",
+                    "indepunit": "C",
+                    "functionalform": "polynomial",
+                    "variable": "tas-hdd-20",
+                },
+                "cdd-20": {
+                    "description": "Above 20C days.",
+                    "indepunit": "C",
+                    "functionalform": "polynomial",
+                    "variable": "tas-cdd-20",
+                },
+            },
+            "calculation": [
+                {
+                    "Sum": [
+                        {"YearlyApply": {"model": "tas"}},
+                        {"YearlyApply": {"model": "hdd-20"}},
+                        {"YearlyApply": {"model": "cdd-20"}},
+                    ]
+                },
+                "Rebase",
+            ],
+        }
+    ],
 }
 
 
