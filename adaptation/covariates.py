@@ -621,7 +621,7 @@ class SeasonalWeatherCovariator(MeanWeatherCovariator):
         if ds is not None and year > self.startupdateyear:
             if region in self.culture_periods:
                 plantii = int(self.culture_periods[region][0] - 1)
-                harvestii = int(self.culture_periods[region][1] - 1)
+                harvestii = int(self.culture_periods[region][1])
                 self.byregion[region].update(np.mean(ds[self.variable]._values[plantii:harvestii]))
 
         return self.get_current(region)
