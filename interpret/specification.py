@@ -332,7 +332,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     covariator = create_covariator(specconf, weatherbundle, economicmodel, config)
     final_curvegen = create_curvegen(csvv, covariator, weatherbundle.regions, farmer=farmer, specconf=specconf)
 
-    extras = dict(output_unit=depenunit, units=depenunit, curve_description=specconf['description'])
+    extras = dict(output_unit=depenunit, units=depenunit, curve_description=specconf['description'], errorvar=csvvfile.get_errorvar(csvv))
     calculation = calculator.create_postspecification(specconf['calculation'], {'default': final_curvegen}, None, extras=extras)
         
     if covariator is None:
