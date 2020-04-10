@@ -238,7 +238,7 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
                         yield year2, ds2
             return
         
-        for year in self.get_years():
+        for year in self.get_reader_years():
             if year == maxyear:
                 break
 
@@ -263,8 +263,11 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
             for year2, ds2 in self.transformer.push(year, allds):
                 yield year2, ds2
 
+    def get_reader_years(self):
+        return np.unique(self.pastfuturereaders[0][0].get_years() + self.pastfuturereaders[0][1].get_years())
+
     def get_years(self):
-        return self.transformer.get_years(np.unique(self.pastfuturereaders[0][0].get_years() + self.pastfuturereaders[0][1].get_years()))
+        return self.transformer.get_years(self.get_reader_years())
 
     def get_dimension(self):
         alldims = []
