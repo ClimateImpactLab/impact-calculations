@@ -1,3 +1,20 @@
+"""Generation module for configurations with multiple specifications.
+
+See docs/models.md for the programming structure this is designed to
+follow. This module is used when the specification configuration is
+organized in the form:
+
+```
+specifications:
+	<name>:
+		<configuration>
+	...
+calculation:
+	- <calculation>
+```
+
+"""
+
 from interpret import specification, configs, calculator
 from adaptation import csvvfile
 
