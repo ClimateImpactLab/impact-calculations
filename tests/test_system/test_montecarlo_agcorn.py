@@ -242,10 +242,10 @@ class TestRebased:
     @pytest.mark.parametrize(
         "result_file,expected",
         [
-            ("base_ds", np.array([[16428360.0, -24870448.0, np.nan]]).T),
-            ("noadapt_ds", np.array([[16719406.0, -19189916.0, np.nan]]).T),
-            ("incadapt_ds", np.array([[16719406.0, -19189874.0, np.nan]]).T),
-            ("histclim_ds", np.array([[1747379.6, -7912344.5, np.nan]]).T),
+            ("base_ds", np.array([[16553001.0, -22093280.0, -3109495.8]]).T),
+            ("noadapt_ds", np.array([[16719406.0, -19189916.0, -822137.2]]).T),
+            ("incadapt_ds", np.array([[16719406.0, -19189874.0, -822115.2]]).T),
+            ("histclim_ds", np.array([[2393200.0, -6320445.0, np.nan]]).T),
         ],
     )
     def test_tail(self, projection_payload, result_file, expected):
