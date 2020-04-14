@@ -16,6 +16,9 @@ test-brief:
 test-full:
   stage: test
   image: continuumio/anaconda:latest
+  variables:
+    KUBERNETES_CPU_REQUEST: 1
+    KUBERNETES_MEMORY_REQUEST: 12Gi
   before_script:
     - conda info -a
     - conda env create ClimateImpactLab/risingverse
