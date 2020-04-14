@@ -177,7 +177,7 @@ class TestRebased:
         """Test tail of variable array"""
         npt.assert_allclose(
             projection_netcdf[self.target_variable].values[-3:],
-            np.array([[-0.6244463, -0.13643758, np.nan]]).T,
+            np.array([[-0.7143772, -0.1421862, -0.46114084]]).T,
             atol=self.atol,
             rtol=self.rtol,
         )
@@ -199,7 +199,7 @@ class TestDdseasonaltasmax:
         """Test head of variable array"""
         npt.assert_allclose(
             projection_netcdf[self.target_variable].values[:3],
-            np.array([[-0.05384747, -0.03535344, -0.03308476]]).T,
+            np.array([[-0.046792, -0.034199, -0.033085]]).T,
             atol=self.atol,
             rtol=self.rtol,
         )
@@ -208,7 +208,7 @@ class TestDdseasonaltasmax:
         """Test tail of variable array"""
         npt.assert_allclose(
             projection_netcdf[self.target_variable].values[-3:],
-            np.array([[-0.08493597, -0.06603191, np.nan]]).T,
+            np.array([[0.05074588, -0.01188053, 0.01536257]]).T,
             atol=self.atol,
             rtol=self.rtol,
         )
@@ -239,7 +239,7 @@ class TestDdseasonalpr:
         """Test tail of variable array"""
         npt.assert_allclose(
             projection_netcdf[self.target_variable].values[-3:],
-            np.array([[0.01309601, 0.01345166, np.nan]]).T,
+            np.array([[0.01058231, 0.01140384, 0.01080828]]).T,
             atol=self.atol,
             rtol=self.rtol,
         )
