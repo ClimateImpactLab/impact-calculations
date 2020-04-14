@@ -167,9 +167,9 @@ For polynomial form has the following additional configuation options:
 * `coeffvar` (optional): The name of the CSVV predname, or prefix for
   higher powers.  Defaults to `variable`.
 * `indepunit` (required): The unit for the independent variable.
-* `allow-raising` (optional): If `yes`, the higher powers of the
+* `allow-raising` (optional): If `True`, the higher powers of the
   variable will be calculated from the linear form, if the other
-  options are not available.
+  options are not available. Default is `False`.
 
 The cubic spline form has the following additional options:
 
