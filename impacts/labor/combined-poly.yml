@@ -1,0 +1,16 @@
+timerate: day
+climate: [ tasmax, tasmax-poly-2, tasmax-poly-3, tasmax-poly-4 ]
+models:
+- csvvs: social/parameters/labor/post_replication/labor_test_post_replication.csvv
+  specification:
+    csvv-organization: lowhigh
+    clipping: false
+    covariates: [ climtasmax ]
+    description: labor productivity
+    depenunit: minutes worked by individual
+    indepunit: C
+    functionalform: polynomial
+    variable: tasmax
+    calculation:
+    - YearlyAverageDay
+    - Rebase
