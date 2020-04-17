@@ -416,7 +416,7 @@ class MeanWeatherCovariator(Covariator):
         self.dsvar = variable # Save this to be consistent
             
         temp_predictors = {}
-        for region, ds in weatherbundle.baseline_values(maxbaseline, quiet=quiet): # baseline through maxbaseline
+        for region, ds in weatherbundle.baseline_values(maxbaseline, quiet=quiet, only_region=config.get('filter-region')): # baseline through maxbaseline
             self.dsvar = 'daily' + variable if usedaily and 'daily' + variable in ds._variables else variable
             try:
                 temp_predictors[region] = averages.interpret(config, standard_climate_config, ds[self.dsvar][-self.numtempyears:])
@@ -577,7 +577,7 @@ class SeasonalWeatherCovariator(MeanWeatherCovariator):
         # Setup all averages
         self.byregion = {region: averages.interpret(config, standard_climate_config, []) for region in self.weatherbundle.regions}
 
-        for year, ds in self.weatherbundle.yearbundles(maxyear=self.maxbaseline):
+        for year, ds in self.weatherbundle.yearbundles(maxyear=self.maxbaseline, only_variable=self.variable if 'filter-region' in config else None):
             regions = np.array(ds.coords["region"])
             for region, subds in fast_dataset.region_groupby(ds, year, regions, {regions[ii]: ii for ii in range(len(regions))}):
                 if region in self.culture_periods:
@@ -739,7 +739,7 @@ class MeanBinsCovariator(Covariator):
         if not quiet:
             print("Collecting baseline information...")
         temp_predictors = {} # {region: [rm-bin-1, ...]}
-        for region, binyears in weatherbundle.baseline_values(maxbaseline, quiet=quiet): # baseline through maxbaseline
+        for region, binyears in weatherbundle.baseline_values(maxbaseline, quiet=quiet, only_region=config.get('filter-region')): # baseline through maxbaseline
             usedbinyears = []
             for kk in range(binyears.shape[-1]):
                 usedbinyears.append(averages.interpret(config, standard_climate_config, binyears[-self.numtempyears:, kk]))

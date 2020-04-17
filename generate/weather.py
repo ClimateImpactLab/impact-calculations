@@ -156,7 +156,7 @@ class DailyWeatherBundle(WeatherBundle):
         for ii in range(len(self.regions)):
             yield self.regions[ii], region_averages[ii]
 
-    def baseline_values(self, maxyear, do_mean=True, quiet=False):
+    def baseline_values(self, maxyear, do_mean=True, quiet=False, only_region=None):
         """Yield the list of all weather values up to `maxyear` for each region."""
 
         if not hasattr(self, 'saved_baseline_values'):
@@ -180,8 +180,11 @@ class DailyWeatherBundle(WeatherBundle):
                 self.saved_baseline_values = xr.concat(allds, dim='time') # slower but more reliable
 
         # Yield the entire collection of values for each region
-        for ii in range(len(self.regions)):
-            yield self.regions[ii], self.saved_baseline_values.sel(region=self.regions[ii])
+        if only_region is not None:
+            yield only_region, self.saved_baseline_values.sel(region=only_region)
+        else:
+            for ii in range(len(self.regions)):
+                yield self.regions[ii], self.saved_baseline_values.sel(region=self.regions[ii])
 
 class SingleWeatherBundle(ReaderWeatherBundle, DailyWeatherBundle):
     def is_historical(self):
@@ -212,7 +215,7 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
     def is_historical(self):
         return False
 
-    def yearbundles(self, maxyear=np.inf):
+    def yearbundles(self, maxyear=np.inf, only_variable=None):
         """Yields xarray Datasets for each year up to (but not including) `maxyear`"""
         if len(self.pastfuturereaders) == 1:
             year = None # In case no additional years in pastreader
@@ -245,6 +248,9 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
             allds = xr.Dataset({'region': self.regions})
 
             for pastreader, futurereader in self.pastfuturereaders:
+                if only_variable and only_variable not in pastreader.get_dimension():
+                    continue # skip this
+                
                 try:
                     if year < self.futureyear1:
                         ds = pastreader.read_year(year)
