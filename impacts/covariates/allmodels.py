@@ -21,16 +21,17 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, result_callb
     else:
         covar_config = {}
 
-    predgen = covariates.CombinedCovariator([covariates.MeanWeatherCovariator(weatherbundle, 2015, 'tas', config),
-                                             covariates.SubspanWeatherCovariator(weatherbundle, 2015, 0, 90, 'tas', config),
-                                             covariates.SubspanWeatherCovariator(weatherbundle, 2015, 180, 270, 'tas', config),
-                                             covariates.SubspanWeatherCovariator(weatherbundle, 2015, 0, 90, 'pr', config),
-                                             covariates.SubspanWeatherCovariator(weatherbundle, 2015, 180, 270, 'pr', config),
-                                             covariates.EconomicCovariator(economicmodel, 2015, config)])
+    predgen = covariates.CombinedCovariator([covariates.MeanWeatherCovariator(weatherbundle, 2015, 'tas', config=covar_config),
+                                             covariates.SubspanWeatherCovariator(weatherbundle, 2015, 0, 90, 'tas', config=covar_config),
+                                             covariates.SubspanWeatherCovariator(weatherbundle, 2015, 180, 270, 'tas', config=covar_config),
+                                             covariates.SubspanWeatherCovariator(weatherbundle, 2015, 0, 90, 'pr', config=covar_config),
+                                             covariates.SubspanWeatherCovariator(weatherbundle, 2015, 180, 270, 'pr', config=covar_config),
+                                             covariates.EconomicCovariator(economicmodel, 2015, config=covar_config)])
     covars = ['tas', 'tasmu0-90', 'tassigma0-90', 'tasmu180-270', 'tassigma180-270', 'prmu0-90', 'prsigma0-90',
               'prmu180-270', 'prsigma180-270', 'loggdppc', 'logpopop']
 
     curvegen = FunctionCurveGenerator(None, None, predgen, lambda covariates: FlatCurve([covariates[covar] for covar in covars]))
+
     calculation = ApplyCurve(curvegen, ['C', 'C', 'C', 'C', 'C', 'm', 'm', 'm', 'm', 'logUSD', 'loppk'], covars,
                              ['Mean yearly temperature', 'Mean winter temperature', 'Winter temperature range', 'Mean summer temperature', 'Summer temperature range', 'Mean winter precipitation', 'Winter precipitation range', 'Mean summer precipitation', 'Summer precipitation range', 'log GDP per capita', 'Log population-weighted population density'],
                              ['Mean across last 15 years of daily temperature',

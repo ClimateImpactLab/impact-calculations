@@ -1,2 +1,4 @@
-outputdir: outputs/mortality/impacts-crypto
+outputdir: outputs/mortality/impacts-darwin-u/brc/minpoly30mcs
 weighting: agecohorts
+infix: 20190708
+

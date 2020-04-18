@@ -57,6 +57,7 @@ Optional:
    `-aggregated`, to distinguish multiple weighting schemes.
  - `timeout`: The number of hours to allow the process to work, before
    considering a directory abandoned (default: 24).
+>>>>>>> release-1.0
 
 Filtering Targets (also Optional):
 

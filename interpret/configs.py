@@ -10,7 +10,7 @@ def standardize(config):
             newconfig[asscore] = config[key]
         if '_' in key and asdash not in config:
             newconfig[asdash] = config[key]
-                
+
     return newconfig
 
 def merge(parent, child):
@@ -47,4 +47,3 @@ def search_list(conflist, needle, pathroot=''):
             found.update(search_list(conflist[ii], needle, pathroot=pathroot + '/' + str(ii)))
 
     return found
-            
