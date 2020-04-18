@@ -3,7 +3,7 @@ from openest.models.curve import ZeroInterceptPolynomialCurve, ClippedCurve, Shi
 from openest.generate.stdlib import *
 from impactcommon.math import minpoly
 
-def prepare_raw(csvv, weatherbundle, economicmodel, qvals):
+def prepare_raw(csvv, weatherbundle, economicmodel, qvals, config={}):
     csvvfile.collapse_bang(csvv, qvals.get_seed('csvv'))
 
     order = len(csvv['gamma'])
@@ -12,7 +12,7 @@ def prepare_raw(csvv, weatherbundle, economicmodel, qvals):
     curve = poly_curvegen.get_curve('global', 2000, {})
 
     # Determine minimum value of curve between 10C and 25C
-    curvemin = minpoly.findpolymin([0] + curve.ccs, 10, 25)
+    curvemin = minpoly.findpolymin([0] + curve.ccs, config.get('clip-mintemp', 10), config.get('clip-maxtemp', 25))
 
     coeff_curve = SelectiveInputCurve(CoefficientsCurve(curve.ccs), list(range(order)))
     shifted_curve = ShiftedCurve(coeff_curve, -curve(curvemin))

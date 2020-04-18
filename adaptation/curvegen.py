@@ -73,6 +73,8 @@ class CSVVCurveGenerator(CurveGenerator):
                 print("WARNING: Dependent variable definition not in CSVV.")
             else:
                 assert checks.loosematch(csvv['variables']['outcome']['unit'], depenunit), "Dependent units %s does not match %s." % (csvv['variables']['outcome']['unit'], depenunit)
+                if 'unit' in csvv['variables'][predname] and csvv['variables'][predname]['unit'] is not None:
+                    assert csvv['variables'][predname]['unit'] == indepunits[ii], "Units error for %s: %s <> %s" % (predname, csvv['variables'][predname]['unit'], indepunits[ii])
 
         self.fill_marginals()
 
@@ -181,13 +183,14 @@ class FarmerCurveGenerator(DelayedCurveGenerator):
     save_curve : bool, optional
         Do you want to save this curve in `adaptation.region_curves`?
     """
-    def __init__(self, curvegen, covariator, farmer='full', save_curve=True):
+    def __init__(self, curvegen, covariator, farmer='full', save_curve=True, endbaseline=2015):
         super(FarmerCurveGenerator, self).__init__(curvegen)
         self.covariator = covariator
         self.farmer = farmer
         self.save_curve = save_curve
         self.lincom_last_covariates = {}
         self.lincom_last_year = {}
+        self.endbaseline = endbaseline
 
     def get_next_curve(self, region, year, *args, **kwargs):
         """
@@ -208,7 +211,7 @@ class FarmerCurveGenerator(DelayedCurveGenerator):
         openest.generate.SmartCurve-like
 
         """
-        if year < 2015:
+        if year < self.endbaseline:
             if region not in self.last_curves:
                 covariates = self.covariator.get_current(region)
                 curve = self.curvegen.get_curve(region, year, covariates)

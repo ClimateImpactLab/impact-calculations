@@ -310,10 +310,10 @@ def discover_binned(basedir, timerate, template, regionvar, ncvar, **config):
         futuretemplate = os.path.join(futuredir, get_template(scenario, model))
 
         if timerate == 'year':
-            pastreader = YearlyBinnedWeatherReader(pasttemplate, 1981, regionvar, ncvar)
+            pastreader = YearlyBinnedWeatherReader(pasttemplate, config.get('startyear', 1981), regionvar, ncvar)
             futurereader = YearlyBinnedWeatherReader(futuretemplate, 2006, regionvar, ncvar)
         elif timerate == 'month':
-            pastreader = MonthlyBinnedWeatherReader(pasttemplate, 1981, regionvar, ncvar)
+            pastreader = MonthlyBinnedWeatherReader(pasttemplate, config.get('startyear', 1981), regionvar, ncvar)
             futurereader = MonthlyBinnedWeatherReader(futuretemplate, 2006, regionvar, ncvar)
 
         yield scenario, model, pastreader, futurereader
@@ -329,7 +329,7 @@ def discover_variable(basedir, variable, withyear=True, **config):
             if not os.path.exists(futuretemplate % 2006):
                 continue
 
-            pastreader = DailyWeatherReader(pasttemplate, 1981, 'SHAPENUM', variable)
+            pastreader = DailyWeatherReader(pasttemplate, config.get('startyear', 1981), 'SHAPENUM', variable)
             futurereader = DailyWeatherReader(futuretemplate, 2006, 'SHAPENUM', variable)
 
             yield scenario, model, pastreader, futurereader
@@ -353,8 +353,8 @@ def discover_derived_variable(basedir, variable, suffix, withyear=True, **config
             pasttemplate = os.path.join(pastdir, variable + '_' + suffix, variable + '_day_aggregated_historical_r1i1p1_' + model + '_%d.nc')
             futuretemplate = os.path.join(futuredir, variable + '_' + suffix, variable + '_day_aggregated_' + scenario + '_r1i1p1_' + model + '_%d.nc')
 
-            if os.path.exists(pasttemplate % (1981)) and os.path.exists(futuretemplate % (2006)):
-                pastreader = DailyWeatherReader(pasttemplate, 1981, 'SHAPENUM', variable)
+            if os.path.exists(pasttemplate % (config.get('startyear', 1981))) and os.path.exists(futuretemplate % (2006)):
+                pastreader = DailyWeatherReader(pasttemplate, config.get('startyear', 1981), 'SHAPENUM', variable)
                 futurereader = DailyWeatherReader(futuretemplate, 2006, 'SHAPENUM', variable)
 
                 yield scenario, model, pastreader, futurereader
@@ -457,10 +457,10 @@ def discover_versioned(basedir, variable, version=None, reorder=True, **config):
             continue
 
         if reorder:
-            pastreader = RegionReorderWeatherReader(DailyWeatherReader(pasttemplate, 1981, 'hierid', variable))
+            pastreader = RegionReorderWeatherReader(DailyWeatherReader(pasttemplate, config.get('startyear', 1981), 'hierid', variable))
             futurereader = RegionReorderWeatherReader(DailyWeatherReader(futuretemplate, 2006, 'hierid', variable))
         else:
-            pastreader = DailyWeatherReader(pasttemplate, 1981, 'hierid', variable)
+            pastreader = DailyWeatherReader(pasttemplate, config.get('startyear', 1981), 'hierid', variable)
             futurereader = DailyWeatherReader(futuretemplate, 2006, 'hierid', variable)
 
         yield scenario, model, pastreader, futurereader
@@ -476,10 +476,10 @@ def discover_versioned_iterated(basedir, prefix, count, version=None, reorder=Tr
             continue
 
         if reorder:
-            pastreader = RegionReorderWeatherReader(DailyWeatherReader(pasttemplate, 1981, 'hierid', *variables))
+            pastreader = RegionReorderWeatherReader(DailyWeatherReader(pasttemplate, config.get('startyear', 1981), 'hierid', *variables))
             futurereader = RegionReorderWeatherReader(DailyWeatherReader(futuretemplate, 2006, 'hierid', *variables))
         else:
-            pastreader = DailyWeatherReader(pasttemplate, 1981, 'hierid', *variables)
+            pastreader = DailyWeatherReader(pasttemplate, config.get('startyear', 1981), 'hierid', *variables)
             futurereader = DailyWeatherReader(futuretemplate, 2006, 'hierid', *variables)
 
         yield scenario, model, pastreader, futurereader
@@ -488,7 +488,7 @@ def discover_versioned_binned(basedir, variable, dim, version=None, reorder=True
     post_process = lambda x: RegionReorderWeatherReader(x) if reorder else lambda x: x
 
     for scenario, model, pasttemplate, futuretemplate in discover_versioned_models(basedir, version, **config):
-        pastreader = MonthlyDimensionedWeatherReader(pasttemplate, 1981, 'hierid', variable, dim)
+        pastreader = MonthlyDimensionedWeatherReader(pasttemplate, config.get('startyear', 1981), 'hierid', variable, dim)
         futurereader = MonthlyDimensionedWeatherReader(futuretemplate, 2006, 'hierid', variable, dim)
 
         yield scenario, model, post_process(pastreader), post_process(futurereader)
@@ -496,10 +496,10 @@ def discover_versioned_binned(basedir, variable, dim, version=None, reorder=True
 def discover_versioned_yearly(basedir, variable, version=None, reorder=True, **config):
     for scenario, model, pasttemplate, futuretemplate in discover_versioned_models(basedir, version, **config):
         if reorder:
-            pastreader = RegionReorderWeatherReader(YearlyDayLikeWeatherReader(pasttemplate, 1981, 'hierid', variable))
+            pastreader = RegionReorderWeatherReader(YearlyDayLikeWeatherReader(pasttemplate, config.get('startyear', 1981), 'hierid', variable))
             futurereader = RegionReorderWeatherReader(YearlyDayLikeWeatherReader(futuretemplate, 2006, 'hierid', variable))
         else:
-            pastreader = YearlyDayLikeWeatherReader(pasttemplate, 1981, 'hierid', variable)
+            pastreader = YearlyDayLikeWeatherReader(pasttemplate, config.get('startyear', 1981), 'hierid', variable)
             futurereader = YearlyDayLikeWeatherReader(futuretemplate, 2006, 'hierid', variable)
 
         yield scenario, model, pastreader, futurereader

@@ -439,6 +439,15 @@ class MeanWeatherCovariator(Covariator):
 
         self.usedaily = usedaily
 
+        if config.get('slowadapt', 'none') in ['both', 'temperature']:
+            self.slowadapt = True
+            baseline_predictors = {}
+            for region in temp_predictors:
+                baseline_predictors[region] = temp_predictors[region].get()
+            self.baseline_predictors = baseline_predictors
+        else:
+            self.slowadapt = False
+
     def get_current(self, region):
         """
         This can be called as many times as we want.

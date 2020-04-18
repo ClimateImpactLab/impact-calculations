@@ -1,19 +1,18 @@
 import csv, copy
 import numpy as np
-from adaptation import csvvfile, curvegen, curvegen_arbitrary, covariates
+from adaptation import csvvfile, curvegen, curvegen_arbitrary, curvegen_known, covariates
 from generate import caller
-from openest.models.curve import CubicSplineCurve
+from interpret import configs
+from openest.models.curve import ZeroInterceptPolynomialCurve
 from openest.generate.stdlib import *
 from openest.generate import diagnostic
-from impactcommon.math import minspline
-
-knots = [-12, -7, 0, 10, 18, 23, 28, 33]
+from impactcommon.math import minpoly
 
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', config=None):
     """Computes f(x_t | \theta(z_t)) - f(x_0 | \theta(z_t)), where f is
-    the adaptation-estimated cubic spline, x_t is the set of weather
+    the adaptation-estimated polynomial, x_t is the set of weather
     predictors, and \theta(z_t) relates how the set of parameters that
-    determine the cubic spline depend on covariates z_t.  I currently
+    determine the polynomial depend on covariates z_t.  I currently
     need to create two covariate instances, so that it doesn't get
     updated twice in the calculation.
     """
@@ -27,37 +26,24 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
 
     csvvfile.collapse_bang(csvv, qvals.get_seed('csvv'))
 
-    curr_curvegen = curvegen_arbitrary.MLECoefficientsCurveGenerator(lambda coeffs: CubicSplineCurve(knots, coeffs),
-                                                        ['C'] + ['C^3'] * (len(knots) - 2),
-                                                        '100,000 * death/population', 'spline_variables-', len(knots) - 1, csvv)
-    farm_curvegen = curvegen.FarmerCurveGenerator(curr_curvegen, covariator, farmer)
+    curr_curvegen = curvegen_known.PolynomialCurveGenerator(['C'] + ['C^%d' % pow for pow in range(2, order+1)],
+                                                            '100,000 * death/population', 'tas', order, csvv)
 
-    # Determine minimum value of curve between 10C and 25C
-    print("Determining minimum temperatures.")
-    with open(caller.callinfo['splineminpath'], 'w') as fp:
-        writer = csv.writer(fp)
-        writer.writerow(['region', 'brute', 'analytic'])
-        baselinemins = {}
-        for region in weatherbundle.regions:
-            curve = curr_curvegen.get_curve(region, covariator.get_current(region))
-            temps = np.arange(10, 26)
-            mintemp = temps[np.argmin(curve(temps))]
-            mintemp2 = minspline.findsplinemin(knots, curve.coeffs, 10, 25)
-            if np.abs(mintemp - mintemp2) > 1:
-                print("WARNING: %s has unclear mintemp: %f, %f" % (region, mintemp, mintemp2))
-            baselinemins[region] = mintemp2
-            writer.writerow([region, mintemp, mintemp2])
-    print("Finishing calculation setup.")
+    farm_curvegen = curvegen.FarmerCurveGenerator(curr_curvegen, covariator, farmer, endbaseline=config.get('endbaseline', 2015))
 
     # Generating all curves, for baseline
     baseline_loggdppc = {}
     for region in weatherbundle.regions:
         baseline_loggdppc[region] = covariator.get_current(region)['loggdppc']
 
-    loggdppc_marginals = curr_curvegen.get_marginals('loggdppc')
-    loggdppc_marginals = np.array([loggdppc_marginals[predname] for predname in curr_curvegen.prednames]) # same order as temps
-    print("MARGINALS")
-    print(loggdppc_marginals)
+    # Determine minimum value of curve between 10C and 25C
+    baselinecurves, baselinemins = constraints.get_curve_minima(weatherbundle.regions, curr_curvegen, covariator, config.get('clip-mintemp', 10), config.get('clip-maxtemp', 25),
+                                                                lambda region, curve: minpoly.findpolymin([0] + curve.ccs, config.get('clip-mintemp', 10), config.get('clip-maxtemp', 25)))
+    
+    climtas_marginals = curr_curvegen.get_marginals('climtas')
+    climtas_marginals = np.array([climtas_marginals[predname] for predname in curr_curvegen.prednames]) # same order as temps
+    print "MARGINALS"
+    print climtas_marginals
 
     def coeff_getter_positive(region, year, temps, curve):
         return curve.curr_curve.coeffs
@@ -71,10 +57,10 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     negcsvv = copy.copy(csvv)
     negcsvv['gamma'] = [-csvv['gamma'][ii] if csvv['covarnames'][ii] == '1' else csvv['gamma'][ii] for ii in range(len(csvv['gamma']))]
 
-    negcurr_curvegen = curvegen_arbitrary.MLECoefficientsCurveGenerator(lambda coeffs: CubicSplineCurve(knots, coeffs),
-                                                                     ['C'] + ['C^3'] * (len(knots) - 2),
-                                                                     '100,000 * death/population', 'spline_variables-', len(knots) - 1, negcsvv)
-    negfarm_curvegen = curvegen.FarmerCurveGenerator(negcurr_curvegen, covariator2, farmer, save_curve=False)
+    negcurr_curvegen = curvegen_arbitrary.MLECoefficientsCurveGenerator(lambda coeffs: ZeroInterceptPolynomialCurve(coeffs)
+                                                                        ['C'] + ['C^%d' % pow for pow in range(2, order+1)],
+                                                                        '100,000 * death/population', 'tas', order, negcsvv)
+    negfarm_curvegen = curvegen.FarmerCurveGenerator(negcurr_curvegen, covariator2, farmer, save_curve=False, endbaseline=config.get('endbaseline', 2015))
     baseeffect = YearlyCoefficients('100,000 * death/population', negfarm_curvegen, 'offset to normalize to 20 C', coeff_getter_negative, weather_change=lambda region, temps: 365 * np.array(CubicSplineCurve(knots, np.zeros(len(knots)-1)).get_terms(baselinemins[region])))
 
     # Collect all baselines
