@@ -203,9 +203,16 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
         super(PastFutureWeatherBundle, self).__init__(scenario, model, hierarchy, transformer)
         self.pastfuturereaders = pastfuturereaders
 
+        self.variable2readers = {}
         for pastfuturereader in pastfuturereaders:
             assert pastfuturereader[0].get_dimension() == pastfuturereader[1].get_dimension()
-        
+            for variable in pastfuturereader[0].get_dimension():
+                if variable not in self.variable2readers:
+                    self.variable2readers[variable] = pastfuturereader
+                else:
+                    self.variable2readers[variable] = None # ambiguous-- don't provide shortcut
+                    print("WARNING: Multiple weather readers provide " + variable)
+                    
         onefuturereader = self.pastfuturereaders[0][1]
         self.futureyear1 = min(onefuturereader.get_years())
 
@@ -215,7 +222,7 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
     def is_historical(self):
         return False
 
-    def yearbundles(self, maxyear=np.inf, only_variable=None):
+    def yearbundles(self, maxyear=np.inf, variable=None):
         """Yields xarray Datasets for each year up to (but not including) `maxyear`"""
         if len(self.pastfuturereaders) == 1:
             year = None # In case no additional years in pastreader
@@ -248,7 +255,7 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
             allds = xr.Dataset({'region': self.regions})
 
             for pastreader, futurereader in self.pastfuturereaders:
-                if only_variable and only_variable not in pastreader.get_dimension():
+                if variable and self.variable2readers.get(variable) != (pastreader, futurereader):
                     continue # skip this
                 
                 try:

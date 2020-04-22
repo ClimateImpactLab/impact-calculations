@@ -110,7 +110,7 @@ class SmartCSVVCurveGenerator(curvegen.CSVVCurveGenerator):
         for ii in range(len(self.weathernames)):
             if isinstance(self.weathernames[ii], str):
                 elements[self.weathernames[ii]] = formatting.ParameterFormatElement(self.weathernames[ii], weatherreps[ii])
-                
+            
         return elements
 
 class BetaLimitsDerivativeSmartCSVVCurveGenerator(CurveGenerator):
