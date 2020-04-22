@@ -1,0 +1,51 @@
+timerate: month
+grid-weight: cropwt
+rolling-years: 2
+climate: [ tasmax, edd, pr, pr-poly-2]
+models:
+  - csvvs: "social/parameters/agriculture/sorghum/sorghum_Pbar_prcp_spline_Pbar_dd_spline.ster-200422.csvv"
+    within-season: "social/baselines/agriculture/world-combo-202004-growing-seasons-sorghum.csv"
+    clipping: false
+    covariates:
+      - loggdppc
+      - seasonaltasmax
+      - seasonalpr
+      - ir-share
+      - seasonaltasmax*seasonalpr
+    description: Yield rate for corn
+    specifications:
+      gddkdd:
+        functionalform: coefficients
+        description: Temperature-driven yield rate for corn
+        depenunit: log kg / Ha
+        variables:
+          gdd-15-31: edd.bin(15) - edd.bin(31) [C day]
+          kdd-31: edd.bin(31) [C day]
+        beta-limits:
+          gdd-15-31: 0, inf
+          kdd-31: -inf, 0
+      precip:
+        functionalform: sum-by-time
+        description: Precipitation-driven yield rate for corn
+        depenunit: log kg / Ha
+        indepunit: mm
+        variable: pr 
+        functionalform: polynomial
+    calculation:
+      - Sum:
+        - YearlySumIrregular:
+            model: gddkdd
+        - YearlySumIrregular:
+            model: precip
+      - AuxillaryResult:
+        - PartialDerivative:
+            covariate: seasonaltasmax
+            covarunit: C
+        - ddseasonaltasmax
+      - AuxillaryResult:
+        - PartialDerivative:
+            covariate: seasonalpr
+            covarunit: mm
+        - ddseasonalpr
+      - Rebase
+      - Exponentiate
