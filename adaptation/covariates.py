@@ -514,7 +514,7 @@ class SubspanWeatherCovariator(MeanWeatherCovariator):
             print(("Collecting " + self.mustr))
             # Read in all regions
             self.all_values = {}
-            for year, ds in self.weatherbundle.yearbundles(maxyear=self.maxbaseline):
+            for year, ds in self.weatherbundle.yearbundles(maxyear=self.maxbaseline, variable=self.variable):
                 for region in self.weatherbundle.regions:
                     if region not in self.all_values:
                         self.all_values[region] = np.squeeze(ds[self.variable].sel(region=region).values[self.day_start:self.day_end])
@@ -577,7 +577,7 @@ class SeasonalWeatherCovariator(MeanWeatherCovariator):
         # Setup all averages
         self.byregion = {region: averages.interpret(config, standard_climate_config, []) for region in self.weatherbundle.regions}
 
-        for year, ds in self.weatherbundle.yearbundles(maxyear=self.maxbaseline, only_variable=self.variable if 'filter-region' in config else None):
+        for year, ds in self.weatherbundle.yearbundles(maxyear=self.maxbaseline, variable=self.variable):
             regions = np.array(ds.coords["region"])
             for region, subds in fast_dataset.region_groupby(ds, year, regions, {regions[ii]: ii for ii in range(len(regions))}):
                 if region in self.culture_periods:
