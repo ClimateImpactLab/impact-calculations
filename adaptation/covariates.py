@@ -1107,8 +1107,10 @@ class SplineCovariator(TranslateCovariator):
         for ii in range(len(self.leftlimits)):
             if covariates[self.covarname] - self.leftlimits[ii] < 0:
                 result[self.covarname + self.suffix + str(ii+1)] = 0
+                result[self.covarname + 'indic' + str(ii+1)] = 0
             else:
                 result[self.covarname + self.suffix + str(ii+1)] = covariates[self.covarname] - self.leftlimits[ii]
+                result[self.covarname + 'indic' + str(ii+1)] = 1
         return result
                 
 class CountryAggregatedCovariator(Covariator):
