@@ -225,17 +225,24 @@ def partial_derivative(csvv, covariate, covarunit):
     include = []
     for ii in range(len(csvv['gamma'])):
         # Look for products
-        m1 = re.search(r'\b' + covariate + r'\b\s*[*]\s*', csvv['covarnames'][ii])
-        m2 = re.search(r'\s*[*]\s*\b' + covariate + r'\b', csvv['covarnames'][ii])
+        mcx = re.search(r'\b' + covariate + r'\b\s*[*]\s*', csvv['covarnames'][ii])
+        mxc = re.search(r'\s*[*]\s*\b' + covariate + r'\b', csvv['covarnames'][ii])
+        mspline = re.search(r'\b' + covariate + r'spline\d+\b', csvv['covarnames'][ii])
+        msplinex = re.search(r'\b' + covariate + r'spline\d+\b\s*[*]\s*', csvv['covarnames'][ii])
+        mxspline = re.search(r'\s*[*]\s*\b' + covariate + r'spline\d+\b', csvv['covarnames'][ii])
         if csvv['covarnames'][ii] == covariate: # Uninteracted covariate
             covarnames.append('1')
             include.append(True)
-        elif m1:
+        elif mcx:
             # The remaining covariate
             covarnames.append(re.sub(r'\b' + covariate + r'\b\s*[*]\s*', '', csvv['covarnames'][ii]))
             include.append(True)
-        elif m2:
+        elif mxc:
             covarnames.append(re.sub(r'\s*[*]\s*\b' + covariate + r'\b', '', csvv['covarnames'][ii]))
+            include.append(True)
+        elif mspline or msplinex or mxspline:
+            # d (C - ki) (C > ki) / dC = (C > ki)
+            covarnames.append(re.sub(r'\b' + covariate + r'spline', covariate + 'indic', csvv['covarnames'][ii]))
             include.append(True)
         else:
             include.append(False)
