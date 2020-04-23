@@ -51,7 +51,7 @@ class TestCovariates(unittest.TestCase):
             valspline2 = ((year - 2015) - 10) * ((year - 2015) - 10 > 0)
             self.assertEqual(covars["valspline1"], valspline1)
             self.assertEqual(covars["valspline2"], valspline2)
-            self.assertEqual(len(covars), 2)
+            self.assertEqual(len(covars), 4) # 2 spline terms, 2 indicators
 
 
 if __name__ == "__main__":
