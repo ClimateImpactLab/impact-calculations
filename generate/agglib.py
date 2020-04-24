@@ -184,7 +184,7 @@ def get_aggregated_regions(regions):
 
     # Add the FUND regions
     dependencies = []
-    with open(files.sharedpath('regions/macro-regions.csv'), 'r') as fp:
+    with open(files.sharedpath('regions/macro-regions.csv'), 'r', encoding='ISO-8859-1') as fp:
         # Remove the metadata header
         aggreader = csv.reader(header.deparse(fp, dependencies))
         headrow = next(aggreader)
@@ -200,11 +200,8 @@ def get_aggregated_regions(regions):
 
             originals[fundregion].extend(originals[iso3])
 
-    # Collect all prefixes with > 1 region
-    prefixes = [''] # '' = world
-    for prefix in originals:
-        if originals[prefix] > 1:
-            prefixes.append(prefix)
+    # Collect all prefixes
+    prefixes = [''] + list(originals.keys()) # '' = world
 
     return originals, prefixes, dependencies
 
