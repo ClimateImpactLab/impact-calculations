@@ -123,7 +123,7 @@ class ReaderWeatherBundle(WeatherBundle):
         return self.reader.get_dimension()
 
 class DailyWeatherBundle(WeatherBundle):
-    def yearbundles(self, maxyear=np.inf):
+    def yearbundles(self, maxyear=np.inf, variable_ofinterest=None):
         """Yields a tuple of (year, xarray Dataset) for each year up to `maxyear`.
         Each yield should should produce all and only data for a single year.
         """
@@ -190,7 +190,7 @@ class SingleWeatherBundle(ReaderWeatherBundle, DailyWeatherBundle):
     def is_historical(self):
         return False
 
-    def yearbundles(self, maxyear=np.inf):
+    def yearbundles(self, maxyear=np.inf, variable_ofinterest=None):
         for year, ds in self.reader.read_iterator_to(maxyear):
             for year2, ds2 in self.transformer.push(year, ds):
                 yield year2, ds2
@@ -222,7 +222,7 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
     def is_historical(self):
         return False
 
-    def yearbundles(self, maxyear=np.inf, variable=None):
+    def yearbundles(self, maxyear=np.inf, variable_ofinterest=None):
         """Yields xarray Datasets for each year up to (but not including) `maxyear`"""
         if len(self.pastfuturereaders) == 1:
             year = None # In case no additional years in pastreader
@@ -255,7 +255,7 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
             allds = xr.Dataset({'region': self.regions})
 
             for pastreader, futurereader in self.pastfuturereaders:
-                if variable and self.variable2readers.get(variable) != (pastreader, futurereader):
+                if variable_ofinterest and self.variable2readers.get(variable_ofinterest) != (pastreader, futurereader):
                     continue # skip this
                 
                 try:
@@ -327,7 +327,7 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
     def is_historical(self):
         return True
 
-    def yearbundles(self, maxyear=np.inf):
+    def yearbundles(self, maxyear=np.inf, variable_ofinterest=None):
         year = self.pastyear_start
 
         if len(self.pastreaders) == 1:
