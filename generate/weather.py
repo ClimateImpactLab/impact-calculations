@@ -123,7 +123,7 @@ class ReaderWeatherBundle(WeatherBundle):
         return self.reader.get_dimension()
 
 class DailyWeatherBundle(WeatherBundle):
-    def yearbundles(self, maxyear=np.inf):
+    def yearbundles(self, maxyear=np.inf, variable_ofinterest=None):
         """Yields a tuple of (year, xarray Dataset) for each year up to `maxyear`.
         Each yield should should produce all and only data for a single year.
         """
@@ -156,7 +156,7 @@ class DailyWeatherBundle(WeatherBundle):
         for ii in range(len(self.regions)):
             yield self.regions[ii], region_averages[ii]
 
-    def baseline_values(self, maxyear, do_mean=True, quiet=False):
+    def baseline_values(self, maxyear, do_mean=True, quiet=False, only_region=None):
         """Yield the list of all weather values up to `maxyear` for each region."""
 
         if not hasattr(self, 'saved_baseline_values'):
@@ -180,14 +180,17 @@ class DailyWeatherBundle(WeatherBundle):
                 self.saved_baseline_values = xr.concat(allds, dim='time') # slower but more reliable
 
         # Yield the entire collection of values for each region
-        for ii in range(len(self.regions)):
-            yield self.regions[ii], self.saved_baseline_values.sel(region=self.regions[ii])
+        if only_region is not None:
+            yield only_region, self.saved_baseline_values.sel(region=only_region)
+        else:
+            for ii in range(len(self.regions)):
+                yield self.regions[ii], self.saved_baseline_values.sel(region=self.regions[ii])
 
 class SingleWeatherBundle(ReaderWeatherBundle, DailyWeatherBundle):
     def is_historical(self):
         return False
 
-    def yearbundles(self, maxyear=np.inf):
+    def yearbundles(self, maxyear=np.inf, variable_ofinterest=None):
         for year, ds in self.reader.read_iterator_to(maxyear):
             for year2, ds2 in self.transformer.push(year, ds):
                 yield year2, ds2
@@ -200,9 +203,16 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
         super(PastFutureWeatherBundle, self).__init__(scenario, model, hierarchy, transformer)
         self.pastfuturereaders = pastfuturereaders
 
+        self.variable2readers = {}
         for pastfuturereader in pastfuturereaders:
             assert pastfuturereader[0].get_dimension() == pastfuturereader[1].get_dimension()
-        
+            for variable in pastfuturereader[0].get_dimension():
+                if variable not in self.variable2readers:
+                    self.variable2readers[variable] = pastfuturereader
+                else:
+                    self.variable2readers[variable] = None # ambiguous-- don't provide shortcut
+                    print("WARNING: Multiple weather readers provide " + variable)
+                    
         onefuturereader = self.pastfuturereaders[0][1]
         self.futureyear1 = min(onefuturereader.get_years())
 
@@ -212,7 +222,7 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
     def is_historical(self):
         return False
 
-    def yearbundles(self, maxyear=np.inf):
+    def yearbundles(self, maxyear=np.inf, variable_ofinterest=None):
         """Yields xarray Datasets for each year up to (but not including) `maxyear`"""
         if len(self.pastfuturereaders) == 1:
             year = None # In case no additional years in pastreader
@@ -245,6 +255,9 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
             allds = xr.Dataset({'region': self.regions})
 
             for pastreader, futurereader in self.pastfuturereaders:
+                if variable_ofinterest and self.variable2readers.get(variable_ofinterest) != (pastreader, futurereader):
+                    continue # skip this
+                
                 try:
                     if year < self.futureyear1:
                         ds = pastreader.read_year(year)
@@ -314,7 +327,7 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
     def is_historical(self):
         return True
 
-    def yearbundles(self, maxyear=np.inf):
+    def yearbundles(self, maxyear=np.inf, variable_ofinterest=None):
         year = self.pastyear_start
 
         if len(self.pastreaders) == 1:
