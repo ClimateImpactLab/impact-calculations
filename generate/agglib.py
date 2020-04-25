@@ -96,7 +96,7 @@ def copy_timereg_variable(writer, variable, key, dstvalues, suffix, unitchange=l
 
     column[:, :] = dstvalues
 
-def iter_timereg_variables(reader, timevar='year'):
+def iter_timereg_variables(reader, timevar='year', config=None):
     """Locates all variables that have time and region dimensions and can be aggregated.
 
     We can aggregate any variable that has dimensions (time x
@@ -109,14 +109,22 @@ def iter_timereg_variables(reader, timevar='year'):
         The source for variables we want to process.
     timevar : str, optional
         The name of the time dimension.
+    config : dict, optional
+        The aggregation configuration dictionary
 
     Yields
     ------
     tuple(str, NetCDF4.Variable)
         Yields each variable we can process
     """
+    if config == None:
+        config = {}
+    
     # Look through all variables
     for key in list(reader.variables.keys()):
+        if key not in config.get('only-variables', [key]):
+            continue
+        
         if (timevar, 'region') == reader.variables[key].dimensions:
             # Yield this (time, region) variable
             print(key)
@@ -176,7 +184,7 @@ def get_aggregated_regions(regions):
 
     # Add the FUND regions
     dependencies = []
-    with open(files.sharedpath('regions/macro-regions.csv'), 'r') as fp:
+    with open(files.sharedpath('regions/macro-regions.csv'), 'r', encoding='ISO-8859-1') as fp:
         # Remove the metadata header
         aggreader = csv.reader(header.deparse(fp, dependencies))
         headrow = next(aggreader)
@@ -192,11 +200,8 @@ def get_aggregated_regions(regions):
 
             originals[fundregion].extend(originals[iso3])
 
-    # Collect all prefixes with > 1 region
-    prefixes = [''] # '' = world
-    for prefix in originals:
-        if originals[prefix] > 1:
-            prefixes.append(prefix)
+    # Collect all prefixes
+    prefixes = [''] + list(originals.keys()) # '' = world
 
     return originals, prefixes, dependencies
 
@@ -332,3 +337,12 @@ def config_targetdirfilter(clim_scenario, clim_model, econ_scenario, econ_model,
             return False
 
     return True
+
+def get_farmer_suffix(filename):
+    """Return the 'incadapt', 'noadapt', 'histclim', 'incadapt-histclim', 'noadapt-histclim' suffix if there or '' if not."""
+    parts = filename.split('-')
+    if parts[-1] == 'histclim.nc4' and len(parts) > 1 and parts[-2] in ['incadapt', 'noadapt']:
+        return parts[-2] + '-histclim'
+    if parts[-1] in ['incadapt.nc4', 'noadapt.nc4', 'histclim.nc4']:
+        return parts[-1][:-4]
+    return ''
