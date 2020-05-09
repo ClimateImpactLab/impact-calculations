@@ -3,7 +3,6 @@ import numpy as np
 from impactlab_tools.utils import files
 from adaptation import csvvfile
 from generate import weather, effectset, caller, checks, agglib
-from openest.generate.weatherslice import YearlyWeatherSlice
 from climate.discover import discover_versioned, discover_versioned_yearly, discover_day2year, standard_variable
 from datastore import agecohorts
 
@@ -51,7 +50,7 @@ def check_doit(targetdir, basename, suffix, config):
     if 'filter-region' in config:
         checkargs['regioncount'] = 1
     if not checks.check_result_100years(filepath, **checkargs):
-        print "REDO: Incomplete", basename, suffix
+        print("REDO: Incomplete", basename, suffix)
         return True
 
     return False
@@ -108,7 +107,7 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
 
                 # Full Adaptation
                 if check_doit(targetdir, subbasename, suffix, config):
-                    print "Smart Farmer"
+                    print("Smart Farmer")
                     calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(subcsvv, module, weatherbundle, economicmodel, pvals[subbasename], config=config)
 
                     effectset.generate(targetdir, subbasename + suffix, weatherbundle, calculation, "Mortality impacts, with interpolation and adaptation through interpolation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, subbasename), diagnosefile=diagnosefile.replace('.csv', '-' + subbasename + '.csv') if diagnosefile else False)

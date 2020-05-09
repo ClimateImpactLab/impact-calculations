@@ -60,7 +60,7 @@ def get_curve_minima(regions, curvegen, covariator, mint, maxt, analytic):
                     temps = np.arange(np.floor(mint[region]), np.ceil(maxt[region])+1)
                 else:
                     temps = np.arange(mint, maxt+1)
-                mintemp = temps[np.argmin(curve(temps))]
+                mintemp = temps[np.argmin(curve.univariate(temps))]
                 mintemp2 = analytic(region, curve)
                 if np.abs(mintemp - mintemp2) > 1:
                     print(("WARNING: %s has unclear mintemp: %f, %f" % (region, mintemp, mintemp2)))

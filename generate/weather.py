@@ -409,10 +409,3 @@ class RollingYearTransfomer(WeatherTransformer):
             ds = fast_dataset.concat(self.pastdses, dim='time')
             yield year - self.rolling_years + 1, ds
 
-if __name__ == '__main__':
-    template = "/shares/gcp/BCSD/grid2reg/cmip5/historical/CCSM4/{0}/{0}_day_aggregated_historical_r1i1p1_CCSM4_{1}.nc"
-    weatherbundle = HistoricalWeatherBundle(template, 1950, 2005, ['pr', 'tas'], 'historical', 'CCSM4')
-    weatherslice = weatherbundle.yearbundles().next()
-    print len(weatherslice.times), len(weatherslice.weathers), len(weatherslice.weathers[0]) # 365, 2, 365
-
-
