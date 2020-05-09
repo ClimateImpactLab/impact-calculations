@@ -31,7 +31,7 @@ def read(filename):
                 if ']' in fullunit:
                     variable[1]['unit'] = fullunit[:fullunit.index(']')]
             else:
-                print "WARNING: Missing unit for variable %s." % variable
+                print("WARNING: Missing unit for variable %s." % variable)
                 variable[1]['unit'] = None
 
         data = {'attrs': attrs, 'variables': variables, 'coords': coords}
@@ -178,7 +178,7 @@ def subset(csvv, toinclude):
         elif isinstance(toinclude[0], bool):
             toinclude = np.nonzero(toinclude)[0]
         else:
-            toinclude = np.array(toinclude)
+            toinclude = np.array(toinclude, dtype=np.int32)
         toinclist = toinclude
     else:
         toinclist = list(range(int(toinclude.start), int(toinclude.stop)))

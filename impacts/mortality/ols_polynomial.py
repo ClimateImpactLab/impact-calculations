@@ -12,16 +12,17 @@ from impactcommon.math import minpoly
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', config=None):
     if config is None:
         config = {}
-    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, config.get('endbaseline', 2015), config=configs.merge(config, 'climcovar'), varindex=0), {'climtas': 'tas'}),
+    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, config.get('endbaseline', 2015), config=configs.merge(config, 'climcovar'), variable='tas'), {'climtas': 'tas'}),
                                                 covariates.EconomicCovariator(economicmodel, config.get('endbaseline', 2015), config=configs.merge(config, 'econcovar'))])
 
     # Don't collapse: already collapsed in allmodels
     #csvvfile.collapse_bang(csvv, qvals.get_seed('csvv'))
 
-    order = len(csvv['gamma']) / 3
-    curr_curvegen = curvegen_known.PolynomialCurveGenerator(['C'] + ['C^%d' % pow for pow in range(2, order+1)],
-                                                           '100,000 * death/population', 'tas', order, csvv)
+    order = int(len(csvv['gamma']) / 3)
     weathernames = ['tas', 'tas-poly-2', 'tas-poly-3', 'tas-poly-4', 'tas-poly-5'][:order]
+    curr_curvegen = curvegen_known.PolynomialCurveGenerator(['C'] + ['C^%d' % pow for pow in range(2, order+1)],
+                                                            '100,000 * death/population', 'tas', order, csvv,
+                                                            weathernames=weathernames)
     
     if config.get('clipping', 'both') in ['both', 'clip']:
         baselineloggdppcs = {}
@@ -30,12 +31,12 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     
         # Determine minimum value of curve between 10C and 25C
         baselinecurves, baselinemins = constraints.get_curve_minima(weatherbundle.regions, curr_curvegen, covariator, config.get('clip-mintemp', 10), config.get('clip-maxtemp', 25),
-                                                                    lambda region, curve: minpoly.findpolymin([0] + curve.ccs, config.get('clip-mintemp', 10), config.get('clip-maxtemp', 25)))
+                                                                    lambda region, curve: minpoly.findpolymin([0] + curve.coeffs, config.get('clip-mintemp', 10), config.get('clip-maxtemp', 25)))
 
         fillins = np.arange(-40, 50, 1.)
 
     def transform(region, curve):
-        coeff_curve = CoefficientsCurve(curve.ccs, weathernames)
+        coeff_curve = CoefficientsCurve(curve.coeffs, weathernames)
         if config.get('clipping', 'both') == 'none':
             return coeff_curve
 
@@ -47,7 +48,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
         covars = covariator.get_current(region)
         covars['loggdppc'] = baselineloggdppcs[region]
         noincadapt_unshifted_curve = curr_curvegen.get_curve(region, None, covars, recorddiag=False)
-        coeff_noincadapt_unshifted_curve = CoefficientsCurve(noincadapt_unshifted_curve.ccs, weathernames)
+        coeff_noincadapt_unshifted_curve = CoefficientsCurve(noincadapt_unshifted_curve.coeffs, weathernames)
         noincadapt_curve = ShiftedCurve(coeff_noincadapt_unshifted_curve, -noincadapt_unshifted_curve(baselinemins[region]))
 
         # Alternative: allow no anti-adaptation
@@ -68,7 +69,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     climtas_effect_curve = ZeroInterceptPolynomialCurve([-np.inf, np.inf], 365 * np.array([csvvfile.get_gamma(csvv, tasvar, 'climtas') for tasvar in ['tas', 'tas2', 'tas3', 'tas4', 'tas5'][:order]])) # x 365, to undo / 365 later
 
     def transform_climtas_effect(region, curve):
-        climtas_coeff_curve = CoefficientsCurve(climtas_effect_curve.ccs, weathernames)
+        climtas_coeff_curve = CoefficientsCurve(climtas_effect_curve.coeffs, weathernames)
         if config.get('clipping', 'both') == 'none':
             return climtas_coeff_curve
 
@@ -108,7 +109,7 @@ if __name__ == '__main__':
     ucurve = ushape_numeric.UShapedCurve(curve, -1, lambda x: x)
 
     xx = np.arange(-6, 4)
-    print xx
-    print curve(xx)
-    print ucurve(xx)
+    print(xx)
+    print(curve(xx))
+    print(ucurve(xx))
     
