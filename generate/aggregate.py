@@ -620,7 +620,7 @@ if __name__ == '__main__':
                                     continue # Cannot calculate costs
 
                                 # Call the adaptation costs system
-                                print costs_command % (tavgpath, clim_scenario, clim_model, impactspath, fullcostsuffix)
+                                print(costs_command % (tavgpath, clim_scenario, clim_model, impactspath, fullcostsuffix))
                                 os.system(costs_command % (tavgpath, clim_scenario, clim_model, impactspath, fullcostsuffix))
 
                         # Levels of costs
