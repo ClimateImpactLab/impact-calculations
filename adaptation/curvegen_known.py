@@ -61,7 +61,7 @@ class SmartCSVVCurveGenerator(curvegen.CSVVCurveGenerator):
         openest.generate.smart_curve.SmartCurve
         """
         coefficients = self.get_coefficients(covariates)
-        yy = [coefficients[predname] for predname in self.prednames]
+        yy = np.array([coefficients[predname] for predname in self.prednames]).flatten().tolist() # list of values, not of np.arrays
 
         if recorddiag and diagnostic.is_recording():
             for predname in self.prednames:
