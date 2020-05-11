@@ -49,7 +49,7 @@ if filename == 'maize_monthbinpr.nc4':
     clim_var = ['pr', 'pr-poly-2']
     seasonal_filepath = "social/baselines/agriculture/world-combo-201710-growing-seasons-corn-1stseason.csv"
     func = np.sum
-    monthbin = [1, 3, 6] # Months of growing-season bins.
+    monthbin = [1, 3, 24-1-3] # Months of growing-season bins with extended final bin.
     clim_var = [c + '_bin' + str(m+1) for m in range(len(monthbin)) for c in clim_var]
     covars = ['monthbin' + c for c in clim_var]
 
@@ -102,10 +102,11 @@ def calculate_edd(ds, gdd_cutoff, kdd_cutoff):
     """Calculate gdd and kdd from edd dataset.
     """
     kdd = ds.sel(refTemp=kdd_cutoff)['edd'].values
-    gdd = kdd - ds.sel(refTemp=kdd_cutoff)['edd'].values
-    out = fast_dataset.FastDataset({'kdd': (('time', 'region'), kdd),
-                                    'gdd': (('time', 'region'), gdd)},
-                                    {'time': ds.time, 'region': ds.region})
+    gdd = ds.sel(refTemp=gdd_cutoff)['edd'].values - kdd
+    out = fast_dataset.FastDataset({
+        'kdd': (('time', 'region'), kdd),
+        'gdd': (('time', 'region'), gdd)},
+        {'time': ds.time, 'region': ds.region})
     return out
 
 for clim_scenario, clim_model, weatherbundle in get_bundle_iterator(config):
@@ -177,7 +178,7 @@ for clim_scenario, clim_model, weatherbundle in get_bundle_iterator(config):
                     yearval = annual_calcs(subds)
                     annualdata[yy, ii, kk] = yearval
                     # Need this to preserve consistency with projection system.
-                    if year!=2014 or year!=2015:
+                    if year!=2014 and year!=2015:
                         regiondata[ii][kk].update(yearval)
                     averageddata[yy, ii, kk] = regiondata[ii][kk].get()
             ii += 1
