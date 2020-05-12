@@ -70,6 +70,14 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer="full",
         if csvv_subset:
             this_csvv = csvvfile.subset(csvv, slice(*csvv_subset))
 
+        # If used csvv-reunit: option in specifications config:
+        csvv_reunit = modelspecconf.get("csvv-reunit")
+        if csvv_reunit:
+            for reunit_spec in csvv_reunit:
+                target_variable = str(reunit_spec["variable"])
+                new_unit = str(reunit_spec["new-unit"])
+                this_csvv["variables"][target_variable]["unit"] = new_unit
+
         model = specification.create_curvegen(
             this_csvv,
             covariator,
