@@ -70,7 +70,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer="full",
         # If used csvv-subset: option in specifications config:
         csvv_subset = modelspecconf.get("csvv-subset")
         if csvv_subset:
-            this_csvv = csvvfile.subset(csvv, slice(*csvv_subset))
+            this_csvv = csvvfile.subset(this_csvv, slice(*csvv_subset))
 
         # If used csvv-reunit: option in specifications config:
         csvv_reunit = modelspecconf.get("csvv-reunit")
