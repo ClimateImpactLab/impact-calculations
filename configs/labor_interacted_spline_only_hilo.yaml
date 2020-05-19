@@ -1,0 +1,5 @@
+module: impacts/labor/interacted_spline_only_hilo.yml
+mode: writecalcs
+outputdir: /shares/gcp/outputs/labor/impacts-woodwork
+do_historical: true
+
