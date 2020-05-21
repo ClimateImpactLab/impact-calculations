@@ -46,6 +46,7 @@ def population_baseline_data(year0, year1, dependencies):
         reader = csv.reader(header.deparse(fp, dependencies))
         headrow = next(reader)
 
+        adm0s = {} # sum across all adm regions
         for row in reader:
             region = row[headrow.index('region')]
             year = int(row[headrow.index('year')])
@@ -57,6 +58,15 @@ def population_baseline_data(year0, year1, dependencies):
             if region not in baselinedata:
                 baselinedata[region] = {}
             baselinedata[region][year] = value
+
+            if len(region) > 3 and region[3] == '.':
+                if region[:3] not in adm0s:
+                    adm0s[region[:3]] = 0
+                adm0s[region[:3]] += value
+
+        for adm0 in adm0s:
+            assert adm0 not in baselinedata
+            baselinedata[adm0] = adm0s[adm0]
 
     return baselinedata
 
