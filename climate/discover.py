@@ -8,6 +8,7 @@ import numpy as np
 from impactlab_tools.utils import files
 from openest.generate import fast_dataset
 from interpret import configs
+from datastore import population
 from .reader import *
 from .dailyreader import DailyWeatherReader, YearlyBinnedWeatherReader, MonthlyBinnedWeatherReader, MonthlyDimensionedWeatherReader
 from .yearlyreader import YearlyWeatherReader, YearlyDayLikeWeatherReader
@@ -203,16 +204,25 @@ def interpret_transform(var, transform):
                             lambda xs: (aftval - befval) * (xs > stepval) + befval, var)
 
     if transform == 'country':
-        irpops = population_baseline_data(2000, 2000, [])
+        irpops = population.population_baseline_data(2010, 2010, []) # to be consistent with sub-IR weights
+        subcountries = None
+        countries = None
+        country_weights = None
         def ds_conversion(ds):
+            nonlocal subcountries, countries, country_weights
             # Construct aggregations
-            subcountries = np.array([region[:3] for region in ds.region.values])
-            countries = np.unique(subcountries)
+            if subcountries is None:
+                subcountries = np.array([region[:3] for region in ds.region.values])
+                countries = np.unique(subcountries)
             def get_subcountryii(country):
                 return np.nonzero(subcountries == country)[0]
-            country_weights = {country: np.array([irpops[ds.region.values[ii]][2000] for ii in get_subcountryii(country)]) for country in countries}
-            def accumfunc(region, values):
-                return np.average(values, weights=country_weights[region])
+            if country_weights is None:
+                country_weights = {country: np.array([irpops.get(ds.region.values[ii], {2010: 1})[2010] for ii in get_subcountryii(country)]) for country in countries}
+                for country in country_weights:
+                    if np.sum(country_weights[country]) == 0:
+                        country_weights[country] = country_weights[country] + 1
+            def accumfunc(region, values, dimnum):
+                return np.average(values, axis=dimnum, weights=country_weights[region])
             
             vars_only = list(ds.variables.keys())
             for name in ds.coords:
@@ -255,8 +265,8 @@ def data_vars_space_conversion(newregions, get_oldii, name, ds, varset, accumfun
             beforeindex[dimnum] = get_oldii(newregions[ii])
             afterindex = [slice(None)] * len(vardef[0])
             afterindex[dimnum] = ii
-            result[tuple(afterindex)] = accumfunc(vardef[1][tuple(beforeindex)], dimnum)
-
+            result[tuple(afterindex)] = accumfunc(newregions[ii], vardef[1][tuple(beforeindex)], dimnum)
+            
         return (vardef[0], result)
 
     if name != 'region':
