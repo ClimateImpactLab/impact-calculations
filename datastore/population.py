@@ -5,6 +5,7 @@ from helpers import header
 from . import spacetime
 
 use_merged = True
+population_baseline_cache = {} # dict of (year0, year1) => baselinedata
 
 def each_future_population(model, scenario, dependencies):
     # Try to load an model-specific file
@@ -41,6 +42,10 @@ def each_future_population(model, scenario, dependencies):
             yield region, year, value
 
 def population_baseline_data(year0, year1, dependencies):
+    global population_baseline_cache
+    if (year0, year1) in population_baseline_cache:
+        return population_baseline_cache[year0, year1]
+    
     baselinedata = {} # {region: {year: value}}
     with open(files.sharedpath("social/weightlines/population.csv"), 'r') as fp:
         reader = csv.reader(header.deparse(fp, dependencies))
@@ -68,6 +73,7 @@ def population_baseline_data(year0, year1, dependencies):
             assert adm0 not in baselinedata
             baselinedata[adm0] = adm0s[adm0]
 
+    population_baseline_cache[year0, year1] = baselinedata
     return baselinedata
 
 def extend_population_future(baselinedata, year0, year1, regions, model, scenario, dependencies):
