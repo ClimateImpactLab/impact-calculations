@@ -203,18 +203,24 @@ def interpret_transform(var, transform):
                             lambda xs: (aftval - befval) * (xs > stepval) + befval, var)
 
     if transform == 'country':
+        irpops = population_baseline_data(2000, 2000, [])
         def ds_conversion(ds):
+            # Construct aggregations
             subcountries = np.array([region[:3] for region in ds.region.values])
             countries = np.unique(subcountries)
             def get_subcountryii(country):
                 return np.nonzero(subcountries == country)[0]
+            country_weights = {country: np.array([irpops[ds.region.values[ii]][2000] for ii in get_subcountryii(country)]) for country in countries}
+            def accumfunc(region, values):
+                return np.average(values, weights=country_weights[region])
+            
             vars_only = list(ds.variables.keys())
             for name in ds.coords:
                 if name in vars_only:
                     vars_only.remove(name)
             used_coords = ds.coords
-            ds = fast_dataset.FastDataset({name: data_vars_space_conversion(countries, get_subcountryii, name, ds, 'vars', np.mean) for name in vars_only},
-                                      coords={name: data_vars_space_conversion(countries, get_subcountryii, name, ds, 'coords', np.mean) for name in used_coords},
+            ds = fast_dataset.FastDataset({name: data_vars_space_conversion(countries, get_subcountryii, name, ds, 'vars', accumfunc) for name in vars_only},
+                                      coords={name: data_vars_space_conversion(countries, get_subcountryii, name, ds, 'coords', accumfunc) for name in used_coords},
                                       attrs=ds.attrs)
             return ds
 
