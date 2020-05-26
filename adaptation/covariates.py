@@ -184,14 +184,14 @@ class EconomicCovariator(Covariator):
     maxbaseline : int
         Year up to which the covariate baseline is calculated.
     limits : Sequence of float
-    country : bool, optional
+    country_level : bool, optional
         Whether economic covariators are to be used at the country level.
         If ``True``, any ``region`` str passed into methods will be split on
         ".", and values for the first segment of the split name will be used.
     conf : dict or None, optional
         Configuration dict.
     """
-    def __init__(self, economicmodel, maxbaseline, country=False, config=None):
+    def __init__(self, economicmodel, maxbaseline, country_level=False, config=None):
         super(EconomicCovariator, self).__init__(maxbaseline, config=config)
 
         if config is None:
@@ -208,11 +208,12 @@ class EconomicCovariator(Covariator):
         else:
             self.slowgrowth = False
 
-        self.country = bool(country)
+        self.country_level = bool(country_level)
 
     @classmethod
     def _get_root_region(x):
-        """Break hierid into components and return str of root region"""
+        """Break hierid str into components and return str of root region
+        """
         return str(x.split(".")[0])
 
     def get_econ_predictors(self, region):
@@ -227,7 +228,7 @@ class EconomicCovariator(Covariator):
             Output has keys "loggdppc" and "popop" giving the nautral log per
             capita GDP and some other value.
         """
-        region = self._get_root_region(region) if self.country else region
+        region = self._get_root_region(region) if self.country_level else region
         econpreds = self.econ_predictors.get(region, None)
 
         if econpreds is None:
@@ -263,7 +264,7 @@ class EconomicCovariator(Covariator):
             natural log of per capita GDP, the natural log of popop, and
             the year, respectively.
         """
-        region = self._get_root_region(region) if self.country else region
+        region = self._get_root_region(region) if self.country_level else region
         econpreds = self.get_econ_predictors(region)
         return dict(loggdppc=econpreds['loggdppc'],
                     logpopop=np.log(econpreds['popop']),
@@ -278,7 +279,7 @@ class EconomicCovariator(Covariator):
         ds : xarray.Dataset
         """
         assert year < 10000
-        region = self._get_root_region(region) if self.country else region
+        region = self._get_root_region(region) if self.country_level else region
         self.lastyear[region] = year
 
         if region in self.econ_predictors:
@@ -304,14 +305,14 @@ class BinnedEconomicCovariator(EconomicCovariator):
     maxbaseline : int
         Year up to which the covariate baseline is calculated.
     limits : Sequence of float
-    country : bool, optional
+    country_level : bool, optional
         Whether economic covariators are to be used at the country level.
         If ``True``, any ``region`` str passed into methods will be split on
         ".", and values for the first segment of the split name will be used.
     conf : dict or None, optional
         Configuration dict.
     """
-    def __init__(self, economicmodel, maxbaseline, limits, country=False, config=None):
+    def __init__(self, economicmodel, maxbaseline, limits, country_level=False, config=None):
         super(BinnedEconomicCovariator, self).__init__(economicmodel, maxbaseline, config=config)
         if config is None:
             config = {}
@@ -360,14 +361,14 @@ class ShiftedEconomicCovariator(EconomicCovariator):
     economicmodel : adaptation.SSPEconomicModel
     maxbaseline : int
         Year up to which the covariate baseline is calculated.
-    country : bool, optional
+    country_level : bool, optional
         Whether economic covariators are to be used at the country level.
         If ``True``, any ``region`` str passed into methods will be split on
         ".", and values for the first segment of the split name will be used.
     conf : dict or None, optional
         Configuration dict.
     """
-    def __init__(self, economicmodel, maxbaseline, country=False, config=None):
+    def __init__(self, economicmodel, maxbaseline, country_level=False, config=None):
         super(ShiftedEconomicCovariator, self).__init__(economicmodel, maxbaseline, config=config)
         if config is None:
             config = {}
