@@ -58,10 +58,16 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config=None, quiet
         return get_covariator(list(covar.keys())[0], list(covar.values())[0], weatherbundle, economicmodel, config=config, quiet=quiet)
     elif covar in ['loggdppc', 'logpopop', 'year']:
         return covariates.EconomicCovariator(economicmodel, 2015, config=configs.merge(config, 'econcovar'))
+    elif covar in ['loggdppc.country', 'logpopop.country']:
+        return covariates.EconomicCovariator(economicmodel, 2015, country_level=True, config=configs.merge(config, 'econcovar'))
     elif covar == 'incbin':
         return covariates.BinnedEconomicCovariator(economicmodel, 2015, args, config=configs.merge(config, 'econcovar'))
     elif covar == 'loggdppc-shifted':
         return covariates.ShiftedEconomicCovariator(economicmodel, 2015, config)
+    elif covar == 'incbin.country':
+        return covariates.BinnedEconomicCovariator(economicmodel, 2015, args, country_level=True, config=configs.merge(config, 'econcovar'))
+    elif covar == 'loggdppc-shifted.country':
+        return covariates.ShiftedEconomicCovariator(economicmodel, 2015, country_level=True, config=config)
     elif covar == 'ir-share':
         return covariates.ConstantCovariator('ir-share', irvalues.load_irweights("social/baselines/agriculture/world-combo-201710-irrigated-area.csv", 'irrigated_share'))
     elif '*' in covar:
