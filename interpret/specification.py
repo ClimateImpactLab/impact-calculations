@@ -63,7 +63,7 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config=None, quiet
     elif covar == 'incbin':
         return covariates.BinnedEconomicCovariator(economicmodel, 2015, args, config=configs.merge(config, 'econcovar'))
     elif covar == 'loggdppc-shifted':
-        return covariates.ShiftedEconomicCovariator(economicmodel, 2015, config)
+        return covariates.ShiftedEconomicCovariator(economicmodel, 2015, config=config)
     elif covar == 'incbin.country':
         return covariates.BinnedEconomicCovariator(economicmodel, 2015, args, country_level=True, config=configs.merge(config, 'econcovar'))
     elif covar == 'loggdppc-shifted.country':
