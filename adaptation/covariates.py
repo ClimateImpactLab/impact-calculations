@@ -210,7 +210,7 @@ class EconomicCovariator(Covariator):
 
         self.country_level = bool(country_level)
 
-    @classmethod
+    @staticmethod
     def _get_root_region(x):
         """Break hierid str into components and return str of root region
         """
