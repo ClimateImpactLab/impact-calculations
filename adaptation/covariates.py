@@ -313,7 +313,7 @@ class BinnedEconomicCovariator(EconomicCovariator):
         Configuration dict.
     """
     def __init__(self, economicmodel, maxbaseline, limits, country_level=False, config=None):
-        super(BinnedEconomicCovariator, self).__init__(economicmodel, maxbaseline, config=config)
+        super(BinnedEconomicCovariator, self).__init__(economicmodel, maxbaseline, country_level=country_level, config=config)
         if config is None:
             config = {}
         self.limits = limits
@@ -369,7 +369,7 @@ class ShiftedEconomicCovariator(EconomicCovariator):
         Configuration dict.
     """
     def __init__(self, economicmodel, maxbaseline, country_level=False, config=None):
-        super(ShiftedEconomicCovariator, self).__init__(economicmodel, maxbaseline, config=config)
+        super(ShiftedEconomicCovariator, self).__init__(economicmodel, maxbaseline, country_level=country_level, config=config)
         if config is None:
             config = {}
         assert 'loggdppc-delta' in config, "Must define loggdppc-delta to use loggdppc-shifted."
