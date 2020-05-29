@@ -1,0 +1,12 @@
+module: impacts/energy/energy-country.yml
+mode: writecalcs
+outputdir: /shares/gcp/outputs/energy/impacts-rover
+singledir: single-dm2_run3_fix_COMPILE_total_energy_FD_FGLS_FE_1118_TINV_clim
+do_farmers: always
+do_historical: true
+econcovar:
+   class: mean
+   length: 15
+climcovar:
+   class: mean
+   length: 15
