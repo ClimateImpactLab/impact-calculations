@@ -1,3 +1,6 @@
+"""Helper functions for the autodocumentation system.
+"""
+
 import subprocess, csv, os
 import numpy as np
 import pandas as pd
@@ -5,9 +8,11 @@ import xarray as xr
 from netCDF4 import Dataset
 
 def show_header(text):
+    """Returns a bolded header label."""
     print(("\n\033[1m" + text + "\033[0m"))
 
 def show_julia(command, clipto=160):
+    """Display julia code and then run it and display the result."""
     if isinstance(command, str):
         print(command)
         try:
@@ -27,6 +32,7 @@ def show_julia(command, clipto=160):
             print(ex)
 
 def get_julia(obj):
+    """Return the julia representation of an object."""
     if isinstance(obj, float):
         return "%f" % obj
     elif isinstance(obj, np.ndarray):
@@ -35,6 +41,9 @@ def get_julia(obj):
         return str(obj)
 
 def get_excerpt(filepath, first_col, regionid, years, hasmodel=True, onlymodel=None, hidecols=None):
+    """Get excerpted lines from a file.
+    Print them for the user, and also collect the information into a dictionary of years.
+    """
     if hidecols is None:
         hidecols = []
     data = {}
@@ -78,12 +87,16 @@ def get_excerpt(filepath, first_col, regionid, years, hasmodel=True, onlymodel=N
     return data
 
 def excind(data, year, column):
+    """Extract saved data for a given year, from the data structure
+    returned by get_excerpt.
+    """
     if 'header' in data:
         return data[str(year)][data['header'].index(column)]
     else:
         return data[str(year)][column]
 
 def parse_csvv_line(line):
+    """Parse a line from a CSVV file."""
     line = line.rstrip().split(',')
     if len(line) == 1:
         line = line[0].split('\t')
@@ -91,6 +104,9 @@ def parse_csvv_line(line):
     return line
 
 def get_csvv(filepath, index0=None, indexend=None, fracsubset=(0, 1)):
+    """Get the data from a CSVV file.
+    Report it the values and save them for later use.
+    """
     csvv = {}
     with open(filepath, 'rU') as fp:
         printline = None
@@ -116,6 +132,7 @@ def get_csvv(filepath, index0=None, indexend=None, fracsubset=(0, 1)):
     return csvv
 
 def get_gamma(csvv, predname, covarname):
+    """Get a predictor-covariate pair's gamma value from saved CSVV data."""
     for ii in range(len(csvv['gamma'])):
         if csvv['prednames'][ii] == predname and csvv['covarnames'][ii] == covarname:
             return csvv['gamma'][ii]
@@ -123,6 +140,7 @@ def get_gamma(csvv, predname, covarname):
     return None
 
 def jstr(x):
+    """Return the Julia representation for a primitive value."""
     if x is True:
         return 'true'
     elif x is False:
@@ -135,6 +153,7 @@ def jstr(x):
         return str(x)
 
 def pflt(x):
+    """Return the numeric representation of a reported value."""
     if x == 'True' or x == 'true':
         return 1.
     if x == 'False' or x == 'false':
@@ -144,6 +163,7 @@ def pflt(x):
     return float(x)
     
 def show_coefficient(csvv, preds, year, coefname, covartrans=None, betalimits=None):
+    """Show the calculation that produces a given beta coefficient."""
     if covartrans is None:
         covartrans = {}
     predyear = year - 1 if year > 2015 else year
@@ -169,6 +189,7 @@ def show_coefficient(csvv, preds, year, coefname, covartrans=None, betalimits=No
         show_julia(' + '.join(terms))
 
 def show_coefficient_mle(csvv, preds, year, coefname, covartrans):
+    """Show the calculation that produces a given beta coefficient under the exponential construction."""
     predyear = year - 1 if year > 2015 else year
 
     terms = []
@@ -186,6 +207,7 @@ def show_coefficient_mle(csvv, preds, year, coefname, covartrans):
     show_julia("%f * exp(%s)" % (beta, ' + '.join(terms)))
 
 def get_regionindex(region):
+    """Get the index for a given region, according to standard ordering."""
     with open("/shares/gcp/regions/hierarchy.csv", 'r') as fp:
         for line in fp:
             if line[0] != '#':
@@ -197,6 +219,7 @@ def get_regionindex(region):
                 return int(row[6]) - 1
 
 def get_adm0_regionindices(adm0):
+    """Get all of the indexes associated with a given country, according to the standard ordering."""
     with open("/shares/gcp/regions/hierarchy.csv", 'r') as fp:
         for line in fp:
             if line[0] != '#':
@@ -208,6 +231,7 @@ def get_adm0_regionindices(adm0):
                 yield int(row[6]) - 1
 
 def get_outputs(outputpath, years, shapenum, timevar='year', deltamethod=False):
+    """Read an impact output file. Print the results and store them for later use."""
     rootgrp = Dataset(outputpath, 'r', format='NETCDF4')
     if isinstance(shapenum, str):
         regions = list(rootgrp.variables['regions'][:])
@@ -233,6 +257,7 @@ def get_outputs(outputpath, years, shapenum, timevar='year', deltamethod=False):
     return outputs
 
 def get_region_data(filepath, region, indexcol='hierid'):
+    """Get information for a given region from a region-indexed file."""
     df = pd.read_csv(filepath, index_col=indexcol)
     header = df.columns.values
     print((','.join(header)))
@@ -242,6 +267,7 @@ def get_region_data(filepath, region, indexcol='hierid'):
     return {header[ii]: row[ii] for ii in range(len(header))}
 
 def find_betalimits(config):
+    """Get the limits imposed on beta values, from the config file."""
     if isinstance(config, list):
         betalimits = {}
         for ii in range(len(config)):
