@@ -86,6 +86,11 @@ Basic model configration:
   
 * `description` (required): A description for the final result of the
   calculation.
+
+* `csvv-subset` (optional): A two-element list giving the slice of CSVV columns
+  to subset and use. Like Python's slicing, this
+  uses a zero-based index. For example, `csvv-subset: [0, 12]` extracts columns
+  0 - 11 from the CSVV file to use as input for the model specification.
   
 * `csvv-reunit` (optional): A list of dictionaries overriding CSVV-file units
   with specified values. For example,
