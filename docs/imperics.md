@@ -87,6 +87,18 @@ Basic model configration:
 * `description` (required): A description for the final result of the
   calculation.
   
+* `csvv-reunit` (optional): A list of dictionaries overriding CSVV-file units
+  with specified values. For example,
+  ```yaml
+  csvv-reunit:
+    - variable: "a-variable-name"
+      new-unit: "new-overriding-unit"
+    - variable: "another-variable-name"
+      new-unit: "new-overriding-unit"
+  ```
+  overrides the CSVV's "a-variable-name" and "another-variable-name" to use 
+  "new-overriding-unit" units.
+  
 * `csvv-organization` (optional):
   Typically blank, but may be included if the CSVV file has the
   following known organizational scheme:
