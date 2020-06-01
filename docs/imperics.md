@@ -236,6 +236,12 @@ Modifications of covariates:
   except that it the weather variable values for the `within-season` span.
 * `*`: Multiplication of two covariates.
 * `^`: A covariate raised to a power.
+* `.country` appended to the end of a covariate name means that the covariate
+  values input into the model will be aggregates at the country-level, rather 
+  than regional-level. This refers to the first portion of each 
+  region's hierarchical "region-keys" as given in 
+  /shares/gcp/regions/hierarchy.csv. The "country-level" is the first portion
+  of the key when it is split by ".".
 
 Additionally, `hierid-...` can be given as a covariate to add a constant for 
 just a subset of the impact regions. To define the regions that will have a 
