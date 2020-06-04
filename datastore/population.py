@@ -82,6 +82,9 @@ def extend_population_future(baselinedata, year0, year1, regions, model, scenari
     # Fill in the values
     for ii in range(len(regions)):
         subset = baselinedata[regions[ii]]
+        if isinstance(subset, float):
+            popout[:, ii] = subset
+            continue
         for year in subset:
             if year < year0 or year > year1:
                 continue
