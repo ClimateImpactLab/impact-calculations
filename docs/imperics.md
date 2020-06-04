@@ -86,6 +86,23 @@ Basic model configration:
   
 * `description` (required): A description for the final result of the
   calculation.
+
+* `csvv-subset` (optional): A two-element list giving the slice of CSVV columns
+  to subset and use. Like Python's slicing, this
+  uses a zero-based index. For example, `csvv-subset: [0, 12]` extracts columns
+  0 - 11 from the CSVV file to use as input for the model specification.
+  
+* `csvv-reunit` (optional): A list of dictionaries overriding CSVV-file units
+  with specified values. For example,
+  ```yaml
+  csvv-reunit:
+    - variable: "a-variable-name"
+      new-unit: "new-overriding-unit"
+    - variable: "another-variable-name"
+      new-unit: "new-overriding-unit"
+  ```
+  overrides the CSVV's "a-variable-name" and "another-variable-name" to use 
+  "new-overriding-unit" units.
   
 * `csvv-organization` (optional):
   Typically blank, but may be included if the CSVV file has the
@@ -219,6 +236,12 @@ Modifications of covariates:
   except that it the weather variable values for the `within-season` span.
 * `*`: Multiplication of two covariates.
 * `^`: A covariate raised to a power.
+* `.country` appended to the end of a covariate name means that the covariate
+  values input into the model will be aggregates at the country-level, rather 
+  than regional-level. This refers to the first portion of each 
+  region's hierarchical "region-keys" as given in 
+  /shares/gcp/regions/hierarchy.csv. The "country-level" is the first portion
+  of the key when it is split by ".".
 
 Additionally, `hierid-...` can be given as a covariate to add a constant for 
 just a subset of the impact regions. To define the regions that will have a 
