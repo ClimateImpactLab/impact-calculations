@@ -13,6 +13,7 @@ from adaptation import csvvfile, curvegen, curvegen_known, curvegen_arbitrary, c
 from datastore import irvalues
 from openest.generate import smart_curve, selfdocumented
 from openest.models.curve import ShiftedCurve, MinimumCurve, ClippedCurve
+from openest.curves.smart_linextrap import LinearExtrapolationCurve
 from openest.generate.stdlib import *
 from impactcommon.math import minpoly, minspline
 from . import calculator, variables, configs
@@ -279,9 +280,28 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
             final_curve = MinimumCurve(final_curve, noincadapt_curve)
 
         if specconf.get('clipping', False):
-            return ClippedCurve(final_curve)
-        else:
-            return final_curve
+            final_curve = ClippedCurve(final_curve)
+
+        if specconf.get('extrapolation', False):
+            exargs = specconf['extrapolation']
+            assert 'indepvar' in exargs or 'indepvars' in exargs
+            indepvars = exargs.get('indepvars', [exargs['indepvar']])
+            
+            assert 'margin' in exargs or 'margins' in exargs
+            if 'margin' in exargs:
+                assert len(indepvars) == 1
+                margins = {indepvars[0]: exargs['margin']}
+            else:
+                margins = {indepvars[ii]: exargs['margins'][ii] for ii in range(len(indepvars))}
+
+            assert 'bounds' in exargs
+            if 'bounds' in exargs and isinstance(exargs['bounds'], tuple):
+                bounds = [(exargs['bounds'][0],), (exargs['bounds'][1],)]
+            else:
+                bounds = exargs['bounds']
+            final_curve = LinearExtrapolationCurve(final_curve, indepvars, bounds, margins, exargs.get('scaling', 1))
+
+        return final_curve
 
     if specconf.get('clipping', False) and specconf.get('goodmoney', False):
         final_curvegen = curvegen.TransformCurveGenerator(transform, "Clipping and Good Money transformation", curr_curvegen)
