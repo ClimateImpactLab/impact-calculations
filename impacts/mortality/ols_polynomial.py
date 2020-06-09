@@ -6,7 +6,7 @@ from interpret import configs
 from openest.models.curve import ZeroInterceptPolynomialCurve, ClippedCurve, ShiftedCurve, MinimumCurve, OtherClippedCurve, SelectiveInputCurve, CoefficientsCurve, ProductCurve
 from openest.generate.stdlib import *
 from openest.generate import diagnostic
-from openest.curves import ushape_numeric
+from openest.curves import ushape_numeric, linextrap
 from impactcommon.math import minpoly
     
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', config={}):
@@ -59,7 +59,21 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
         unicurve = MinimumCurve(ShiftedCurve(curve, -curve(baselinemins[region])), ShiftedCurve(noincadapt_unshifted_curve, -noincadapt_unshifted_curve(baselinemins[region])))
         return ushape_numeric.UShapedCurve(ClippedCurve(goodmoney_curve), baselinemins[region], lambda xs: xs[:, 0], fillxxs=fillins, fillyys=unicurve(fillins))
 
-    clip_curvegen = curvegen.TransformCurveGenerator(transform, curr_curvegen)
+    def transform_wextrap(region, curve):
+        final_curve = transform(region, curve)
+        
+        if specconf.get('extrapolation', False):
+            exargs = specconf['extrapolation']
+            
+            assert 'margin' in exargs and 'bounds' in exargs:
+            margins = [exargs['margin']]
+            bounds = [(exargs['bounds'][0],), (exargs['bounds'][1],)]
+
+            final_curve = linextrap.LinearExtrapolationCurve(final_curve, bounds, margins, exargs.get('scaling', 1), lambda xs: xs[:, 0])
+
+        return final_curve
+
+    clip_curvegen = curvegen.TransformCurveGenerator(transform_wextrap, curr_curvegen)
     farm_curvegen = curvegen.FarmerCurveGenerator(clip_curvegen, covariator, farmer, endbaseline=config.get('endbaseline', 2015))
 
     # Generate the marginal income curve
