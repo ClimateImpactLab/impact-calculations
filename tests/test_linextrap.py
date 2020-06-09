@@ -8,7 +8,7 @@ import xarray as xr
 import pandas as pd
 from interpret.specification import create_curvegen
 
-def test_polynomial(self):
+def test_polynomial():
     csvv = dict(variables={'tas': {'unit': 'C'}, 'tas-poly-2': {'unit': 'C2'}, 'outcome': {'unit': 'widgets'}},
                 prednames=['tas', 'tas-poly-2'], covarnames=['1', '1'], gamma=[1, 1])
     specconf = {"description": "Simple polynomial",
