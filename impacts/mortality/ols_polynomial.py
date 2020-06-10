@@ -60,21 +60,21 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
         return ushape_numeric.UShapedCurve(ClippedCurve(goodmoney_curve), baselinemins[region], lambda xs: xs[:, 0], fillxxs=fillins, fillyys=unicurve(fillins))
 
     def transform_wextrap(region, curve):
-        final_curve = transform(region, curve)
-        
-        if specconf.get('extrapolation', False):
-            exargs = specconf['extrapolation']
+        exargs = config['extrapolation']
             
-            assert 'margin' in exargs and 'bounds' in exargs:
-            margins = [exargs['margin']]
-            bounds = [(exargs['bounds'][0],), (exargs['bounds'][1],)]
+        assert 'margin' in exargs and 'bounds' in exargs
+        margins = [exargs['margin']]
+        bounds = [(exargs['bounds'][0],), (exargs['bounds'][1],)]
 
-            final_curve = linextrap.LinearExtrapolationCurve(final_curve, bounds, margins, exargs.get('scaling', 1), lambda xs: xs[:, 0])
+        return linextrap.LinearExtrapolationCurve(curve, bounds, margins, exargs.get('scaling', 1), lambda xs: xs[:, [0]],
+                                                  lambda xx: np.transpose(np.array([xx, xx**2, xx**3, xx**4, xx**5][:order])))
 
-        return final_curve
-
-    clip_curvegen = curvegen.TransformCurveGenerator(transform_wextrap, curr_curvegen)
-    farm_curvegen = curvegen.FarmerCurveGenerator(clip_curvegen, covariator, farmer, endbaseline=config.get('endbaseline', 2015))
+    clip_curvegen = curvegen.TransformCurveGenerator(transform, curr_curvegen)
+    if config.get('extrapolation', False):
+        extr_curvegen = curvegen.TransformCurveGenerator(transform_wextrap, clip_curvegen)
+    else:
+        extr_curvegen = clip_curvegen
+    farm_curvegen = curvegen.FarmerCurveGenerator(extr_curvegen, covariator, farmer, endbaseline=config.get('endbaseline', 2015))
 
     # Generate the marginal income curve
     climtas_effect_curve = ZeroInterceptPolynomialCurve([-np.inf, np.inf], 365 * np.array([csvvfile.get_gamma(csvv, tasvar, 'climtas') for tasvar in ['tas', 'tas2', 'tas3', 'tas4', 'tas5'][:order]])) # x 365, to undo / 365 later
