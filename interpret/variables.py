@@ -95,44 +95,51 @@ def interpret_wrap_transform(transform, internal):
 
 def get_post_process(name, config):
     if 'final-t' in config:
-        return selfdocumented.DocumentedFunction(lambda ds: post_process(ds, name, config), "Select time %d" % config['final-t'], docargs=[name])
+        return selfdocumented.DocumentedFunction(lambda ds: post_process_final_t(ds, ds[name], name, config), "Select time %d" % config['final-t'], docargs=[name])
 
     if 'within-season' in config:
-        return selfdocumented.DocumentedFunction(lambda ds: post_process(ds, name, config), "Limit to within season", docargs=[name])
+        return selfdocumented.DocumentedFunction(lambda ds: post_process_within_season(ds, ds[name], name, config), "Limit to within season", docargs=[name])
 
     return selfdocumented.DocumentedFunction(lambda ds: ds[name], "Extract from weather", docfunc=lambda x: x, docargs=[name])
 
-def post_process(ds, name, config):
-    dataarr = ds[name]
-
+def post_process(ds, dataarr, name, config):
     if 'final-t' in config: # also handles 'final-t' + 'within-season' case recursively
-        subconfig = copy.copy(config)
-        del subconfig['final-t']
-        before = post_process(ds, name, subconfig)
-        if config['final-t'] < before._values.shape[dataarr.original_coords.index('time')]:
-            return before.isel(time=config['final-t'])
-            # return fast_dataset.FastDataArray(np.array([before._values[config['final-t']]]), dataarr.original_coords, ds)
-        else:
-            new_coords = list(dataarr.original_coords)
-            new_shape = list(before._values.shape)
-            del new_shape[new_coords.index('time')]
-            del new_coords[new_coords.index('time')]
-            return fast_dataset.FastDataArray(np.zeros(tuple(new_shape)), new_coords, ds)
+        post_process_final_t(ds, dataarr, name, config)
 
     if 'within-season' in config:
-        if len(dataarr) == 24:
-            culture = irvalues.get_file_cached(config['within-season'], irvalues.load_culture_months).get(ds.region, None)
-            if culture is not None:
-                return fast_dataset.FastDataArray(dataarr[(culture[0]-1):culture[1]], dataarr.original_coords, ds)
-        elif len(dataarr) == 730:
-            culture = irvalues.get_file_cached(config['within-season'], irvalues.load_culture_doys).get(ds.region, None)
-            if culture is not None:
-                return fast_dataset.FastDataArray(dataarr[(culture[0]-1):culture[1]], dataarr.original_coords, ds)
-        else:
-            print(ds)
-            assert False, "Not expected number of elements: %s" % str(dataarr.shape)
+        post_process_within_season(ds, dataarr, name, config)
 
     return dataarr
+
+
+def post_process_final_t(ds, dataarr, name, config):
+    subconfig = copy.copy(config)
+    del subconfig['final-t']
+    before = post_process(ds, dataarr, name, subconfig)
+    if config['final-t'] < before._values.shape[dataarr.original_coords.index('time')]:
+        return before.isel(time=config['final-t'])
+        # return fast_dataset.FastDataArray(np.array([before._values[config['final-t']]]), dataarr.original_coords, ds)
+    else:
+        new_coords = list(dataarr.original_coords)
+        new_shape = list(before._values.shape)
+        del new_shape[new_coords.index('time')]
+        del new_coords[new_coords.index('time')]
+        return fast_dataset.FastDataArray(np.zeros(tuple(new_shape)), new_coords, ds)
+
+
+def post_process_within_season(ds, dataarr, name, config):
+    if len(dataarr) == 24:
+        culture = irvalues.get_file_cached(config['within-season'], irvalues.load_culture_months).get(ds.region, None)
+        if culture is not None:
+            return fast_dataset.FastDataArray(dataarr[(culture[0]-1):culture[1]], dataarr.original_coords, ds)
+    elif len(dataarr) == 730:
+        culture = irvalues.get_file_cached(config['within-season'], irvalues.load_culture_doys).get(ds.region, None)
+        if culture is not None:
+            return fast_dataset.FastDataArray(dataarr[(culture[0]-1):culture[1]], dataarr.original_coords, ds)
+    else:
+        print(ds)
+        assert False, "Not expected number of elements: %s" % str(dataarr.shape)
+
 
 def read_range(text):
     items = [x.strip() for x in text.split(',')]
