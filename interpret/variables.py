@@ -61,7 +61,7 @@ def interpret_ds_transform(name, config):
         internal_right = interpret_ds_transform(chunks[1], config)
 
         return wrap_as_selfdoc(as_selfdoc, lambda ds: internal_left(ds) * internal_right(ds),
-                               lambda x, y: x * y,
+                               name, lambda x, y: x * y,
                                [internal_left, internal_right])
 
     if ' - ' in name:
