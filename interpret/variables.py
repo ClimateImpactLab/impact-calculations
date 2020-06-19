@@ -14,6 +14,13 @@ def needs_interpret(name, config):
     return False
 
 
+def wrap_as_selfdoc(as_selfdoc, func, description=None, docfunc=None, docargs=None):
+    if as_selfdoc:
+        return selfdocumented.DocumentedFunction(func, description, docfunc, docargs)
+    else:
+        return func
+    
+
 def interpret_ds_transform(name, config):
     """Parse variable name for transformations to apply to variables
 
@@ -27,8 +34,11 @@ def interpret_ds_transform(name, config):
 
     Returns
     -------
-    openest.generate.selfdocumented.DocumentedFunction
+    function-like:
+      openest.generate.selfdocumented.DocumentedFunction or function
     """
+    as_selfdoc = config.get('mode', 'NA') == 'writecalcs'
+    
     # If can cast name into float (no ValueError), simply use as float value.
     with suppress(ValueError):
         use_scalar = float(name)
@@ -41,7 +51,8 @@ def interpret_ds_transform(name, config):
             darray = fast_dataset.FastDataArray(np.ones(new_shape) * use_scalar,
                                                 new_coords, ds)
             return darray
-        return selfdocumented.DocumentedFunction(out, name)
+
+        return wrap_as_selfdoc(as_selfdoc, out, name)
 
     # Otherwise interpret variable names and possible implied transformations.
     if ' ** ' in name:
@@ -49,58 +60,59 @@ def interpret_ds_transform(name, config):
         internal_left = interpret_ds_transform(chunks[0], config)
         internal_right = interpret_ds_transform(chunks[1], config)
 
-        return selfdocumented.DocumentedFunction(lambda ds: internal_left(ds) * internal_right(ds),
-                                                 name, lambda x, y: x * y,
-                                                 [internal_left, internal_right])
+        return wrap_as_selfdoc(as_selfdoc, lambda ds: internal_left(ds) * internal_right(ds),
+                               name, lambda x, y: x * y,
+                               [internal_left, internal_right])
 
     if ' - ' in name:
         chunks = name.split(' - ', 1)
         internal_left = interpret_ds_transform(chunks[0], config)
         internal_right = interpret_ds_transform(chunks[1], config)
 
-        return selfdocumented.DocumentedFunction(lambda ds: internal_left(ds) - internal_right(ds),
-                                                 name, lambda x, y: x - y,
-                                                 [internal_left, internal_right])
+        return wrap_as_selfdoc(as_selfdoc, lambda ds: internal_left(ds) - internal_right(ds),
+                               name, lambda x, y: x - y,
+                               [internal_left, internal_right])
 
     if ' * ' in name:
         chunks = name.split(' * ', 1)
         internal_left = interpret_ds_transform(chunks[0], config)
         internal_right = interpret_ds_transform(chunks[1], config)
 
-        return selfdocumented.DocumentedFunction(lambda ds: internal_left(ds) * internal_right(ds),
-                                                 name, lambda x, y: x * y,
-                                                 [internal_left, internal_right])
+        return wrap_as_selfdoc(as_selfdoc, lambda ds: internal_left(ds) * internal_right(ds),
+                               name, lambda x, y: x * y,
+                               [internal_left, internal_right])
 
     if '.' in name:
         chunks = re_dotsplit.split(name)
         if len(chunks) > 1:
-            internal = get_post_process(chunks[0], config)
+            internal = get_post_process(chunks[0], config, as_selfdoc)
             for chunk in chunks[1:]:
-                internal = interpret_wrap_transform(chunk, internal)
+                internal = interpret_wrap_transform(chunk, internal, as_selfdoc)
             return internal
 
-    return get_post_process(name, config)
+    return get_post_process(name, config, as_selfdoc)
 
 
-def interpret_wrap_transform(transform, internal):
+def interpret_wrap_transform(transform, internal, as_selfdoc):
     if transform[:4] == 'bin(':
         value = float(transform[4:-1]) if '.' in transform else int(transform[4:-1])
         def getbin(ds):
             assert sum(ds.refTemp == value) == 1, "Cannot find the requested temperature cut-off."
             return internal(ds).sel(refTemp=value)
-        return selfdocumented.DocumentedFunction(getbin, "Extract bin from weather",
-                                                 docargs=[internal, value])
+        return wrap_as_selfdoc(as_selfdoc, getbin, "Extract bin from weather",
+                               docargs=[internal, value])
 
     assert False, "Unknown transform" + transform
 
-def get_post_process(name, config):
+    
+def get_post_process(name, config, as_selfdoc):
     if 'final-t' in config:
-        return selfdocumented.DocumentedFunction(lambda ds: post_process_final_t(ds, ds[name], name, config), "Select time %d" % config['final-t'], docargs=[name])
+        return wrap_as_selfdoc(as_selfdoc, lambda ds: post_process_final_t(ds, ds[name], name, config), "Select time %d" % config['final-t'], docargs=[name])
 
     if 'within-season' in config:
-        return selfdocumented.DocumentedFunction(lambda ds: post_process_within_season(ds, ds[name], name, config), "Limit to within season", docargs=[name])
+        return wrap_as_selfdoc(as_selfdoc, lambda ds: post_process_within_season(ds, ds[name], name, config), "Limit to within season", docargs=[name])
 
-    return selfdocumented.DocumentedFunction(lambda ds: ds[name], "Extract from weather", docfunc=lambda x: x, docargs=[name])
+    return wrap_as_selfdoc(as_selfdoc, lambda ds: ds[name], "Extract from weather", docfunc=lambda x: x, docargs=[name])
 
 def post_process(ds, dataarr, name, config):
     if 'final-t' in config: # also handles 'final-t' + 'within-season' case recursively
@@ -140,6 +152,7 @@ def post_process_within_season(ds, dataarr, name, config):
         print(ds)
         assert False, "Not expected number of elements: %s" % str(dataarr.shape)
 
+    return dataarr
 
 def read_range(text):
     items = [x.strip() for x in text.split(',')]
