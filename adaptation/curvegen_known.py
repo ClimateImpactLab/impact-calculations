@@ -316,3 +316,49 @@ class BinnedStepCurveGenerator(curvegen.CSVVCurveGenerator):
             yy = np.maximum(min_beta, yy)
 
         return StepCurve(self.xxlimits, yy)
+
+class SumByTimePolynomialCurveGenerator(CurveGenerator):
+    """
+    Apply a range of weather to a PolynomialCurveGenerator, which uses different coefficients by month
+    """
+    def __init__(self, csvvcurvegen, coeffsuffixes):
+        super(SumCurveGenerator, self).__init__(csvvcurvegen.indepunits, csvvcurvegen.depenunit)
+        assert isinstance(csvvcurvegen, PolynomialCurveGenerator)
+        self.csvvcurvegen = csvvcurvegen
+        self.coeffsuffixes = coeffsuffixes
+
+        # Preprocessing marginals
+        self.constant = {} # {predname: [constants_t]}
+        self.predcovars = {} # {predname: [covarnames_t]}
+        self.predgammas = {} # {predname: np.array}
+        for predname in set(self.csvvcurvegen.prednames):
+            assert predname not in self.constant
+            self.constant[predname] = []
+            self.predcovars[predname] = []
+            self.predgammas[predname] = []
+
+            for coeffsuffix in self.coeffsuffixes:
+                predname_time = predname + "-%s" % coeffsuffix
+                indices = [ii for ii, xx in enumerate(self.csvv['prednames']) if xx == predname_time]
+                for index in indices:
+                    if self.csvv['covarnames'][index] == '1':
+                        self.constant[predname].append(self.csvv['gamma'][index])
+                    else:
+                        self.predcovars[predname].append(self.csvv['covarnames'][index])
+                        self.predgammas[predname].append(self.csvv['gamma'][index])
+
+            self.constant[predname] = np.array(self.constant[predname])
+            self.predcovars[predname] = np.array(self.predcovars[predname])
+            self.predgammas[predname] = np.array(self.predgammas[predname])
+        
+    def get_curve(self, region, year, covariates=None, **kwargs):
+        if covariates is None:
+            covariates = {}
+
+        return self.csvvcurvegen.get_curve(region, year, covariates, **kwargs)
+
+    def format_call(self, lang, *args):
+        TODO
+        
+    def get_partial_derivative_curvegen(self, covariate, covarunit):
+        TODO
