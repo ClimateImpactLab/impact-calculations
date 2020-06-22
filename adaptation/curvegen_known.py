@@ -11,7 +11,7 @@ respect to a covariate to produce another known CurveGenerator.
 import numpy as np
 from . import csvvfile, curvegen
 from openest.generate import diagnostic, formatting, selfdocumented
-from openest.generate.smart_curve import ZeroInterceptPolynomialCurve, CubicSplineCurve
+from openest.generate.smart_curve import ZeroInterceptPolynomialCurve, CubicSplineCurve, SumPolynomialCurve
 from openest.models.curve import StepCurve
 from openest.generate.curvegen import CurveGenerator
 
@@ -317,21 +317,23 @@ class BinnedStepCurveGenerator(curvegen.CSVVCurveGenerator):
 
         return StepCurve(self.xxlimits, yy)
 
-class SumByTimePolynomialCurveGenerator(CurveGenerator):
+class SumByTimePolynomialCurveGenerator(curvegen.CurveGenerator):
     """
     Apply a range of weather to a PolynomialCurveGenerator, which uses different coefficients by month
     """
-    def __init__(self, csvvcurvegen, coeffsuffixes):
-        super(SumCurveGenerator, self).__init__(csvvcurvegen.indepunits, csvvcurvegen.depenunit)
-        assert isinstance(csvvcurvegen, PolynomialCurveGenerator)
-        self.csvvcurvegen = csvvcurvegen
+    def __init__(self, csvv, polycurvegen, coeffsuffixes):
+        super(SumByTimePolynomialCurveGenerator, self).__init__(polycurvegen.indepunits, polycurvegen.depenunit)
+        assert isinstance(polycurvegen, PolynomialCurveGenerator)
+        self.csvv = csvv
+        self.polycurvegen = polycurvegen
         self.coeffsuffixes = coeffsuffixes
+        self.weathernames = polycurvegen.weathernames
 
         # Preprocessing marginals
         self.constant = {} # {predname: [constants_t]}
         self.predcovars = {} # {predname: [covarnames_t]}
         self.predgammas = {} # {predname: np.array}
-        for predname in set(self.csvvcurvegen.prednames):
+        for predname in set(self.polycurvegen.prednames):
             assert predname not in self.constant
             self.constant[predname] = []
             self.predcovars[predname] = []
@@ -355,10 +357,10 @@ class SumByTimePolynomialCurveGenerator(CurveGenerator):
         if covariates is None:
             covariates = {}
 
-        return self.csvvcurvegen.get_curve(region, year, covariates, **kwargs)
+        return SumPolynomialCurve(np.zeros(len(self.weathernames)), self.weathernames, self.polycurvegen.allow_raising) # self.polycurvegen.weathernames
 
     def format_call(self, lang, *args):
         TODO
         
     def get_partial_derivative_curvegen(self, covariate, covarunit):
-        TODO
+        return self.polycurvegen.get_partial_derivative_curvegen(covariate, covarunit)
