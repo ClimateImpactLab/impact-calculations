@@ -116,10 +116,10 @@ def get_post_process(name, config, as_selfdoc):
 
 def post_process(ds, dataarr, name, config):
     if 'final-t' in config: # also handles 'final-t' + 'within-season' case recursively
-        post_process_final_t(ds, dataarr, name, config)
+        return post_process_final_t(ds, dataarr, name, config)
 
     if 'within-season' in config:
-        post_process_within_season(ds, dataarr, name, config)
+        return post_process_within_season(ds, dataarr, name, config)
 
     return dataarr
 
