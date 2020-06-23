@@ -229,7 +229,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
             subspecconf = configs.merge(specconf, specconf['subspec'])
             csvvcurvegen = create_curvegen(csvv, None, regions, farmer=farmer, specconf=subspecconf, getcsvvcurve=True) # don't pass covariator, so skip farmer curvegen
             assert isinstance(csvvcurvegen, curvegen_known.PolynomialCurveGenerator), "Error: Curve-generator resulted in a " + str(csvvcurvegen.__class__)
-            curr_curvegen = curvegen.SumByTimePolynomialCurveGenerator(csvvcurvegen, specconf['suffixes'])
+            curr_curvegen = curvegen_known.SumByTimePolynomialCurveGenerator(csvv, csvvcurvegen, specconf['suffixes'])
         else:
             csvvcurvegens = []
             for tt in range(len(specconf['suffixes'])):

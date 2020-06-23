@@ -11,7 +11,7 @@ respect to a covariate to produce another known CurveGenerator.
 import numpy as np
 from . import csvvfile, curvegen
 from openest.generate import diagnostic, formatting, selfdocumented
-from openest.generate.smart_curve import ZeroInterceptPolynomialCurve, CubicSplineCurve
+from openest.generate.smart_curve import ZeroInterceptPolynomialCurve, CubicSplineCurve, SumPolynomialCurve
 from openest.models.curve import StepCurve
 from openest.generate.curvegen import CurveGenerator
 
@@ -317,15 +317,17 @@ class BinnedStepCurveGenerator(curvegen.CSVVCurveGenerator):
 
         return StepCurve(self.xxlimits, yy)
 
-class SumByTimePolynomialCurveGenerator(CurveGenerator):
+class SumByTimePolynomialCurveGenerator(curvegen.CurveGenerator):
     """
     Apply a range of weather to a PolynomialCurveGenerator, which uses different coefficients by month
     """
-    def __init__(self, polycurvegen, coeffsuffixes):
-        super(SumCurveGenerator, self).__init__(polycurvegen.indepunits, polycurvegen.depenunit)
+    def __init__(self, csvv, polycurvegen, coeffsuffixes):
+        super(SumByTimePolynomialCurveGenerator, self).__init__(polycurvegen.indepunits, polycurvegen.depenunit)
         assert isinstance(polycurvegen, PolynomialCurveGenerator)
+        self.csvv = csvv
         self.polycurvegen = polycurvegen
         self.coeffsuffixes = coeffsuffixes
+        self.weathernames = polycurvegen.weathernames
 
         # Preprocessing marginals
         self.constant = {} # {predname: 0 or T [constants_t]}
@@ -383,4 +385,4 @@ class SumByTimePolynomialCurveGenerator(CurveGenerator):
         TODO
         
     def get_partial_derivative_curvegen(self, covariate, covarunit):
-        TODO
+        return self.polycurvegen.get_partial_derivative_curvegen(covariate, covarunit)
