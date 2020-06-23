@@ -97,7 +97,15 @@ class CSVVCurveGenerator(CurveGenerator):
             self.predgammas[predname] = np.array(self.predgammas[predname])
 
     def get_coefficients(self, covariates, debug=False):
-        """
+        """Calculate the beta coefficient for each predictor.
+
+        Typically, self.constant[predname] is a number or missing, and
+        self.predgammas[predname] is a sequence of gammas
+        corresponding to self.predcovars[predname]. However, in the
+        case of sum-by-time entries, self.constant[predname] is either
+        0 or an array_like of T numbers, self.predcovars[predname] is
+        a list of length K, and self.predgammas[predname] is a T x K
+        np.array matrix of the corresponding gammas.
 
         Parameters
         ----------
@@ -113,6 +121,7 @@ class CSVVCurveGenerator(CurveGenerator):
         coefficients : dict
             With str keys giving variable names and values giving the
             corresponding float coefficients.
+
         """
         coefficients = {} # {predname: sum}
         for predname in set(self.prednames):
@@ -124,9 +133,9 @@ class CSVVCurveGenerator(CurveGenerator):
                     raise
             else:
                 try:
-                    coefficients[predname] = self.constant.get(predname, 0) + np.sum(self.predgammas[predname] * np.array([covariates[covar] for covar in self.predcovars[predname]]))
+                    coefficients[predname] = self.constant.get(predname, 0) + np.dot(self.predgammas[predname], np.array([covariates[covar] for covar in self.predcovars[predname]]))
                     if predname in self.betalimits and not np.isnan(coefficients[predname]):
-                        coefficients[predname] = min(max(self.betalimits[predname][0], coefficients[predname]), self.betalimits[predname][1])
+                        coefficients[predname] = np.minimum(np.maximum(self.betalimits[predname][0], coefficients[predname]), self.betalimits[predname][1])
                     
                     if debug:
                         print((predname, coefficients[predname], self.constant.get(predname, 0), self.predgammas[predname], np.array([covariates[covar] for covar in self.predcovars[predname]])))

@@ -321,41 +321,63 @@ class SumByTimePolynomialCurveGenerator(CurveGenerator):
     """
     Apply a range of weather to a PolynomialCurveGenerator, which uses different coefficients by month
     """
-    def __init__(self, csvvcurvegen, coeffsuffixes):
-        super(SumCurveGenerator, self).__init__(csvvcurvegen.indepunits, csvvcurvegen.depenunit)
-        assert isinstance(csvvcurvegen, PolynomialCurveGenerator)
-        self.csvvcurvegen = csvvcurvegen
+    def __init__(self, polycurvegen, coeffsuffixes):
+        super(SumCurveGenerator, self).__init__(polycurvegen.indepunits, polycurvegen.depenunit)
+        assert isinstance(polycurvegen, PolynomialCurveGenerator)
+        self.polycurvegen = polycurvegen
         self.coeffsuffixes = coeffsuffixes
 
         # Preprocessing marginals
-        self.constant = {} # {predname: [constants_t]}
-        self.predcovars = {} # {predname: [covarnames_t]}
-        self.predgammas = {} # {predname: np.array}
-        for predname in set(self.csvvcurvegen.prednames):
+        self.constant = {} # {predname: 0 or T [constants_t]}
+        self.predcovars = {} # {predname: K [covarname]}
+        self.predgammas = {} # {predname: T x K np.array}
+        for predname in set(self.polycurvegen.prednames):
             assert predname not in self.constant
             self.constant[predname] = []
-            self.predcovars[predname] = []
             self.predgammas[predname] = []
 
+            covarorder = None
             for coeffsuffix in self.coeffsuffixes:
                 predname_time = predname + "-%s" % coeffsuffix
-                indices = [ii for ii, xx in enumerate(self.csvv['prednames']) if xx == predname_time]
+
+                # Decide on the canonical order
+                if covarorder is None:
+                    indices = [ii for ii, xx in enumerate(self.csvv['prednames']) if xx == predname_time]
+                    covarorder = [self.csvv['covarnames'][index] for index in indices]
+                else:
+                    unordered = [ii for ii, xx in enumerate(self.csvv['prednames']) if xx == predname_time]
+                    indices = []
+                    for predcovar in covarorder:
+                        for uu in unordered:
+                            if self.csvv['covarnames'][uu] == predcovar:
+                                indices.append(uu)
+                                break
+                    assert len(indices) == len(covarorder)
+
+                constant_time = []  # make sure have 0 or 1
+                predgammas_time = []
                 for index in indices:
                     if self.csvv['covarnames'][index] == '1':
-                        self.constant[predname].append(self.csvv['gamma'][index])
+                        constant_time.append(self.csvv['gamma'][index])
                     else:
-                        self.predcovars[predname].append(self.csvv['covarnames'][index])
-                        self.predgammas[predname].append(self.csvv['gamma'][index])
+                        predgammas_time.append(self.csvv['gamma'][index])
 
-            self.constant[predname] = np.array(self.constant[predname])
-            self.predcovars[predname] = np.array(self.predcovars[predname])
+                self.constant[predname] += constant_time
+                self.predgammas[predname].append(predgammas_time)
+
+            if len(self.constant[predname]) == 0:
+                self.constant[predname] = 0
+            else:
+                assert len(self.constant[predname]) == len(covarorder)
+                self.constant[predname] = np.array(self.constant[predname])
+            
+            self.predcovars[predname] = covarorder
+            if '1' in covarorder:
+                self.predcovars[predname].remove('1')
             self.predgammas[predname] = np.array(self.predgammas[predname])
         
-    def get_curve(self, region, year, covariates=None, **kwargs):
-        if covariates is None:
-            covariates = {}
-
-        return self.csvvcurvegen.get_curve(region, year, covariates, **kwargs)
+    def get_smart_curve(self, yy)
+        return SumByTimePolynomialCurve(np.array(yy), self.polycurvegen.weathernames, self.polycurvegen.allow_raising)
 
     def format_call(self, lang, *args):
         TODO
