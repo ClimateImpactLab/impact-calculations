@@ -327,6 +327,8 @@ class SumByTimePolynomialCurveGenerator(curvegen.CurveGenerator):
         self.csvv = csvv
         self.polycurvegen = polycurvegen
         self.coeffsuffixes = coeffsuffixes
+        assert polycurvegen.betalimits is None, "Cannot handle betalimits in a sum-by-time setup."
+        
         self.weathernames = polycurvegen.weathernames
 
         # Preprocessing marginals
@@ -382,7 +384,23 @@ class SumByTimePolynomialCurveGenerator(curvegen.CurveGenerator):
         return SumByTimePolynomialCurve(np.array(yy), self.polycurvegen.weathernames, self.polycurvegen.allow_raising)
 
     def format_call(self, lang, *args):
-        TODO
+        assert self.weathernames is None, "Weathernames in sum-by-time not implemented yet."
+
+        coeffs = [self.diagprefix + predname for predname in self.prednames]
+        coeffreps = [formatting.get_parametername(coeff, lang) for coeff in coeffs]
+
+        if lang == 'latex':
+            beta = formatting.get_beta(lang)
+            elements = {'main': formatting.FormatElement(r"\sum_{t=1} \sum_{k=1}^%d %s_{kt} %s_t^k" % (self.order, beta, args[0]), [beta], is_primitive=True),
+                        beta: formatting.FormatElement('[' + ', '.join(coeffreps) + ']', coeffs)}
+        elif lang == 'julia':
+            elements = {'main': formatting.FormatElement(' + '.join(["sum(%s .* %s^%d)" % (coeffreps[kk], args[0], order+1) for kk in range(self.order)]), coeffs, is_primitive=True)}
+
+        for ii in range(len(coeffs)):
+            elements[coeffs[ii]] = formatting.ParameterFormatElement(coeffs[ii], coeffreps[ii])
+
+        return elements
         
     def get_partial_derivative_curvegen(self, covariate, covarunit):
-        return self.polycurvegen.get_partial_derivative_curvegen(covariate, covarunit)
+        ddpoly = self.polycurvegen.get_partial_derivative_curvegen(covariate, covarunit)
+        return SumByTimePolynomialCurveGenerator(ddpoly, self.coeffsuffixes)
