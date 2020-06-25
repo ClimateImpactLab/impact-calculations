@@ -11,7 +11,7 @@ respect to a covariate to produce another known CurveGenerator.
 import numpy as np
 from . import csvvfile, curvegen
 from openest.generate import diagnostic, formatting, selfdocumented
-from openest.generate.smart_curve import ZeroInterceptPolynomialCurve, CubicSplineCurve, SumPolynomialCurve
+from openest.generate.smart_curve import ZeroInterceptPolynomialCurve, CubicSplineCurve, SumByTimePolynomialCurve
 from openest.models.curve import StepCurve
 from openest.generate.curvegen import CurveGenerator
 
@@ -317,17 +317,25 @@ class BinnedStepCurveGenerator(curvegen.CSVVCurveGenerator):
 
         return StepCurve(self.xxlimits, yy)
 
-class SumByTimePolynomialCurveGenerator(curvegen.CurveGenerator):
+class SumByTimePolynomialCurveGenerator(SmartCSVVCurveGenerator):
     """
     Apply a range of weather to a PolynomialCurveGenerator, which uses different coefficients by month
     """
-    def __init__(self, csvv, polycurvegen, coeffsuffixes):
-        super(SumByTimePolynomialCurveGenerator, self).__init__(polycurvegen.indepunits, polycurvegen.depenunit)
+    def __init__(self, csvv, polycurvegen, coeffsuffixes, diagprefix='coeff-'):
+        # Don't enumerate, so not confuse get_coefficients
+        # allprednames = []
+        # allindepunits = []
+        # for coeffsuffix in coeffsuffixes:
+        #     allprednames += [predname + "-%s" % coeffsuffix for predname in polycurvegen.prednames]
+        #     allindepunits += polycurvegen.indepunits
+            
+        super(SumByTimePolynomialCurveGenerator, self).__init__(polycurvegen.prednames, polycurvegen.indepunits, polycurvegen.depenunit,
+                                                                csvv, diagprefix=diagprefix)
         assert isinstance(polycurvegen, PolynomialCurveGenerator)
         self.csvv = csvv
         self.polycurvegen = polycurvegen
         self.coeffsuffixes = coeffsuffixes
-        assert polycurvegen.betalimits is None, "Cannot handle betalimits in a sum-by-time setup."
+        assert not polycurvegen.betalimits, "Cannot handle betalimits in a sum-by-time setup."
         
         self.weathernames = polycurvegen.weathernames
 
@@ -372,7 +380,7 @@ class SumByTimePolynomialCurveGenerator(curvegen.CurveGenerator):
             if len(self.constant[predname]) == 0:
                 self.constant[predname] = 0
             else:
-                assert len(self.constant[predname]) == len(covarorder)
+                assert len(self.constant[predname]) == len(self.coeffsuffixes)
                 self.constant[predname] = np.array(self.constant[predname])
             
             self.predcovars[predname] = covarorder
@@ -380,7 +388,7 @@ class SumByTimePolynomialCurveGenerator(curvegen.CurveGenerator):
                 self.predcovars[predname].remove('1')
             self.predgammas[predname] = np.array(self.predgammas[predname])
         
-    def get_smart_curve(self, yy)
+    def get_smartcurve(self, yy):
         return SumByTimePolynomialCurve(np.array(yy), self.polycurvegen.weathernames, self.polycurvegen.allow_raising)
 
     def format_call(self, lang, *args):
@@ -403,4 +411,5 @@ class SumByTimePolynomialCurveGenerator(curvegen.CurveGenerator):
         
     def get_partial_derivative_curvegen(self, covariate, covarunit):
         ddpoly = self.polycurvegen.get_partial_derivative_curvegen(covariate, covarunit)
-        return SumByTimePolynomialCurveGenerator(ddpoly, self.coeffsuffixes)
+        return SumByTimePolynomialCurveGenerator(ddpoly.csvv, ddpoly, self.coeffsuffixes,
+                                                 diagprefix=ddpoly.diagprefix)
