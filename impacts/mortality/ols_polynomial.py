@@ -81,7 +81,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
 
     # Produce the final calculation
 
-    if config.get('filter', 'jun-aug'):
+    if config.get('filter')=='jun-aug':
         def weather_change(region, x):
             x2 = np.copy(x)
             # 1950 is a non-leap year
