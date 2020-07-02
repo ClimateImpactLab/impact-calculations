@@ -368,7 +368,7 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
 
         if len(self.pastreaders) == 1:
             for pastyear in self.pastyears:
-                if year > maxyear:
+                if year >= maxyear:
                     break
 
                 ds = self.pastreaders[0].read_year(pastyear)
@@ -380,7 +380,7 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
             return
             
         for pastyear in self.pastyears:
-            if year > maxyear:
+            if year >= maxyear:
                 break
             allds = xr.Dataset({'region': self.regions})
             for pastreader in self.pastreaders:
@@ -420,10 +420,9 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
             
     def get_years(self):
         """Get list of years represented in this bundle"""
-        return list(range(int(self.pastyear_start), int(self.futureyear_end) + 1))
+        return self.transformer.get_years(list(range(int(self.pastyear_start), int(self.futureyear_end) + 1)))
 
     def get_dimension(self):
-        """Get list of dimensions within all self.pastreaders"""
         alldims = []
         for pastreader in self.pastreaders:
             alldims.extend(pastreader.get_dimension())
@@ -445,7 +444,7 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
         -------
         HistoricalWeatherBundle
         """
-        futureyear_end = weatherbundle.get_years()[-1]
+        futureyear_end = max(weatherbundle.get_reader_years())
         pastreaders = [pastreader for pastreader, futurereader in weatherbundle.pastfuturereaders]
         return HistoricalWeatherBundle(pastreaders, futureyear_end, seed, weatherbundle.scenario, weatherbundle.model, transformer=weatherbundle.transformer)
 
