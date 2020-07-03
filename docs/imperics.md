@@ -122,13 +122,19 @@ Basic model configration:
 
 * `extrapolation` (optional): Assumes linear extrapolation outside of
   certain bounds, if given. The following arguments specify the
-  extrapolation scheme: `indepvar` (for one independent variable) or
-  `indepvars` (a list of several); `margin` (a value for a single
-  variable) or `margins` (a list of values); `bounds` (a tuple of
-  lower and upper bounds for a single variable, a dictionary of such
-  bounds, or a polytope list structure). For details on the use of
-  these options, see the docstrings in `open-estimate` for
-  `curves.linextrap`.
+  extrapolation scheme: 
+  - `indepvar` (for one independent variable) or `indepvars` (a list of several)
+  - `margin` (a value for a single variable) or `margins` (a list of values)
+  - `scaling` (a optional scaling factor, multiplied against the resulting slope)
+  - `bounds` (a tuple of lower and upper bounds for a single variable, a 
+  dictionary of such bounds, or a polytope list structure). 
+  
+  A flat response (fixed at the level of the response curve
+  at the edge) can be achieved as a special case through changing the `scaling` 
+  factor.
+  
+  For details on the use of these options, see the docstrings in 
+  `open-estimate` for `curves.linextrap`. 
 
 ## Climate naming
 
