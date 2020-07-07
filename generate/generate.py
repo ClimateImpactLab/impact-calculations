@@ -71,13 +71,14 @@ def main(config, runid=None):
 
         for batch in mc_batch_iter:
             for clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in loadmodels.random_order(mod.get_bundle_iterator(config), config):
-                # Use "pvals" seeds from config, if available.
-                if 'pvals' in list(config.keys()):
-                    pvals = pvalses.load_pvals(config['pvals'])
-                else:
-                    # Old default.
-                    pvals = pvalses.OnDemandRandomPvals()
+                pvals = pvalses.get_montecarlo_pvals(config)
                 yield 'batch' + str(batch), pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
+
+    def iterate_parallel_maker(masterbatch):
+        def iterate_parallel():
+            for clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in loadmodels.random_order(mod.get_bundle_iterator(config), config):
+                yield masterbatch, None, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
+        return iterate_parallel
 
     def iterate_nosideeffects():
         clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel = loadmodels.single(mod.get_bundle_iterator(config))
@@ -180,7 +181,10 @@ def main(config, runid=None):
 
     # Select the iterator based on the mode
 
-    mode_iterators = {'median': iterate_median, 'montecarlo': iterate_montecarlo, 'lincom': iterate_single, 'single': iterate_single, 'writesplines': iterate_single, 'writepolys': iterate_single, 'writecalcs': iterate_single, 'profile': iterate_nosideeffects, 'diagnostic': iterate_nosideeffects}
+    mode_iterators = {'median': iterate_median, 'montecarlo': iterate_montecarlo, 'lincom': iterate_single, 'single': iterate_single,
+                      'writesplines': iterate_single, 'writepolys': iterate_single, 'writecalcs': iterate_single,
+                      'profile': iterate_nosideeffects, 'diagnostic': iterate_nosideeffects,
+                      'parallelmc': iterate_parallel_maker('mcmaster'), 'testparallelpe': iterate_parallel_maker('pemaster')}
 
     assert 'mode' in config, "Configuration does not contain 'mode'."
     assert config['mode'] in list(mode_iterators.keys())
@@ -191,11 +195,17 @@ def main(config, runid=None):
 
     if not config.get('module'):
         # Specification and run config already together.
-        mod = importlib.import_module("interpret.container")
+        if config.get('cores', 1) == 1:
+            mod = importlib.import_module("interpret.container")
+        else:
+            mod = importlib.import_module("interpret.parallel_container")
         shortmodule = str(runid)
     elif config['module'][-4:] == '.yml':
         # Specification config in another yaml file.
-        mod = importlib.import_module("interpret.container")
+        if config.get('cores', 1) == 1:
+            mod = importlib.import_module("interpret.container")
+        else:
+            mod = importlib.import_module("interpret.parallel_container")
         with open(config['module'], 'r') as fp:
             config.update(yaml.load(fp))
         shortmodule = os.path.basename(config['module'])[:-4]
@@ -250,12 +260,13 @@ def main(config, runid=None):
         print(targetdir)
 
         # Load the pvals data, if available
-        if pvalses.has_pval_file(targetdir):
-            oldpvals = pvalses.read_pval_file(targetdir)
-            if oldpvals is not None:
-                pvals = oldpvals
-        else:
-            pvalses.make_pval_file(targetdir, pvals)
+        if pvals is not None:
+            if pvalses.has_pval_file(targetdir):
+                oldpvals = pvalses.read_pval_file(targetdir)
+                if oldpvals is not None:
+                    pvals = oldpvals
+            else:
+                pvalses.make_pval_file(targetdir, pvals)
 
         # Produce the results!
 
@@ -283,8 +294,8 @@ def main(config, runid=None):
             mod.produce(targetdir, weatherbundle, economicmodel, pvals, config)
 
         # Also produce historical climate results
-
-        if config['mode'] not in ['writesplines', 'writepolys', 'writecalcs', 'diagnostic'] or config.get('do_historical', False):
+        if config['mode'] not in ['writesplines', 'writepolys', 'writecalcs', 'diagnostic',
+                                  'parallelmc', 'testparallelpe'] or config.get('do_historical', False):  # Slaves have to produce themselves
             # Generate historical baseline
             print("Historical")
             historybundle = weather.HistoricalWeatherBundle.make_historical(weatherbundle, None if config['mode'] == 'median' else pvals['histclim'].get_seed('yearorder'))
@@ -294,7 +305,8 @@ def main(config, runid=None):
 
         # Clean up
 
-        pvalses.make_pval_file(targetdir, pvals)
+        if pvals is not None:
+            pvalses.make_pval_file(targetdir, pvals)
 
         statman.release(targetdir, "Generated")
 

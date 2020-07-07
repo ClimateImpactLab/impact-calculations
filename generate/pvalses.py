@@ -36,6 +36,15 @@ def interpret(config):
     if isinstance(config['pvals'], dict):
         return load_pvals(config['pvals'])
 
+    
+def get_montecarlo_pvals(config):
+    # Use "pvals" seeds from config, if available.
+    if 'pvals' in list(config.keys()):
+        return load_pvals(config['pvals'])
+    else:
+        return OnDemandRandomPvals()
+
+    
 class ConstantPvals:
     def __init__(self, value):
         self.value = value
