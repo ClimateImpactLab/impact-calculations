@@ -17,11 +17,11 @@ class LockstepParallelMaster(object):
         # Read-only, except update during intermission
         self.outputs = None
 
-    def loop(self, start):
+    def loop(self, start, *args):
         self.outputs = self._prepare_next()
         # Start all threads
         for proc in range(self.mcdraws):
-            thread = threading.Thread(None, start, args=(proc, self))
+            thread = threading.Thread(None, start, args=tuple([proc, self] + list(args)))
             thread.start()
             
         # Initiate lockstep process
@@ -37,7 +37,7 @@ class LockstepParallelMaster(object):
                 self.barrier.wait()
             except threading.BrokenBarrierError:
                 # This happens if aborted while in prepare_next
-                pass
+                break
 
         try:
             self.barrier.wait()
