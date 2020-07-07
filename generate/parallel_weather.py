@@ -1,7 +1,8 @@
-import multithread
+import numpy as np
+from . import multithread, weather
 
 # Allow any thread to request the bundle first
-class SlaveParallelWeatherBundle(WeatherBundle):
+class SlaveParallelWeatherBundle(weather.WeatherBundle):
     def __init__(self, master, local):
         self.master = master
         self.local = local

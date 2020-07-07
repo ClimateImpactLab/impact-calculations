@@ -1,6 +1,10 @@
+import threading
 from . import container
-from generate import parallel_weather, pvalses
+from generate import parallel_weather, pvalses, multithread
 from adaptation import parallel_econmodel
+
+preload = container.preload
+get_bundle_iterator = container.get_bundle_iterator
 
 ## NOTE: All logic in effectset can be at the slave level with shared data
 
@@ -29,7 +33,8 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
     assert config['cores'] > 1, "More than one core needed."
     assert pvals is None, "Slaves must create their own pvals."
     assert push_callback is None and suffix == '' and not profile and not diagnosefile, "Cannot use diagnostic options."
-    
+
+    print("Setting up parallel processing...")
     master = WeatherCovariatorLockstepParallelMaster(weatherbundle, None, config['cores'] - 1)
     master.loop(slave_produce, targetdir, config)
 
@@ -38,17 +43,18 @@ def slave_produce(proc, master, masterdir, config):
     local = threading.local()
 
     # Construct a pvals and targetdir
-    if 'parallelmc' in masterdir:
-        targetdir = masterdir.replace('parallelmc', 'batch' + str(proc + 1))
+    ### XXX: Need to search for a blank batch and claim it
+    if 'mcmaster' in masterdir:
+        targetdir = masterdir.replace('mcmaster', 'batch' + str(proc + 1))
         pvals = pvalses.get_montecarlo_pvals(config)
-    elif 'parallelpe' in masterdir:
-        targetdir = masterdir.replace('parallelpe', 'batch' + str(proc + 1))
+    elif 'pemaster' in masterdir:
+        targetdir = masterdir.replace('pemaster', 'batch' + str(proc + 1))
         pvals = pvalses.ConstantPvals(.5)
     else:
-        raise ValueError("Master directory not named as expected.")
+        raise ValueError("Master directory not named as expected: " + masterdir)
 
     # Wrap weatherbundle
     weatherbundle = parallel_weather.SlaveParallelWeatherBundle(master, local)
-    economicmodel = parallel_economdel.SlaveParallelSSPEconomicModel()
+    economicmodel = parallel_econmodel.SlaveParallelSSPEconomicModel()
     
     container.produce(targetdir, weatherbundle, economicmodel, pvals, config)
