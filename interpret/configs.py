@@ -1,4 +1,4 @@
-import yaml, copy
+import yaml, copy, itertools
 
 def standardize(config):
     newconfig = copy.copy(config)
@@ -48,3 +48,30 @@ def search_list(conflist, needle, pathroot=''):
 
     return found
             
+def get_batch_iter(config):
+    # How many monte carlo iterations do we do?
+    mc_n = config.get('mc-n', config.get('mc_n'))
+    if mc_n is None:
+        mc_batch_iter = itertools.count()
+    else:
+        mc_batch_iter = list(range(int(mc_n)))
+
+    # If `only-batch-number` is in run config, overrides `mc_n`.
+    only_batch_number = config.get('only-batch-number')
+    if only_batch_number is not None:
+        mc_batch_iter = [int(only_batch_number)]
+
+    return mc_batch_iter
+
+def claim_targetdir(statman, targetdir, is_single, config):
+    if statman.is_claimed(targetdir) and is_single:
+        try:
+            paralog.StatusManager.kill_active(targetdir, 'generate') # if do_fillin and crashed, could still exist
+        except Exception as ex:
+            print("Got exception but passing anyways:")
+            print(ex)
+            pass
+        return True
+    elif not statman.claim(targetdir) and 'targetdir' not in config:
+        return False
+    return True

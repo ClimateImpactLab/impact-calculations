@@ -2,7 +2,7 @@
 Manages rcps and econ and climate models, and generate.effectset.simultaneous_application handles the regions and years.
 """
 
-import os, itertools, importlib, shutil, csv, time, yaml, tempfile
+import os, importlib, shutil, csv, time, yaml, tempfile
 from collections import OrderedDict
 import numpy as np
 from . import loadmodels
@@ -57,18 +57,7 @@ def main(config, runid=None):
             yield 'median', pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
 
     def iterate_montecarlo():
-        # How many monte carlo iterations do we do?
-        mc_n = config.get('mc-n', config.get('mc_n'))
-        if mc_n is None:
-            mc_batch_iter = itertools.count()
-        else:
-            mc_batch_iter = list(range(int(mc_n)))
-
-        # If `only-batch-number` is in run config, overrides `mc_n`.
-        only_batch_number = config.get('only-batch-number')
-        if only_batch_number is not None:
-            mc_batch_iter = [int(only_batch_number)]
-
+        mc_batch_iter = configs.get_batch_iter(config)
         for batch in mc_batch_iter:
             for clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in loadmodels.random_order(mod.get_bundle_iterator(config), config):
                 pvals = pvalses.get_montecarlo_pvals(config)
@@ -247,14 +236,7 @@ def main(config, runid=None):
             pr.enable()
 
         # Claim the directory
-        if statman.is_claimed(targetdir) and mode_iterators[config['mode']] == iterate_single:
-            try:
-                paralog.StatusManager.kill_active(targetdir, 'generate') # if do_fillin and crashed, could still exist
-            except Exception as ex:
-                print("Got exception but passing anyways:")
-                print(ex)
-                pass
-        elif not statman.claim(targetdir) and 'targetdir' not in config:
+        if not configs.claim_targetdir(statman, targetdir, mode_iterators[config['mode']] == iterate_single, config):
             continue
 
         print(targetdir)
