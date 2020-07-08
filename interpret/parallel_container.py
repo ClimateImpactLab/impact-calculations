@@ -42,19 +42,28 @@ def slave_produce(proc, master, masterdir, config):
     # Create the thread local data
     local = threading.local()
 
-    # Construct a pvals and targetdir
-    ### XXX: Need to search for a blank batch and claim it
-    if 'mcmaster' in masterdir:
-        targetdir = masterdir.replace('mcmaster', 'batch' + str(proc + 1))
-        pvals = pvalses.get_montecarlo_pvals(config)
-    elif 'pemaster' in masterdir:
-        targetdir = masterdir.replace('pemaster', 'batch' + str(proc + 1))
-        pvals = pvalses.ConstantPvals(.5)
-    else:
-        raise ValueError("Master directory not named as expected: " + masterdir)
+    # Create the object for claiming directories
+    claim_timeout = config.get('timeout', 12) * 60*60
+    statman = paralog.StatusManager('generate', "slave generate " + str(proc), 'logs', claim_timeout)
 
-    # Wrap weatherbundle
-    weatherbundle = parallel_weather.SlaveParallelWeatherBundle(master, local)
-    economicmodel = parallel_econmodel.SlaveParallelSSPEconomicModel()
+    for batch in configs.get_batch_iter(config):
+        # Construct a pvals and targetdir
+        if 'mcmaster' in masterdir:
+            targetdir = masterdir.replace('mcmaster', 'batch' + str(proc + 1))
+            pvals = pvalses.get_montecarlo_pvals(config)
+        elif 'pemaster' in masterdir:
+            targetdir = masterdir.replace('pemaster', 'batch' + str(proc + 1))
+            pvals = pvalses.ConstantPvals(.5)
+        else:
+            raise ValueError("Master directory not named as expected: " + masterdir)
+        
+        # Claim the directory
+        with master.lock:
+            if not configs.claim_targetdir(statman, targetdir, False, config):
+                continue
+
+        # Wrap weatherbundle
+        weatherbundle = parallel_weather.SlaveParallelWeatherBundle(master, local)
+        economicmodel = parallel_econmodel.SlaveParallelSSPEconomicModel()
     
-    container.produce(targetdir, weatherbundle, economicmodel, pvals, config)
+        container.produce(targetdir, weatherbundle, economicmodel, pvals, config)
