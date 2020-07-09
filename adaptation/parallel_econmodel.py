@@ -1,6 +1,7 @@
 class SlaveParallelSSPEconomicModel(object):
-    def __init__(self, saved_baselines):
-        # Currently just a dummy for raising exceptions
+    def __init__(self, saved_baselines=None):
+        if saved_baselines is None:
+            saved_baselines = {}
         self.saved_baselines = saved_baselines
         pass
 
