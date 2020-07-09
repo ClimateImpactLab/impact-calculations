@@ -1,7 +1,8 @@
 import threading
-from . import container
+from . import container, configs, specification
 from generate import parallel_weather, pvalses, multithread
 from adaptation import parallel_econmodel
+from impactlab_tools.utils import paralog
 
 preload = container.preload
 get_bundle_iterator = container.get_bundle_iterator
@@ -35,7 +36,7 @@ class WeatherCovariatorLockstepParallelMaster(multithread.FoldedActionsLockstepP
             self.weatheriter = None
             return None # stop this and following actions
 
-    def create_covariator(specconf): # Returns master thread's covariator; needs to be wrapped
+    def instant_create_covariator(self, specconf): # Returns master thread's covariator; needs to be wrapped
         return specification.create_covariator(specconf, self.weatherbundle, self.economicmodel)
 
     def setup_covariate_update(self, covariator):
@@ -51,7 +52,7 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
     assert push_callback is None and suffix == '' and not profile and not diagnosefile, "Cannot use diagnostic options."
 
     print("Setting up parallel processing...")
-    master = WeatherCovariatorLockstepParallelMaster(weatherbundle, None, config['cores'] - 1)
+    master = WeatherCovariatorLockstepParallelMaster(weatherbundle, economicmodel, config['cores'] - 1)
     master.loop(slave_produce, targetdir, config)
 
 def slave_produce(proc, master, masterdir, config):

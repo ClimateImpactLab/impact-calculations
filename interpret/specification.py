@@ -9,7 +9,7 @@ precipitation.
 """
 
 import re
-from adaptation import csvvfile, curvegen, curvegen_known, curvegen_arbitrary, covariates, constraints
+from adaptation import csvvfile, curvegen, curvegen_known, curvegen_arbitrary, covariates, constraints, parallel_covariates
 from datastore import irvalues
 from openest.generate import smart_curve, selfdocumented
 from openest.models.curve import ShiftedCurve, MinimumCurve, ClippedCurve
