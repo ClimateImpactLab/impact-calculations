@@ -10,10 +10,11 @@ get_bundle_iterator = container.get_bundle_iterator
 ## NOTE: All logic in effectset can be at the slave level with shared data
 
 class WeatherCovariatorLockstepParallelMaster(multithread.FoldedActionsLockstepParallelMaster):
-    def __init__(self, weatherbundle, economicmodel, mcdraws, regions=None):
+    def __init__(self, weatherbundle, economicmodel, config, mcdraws, regions=None):
         super(WeatherCovariatorLockstepParallelMaster, self).__init__(mcdraws)
         self.weatherbundle = weatherbundle
         self.economicmodel = economicmodel
+        self.config = config
 
         if regions is None:
             self.regions = weatherbundle.regions
@@ -37,7 +38,7 @@ class WeatherCovariatorLockstepParallelMaster(multithread.FoldedActionsLockstepP
             return None # stop this and following actions
 
     def instant_create_covariator(self, specconf): # Returns master thread's covariator; needs to be wrapped
-        return specification.create_covariator(specconf, self.weatherbundle, self.economicmodel)
+        return specification.create_covariator(specconf, self.weatherbundle, self.economicmodel, config=self.config)
 
     def setup_covariate_update(self, covariator):
         pass
@@ -52,7 +53,8 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
     assert push_callback is None and suffix == '' and not profile and not diagnosefile, "Cannot use diagnostic options."
 
     print("Setting up parallel processing...")
-    master = WeatherCovariatorLockstepParallelMaster(weatherbundle, economicmodel, config['cores'] - 1)
+    my_regions = configs.get_regions(weatherbundle.regions, config.get('filter-region', None))
+    master = WeatherCovariatorLockstepParallelMaster(weatherbundle, economicmodel, config, config['cores'] - 1, my_regions)
     master.loop(slave_produce, targetdir, config)
 
 def slave_produce(proc, master, masterdir, config):

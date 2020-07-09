@@ -5,6 +5,7 @@ from netCDF4 import Dataset
 import helpers.header as headre
 from openest.generate import retrieve, diagnostic, fast_dataset
 from adaptation import curvegen
+from interpret import configs
 from . import server, nc4writer
 
 
@@ -116,18 +117,7 @@ def write_ncdf(targetdir, basename, weatherbundle, calculation, description, cal
         2D variance-covariance float array if the projection is to run with the
         delta method. If ``False``, the delta method is not used.
     """
-    if filter_region is None:
-        my_regions = weatherbundle.regions
-    else:
-        my_regions = []
-        for ii in range(len(weatherbundle.regions)):
-            if isinstance(filter_region, str):
-                if filter_region in weatherbundle.regions[ii]:
-                    my_regions.append(weatherbundle.regions[ii])
-            else:
-                if filter_region(weatherbundle.regions[ii]):
-                    my_regions.append(weatherbundle.regions[ii])
-        assert my_regions != [], "No regions remain after filter."
+    my_regions = configs.get_regions(weatherbundle.regions, filter_region)
 
     try:
         rootgrp = Dataset(os.path.join(targetdir, basename + '.nc4'), 'w', format='NETCDF4')
