@@ -75,3 +75,19 @@ def claim_targetdir(statman, targetdir, is_single, config):
     elif not statman.claim(targetdir) and 'targetdir' not in config:
         return False
     return True
+
+def get_regions(allregions, filter_region):
+    if filter_region is None:
+        my_regions = allregions
+    else:
+        my_regions = []
+        for ii in range(len(allregions)):
+            if isinstance(filter_region, str):
+                if filter_region in allregions[ii]:
+                    my_regions.append(allregions[ii])
+            else:
+                if filter_region(allregions[ii]):
+                    my_regions.append(allregions[ii])
+        assert my_regions != [], "No regions remain after filter."
+
+    return my_regions
