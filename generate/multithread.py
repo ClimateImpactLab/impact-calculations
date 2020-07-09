@@ -101,6 +101,11 @@ class FoldedActionsLockstepParallelMaster(LockstepParallelMaster):
     Slave1: .ra [  ].ra [  ]..[  ]
     Slave2: ..ra[  ]..ra[  ]..[  ]
 
+    "Instant" actions are also supported, where a common action is
+    called for by all slave threads. The slave threads are stopped
+    until the master thread finishes and can perform the action. The
+    result is saved in `instant_result`.
+
     """
     def __init__(self, mcdraws):
         super(FoldedActionsLockstepParallelMaster, self).__init__(mcdraws)
@@ -109,6 +114,8 @@ class FoldedActionsLockstepParallelMaster(LockstepParallelMaster):
         # Updated with lock or at intermission
         self.action_list = [] # list of (name, args, kwargs)
         self.new_action = None # new action to perform before the end of the timestep
+        self.is_new_action_instant = False
+        self.instant_result = None
         self.complete = False
 
         # Read-only, except update during intermission
@@ -122,6 +129,12 @@ class FoldedActionsLockstepParallelMaster(LockstepParallelMaster):
         # Everyone else immediately waits at barrier 2 for the data to be copied over
         while self.new_action:
             action, action_args, action_kwargs = self.new_action
+            if self.is_new_action_instant:
+                self.instant_result = getattr(self, 'instant_' + action)(*action_args, **action_kwargs)
+                self.new_action = None
+                self.lockstep_pause()
+                continue
+            
             # Setup the action
             getattr(self, 'setup_' + action)(*action_args, **action_kwargs)
             # Perform the new action for both curr step and next step
@@ -159,6 +172,16 @@ class FoldedActionsLockstepParallelMaster(LockstepParallelMaster):
             
         return outputs
 
+    def instant_action(self, action, *args, **kwargs):
+        with self.lock:
+            if self.new_action:
+                assert self.new_action == (action, args, kwargs), "Slaves are requesting different actions."
+            else:
+                self.new_action = (action, args, kwargs)
+                self.is_new_action_instant = True
+        self.lockstep_pause() # enter intermission and perform action
+        return self.instant_result
+        
     def request_action(self, local, action, *args, **kwargs):
         if 'action_index' not in local.__dict__:
             local.action_index = 0
@@ -175,6 +198,7 @@ class FoldedActionsLockstepParallelMaster(LockstepParallelMaster):
                     assert self.new_action == (action, args, kwargs), "Slaves are requesting different actions."
                 else:
                     self.new_action = (action, args, kwargs)
+                    self.is_new_action_instant = False
             self.lockstep_pause() # enter intermission and perform action
             local.action_index += 1
         return self.outputs
