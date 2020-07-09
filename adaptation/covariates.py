@@ -1330,3 +1330,4 @@ class PowerCovariator(Covariator):
         """
         covars = self.source.get_current(region)
         return self.make_power(covars)
+    

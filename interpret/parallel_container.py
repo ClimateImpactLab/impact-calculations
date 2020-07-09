@@ -9,17 +9,17 @@ get_bundle_iterator = container.get_bundle_iterator
 ## NOTE: All logic in effectset can be at the slave level with shared data
 
 class WeatherCovariatorLockstepParallelMaster(multithread.FoldedActionsLockstepParallelMaster):
-    def __init__(self, bundle, covariator, mcdraws):
+    def __init__(self, weatherbundle, economicmodel, mcdraws):
         super(WeatherCovariatorLockstepParallelMaster, self).__init__(mcdraws)
-        self.bundle = bundle
-        self.covariator = covariator
+        self.weatherbundle = weatherbundle
+        self.economicmodel = economicmodel
 
         # Active iterators
         self.weatheriter = None
         
     def setup_yearbundles(self, *request_args, **request_kwargs):
         assert self.weatheriter is None
-        self.weatheriter = self.bundle.yearbundles(*request_args, **request_kwargs)
+        self.weatheriter = self.weatherbundle.yearbundles(*request_args, **request_kwargs)
 
     def yearbundles(self, outputs, *request_args, **request_kwargs):
         try:
@@ -28,6 +28,9 @@ class WeatherCovariatorLockstepParallelMaster(multithread.FoldedActionsLockstepP
         except StopIteration:
             self.weatheriter = None
             return None # stop this and following actions
+
+    def create_covariator(specconf): # Returns master thread's covariator; needs to be wrapped
+        return specification.create_covariator(specconf, self.weatherbundle, self.economicmodel)
 
 def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callback=None, suffix='', profile=False, diagnosefile=False):
     assert config['cores'] > 1, "More than one core needed."
@@ -65,5 +68,5 @@ def slave_produce(proc, master, masterdir, config):
         # Wrap weatherbundle
         weatherbundle = parallel_weather.SlaveParallelWeatherBundle(master, local)
         economicmodel = parallel_econmodel.SlaveParallelSSPEconomicModel()
-    
+        
         container.produce(targetdir, weatherbundle, economicmodel, pvals, config)

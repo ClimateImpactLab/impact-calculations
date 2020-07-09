@@ -107,6 +107,8 @@ def create_covariator(specconf, weatherbundle, economicmodel, config=None, quiet
     """
     if config is None:
         config = {}
+    if parallel_covariates.is_parallel(weatherbundle, economicmodel, config):
+        covariator = parallel_covariates.create_covariator(specconf, weatherbundle, economicmodel)
     if 'covariates' in specconf:
         covariators = []
         for covar in specconf['covariates']:
