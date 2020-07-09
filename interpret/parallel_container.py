@@ -9,11 +9,17 @@ get_bundle_iterator = container.get_bundle_iterator
 ## NOTE: All logic in effectset can be at the slave level with shared data
 
 class WeatherCovariatorLockstepParallelMaster(multithread.FoldedActionsLockstepParallelMaster):
-    def __init__(self, weatherbundle, economicmodel, mcdraws):
+    def __init__(self, weatherbundle, economicmodel, mcdraws, regions=None):
         super(WeatherCovariatorLockstepParallelMaster, self).__init__(mcdraws)
         self.weatherbundle = weatherbundle
         self.economicmodel = economicmodel
 
+        if regions is None:
+            self.regions = weatherbundle.regions
+        else:
+            self.regions = regions
+        self.region_indices = {region: weatherbundle.regions.index(region) for region in self.regions}
+        
         # Active iterators
         self.weatheriter = None
         
@@ -31,6 +37,13 @@ class WeatherCovariatorLockstepParallelMaster(multithread.FoldedActionsLockstepP
 
     def create_covariator(specconf): # Returns master thread's covariator; needs to be wrapped
         return specification.create_covariator(specconf, self.weatherbundle, self.economicmodel)
+
+    def setup_covariate_update(self, covariator):
+        pass
+
+    def covariate_update(self, outputs, covariator):
+        for region, subds in fast_dataset.region_groupby(outputs['ds'], outputs['year'], self.regions, self.region_indices):
+            covariator.offer_update(region, outputs['year'], subdf)
 
 def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callback=None, suffix='', profile=False, diagnosefile=False):
     assert config['cores'] > 1, "More than one core needed."

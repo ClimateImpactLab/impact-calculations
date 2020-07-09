@@ -2,7 +2,7 @@ def is_parallel(weatherbundle, economicmodel, config):
     return isinstance(weatherbundle, SlaveParallelWeatherBundle) and isinstance(economicmodel, SlaveParallelSSPEconomicModel)
 
 def create_covariator(specconf, weatherbundle, economicmodel):
-    covariator = instant_action("create_covariator", specconf)
+    covariator = master.instant_action("create_covariator", specconf)
     return SlaveParallelCovariator(covariator)
 
 class SlaveParallelCovariator(Covariator):
@@ -17,5 +17,6 @@ class SlaveParallelCovariator(Covariator):
         return master.get_current(region)
         
     def offer_update(self, region, year, ds):
+        master.request_action('covariate_update', self.master)
         assert master.lastyear.get(region, -np.inf) == year, "ReadonlyCovariator can only be called after master updates."
         return master.get_current(region)
