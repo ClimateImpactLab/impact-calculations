@@ -179,6 +179,7 @@ class FoldedActionsLockstepParallelMaster(LockstepParallelMaster):
             else:
                 self.new_action = (action, args, kwargs)
                 self.is_new_action_instant = True
+                print("Instant " + str(self.new_action))
         self.lockstep_pause() # enter intermission and perform action
         return self.instant_result
         
@@ -199,6 +200,7 @@ class FoldedActionsLockstepParallelMaster(LockstepParallelMaster):
                 else:
                     self.new_action = (action, args, kwargs)
                     self.is_new_action_instant = False
+                    print("Request " + str(self.new_action))
             self.lockstep_pause() # enter intermission and perform action
             local.action_index += 1
         return self.outputs

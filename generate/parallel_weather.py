@@ -13,3 +13,8 @@ class SlaveParallelWeatherBundle(weather.WeatherBundle):
             if 'ds' not in outputs:
                 break
             yield outputs['year'], outputs['ds']
+            self.master.end_timestep(self.local)
+
+    def __getattr__(self, name):
+        return getattr(self.master.weatherbundle, name)
+    

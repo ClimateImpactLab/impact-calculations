@@ -108,7 +108,7 @@ def create_covariator(specconf, weatherbundle, economicmodel, config=None, quiet
     if config is None:
         config = {}
     if parallel_covariates.is_parallel(weatherbundle, economicmodel, config):
-        covariator = parallel_covariates.create_covariator(specconf, weatherbundle, economicmodel)
+        return parallel_covariates.create_covariator(specconf, weatherbundle, economicmodel)
     if 'covariates' in specconf:
         covariators = []
         for covar in specconf['covariates']:
@@ -156,6 +156,8 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
     betalimits = specconf.get('beta-limits', {})
     betalimits = {key: list(map(float, betalimits[key].split(','))) for key in betalimits}
 
+    print("CREATE_CURVEGEN")
+    
     if specconf['functionalform'] == 'polynomial':
         variable = specconf['variable']
         indepunit = specconf['indepunit']
@@ -247,6 +249,8 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
     else:
         user_failure("Unknown functional form %s." % specconf['functionalform'])
 
+    print("CC-MID")
+        
     if getcsvvcurve:
         return curr_curvegen
         
