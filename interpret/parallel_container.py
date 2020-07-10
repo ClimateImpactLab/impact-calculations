@@ -22,8 +22,9 @@ class WeatherCovariatorLockstepParallelMaster(multithread.FoldedActionsLockstepP
             self.regions = regions
         self.region_indices = {region: weatherbundle.regions.index(region) for region in self.regions}
         
-        # Active iterators
+        # Active iteration objects
         self.weatheriter = None
+        self.farm_curvegen = None
         
     def setup_yearbundles(self, *request_args, **request_kwargs):
         assert self.weatheriter is None
@@ -40,13 +41,13 @@ class WeatherCovariatorLockstepParallelMaster(multithread.FoldedActionsLockstepP
     def instant_create_covariator(self, specconf): # Returns master thread's covariator; needs to be wrapped
         return specification.create_covariator(specconf, self.weatherbundle, self.economicmodel, config=self.config)
 
-    def setup_covariate_update(self, covariator):
-        pass
+    def setup_covariate_update(self, covariator, farmer):
+        self.farm_curvegen = curvegen.FarmerCurveGenerator(curvegen.FlatCurve(0), covariator, farmer, save_curve=False)
 
-    def covariate_update(self, outputs, covariator):
+    def covariate_update(self, outputs, covariator, farmer):
         for region, subds in fast_dataset.region_groupby(outputs['ds'], outputs['year'], self.regions, self.region_indices):
-            covariator.offer_update(region, outputs['year'], subdf)
-
+            self.farm_curvegen.get_curve(region, subds.year, weather=subds)
+            
 def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callback=None, suffix='', profile=False, diagnosefile=False):
     assert config['cores'] > 1, "More than one core needed."
     assert pvals is None, "Slaves must create their own pvals."
@@ -83,6 +84,7 @@ def slave_produce(proc, master, masterdir, config):
 
         # Wrap weatherbundle
         weatherbundle = parallel_weather.SlaveParallelWeatherBundle(master, local)
-        economicmodel = parallel_econmodel.SlaveParallelSSPEconomicModel()
-        
+        economicmodel = parallel_econmodel.SlaveParallelSSPEconomicModel(master, local)
+
+        print("START %d/%d" % (batch, proc))
         container.produce(targetdir, weatherbundle, economicmodel, pvals, config)
