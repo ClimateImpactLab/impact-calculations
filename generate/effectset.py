@@ -88,16 +88,32 @@ def generate(targetdir, basename, weatherbundle, calculation, description, calcu
 
     my_regions = configs.get_regions(weatherbundle.regions, filter_region)
     columndata = prepare_ncdf_data(weatherbundle, calculation, my_regions, push_callback=push_callback, diagnosefile=diagnosefile, deltamethod_vcv=deltamethod_vcv)
-        
-    return write_ncdf(targetdir, basename, weatherbundle, calculation, description, calculation_dependencies, my_regions, subset=subset, deltamethod_vcv=deltamethod_vcv)
+
+    if parallel_covariates.is_parallel(weatherbundle):
+        weatherbundle.master.lock.acquire()
+    write_ncdf(targetdir, basename, weatherbundle, calculation, description, calculation_dependencies, my_regions, subset=subset, deltamethod_vcv=deltamethod_vcv)
+    if parallel_covariates.is_parallel(weatherbundle):
+        weatherbundle.master.lock.release()
 
 def prepare_ncdf_data(weatherbundle, calculation, my_regions, push_callback=None, diagnosefile=False, deltamethod_vcv=False):
-    """
+    """Compute impact projection
+
+    Parameters
+    ----------
+    weatherbundle : generate.weather.DailyWeatherBundle
+        Populated weather data to compute projection over.
+    calculation : openest.generate.functions.SpanInstabase
+        Projection calculations to apply to `weatherbundle`.
+    my_regions : sequence of str
+        Region names to be computed.
     push_callback : Callable or None, optional
         Passed to ``generate.effectset.simultaneous_application``.
     diagnosefile : str or bool, optional
         Path to file for writing projection run diagnostic CSV file. If
         ``False``, no diagnostics are output.
+    deltamethod_vcv : ndarray or bool, optional
+        2D variance-covariance float array if the projection is to run with the
+        delta method. If ``False``, the delta method is not used.
     """
     yeardata = weatherbundle.get_years()
     columndata = [] # [matrix(year x region)]
@@ -131,7 +147,7 @@ def prepare_ncdf_data(weatherbundle, calculation, my_regions, push_callback=None
 
     return columndata
         
-def write_ncdf(targetdir, basename, weatherbundle, calculation, description, calculation_dependencies, my_regions, subset=None, deltamethod_vcv=False):
+def write_ncdf(targetdir, basename, columndata, weatherbundle, calculation, description, calculation_dependencies, my_regions, subset=None, deltamethod_vcv=False):
     """Compute and write impact projection to NetCDF file
 
     No values are returned. This function writes projected values to a NetCDF

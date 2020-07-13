@@ -53,11 +53,13 @@ def produce(targetdir, weatherbundle, economicmodel, qvals, do_only=None, suffix
         if 'adm0' in basename:
             calculation, dependencies, covarnames = standard.prepare_csvv(filepath, thisqvals, betas_callback, True)
             my_regions = configs.get_regions(weatherbundle.regions, lambda region: (country_covariator.get_current(region[:3]),))
-            columns = effectset.write_ncdf(thisqvals['weather'], targetdir, basename + suffix, weatherbundle, calculation, my_regions, "Interpolated response for " + basename + ".", dependencies + weatherbundle.dependencies)
+            columndata = effectset.prepare_ncdf_data(weatherbundle, calculation, my_regions)
+            effectset.write_ncdf(thisqvals['weather'], targetdir, basename + suffix, columndata, weatherbundle, calculation, my_regions, "Interpolated response for " + basename + ".", dependencies + weatherbundle.dependencies)
         elif 'adm2' in basename:
             calculation, dependencies, covarnames = standard.prepare_csvv(filepath, thisqvals, betas_callback, False)
             my_regions = configs.get_regions(weatherbundle.regions, lambda region: (subcountry_covariator.get_current(region),))
-            columns = effectset.write_ncdf(thisqvals['weather'], targetdir, basename + suffix, weatherbundle, calculation, my_regions, "Interpolated response for " + basename + ".", dependencies + weatherbundle.dependencies)
+            columndata = effectset.prepare_ncdf_data(weatherbundle, calculation, my_regions)
+            effectset.write_ncdf(thisqvals['weather'], targetdir, basename + suffix, columndata, weatherbundle, calculation, my_regions, "Interpolated response for " + basename + ".", dependencies + weatherbundle.dependencies)
         else:
             raise ValueError("Unknown calculation type: " + basename)
 
