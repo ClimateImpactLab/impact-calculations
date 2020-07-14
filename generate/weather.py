@@ -290,6 +290,7 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
         return alldims
 
 class HistoricalWeatherBundle(DailyWeatherBundle):
+
     def __init__(self, pastreaders, futureyear_end, seed, scenario, model, hierarchy='hierarchy.csv', transformer=WeatherTransformer()):
         super(HistoricalWeatherBundle, self).__init__(scenario, model, hierarchy, transformer)
         self.pastreaders = pastreaders
@@ -396,6 +397,14 @@ class AmorphousWeatherBundle(WeatherBundle):
         return PastFutureWeatherBundle(pastfuturereaders, self.scenario, self.model)
 
 class RollingYearTransfomer(WeatherTransformer):
+    """WeatherTransformer giving years and weather for a number of past years
+
+    Parameters
+    ----------
+    rolling_years : int, optional
+        Number of previous years to include in output transformation. Must be
+        > 1.
+    """
     def __init__(self, rolling_years=1):
         self.rolling_years = rolling_years
         assert self.rolling_years > 1
@@ -403,9 +412,26 @@ class RollingYearTransfomer(WeatherTransformer):
         self.last_year = None
 
     def get_years(self, years):
+        """Get rolling years from 'years' sequence"""
         return years[:-self.rolling_years + 1]
         
     def push(self, year, ds):
+        """Yield transformed year(s) and Dataset(s) for year and Dataset
+
+        Parameters
+        ----------
+        year : int
+            Input year to transform.
+        ds : xarray.Dataset
+            Dataset of weather. Assumed to have a "time" dim.
+
+        Yields
+        ------
+        int
+            Transformed year.
+        xarray.Dataset
+            Weather data for transformed year.
+        """
         if self.last_year is not None and year != self.last_year + 1:
             self.pastdses = []
         self.last_year = year
