@@ -11,6 +11,7 @@ class SlaveParallelWeatherBundle(weather.WeatherBundle):
         while True:
             outputs = self.master.request_action(self.local, 'yearbundles', maxyear=maxyear, variable_ofinterest=variable_ofinterest)
             if 'ds' not in outputs:
+                self.master.end_timestep(self.local) # Acknowledge end
                 break
             yield outputs['year'], outputs['ds']
             self.master.end_timestep(self.local)

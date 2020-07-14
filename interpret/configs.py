@@ -1,5 +1,7 @@
 import yaml, copy, itertools
 
+global_statman = None
+
 def standardize(config):
     newconfig = copy.copy(config)
 

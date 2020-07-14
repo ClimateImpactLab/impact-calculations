@@ -34,6 +34,7 @@ class LockstepParallelMaster(object):
             try:
                 self.barrier.wait()
                 self._intermission_threadsafe(next_outputs)
+                print("----- LOCKSTEP -----")
                 self.barrier.wait()
             except threading.BrokenBarrierError:
                 # This happens if aborted while in prepare_next
@@ -120,6 +121,7 @@ class FoldedActionsLockstepParallelMaster(LockstepParallelMaster):
 
         # Read-only, except update during intermission
         self.ending_action = None
+        self.ending_clock = 0
         
         # Master-only
         self.clock = 0
@@ -147,7 +149,9 @@ class FoldedActionsLockstepParallelMaster(LockstepParallelMaster):
             self.lockstep_pause()
 
         if self.drop_after_index is not None:
+            print("Drop after " + str(self.drop_after_index))
             self.ending_action = self.action_list[self.drop_after_index]
+            self.ending_clock = self.clock
             self.action_list = self.action_list[:self.drop_after_index]
             self.drop_after_index = None
             
@@ -157,6 +161,8 @@ class FoldedActionsLockstepParallelMaster(LockstepParallelMaster):
         with self.lock:
             if self.complete:
                 return None
+
+        print("Actions: " + str(len(self.action_list)))
             
         # No new actions: just run all known actions
         self.clock += 1
@@ -175,7 +181,7 @@ class FoldedActionsLockstepParallelMaster(LockstepParallelMaster):
     def instant_action(self, action, *args, **kwargs):
         with self.lock:
             if self.new_action:
-                assert self.new_action == (action, args, kwargs), "Slaves are requesting different actions."
+                assert self.new_action == (action, args, kwargs), "Slaves are requesting different instant actions."
             else:
                 self.new_action = (action, args, kwargs)
                 self.is_new_action_instant = True
@@ -190,13 +196,14 @@ class FoldedActionsLockstepParallelMaster(LockstepParallelMaster):
         if local.action_index < len(self.action_list) and self.action_list[local.action_index] == (action, args, kwargs):
             # already in the list and being performed
             local.action_index += 1
-        elif local.action_index == len(self.action_list) and self.ending_action == (action, args, kwargs) and local.ending_acknowledge < self.clock:
+        elif local.action_index == len(self.action_list) and self.ending_action == (action, args, kwargs) and local.ending_acknowledge < self.ending_clock:
             local.ending_acknowledge = self.clock
+            print("Skip for acknowledgement.")
         else:
             assert local.action_index == len(self.action_list), "Actions cannot be added mid-sequence."
             with self.lock:
                 if self.new_action:
-                    assert self.new_action == (action, args, kwargs), "Slaves are requesting different actions."
+                    assert self.new_action == (action, args, kwargs), "Slaves are requesting different master actions."
                 else:
                     self.new_action = (action, args, kwargs)
                     self.is_new_action_instant = False

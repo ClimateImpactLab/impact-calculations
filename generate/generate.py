@@ -46,6 +46,7 @@ def main(config, runid=None):
 
     # Create the object for claiming directories
     statman = paralog.StatusManager('generate', "generate.generate " + str(runid), 'logs', claim_timeout)
+    configs.global_statman = statman
 
     targetdir = None # The current targetdir
 

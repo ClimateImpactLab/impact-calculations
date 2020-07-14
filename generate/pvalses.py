@@ -124,6 +124,11 @@ class OnDemandRandomDictionary:
         self.values[fullname] = seed
         return seed
 
+    def set_seed(self, name, seed):
+        assert not self.locked
+        fullname = "seed-%s" % name
+        self.values[fullname] = seed
+
 def get_pval_file(targetdir):
     return os.path.join(targetdir, "pvals.yml")
 

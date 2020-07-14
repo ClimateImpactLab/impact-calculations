@@ -89,7 +89,7 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config=None, quiet
     else:
         user_failure("Covariate %s is unknown." % covar)
 
-def create_covariator(specconf, weatherbundle, economicmodel, config=None, quiet=False):
+def create_covariator(specconf, weatherbundle, economicmodel, config=None, quiet=False, farmer=None):
     """Interprets the entire covariates dictionary in the configuration file.
 
     Parameters
@@ -108,7 +108,7 @@ def create_covariator(specconf, weatherbundle, economicmodel, config=None, quiet
     if config is None:
         config = {}
     if parallel_covariates.is_parallel(weatherbundle, economicmodel, config):
-        return parallel_covariates.create_covariator(specconf, weatherbundle, economicmodel)
+        return parallel_covariates.create_covariator(specconf, weatherbundle, economicmodel, farmer)
     if 'covariates' in specconf:
         covariators = []
         for covar in specconf['covariates']:
@@ -368,7 +368,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     
     depenunit = specconf['depenunit']
     
-    covariator = create_covariator(specconf, weatherbundle, economicmodel, config)
+    covariator = create_covariator(specconf, weatherbundle, economicmodel, config, farmer=farmer)
     final_curvegen = create_curvegen(csvv, covariator, weatherbundle.regions, farmer=farmer, specconf=specconf)
 
     extras = dict(output_unit=depenunit, units=depenunit, curve_description=specconf['description'], errorvar=csvvfile.get_errorvar(csvv))
