@@ -4,7 +4,7 @@ import xarray as xr
 from netCDF4 import Dataset
 import helpers.header as headre
 from openest.generate import retrieve, diagnostic, fast_dataset
-from adaptation import curvegen
+from adaptation import curvegen, parallel_covariates
 from interpret import configs
 from . import server, nc4writer
 
@@ -91,7 +91,7 @@ def generate(targetdir, basename, weatherbundle, calculation, description, calcu
 
     if parallel_covariates.is_parallel(weatherbundle):
         weatherbundle.master.lock.acquire()
-    write_ncdf(targetdir, basename, weatherbundle, calculation, description, calculation_dependencies, my_regions, subset=subset, deltamethod_vcv=deltamethod_vcv)
+    write_ncdf(targetdir, basename, columndata, weatherbundle, calculation, description, calculation_dependencies, my_regions, subset=subset, deltamethod_vcv=deltamethod_vcv)
     if parallel_covariates.is_parallel(weatherbundle):
         weatherbundle.master.lock.release()
 
@@ -227,11 +227,12 @@ def write_ncdf(targetdir, basename, columndata, weatherbundle, calculation, desc
 
     years[:] = yeardata
 
-    for col in range(len(results)):
-        if deltamethod_vcv is not False:
+    if deltamethod_vcv is not False:
+        for col in range(len(columndata) / 2):
             columns[2 * col][:, :] = columndata[2 * col]
             columns[2 * col + 1][:, :, :] = columndata[2 * col + 1]
-        else:
+    else:
+        for col in range(len(columndata)):
             columns[col][:, :] = columndata[col]
 
     rootgrp.close()
