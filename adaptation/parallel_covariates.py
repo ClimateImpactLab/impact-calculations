@@ -39,4 +39,4 @@ class SlaveParallelCovariator(covariates.Covariator):
             self.curr_covars = outputs['curr_covars']
             self.curr_years = outputs['curr_years']
             self.last_offer_year = year
-        return self.source.get_current(region)
+        return self.get_current(region)
