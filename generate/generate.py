@@ -30,6 +30,8 @@ def main(config, runid=None):
         given and "runid" is also in `config` then uses `runid` arg and a 
         warning is printed. This is for backwards compatibility.
     """
+    global do_single
+    
     print("Initializing...")
 
     if runid is None:
@@ -43,6 +45,8 @@ def main(config, runid=None):
     # Collect the configuration
     claim_timeout = config.get('timeout', 12) * 60*60
     singledir = config.get('singledir', 'single')
+
+    do_single = config.get('do-single', False)
 
     # Create the object for claiming directories
     statman = paralog.StatusManager('generate', "generate.generate " + str(runid), 'logs', claim_timeout)
