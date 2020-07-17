@@ -20,6 +20,41 @@ def get_yearorder(temp2year, weatherbundle):
             break
     return years
 
+class StubWeatherReader():
+    def __init__(self):
+        self.version = None
+        self.units = None
+        self.dependencies = None
+        self._regions = ["a"]
+        self._data = {1000: 0, 1001: 1, 1002: 2}
+        self._dims = ["time", "region"]
+
+    def get_years(self):
+        return list(self._data.keys())
+
+    def read_year(self, y):
+        v = self._data[y]
+
+        # This whole setup is a hack to get some test data to run through
+        # fast_dataset structures without breaking. I'm so sorry.
+        region_coord_da = xr.DataArray(
+            np.array(self._regions), [np.array(self._regions)], ("region",),
+        )
+        out = fast_dataset.FastDataset(
+            {"temp": xr.Variable(self._dims, np.ones((1, 1)) * v)},
+            coords={
+                "time": np.array([y]),
+                "region": region_coord_da,
+            },
+        )
+        return out
+
+    def get_dimension(self):
+        return self._dims
+
+    def get_regions(self):
+        return self._regions
+
 
 @pytest.fixture
 def weatherbundle_simple(monkeypatch):
@@ -186,6 +221,115 @@ class TestRollingYearTransfomer:
         )
 
 
+class TestHistoricalWeatherBundle:
+    """Unit tests for basic behavior of generate.weather.HistoricalWeatherBundle
+    """
+
+    @pytest.mark.parametrize(
+        "seed,expected",
+        [
+            (123, np.array([1002, 1001, 1002, 1002])),
+            (None, np.array([1000, 1001, 1002, 1001])),
+        ],
+        ids=("seeded", "unseeded")
+    )
+    def test_init_seeding(self, seed, expected):
+        """Test that initializes and samples correctly when seeded or not
+        """
+        victim = weather.HistoricalWeatherBundle(
+            pastreaders=[StubWeatherReader()],
+            futureyear_end=1003,
+            seed=seed,
+            scenario="rcp45",
+            model="CCSM4"
+        )
+        npt.assert_equal(
+            victim.pastyears,
+            expected,
+        )
+
+    @pytest.mark.parametrize("seed", [(123), (None)], ids=("seeded", "unseeded"))
+    def test_init_pastyearslen(self, weatherbundle_simple, seed):
+        """Test that self.pastyears initializes with correct len
+        """
+        victim = weather.HistoricalWeatherBundle(
+            pastreaders=[StubWeatherReader()],
+            futureyear_end=1003,
+            seed=seed,
+            scenario="rcp45",
+            model="CCSM4"
+        )
+        assert len(victim.pastyears) == 4
+
+    @pytest.mark.parametrize("n_readers", [(1), (2)], ids=("1 pastreaders", "2 pastreaders"))
+    def test_yearbundles_years(self, n_readers):
+        """Test yearbundles() yields years correctly
+        """
+        hwb = weather.HistoricalWeatherBundle(
+            pastreaders=[StubWeatherReader()] * n_readers,
+            futureyear_end=1003,
+            seed=None,
+            scenario="rcp45",
+            model="CCSM4"
+        )
+        victim = list(hwb.yearbundles())
+
+        # Unpack data for testing
+        out_years = [y for y, _ in victim]
+
+        assert out_years == [1000, 1001, 1002, 1003]
+
+    @pytest.mark.parametrize("n_readers", [(1), (2)], ids=("1 pastreaders", "2 pastreaders"))
+    def test_yearbundles_ds(self, n_readers):
+        """Test yearbundles() yields dataset values correctly
+        """
+        hwb = weather.HistoricalWeatherBundle(
+            pastreaders=[StubWeatherReader()] * n_readers,
+            futureyear_end=1003,
+            seed=None,
+            scenario="rcp45",
+            model="CCSM4"
+        )
+        victim = list(hwb.yearbundles())
+
+        # Retrieving data from fastdataset is hackish pain. Will likely
+        # break soon.
+        out_values = [v._variables["temp"]._data.item() for _, v in victim]
+
+        assert out_values == [0, 1, 2, 1]
+
+    @pytest.mark.parametrize(
+        "seed,expected",
+        [
+            (123, np.array([1994, 1983, 1983, 1987, 1998, 2000, 1991, 2003, 1982, 1981])),
+            (None, np.arange(1981, 1991)),
+        ],
+        ids=("seeded", "unseeded")
+    )
+    def test_init_make_historical(self, weatherbundle_simple, seed, expected):
+        """Test that make_historical() initializes and samples when seeded or not
+        """
+        victim = weather.HistoricalWeatherBundle.make_historical(
+            weatherbundle=weatherbundle_simple,
+            seed=seed,
+        )
+        npt.assert_equal(
+            victim.pastyears[:10],
+            expected,
+        )
+
+    @pytest.mark.parametrize("seed", [(123), (None)], ids=("seeded", "unseeded"))
+    def test_init_make_historical_pastyearslen(self, weatherbundle_simple, seed):
+        """Test self.pastyears inits with correct len with make_historical()
+        """
+        victim = weather.HistoricalWeatherBundle.make_historical(
+            weatherbundle=weatherbundle_simple,
+            seed=seed,
+        )
+        assert len(victim.pastyears) == 120
+
+
+# hwb.pastreaders[0].read_year(2005)
 if __name__ == '__main__':
     mapping = temp2year()
     test_repeated(mapping)
