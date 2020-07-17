@@ -11,13 +11,6 @@ from openest.generate import fast_dataset
 ## Test that weather bundles are working properly.
 
 # Utility functions
-
-def get_weatherbundle():
-    """Get a simple weather bundle for tas."""
-    bundleiterator = weather.iterate_bundles(discover.standard_variable('tas', 'year'))
-    scenario, model, weatherbundle = next(bundleiterator)
-    return weatherbundle
-
 def get_yearorder(temp2year, weatherbundle):
     """Return the sequence of years returned by weatherbundle, using the temperature mapping."""
     years = []
@@ -27,15 +20,22 @@ def get_yearorder(temp2year, weatherbundle):
             break
     return years
 
+
+@pytest.fixture
+def weatherbundle_simple(monkeypatch):
+    """Get a simple weather bundle for tas."""
+    monkeypatch.setattr(files, 'server_config', {'shareddir': 'tests/testdata'})
+    bundleiterator = weather.iterate_bundles(discover.standard_variable('tas', 'year'))
+    scenario, model, weatherbundle = next(bundleiterator)
+    return weatherbundle
+
+
 # Provides data for all tests
 @pytest.fixture
-def temp2year(monkeypatch):
+def temp2year(monkeypatch, weatherbundle_simple):
     """Return a mapping between observed temperatures and the year they are observed."""
-    monkeypatch.setattr(files, 'server_config', {'shareddir': 'tests/testdata'})
-
     temp2year = {}
-    weatherbundle = get_weatherbundle()
-    for year, ds in weatherbundle.yearbundles():
+    for year, ds in weatherbundle_simple.yearbundles():
         temp2year[np.mean(ds['tas'][0])] = year
         if year > 2050:
             break
@@ -43,20 +43,20 @@ def temp2year(monkeypatch):
 
 # The tests
 
-def test_repeated(temp2year):
+def test_repeated(temp2year, weatherbundle_simple):
     """Does a median weatherset zig-zag properly?"""
-    weatherbundle = get_weatherbundle()
-    historybundle = weather.HistoricalWeatherBundle.make_historical(weatherbundle, None)
+    historybundle = weather.HistoricalWeatherBundle.make_historical(
+        weatherbundle_simple, None)
     years = get_yearorder(temp2year, historybundle)
     npt.assert_equal(years[0], 1981)
     npt.assert_equal(max(np.abs(np.diff(years))), 1)
     npt.assert_equal(min(np.abs(np.diff(years))), 1)
     npt.assert_equal(np.max(years), 2005)
 
-def test_shuffled(temp2year):
+def test_shuffled(temp2year, weatherbundle_simple):
     """Does a Monte Carlo weatherset resample properly?"""
-    weatherbundle = get_weatherbundle()
-    historybundle = weather.HistoricalWeatherBundle.make_historical(weatherbundle, 1)
+    historybundle = weather.HistoricalWeatherBundle.make_historical(
+        weatherbundle_simple, 1)
     years = get_yearorder(temp2year, historybundle)
     npt.assert_approx_equal(np.mean(np.abs(np.diff(years))), 8.485714285714286)
     npt.assert_array_less(years, 2006)
