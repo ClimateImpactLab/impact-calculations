@@ -358,7 +358,7 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
         variable_ofinterest : str or None, optional
 
         Yields
-        -------
+        ------
         int
             Year of dataset
         xr.Dataset
