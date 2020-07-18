@@ -8,8 +8,6 @@ from impactlab_tools.utils import files
 from openest.generate import fast_dataset
 
 
-## Test that weather bundles are working properly.
-
 # Utility functions
 def get_yearorder(temp2year, weatherbundle):
     """Return the sequence of years returned by weatherbundle, using the temperature mapping."""
@@ -20,7 +18,9 @@ def get_yearorder(temp2year, weatherbundle):
             break
     return years
 
+
 class StubWeatherReader():
+    """WeatherReader-like stub for test input purposes only"""
     def __init__(self):
         self.version = None
         self.units = None
@@ -120,8 +120,7 @@ class TestRollingYearTransfomer:
         This might break because of changes in fragile open_estimate.fast_dataset.
         Cuidado.
         """
-        n_roll = 2
-        transformer = weather.RollingYearTransfomer(rolling_years=n_roll)
+        transformer = weather.RollingYearTransfomer(rolling_years=2)
 
         # Making some fake Datasets, one for each time coord.
         # This whole setup is a hack to get some test data to run through
@@ -169,8 +168,7 @@ class TestRollingYearTransfomer:
         This might break because of changes in fragile open_estimate.fast_dataset.
         Cuidado.
         """
-        n_roll = 2
-        transformer = weather.RollingYearTransfomer(rolling_years=n_roll)
+        transformer = weather.RollingYearTransfomer(rolling_years=2)
 
         # Making some fake Datasets, one for each time coord.
         # This whole setup is a hack to get some test data to run through
@@ -248,7 +246,7 @@ class TestHistoricalWeatherBundle:
             expected,
         )
 
-    @pytest.mark.parametrize("seed", [(123), (None)], ids=("seeded", "unseeded"))
+    @pytest.mark.parametrize("seed", [123, None], ids=("seeded", "unseeded"))
     def test_init_pastyearslen(self, weatherbundle_simple, seed):
         """Test that self.pastyears initializes with correct len
         """
@@ -261,7 +259,7 @@ class TestHistoricalWeatherBundle:
         )
         assert len(victim.pastyears) == 4
 
-    @pytest.mark.parametrize("n_readers", [(1), (2)], ids=("1 pastreaders", "2 pastreaders"))
+    @pytest.mark.parametrize("n_readers", [1, 2], ids=("1 pastreaders", "2 pastreaders"))
     def test_yearbundles_years(self, n_readers):
         """Test yearbundles() yields years correctly
         """
@@ -279,7 +277,7 @@ class TestHistoricalWeatherBundle:
 
         assert out_years == [1000, 1001, 1002, 1003]
 
-    @pytest.mark.parametrize("n_readers", [(1), (2)], ids=("1 pastreaders", "2 pastreaders"))
+    @pytest.mark.parametrize("n_readers", [1, 2], ids=("1 pastreaders", "2 pastreaders"))
     def test_yearbundles_ds(self, n_readers):
         """Test yearbundles() yields dataset values correctly
         """
@@ -318,7 +316,7 @@ class TestHistoricalWeatherBundle:
             expected,
         )
 
-    @pytest.mark.parametrize("seed", [(123), (None)], ids=("seeded", "unseeded"))
+    @pytest.mark.parametrize("seed", [123, None], ids=("seeded", "unseeded"))
     def test_init_make_historical_pastyearslen(self, weatherbundle_simple, seed):
         """Test self.pastyears inits with correct len with make_historical()
         """
@@ -329,7 +327,84 @@ class TestHistoricalWeatherBundle:
         assert len(victim.pastyears) == 120
 
 
-# hwb.pastreaders[0].read_year(2005)
+class TestHistoricalRollingYearTransfomer:
+    """
+    Integration test for HistoricalWeatherBundle and RollingYearTransfomer
+    """
+    @pytest.mark.parametrize(
+        "seed,expected",
+        [
+            (123, np.array([1002, 1001, 1002, 1002, 1000])),
+            (None, np.array([1000, 1001, 1002, 1001, 1000])),
+        ],
+        ids=("seeded", "unseeded")
+    )
+    def test_init_seeding(self, seed, expected):
+        """
+        Test that init with RollingYearTransfomer samples historical correctly
+        """
+        victim = weather.HistoricalWeatherBundle(
+            pastreaders=[StubWeatherReader()],
+            futureyear_end=1004,
+            seed=seed,
+            scenario="rcp45",
+            model="CCSM4",
+            transformer=weather.RollingYearTransfomer(rolling_years=2)
+        )
+        npt.assert_equal(
+            victim.pastyears,
+            expected,
+        )
+
+    @pytest.mark.parametrize("n_readers", [1, 2], ids=("1 pastreaders", "2 pastreaders"))
+    def test_yearbundles_years(self, n_readers):
+        """
+        Test yearbundles() yields years correctly when rolling 2 years
+        """
+        hwb = weather.HistoricalWeatherBundle(
+            pastreaders=[StubWeatherReader()] * n_readers,
+            futureyear_end=1004,
+            seed=123,
+            scenario="rcp45",
+            model="CCSM4",
+            transformer=weather.RollingYearTransfomer(rolling_years=2)
+        )
+        victim = list(hwb.yearbundles())
+
+        # Unpack data for testing
+        out_years = [y for y, _ in victim]
+
+        assert out_years == [1000, 1001, 1002, 1003]
+
+    @pytest.mark.parametrize("n_readers", [1, 2], ids=("1 pastreaders", "2 pastreaders"))
+    def test_yearbundles_ds(self, n_readers):
+        """
+        Test yearbundles() yields dataset values correctly when rolling 2 yrs
+        """
+        hwb = weather.HistoricalWeatherBundle(
+            pastreaders=[StubWeatherReader()] * n_readers,
+            futureyear_end=1004,
+            seed=123,
+            scenario="rcp45",
+            model="CCSM4",
+            transformer=weather.RollingYearTransfomer(rolling_years=2)
+        )
+        victim = list(hwb.yearbundles())
+
+        # Retrieving data from fastdataset is hackish pain. Will likely
+        # break soon.
+        out_values = [v._variables["temp"]._data for _, v in victim]
+
+        # assert out_values == [0, 1, 2, 1]
+        npt.assert_allclose(
+            np.array([[[2.0], [1.0]],
+                      [[1.0], [2.0]],
+                      [[2.0], [2.0]],
+                      [[2.0], [0.0]]]),
+            np.array(out_values),
+        )
+
+
 if __name__ == '__main__':
     mapping = temp2year()
     test_repeated(mapping)
