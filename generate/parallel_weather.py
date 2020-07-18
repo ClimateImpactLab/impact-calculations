@@ -1,6 +1,9 @@
 import numpy as np
 from . import multithread, weather
 
+def is_parallel(weatherbundle):
+    return isinstance(weatherbundle, SlaveParallelWeatherBundle)
+
 # Allow any thread to request the bundle first
 class SlaveParallelWeatherBundle(weather.WeatherBundle):
     def __init__(self, master, local):

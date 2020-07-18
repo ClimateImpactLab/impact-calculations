@@ -1,4 +1,8 @@
+def is_parallel(weatherbundle):
+    return isinstance(economicmodel, SlaveParallelSSPEconomicModel)
+
 class SlaveParallelSSPEconomicModel(object):
+    """Thread-safe SSPEconomicModel-mimic. As normally used, always raises errors."""
     def __init__(self, master, local, saved_baselines=None):
         self.master = master
         self.local = local

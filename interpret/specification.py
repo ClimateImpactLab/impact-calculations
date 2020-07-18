@@ -9,7 +9,8 @@ precipitation.
 """
 
 import re
-from adaptation import csvvfile, curvegen, curvegen_known, curvegen_arbitrary, covariates, constraints, parallel_covariates
+from adaptation import csvvfile, curvegen, curvegen_known, curvegen_arbitrary, covariates, constraints, parallel_covariates, parallel_econmodel
+from generate import parallel_weather
 from datastore import irvalues
 from openest.generate import smart_curve, selfdocumented
 from openest.models.curve import ShiftedCurve, MinimumCurve, ClippedCurve
@@ -107,7 +108,7 @@ def create_covariator(specconf, weatherbundle, economicmodel, config=None, quiet
     """
     if config is None:
         config = {}
-    if parallel_covariates.is_parallel(weatherbundle, economicmodel, config):
+    if parallel_weather.is_parallel(weatherbundle) and parallel_econmodel.is_parallel(economicmodel):
         return parallel_covariates.create_covariator(specconf, weatherbundle, economicmodel, farmer)
     if 'covariates' in specconf:
         covariators = []
