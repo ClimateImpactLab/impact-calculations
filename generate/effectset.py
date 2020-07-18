@@ -4,9 +4,9 @@ import xarray as xr
 from netCDF4 import Dataset
 import helpers.header as headre
 from openest.generate import retrieve, diagnostic, fast_dataset
-from adaptation import curvegen, parallel_covariates
+from adaptation import curvegen
 from interpret import configs
-from . import server, nc4writer
+from . import server, nc4writer, parallel_weather
 
 
 def simultaneous_application(weatherbundle, calculation, regions=None, push_callback=None):
@@ -89,10 +89,10 @@ def generate(targetdir, basename, weatherbundle, calculation, description, calcu
     my_regions = configs.get_regions(weatherbundle.regions, filter_region)
     columndata = prepare_ncdf_data(weatherbundle, calculation, my_regions, push_callback=push_callback, diagnosefile=diagnosefile, deltamethod_vcv=deltamethod_vcv)
 
-    if parallel_covariates.is_parallel(weatherbundle):
+    if parallel_weather.is_parallel(weatherbundle):
         weatherbundle.master.lock.acquire()
     write_ncdf(targetdir, basename, columndata, weatherbundle, calculation, description, calculation_dependencies, my_regions, subset=subset, deltamethod_vcv=deltamethod_vcv)
-    if parallel_covariates.is_parallel(weatherbundle):
+    if parallel_weather.is_parallel(weatherbundle):
         weatherbundle.master.lock.release()
 
 def prepare_ncdf_data(weatherbundle, calculation, my_regions, push_callback=None, diagnosefile=False, deltamethod_vcv=False):

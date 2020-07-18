@@ -1,19 +1,15 @@
 import numpy as np
 from generate import parallel_weather
-from . import covariates, parallel_econmodel
-
-def is_parallel(weatherbundle, economicmodel=None, config=None):
-    if economicmodel is not None:
-        return isinstance(weatherbundle, parallel_weather.SlaveParallelWeatherBundle) and isinstance(economicmodel, parallel_econmodel.SlaveParallelSSPEconomicModel)
-    else:
-        return isinstance(weatherbundle, parallel_weather.SlaveParallelWeatherBundle)
+from . import covariates
     
 def create_covariator(specconf, weatherbundle, economicmodel, farmer):
+    """Ask the master create the covariator."""
     assert isinstance(weatherbundle, parallel_weather.SlaveParallelWeatherBundle)
     covariator = weatherbundle.master.instant_action("create_covariator", specconf)
     return SlaveParallelCovariator(weatherbundle.master, covariator, weatherbundle.local, farmer)
 
 class SlaveParallelCovariator(covariates.Covariator):
+    """Thread-safe covariator, which requests updates through the master."""
     def __init__(self, master, source, local, farmer):
         super(SlaveParallelCovariator, self).__init__(source.startupdateyear, config={'yearcovarscale': source.yearcovarscale})
         self.master = master
