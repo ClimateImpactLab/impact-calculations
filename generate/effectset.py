@@ -69,7 +69,15 @@ def simultaneous_application(weatherbundle, calculation, regions=None, push_call
     calculation.cleanup()
 
 def generate(targetdir, basename, weatherbundle, calculation, description, calculation_dependencies, config, filter_region=None, push_callback=None, subset=None, diagnosefile=False, deltamethod_vcv=False):
-    """
+    """Compute impact projection and write to a file
+
+    See the subprocesses prepare_ncdf_data and write_ncdf for most
+    parameter definitions. The only additional parameter handled by
+    this function is `filter_region`; it also works differently for
+    the 'profile' or 'diagnostic' modes.
+
+    Parameters
+    ----------
     filter_region : str or None, optional
         One or more regions to perform calculations for. If None, uses all
         regions available in ``weatherbundle.regions``.
@@ -98,6 +106,10 @@ def generate(targetdir, basename, weatherbundle, calculation, description, calcu
 def prepare_ncdf_data(weatherbundle, calculation, my_regions, push_callback=None, diagnosefile=False, deltamethod_vcv=False):
     """Compute impact projection
 
+    Organizes data returned by `simultaneous_calculation` into a
+    matrix to be written to a NetCDF file.  It may also write a
+    diagnostic file, if specified.
+
     Parameters
     ----------
     weatherbundle : generate.weather.DailyWeatherBundle
@@ -114,6 +126,7 @@ def prepare_ncdf_data(weatherbundle, calculation, my_regions, push_callback=None
     deltamethod_vcv : ndarray or bool, optional
         2D variance-covariance float array if the projection is to run with the
         delta method. If ``False``, the delta method is not used.
+
     """
     yeardata = weatherbundle.get_years()
     columndata = [] # [matrix(year x region)]
@@ -148,10 +161,10 @@ def prepare_ncdf_data(weatherbundle, calculation, my_regions, push_callback=None
     return columndata
         
 def write_ncdf(targetdir, basename, columndata, weatherbundle, calculation, description, calculation_dependencies, my_regions, subset=None, deltamethod_vcv=False):
-    """Compute and write impact projection to NetCDF file
+    """Write impact projection to NetCDF file
 
     No values are returned. This function writes projected values to a NetCDF
-    file. It may also write a diagnostic file, if specified.
+    file.
 
     Parameters
     ----------

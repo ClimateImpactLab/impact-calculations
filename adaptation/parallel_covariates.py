@@ -1,3 +1,7 @@
+"""
+Covariator object used by slaves during parallel processing runs.
+"""
+
 import numpy as np
 from generate import parallel_weather
 from . import covariates

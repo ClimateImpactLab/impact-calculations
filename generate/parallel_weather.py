@@ -1,11 +1,15 @@
+"""
+WeatherBundle object used by slaves during parallel processing runs.
+"""
+
 import numpy as np
 from . import multithread, weather
 
 def is_parallel(weatherbundle):
     return isinstance(weatherbundle, SlaveParallelWeatherBundle)
 
-# Allow any thread to request the bundle first
 class SlaveParallelWeatherBundle(weather.WeatherBundle):
+    """Thread-safe WeatherBundle, which allows any thread to request year bundles first."""
     def __init__(self, master, local):
         self.master = master
         self.local = local

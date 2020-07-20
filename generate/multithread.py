@@ -1,7 +1,5 @@
 import copy, threading
 
-## NEW SETUP:
-
 class LockstepParallelMaster(object):
     """Facilitates a parallel programming structure with master and slave threads.
 
