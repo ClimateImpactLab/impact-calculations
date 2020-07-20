@@ -17,6 +17,9 @@ included in the generate configuration file.
    considering a directory abandoned (default: 12).
  - `mc-n`: Desired number of Monte Carlo iterations ("batches") when 
     `mode: montecarlo`. Ignored if `only-batch-number` is set.
+ - `cores`: Used under multithreading mode. Must be greater than 1,
+   since one thread is used to prepare shared data for 1 or more slave
+   threads. `mode` must be `parallelmc` or `testparallelpe`.
 
 # Options within a target
 
