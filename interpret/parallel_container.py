@@ -1,3 +1,24 @@
+"""Configuration-based calculation processing under multithreading.
+
+Under multithreading, a master thread prepares shared data for each
+timestep, consisting of weather data and (after 2015) covariate
+data. Slave threads perform their work with wrapped objects providing
+read-only access to this shared data.
+
+The master thread does not decide on the order of operations. Instead,
+it waits for slave threads to request various actions. All slave
+threads proceed in lockstep, so that if one is going to request an
+action, all will. At that point, the master is given time to perform
+the action first immediately, and then it will continue to perform it
+in future timesteps, while the slaves are working on the last
+timestep's values.
+
+This allows all processing logic in effectset to be performed at the
+slave level. That is, the code below this point is unchanged and run
+by slaves, and the code does not need special conditions for parallel
+processing.
+"""
+
 import os, threading
 from openest.generate import fast_dataset
 from . import container, configs, specification
@@ -8,9 +29,15 @@ from impactlab_tools.utils import paralog
 preload = container.preload
 get_bundle_iterator = container.get_bundle_iterator
 
-## NOTE: All logic in effectset can be at the slave level with shared data
-
 class WeatherCovariatorLockstepParallelMaster(multithread.FoldedActionsLockstepParallelMaster):
+    """The master thread controller.
+
+    Contains shared sources of data (weatherbundle, economicmodel),
+    maintains shared data production (through weatheriter and
+    farm_curvegen), and defines actions available to the slaves. These
+    actions are called when a wrapped slave object (like
+    SlaveParallelWeatherBundle) needs shared data.
+    """
     def __init__(self, weatherbundle, economicmodel, config, mcdraws, seed, regions=None):
         super(WeatherCovariatorLockstepParallelMaster, self).__init__(mcdraws)
         self.weatherbundle = weatherbundle
@@ -28,12 +55,17 @@ class WeatherCovariatorLockstepParallelMaster(multithread.FoldedActionsLockstepP
         self.weatheriter = None
         self.farm_curvegen = None
         self.covariator = None
+
+        # Has any slave found work to do?
+        self.any_slave_working = False
         
     def setup_yearbundles(self, *request_args, **request_kwargs):
+        """Start producing yearly weather data. Called by a `request_action`."""
         assert self.weatheriter is None
         self.weatheriter = self.weatherbundle.yearbundles(*request_args, **request_kwargs)
 
     def yearbundles(self, outputs, *request_args, **request_kwargs):
+        """Collects the next year of weather data. Called by system after a `request_action`."""
         try:
             year, ds = next(self.weatheriter)
             return {'year': year, 'ds': ds}
@@ -41,14 +73,21 @@ class WeatherCovariatorLockstepParallelMaster(multithread.FoldedActionsLockstepP
             self.weatheriter = None
             return None # stop this and following actions
 
-    def instant_create_covariator(self, specconf): # Returns master thread's covariator; needs to be wrapped
+    def instant_create_covariator(self, specconf):
+        """Create a covariator using the shared weatherbundle and economic model.
+
+        Called by an `instant_action` call. Returns master thread's
+        covariator; needs to be wrapped in a SlaveParallelCovariator.
+        """
         return specification.create_covariator(specconf, self.weatherbundle, self.economicmodel, config=self.config)
 
     def instant_make_historical(self):
+        """Cause the shared weatherbundle to be replaced by a historical version."""
         print("Historical")
         self.weatherbundle = weather.HistoricalWeatherBundle.make_historical(self.weatherbundle, self.seed)
     
     def setup_covariate_update(self, covariator, farmer):
+        """Start updating covariates. Called by a `request_action`."""
         self.covariator = covariator
         self.farm_curvegen = curvegen.FarmerCurveGenerator(curvegen.ConstantCurveGenerator(['unused'], 'unused', curvegen.FlatCurve(0)),
                                                            covariator, farmer, save_curve=False)
@@ -57,6 +96,7 @@ class WeatherCovariatorLockstepParallelMaster(multithread.FoldedActionsLockstepP
             self.farm_curvegen.get_curve(region, 2010, weather=None)
 
     def covariate_update(self, outputs, covariator, farmer):
+        """Update covariates on each timestep. Called by system after a `request_action`."""
         curr_covars = {}
         curr_years = {}
         for region, subds in fast_dataset.region_groupby(outputs['ds'], outputs['year'], self.regions, self.region_indices):
@@ -67,6 +107,7 @@ class WeatherCovariatorLockstepParallelMaster(multithread.FoldedActionsLockstepP
         return dict(covars_update_year=outputs['year'], curr_covars=curr_covars, curr_years=curr_years)
 
 def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callback=None, suffix='', profile=False, diagnosefile=False):
+    """Split the processing to the slaves."""
     assert config['cores'] > 1, "More than one core needed."
     assert pvals is None, "Slaves must create their own pvals."
     assert push_callback is None and suffix == '' and not profile and not diagnosefile, "Cannot use diagnostic options."
@@ -84,12 +125,16 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
     master.loop(slave_produce, targetdir, config)
 
 def slave_produce(proc, master, masterdir, config):
+    """
+    Find a single batch and produce data into it.
+    """
     # Create the thread local data
     local = threading.local()
 
     # Create the object for claiming directories
     claim_timeout = config.get('timeout', 12) * 60*60
-
+    produced_one = False
+    
     for batch in configs.get_batch_iter(config):
         # Construct a pvals and targetdir
         if 'mcmaster' in masterdir:
@@ -106,6 +151,8 @@ def slave_produce(proc, master, masterdir, config):
         with master.lock:
             if not configs.claim_targetdir(configs.global_statman, targetdir, False, config):
                 continue
+            master.any_slave_working = True  # report that we are working
+        produced_one = True
 
         # Wrap weatherbundle
         weatherbundle = parallel_weather.SlaveParallelWeatherBundle(master, local)
@@ -124,3 +171,20 @@ def slave_produce(proc, master, masterdir, config):
         os.system("chmod g+rw " + os.path.join(targetdir, "*"))
         master.end_slave()
         break
+
+    # We could not find a batch
+    if not produced_one:
+        master.lockstep_pause()
+        # Has any slave succeeded in finding work?
+        with master.lock:
+            any_slave_working = master.any_slave_working
+        if any_slave_working:
+            # We need to keep pausing until other slaves are done
+            while True:
+                try:
+                    self.lockstep_pause()
+                except threading.BrokenBarrierError:
+                    break
+    else:
+        # Nothing to wait for, nothing to do
+        master.end_slave()
