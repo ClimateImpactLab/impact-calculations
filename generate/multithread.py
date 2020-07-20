@@ -147,7 +147,6 @@ class FoldedActionsLockstepParallelMaster(LockstepParallelMaster):
             self.lockstep_pause()
 
         if self.drop_after_index is not None:
-            print("Drop after " + str(self.drop_after_index))
             self.ending_action = self.action_list[self.drop_after_index]
             self.ending_clock = self.clock
             self.action_list = self.action_list[:self.drop_after_index]
@@ -160,8 +159,6 @@ class FoldedActionsLockstepParallelMaster(LockstepParallelMaster):
             if self.complete:
                 return None
 
-        print("Actions: " + str(len(self.action_list)))
-            
         # No new actions: just run all known actions
         self.clock += 1
         outputs = {'clock': self.clock}
@@ -196,7 +193,6 @@ class FoldedActionsLockstepParallelMaster(LockstepParallelMaster):
             local.action_index += 1
         elif local.action_index == len(self.action_list) and self.ending_action == (action, args, kwargs) and local.ending_acknowledge < self.ending_clock:
             local.ending_acknowledge = self.clock
-            print("Skip for acknowledgement.")
         else:
             assert local.action_index == len(self.action_list), "Actions cannot be added mid-sequence."
             with self.lock:
