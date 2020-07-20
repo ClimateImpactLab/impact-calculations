@@ -2,7 +2,7 @@
 SSPEconomicModel object used by slaves during parallel processing runs.
 """
 
-def is_parallel(weatherbundle):
+def is_parallel(economicmodel):
     return isinstance(economicmodel, SlaveParallelSSPEconomicModel)
 
 class SlaveParallelSSPEconomicModel(object):
