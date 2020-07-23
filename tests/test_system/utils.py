@@ -7,14 +7,14 @@ from generate.generate import main
 
 
 @contextmanager
-def tmpdir_projection(cfg, runid):
+def tmpdir_projection(cfg, cfg_name):
     """Context manager to generate projection in tmpdir, then cleanup output
 
     Parameters
     ----------
     cfg : dict
         Run configuration dict.
-    runid : str
+    cfg_name : str
 
     Yields
     ------
@@ -26,5 +26,5 @@ def tmpdir_projection(cfg, runid):
         tempdir_path = Path(tmpdirname)
         cfg["outputdir"] = str(tempdir_path)
 
-        main(cfg, runid)
+        main(cfg, cfg_name)
         yield tempdir_path

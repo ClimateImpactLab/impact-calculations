@@ -43,8 +43,8 @@ def generate(confpath, conf):
     file_configs.update(arg_configs)
 
     # For legacy purposes
-    if not file_configs.get("runid"):
-        file_configs["runid"] = str(confpath.stem)
+    if not file_configs.get("config_name"):
+        file_configs["config_name"] = str(confpath.stem)
 
     ggmain(file_configs)
 
@@ -59,8 +59,8 @@ def diagnostic(confpath):
     file_configs = get_file_config(confpath)
 
     # For legacy purposes
-    if not file_configs.get("runid"):
-        file_configs["runid"] = str(confpath.stem)
+    if not file_configs.get("config_name"):
+        file_configs["config_name"] = str(confpath.stem)
 
     diagnostic_configs = {
         "filter-region": "USA.14.608",
