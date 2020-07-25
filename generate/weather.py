@@ -368,7 +368,7 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
 
         if len(self.pastreaders) == 1:
             for pastyear in self.pastyears:
-                if year >= maxyear:
+                if year > maxyear:
                     break
 
                 ds = self.pastreaders[0].read_year(pastyear)
@@ -380,7 +380,7 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
             return
             
         for pastyear in self.pastyears:
-            if year >= maxyear:
+            if year > maxyear:
                 break
             allds = xr.Dataset({'region': self.regions})
             for pastreader in self.pastreaders:
