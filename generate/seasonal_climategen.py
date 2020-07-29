@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Generates long-run growing-season averages of climate variables.
 
 Config parameters are mostly consistent with the impact-calculations arguments.
@@ -7,6 +8,9 @@ Outputs netCDF `filename` to `/shares/gcp/outputs/temps/{RCP}/{GCM}`
 the relevant months within a year. `calculate_edd` transforms the edd dataset
 into gdds and kdds.
 
+first argument : filename 
+second argument : climate model
+third argument : rcp
 """
 
 import sys, os
@@ -20,34 +24,34 @@ from datastore import irvalues
 from dateutil.relativedelta import relativedelta
 from interpret.container import get_bundle_iterator
 
-filename = 'maize_monthbinpr.nc4'
+
+filename = sys.argv[1]
+crop = sys.argv[4]
 only_missing = False
 non_leap_year = 2010
 gdd_cutoff, kdd_cutoff, monthbin = None, None, None
+seasonal_filepath = "social/baselines/agriculture/world-combo-201710-growing-seasons-" + crop + "-1stseason.csv"
 
-if filename == 'maize_seasonaltasmax.nc4':
+if filename == crop + '_seasonaltasmax.nc4':
     clim_var = ['tasmax'] # Relevant climate variables.
-    seasonal_filepath = "social/baselines/agriculture/world-combo-201710-growing-seasons-corn-1stseason.csv"
     func = np.mean # Within-year aggregation.
     covars = ['seasonal' + c for c in clim_var] # Covariate prefix.
 
-if filename == 'maize_seasonalpr.nc4':
+if filename == crop + '_seasonalpr.nc4':
     clim_var = ['pr']
-    seasonal_filepath = "social/baselines/agriculture/world-combo-201710-growing-seasons-corn-1stseason.csv"
     func = np.mean
     covars = ['seasonal' + c for c in clim_var]
 
-if filename == 'maize_seasonaledd.nc4':
+
+if filename == crop + '_seasonaledd.nc4':
     clim_var = ['gdd', 'kdd']
-    seasonal_filepath = "social/baselines/agriculture/world-combo-201710-growing-seasons-corn-1stseason.csv"
     func = np.sum
     gdd_cutoff = 8
     kdd_cutoff = 31
     covars = ['seasonal' + c for c in clim_var]
 
-if filename == 'maize_monthbinpr.nc4':
+if filename == crop + '_monthbinpr.nc4':
     clim_var = ['pr', 'pr-poly-2']
-    seasonal_filepath = "social/baselines/agriculture/world-combo-201710-growing-seasons-corn-1stseason.csv"
     func = np.sum
     monthbin = [1, 3, 24-1-3] # Months of growing-season bins with extended final bin.
     clim_var = [c + '_bin' + str(m+1) for m in range(len(monthbin)) for c in clim_var]
@@ -57,8 +61,8 @@ config = {
     'climate': ['tasmax', 'edd', 'pr', 'pr-poly-2 = pr-monthsum-poly-2'],
     'covariates': covars,
     'grid-weight': 'cropwt',
-    'only-models': ['CCSM4'],
-    'only-rcp': 'rcp85',
+    'only-models': [sys.argv[2]],
+    'only-rcp': sys.argv[3],
     'rolling-years': 2,
     'timerate': 'month',
     'within-season': seasonal_filepath }
@@ -124,7 +128,7 @@ for clim_scenario, clim_model, weatherbundle in get_bundle_iterator(config):
     # Initiate netcdf and dimensions, variables.
     rootgrp = Dataset(os.path.join(targetdir, filename), 'w', format='NETCDF4')
     rootgrp.description = "Growing season and 30-year Bartlett average climate variables."
-    rootgrp.author = "Dylan Hogan"
+    rootgrp.author = "Emile Tenezakis"
 
     years = nc4writer.make_years_variable(rootgrp)
     regions = nc4writer.make_regions_variable(rootgrp, weatherbundle.regions, None)
