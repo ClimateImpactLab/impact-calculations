@@ -16,31 +16,30 @@ import cProfile, pstats, io, metacsv
 # Top-level configuration (for debugging)
 do_single = False
 
-def main(config, runid=None):
+def main(config, config_name=None):
     """Main generate func, given run config dict and run ID str for logging
 
     Parameters
     ----------
     config : MutableMapping
         Run configurations.
-    runid : str or None, optional
-        Run ID, used for logging and output filenames if `config` is missing
-        "module". If `None`, then uses `config["runid"]`. This argument is
-        for legacy purposes. Prefer using "runid" in `config`. If `runid` is
-        given and "runid" is also in `config` then uses `runid` arg and a 
-        warning is printed. This is for backwards compatibility.
+    config_name : str or None, optional
+        Configuration name, used for logging and output filenames if `config`
+        is missing "module". If `None`, then uses `config["config_name"]`. If
+        `config_name` is given and "config_name" is also in `config` then uses
+        `config_name` arg and a warning is printed.
     """
     global do_single
     
     print("Initializing...")
 
-    if runid is None:
-        runid = config["runid"]
-    elif config.get("runid"):
-        # For backwards compatibility, if runid is passed in *and* in config, 
+    if config_name is None:
+        config_name = config["config_name"]
+    elif config.get("config_name"):
+        # For backwards compatibility, if config_name is passed in *and* in config,
         # then use arg.
-        print(f"WARNING: Overriding configuration runid:{config['runid']} with argument runid:{runid}")
-        config["runid"] = runid
+        print(f"WARNING: Overriding configuration config_name:{config['config_name']} with argument config_name:{config_name}")
+        config["config_name"] = config_name
 
     # Collect the configuration
     claim_timeout = config.get('timeout', 12) * 60*60
@@ -49,7 +48,7 @@ def main(config, runid=None):
     do_single = config.get('do-single', False)
 
     # Create the object for claiming directories
-    statman = paralog.StatusManager('generate', "generate.generate " + str(runid), 'logs', claim_timeout)
+    statman = paralog.StatusManager('generate', "generate.generate " + str(config_name), 'logs', claim_timeout)
     configs.global_statman = statman
 
     targetdir = None # The current targetdir
@@ -193,7 +192,7 @@ def main(config, runid=None):
             mod = importlib.import_module("interpret.container")
         else:
             mod = importlib.import_module("interpret.parallel_container")
-        shortmodule = str(runid)
+        shortmodule = str(config_name)
     elif config['module'][-4:] == '.yml':
         # Specification config in another yaml file.
         if config.get('cores', 1) == 1:
@@ -310,7 +309,7 @@ if __name__ == '__main__':
     import sys
     from pathlib import Path
 
-    run_id = Path(sys.argv[1]).stem
+    config_name = Path(sys.argv[1]).stem
     run_config = configs.standardize(files.get_allargv_config())
 
-    main(run_config, run_id)
+    main(run_config, config_name)
