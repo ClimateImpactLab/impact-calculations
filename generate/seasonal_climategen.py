@@ -23,40 +23,92 @@ from impactcommon.math import averages
 from datastore import irvalues
 from dateutil.relativedelta import relativedelta
 from interpret.container import get_bundle_iterator
+import multiprocessing
+from itertools import product
+
+
+def get_seasonal_index(region, culture_periods, timerate):
+    """Parse growing season lengths in `culture_periods` and return ds indices.
+    """
+    if timerate == 'day':
+        plant = datetime.date(non_leap_year, culture_periods[region][0],1).timetuple().tm_yday
+        if culture_periods[region][1] <= 12: 
+            harvest_date = datetime.date(non_leap_year, culture_periods[region][1],1) + relativedelta(day=31)
+            harvest = harvest_date.timetuple().tm_yday
+        else:
+            harvest_date = datetime.date(non_leap_year, culture_periods[region][1]-12,1) + relativedelta(day=31)
+            harvest = harvest_date.timetuple().tm_yday + 365
+    elif timerate == 'month':
+        plant, harvest = culture_periods[region]
+    return int(plant - 1), int(harvest) 
+
+
+def get_monthbin_index(region, culture_periods, clim_var, monthbin):
+    """Allocates growing seasons to months-of-season precip bins.
+    """
+    plant, harvest = culture_periods[region]
+    bindex = int(clim_var[-1]) - 1
+    allmonths = [*range(plant, harvest+1)]
+    mlist = []
+    for x in monthbin:
+        mlist.append(allmonths[0:x])
+        del allmonths[:x]
+    if mlist[bindex]:
+        return int(mlist[bindex][0]-1), int(mlist[bindex][-1])
+    else:
+        return 0, 0
+
+
+def calculate_edd(ds, gdd_cutoff, kdd_cutoff):
+    """Calculate gdd and kdd from edd dataset.
+    """
+    kdd = ds.sel(refTemp=kdd_cutoff)['edd'].values
+    gdd = ds.sel(refTemp=gdd_cutoff)['edd'].values - kdd
+    out = fast_dataset.FastDataset({
+        'kdd': (('time', 'region'), kdd),
+        'gdd': (('time', 'region'), gdd)},
+        {'time': ds.time, 'region': ds.region})
+    return out
+
 
 def get_seasonal(crop, var, climate_model, rcp):
+    
+    print('Processing arguments')
 
     seasons = {
-        'corn':'world-combo-201710-growing-seasons-corn-1stseason'
-        'rice':'world-combo-201710-growing-seasons-rice-1stseason'
-        'soy':'world-combo-201710-growing-seasons-soy'
-        'cassava':'world-combo-202004-growing-seasons-cassava'
-        'sorghum':'world-combo-202004-growing-seasons-sorghum'
+        'maize':'world-combo-201710-growing-seasons-corn-1stseason',
+        'rice':'world-combo-201710-growing-seasons-rice-1stseason',
+        'soy':'world-combo-201710-growing-seasons-soy',
+        'cassava':'world-combo-202004-growing-seasons-cassava',
+        'sorghum':'world-combo-202004-growing-seasons-sorghum',
         'cotton':'world-combo-202004-growing-seasons-cotton'
     }
 
     bins = {
-        'corn':[1, 3, 24-1-3]
-        'rice':
-        'soy':
-        'cassava':
-        'sorghum':
-        'cotton':
+        'maize':[1, 3, 24-1-3],
+        'rice':[1, 3, 24-1-3],
+        'soy':[1, 3, 24-1-3],
+        'cassava':[1, 3, 24-1-3],
+        'sorghum':[1, 3, 24-1-3],
+        'cotton':[1, 3, 24-1-3]
     }
 
     eddkinks = {
-        'corn':[8,31]
-        'rice':
-        'soy':
-        'cassava':
-        'sorghum':
-        'cotton':
+        'maize':[8,31],
+        'rice':[14,30],
+        'soy':[8,31],
+        'cassava':[10,29],
+        'sorghum':[15,31],
+        'cotton':[10,29]
     }
 
     if var == 'seasonaltasmax':
-        clim_var = ['tasmax'] # Relevant climate variables.
-        func = np.mean # Within-year aggregation.
-        covars = ['seasonal' + c for c in clim_var] # Covariate prefix.
+        # Relevant climate variables.
+        clim_var = ['tasmax'] 
+        # Within-year aggregation.
+        func = np.mean 
+        # Covariate prefix.
+        covars = ['seasonal' + c for c in clim_var] 
 
     if var == 'seasonalpr':
         clim_var = ['pr']
@@ -73,7 +125,8 @@ def get_seasonal(crop, var, climate_model, rcp):
     if var == 'monthbinpr':
         clim_var = ['pr', 'pr-poly-2']
         func = np.sum
-        monthbin = bins[crop] # Months of growing-season bins with extended final bin.
+        # Months of growing-season bins with extended final bin.
+        monthbin = bins[crop] 
         clim_var = [c + '_bin' + str(m+1) for m in range(len(monthbin)) for c in clim_var]
         covars = ['monthbin' + c for c in clim_var]
 
@@ -89,59 +142,25 @@ def get_seasonal(crop, var, climate_model, rcp):
         'climate': ['tasmax', 'edd', 'pr', 'pr-poly-2 = pr-monthsum-poly-2'],
         'covariates': covars,
         'grid-weight': 'cropwt',
-        'only-models': climate_model,
+        'only-models': [climate_model],
         'only-rcp': rcp,
         'rolling-years': 2,
         'timerate': 'month',
-        'within-season': seasonal_filepath}
+        'within-season': seasonal_filepath }
+
+    if list(get_bundle_iterator(config))==[]:
+        print('the config file syntax is wrong')
+        exit()
 
     outputdir = '/shares/gcp/outputs/temps'
     culture_periods = irvalues.get_file_cached(config['within-season'], irvalues.load_culture_months)
     standard_running_mean_init = averages.BartlettAverager
     numtempyears = 30
 
-    def get_seasonal_index(region, culture_periods, timerate):
-        """Parse growing season lengths in `culture_periods` and return ds indices.
-        """
-        if timerate == 'day':
-            plant = datetime.date(non_leap_year, culture_periods[region][0],1).timetuple().tm_yday
-            if culture_periods[region][1] <= 12: 
-                harvest_date = datetime.date(non_leap_year, culture_periods[region][1],1) + relativedelta(day=31)
-                harvest = harvest_date.timetuple().tm_yday
-            else:
-                harvest_date = datetime.date(non_leap_year, culture_periods[region][1]-12,1) + relativedelta(day=31)
-                harvest = harvest_date.timetuple().tm_yday + 365
-        elif timerate == 'month':
-            plant, harvest = culture_periods[region]
-        return int(plant - 1), int(harvest) 
-
-    def get_monthbin_index(region, culture_periods, clim_var, monthbin):
-        """Allocates growing seasons to months-of-season precip bins.
-        """
-        plant, harvest = culture_periods[region]
-        bindex = int(clim_var[-1]) - 1
-        allmonths = [*range(plant, harvest+1)]
-        mlist = []
-        for x in monthbin:
-            mlist.append(allmonths[0:x])
-            del allmonths[:x]
-        if mlist[bindex]:
-            return int(mlist[bindex][0]-1), int(mlist[bindex][-1])
-        else:
-            return 0, 0
-
-    def calculate_edd(ds, gdd_cutoff, kdd_cutoff):
-        """Calculate gdd and kdd from edd dataset.
-        """
-        kdd = ds.sel(refTemp=kdd_cutoff)['edd'].values
-        gdd = ds.sel(refTemp=gdd_cutoff)['edd'].values - kdd
-        out = fast_dataset.FastDataset({
-            'kdd': (('time', 'region'), kdd),
-            'gdd': (('time', 'region'), gdd)},
-            {'time': ds.time, 'region': ds.region})
-        return out
+    print('Starting bundle iterator')
 
     for clim_scenario, clim_model, weatherbundle in get_bundle_iterator(config):
+
 
         targetdir = os.path.join(outputdir, clim_scenario, clim_model)
 
@@ -156,7 +175,7 @@ def get_seasonal(crop, var, climate_model, rcp):
         # Initiate netcdf and dimensions, variables.
         rootgrp = Dataset(os.path.join(targetdir, filename), 'w', format='NETCDF4')
         rootgrp.description = "Growing season and 30-year Bartlett average climate variables."
-        rootgrp.author = "Emile Tenezakis"
+        rootgrp.author = "Dylan Hogan"
 
         years = nc4writer.make_years_variable(rootgrp)
         regions = nc4writer.make_regions_variable(rootgrp, weatherbundle.regions, None)
@@ -222,5 +241,16 @@ def get_seasonal(crop, var, climate_model, rcp):
         rootgrp.close()
 
 
-    return()
+#get_seasonal(crop='rice', var='seasonaltasmax', climate_model='CCSM4', rcp='rcp85')
+
+
+
+crops = ['soy', 'rice', 'sorghum', 'cassava']
+Vars = ['seasonaltasmax', 'seasonalpr']
+climate_models=next(os.walk('/shares/gcp/outputs/temps/rcp45'))[1]
+rcps = ['rcp45', 'rcp85']
+
+with multiprocessing.Pool(processes=40) as pool:
+    pool.starmap(get_seasonal, product(crops, Vars, climate_models, rcps))
+
 
