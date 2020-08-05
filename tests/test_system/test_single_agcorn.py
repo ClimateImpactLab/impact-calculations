@@ -41,7 +41,7 @@ def projection_netcdf():
                         ]
                     },
                     {
-                        "AuxillaryResult": [
+                        "AuxiliaryResult": [
                             {
                                 "PartialDerivative": {
                                     "covariate": "seasonaltasmax",
@@ -52,7 +52,7 @@ def projection_netcdf():
                         ]
                     },
                     {
-                        "AuxillaryResult": [
+                        "AuxiliaryResult": [
                             {
                                 "PartialDerivative": {
                                     "covariate": "seasonalpr",
