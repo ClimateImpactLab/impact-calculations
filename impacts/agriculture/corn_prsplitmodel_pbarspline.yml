@@ -40,12 +40,12 @@ models:
             model: gddkdd
         - YearlySumIrregular:
             model: precip 
-      - AuxillaryResult:
+      - AuxiliaryResult:
         - PartialDerivative:
             covariate: seasonaltasmax
             covarunit: C
         - ddseasonaltasmax
-      - AuxillaryResult:
+      - AuxiliaryResult:
         - PartialDerivative:
             covariate: seasonalpr
             covarunit: mm

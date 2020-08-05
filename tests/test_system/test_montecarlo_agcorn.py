@@ -49,7 +49,7 @@ RUN_CONFIGS = {
                     ]
                 },
                 {
-                    "AuxillaryResult": [
+                    "AuxiliaryResult": [
                         {
                             "PartialDerivative": {
                                 "covariate": "seasonaltasmax",
@@ -60,7 +60,7 @@ RUN_CONFIGS = {
                     ]
                 },
                 {
-                    "AuxillaryResult": [
+                    "AuxiliaryResult": [
                         {
                             "PartialDerivative": {
                                 "covariate": "seasonalpr",
