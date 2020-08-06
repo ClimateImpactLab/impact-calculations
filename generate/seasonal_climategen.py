@@ -86,11 +86,11 @@ def get_seasonal(crop, var, climate_model, rcp):
 
     bins = {
         'maize':[1, 3, 24-1-3],
-        'rice':[1, 3, 24-1-3],
-        'soy':[1, 3, 24-1-3],
-        'cassava':[1, 3, 24-1-3],
-        'sorghum':[1, 3, 24-1-3],
-        'cotton':[1, 3, 24-1-3]
+        'rice':[2, 3, 24-2-3],
+        'soy':[1, 1, 2, 24-1-1-2],
+        'cassava':[24],
+        'sorghum':[24],
+        'cotton':[24]
     }
 
     eddkinks = {
