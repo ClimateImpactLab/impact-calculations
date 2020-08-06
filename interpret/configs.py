@@ -1,4 +1,46 @@
 import yaml, copy
+from pathlib import Path
+from impactlab_tools.utils.files import get_file_config
+
+
+def merge_import_config(config, fpath):
+    """Parse "import" in `config` dict and merge
+
+    Values in 'config' override values from any imported dict
+
+    Parameters
+    ----------
+    config : dict
+        Projection run configuration, with or without an "import" key pointing
+        to a relative or absolute file path.
+    fpath : str or pathlib.Path
+        Path from which to interpret "import"s in `config`. If `config` is from
+        a file on disk, it is usually the absolute path to the directory
+        containing this file. Only used if "import" has no root, i.e. no
+        prepended "/".
+
+    Returns
+    -------
+    dict
+        Shallow copy of`config` is returned if it contains no "import" key.
+        Otherwise, get shallow-copied merge with imported config.
+    """
+    try:
+        import_path = Path(config.pop("import"))
+    except KeyError:
+        # Nothing to import
+        return {**config}
+
+    # Read "import" - relative to fpath, if needed.
+    if not import_path.is_absolute():
+        if isinstance(fpath, str):
+            fpath = Path(fpath)
+        import_path = fpath.joinpath(import_path)
+
+    import_config = get_file_config(import_path)
+
+    return {**import_config, **config}
+
 
 def standardize(config):
     newconfig = copy.copy(config)

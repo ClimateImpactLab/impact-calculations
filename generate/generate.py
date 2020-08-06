@@ -310,7 +310,10 @@ if __name__ == '__main__':
     import sys
     from pathlib import Path
 
-    config_name = Path(sys.argv[1]).stem
+    config_path = Path(sys.argv[1])
+    config_name = config_path.stem
     run_config = configs.standardize(files.get_allargv_config())
+    # Interpret "import" in configs here while we have file path info.
+    file_configs = configs.merge_import_config(run_config, config_path.parent)
 
     main(run_config, config_name)
