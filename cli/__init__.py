@@ -5,6 +5,7 @@ import os
 import click
 from pathlib import Path
 from impactlab_tools.utils.files import get_file_config
+from interpret.configs import merge_import_config
 from generate.generate import main as ggmain
 from generate.aggregate import main as gamain
 
@@ -20,6 +21,8 @@ def impactcalculations_cli():
 def aggregate(confpath):
     """Run the impact projection aggregation system with configuration file"""
     file_configs = get_file_config(confpath)
+    # Interpret "import" in configs here while we have file path info.
+    file_configs = merge_import_config(file_configs, confpath.parent)
     gamain(file_configs)
 
 
@@ -39,6 +42,9 @@ def generate(confpath, conf):
     """Run the impact projection generate system with configuration file"""
     confpath = Path(confpath)
     file_configs = get_file_config(confpath)
+    # Interpret "import" in configs here while we have file path info.
+    file_configs = merge_import_config(file_configs, confpath.parent)
+
     arg_configs = dict(arg.strip().split("=") for arg in conf)
     file_configs.update(arg_configs)
 
@@ -57,6 +63,8 @@ def diagnostic(confpath):
     """Run the impact projection diagnostic system with configuration path"""
     confpath = Path(confpath)
     file_configs = get_file_config(confpath)
+    # Interpret "import" in configs here while we have file path info.
+    file_configs = merge_import_config(file_configs, confpath.parent)
 
     # For legacy purposes
     if not file_configs.get("config_name"):
