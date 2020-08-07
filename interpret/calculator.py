@@ -250,7 +250,7 @@ def create_calcstep(name, args, models, subcalc, extras=None):
             if subcalc is not None and subcalc not in arglist:
                 arglist.append(subcalc)
             else:
-                # other calculation might need this one (e.g., AuxillaryResult)
+                # other calculation might need this one (e.g., AuxiliaryResult)
                 subextras = copy.copy(extras)
                 subextras['subcalc'] = subcalc
                 arglist.append(prepare_argument(argtype.name, get_argument(argtype.name), models, argtype, extras=subextras))
