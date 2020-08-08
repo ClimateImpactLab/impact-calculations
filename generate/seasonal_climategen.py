@@ -12,12 +12,12 @@ first argument : filename
 second argument : climate model
 third argument : rcp
 """
-
+import pdb
 import sys, os
 import datetime
 import numpy as np
 from netCDF4 import Dataset
-from . import weather, nc4writer
+from generate import weather, nc4writer
 from openest.generate import fast_dataset
 from impactcommon.math import averages
 from datastore import irvalues
@@ -72,7 +72,11 @@ def calculate_edd(ds, gdd_cutoff, kdd_cutoff):
 
 
 def get_seasonal(crop, var, climate_model, rcp):
-    
+    only_missing = False
+    non_leap_year = 2010
+    gdd_cutoff, kdd_cutoff, monthbin = None, None, None
+    time_rate='month'
+
     print('Processing arguments')
 
     seasons = {
@@ -122,6 +126,15 @@ def get_seasonal(crop, var, climate_model, rcp):
         kdd_cutoff = eddkinks[crop][1]
         covars = ['seasonal' + c for c in clim_var]
 
+    if var == 'seasonaltasmin':
+        # Relevant climate variables.
+        clim_var = ['tasmin'] 
+        # Within-year aggregation.
+        func = np.min 
+        time_rate='month'
+        # Covariate prefix.
+        covars = ['seasonal' + c for c in clim_var] 
+
     if var == 'monthbinpr':
         clim_var = ['pr', 'pr-poly-2']
         func = np.sum
@@ -133,19 +146,23 @@ def get_seasonal(crop, var, climate_model, rcp):
 
     seasonal_filepath = "social/baselines/agriculture/" + seasons[crop] + '.csv' 
     filename = crop + '_' + var + '.nc4'
-    only_missing = False
-    non_leap_year = 2010
-    gdd_cutoff, kdd_cutoff, monthbin = None, None, None
 
+    TransVars = {
+        'seasonaltasmax':['tasmax'],
+        'seasonalpr':['pr', 'pr-poly-2 = pr-monthsum-poly-2'],
+        'seasonaltasmin':['tasmin'],
+        'seasonaledd':['edd'],
+        'monthbinpr':['pr', 'pr-poly-2 = pr-monthsum-poly-2']
+    }
 
     config = {
-        'climate': ['tasmax', 'edd', 'pr', 'pr-poly-2 = pr-monthsum-poly-2'],
+        'climate': TransVars[var],
         'covariates': covars,
         'grid-weight': 'cropwt',
         'only-models': [climate_model],
         'only-rcp': rcp,
         'rolling-years': 2,
-        'timerate': 'month',
+        'timerate': time_rate,
         'within-season': seasonal_filepath }
 
     if list(get_bundle_iterator(config))==[]:
@@ -189,6 +206,7 @@ def get_seasonal(crop, var, climate_model, rcp):
             covars[kk] = config['covariates'][kk]
 
         yeardata = weatherbundle.get_years()
+
         years[:] = yeardata
 
         annual = rootgrp.createVariable("annual", 'f4', ('year', 'region', 'covar'))
@@ -208,6 +226,8 @@ def get_seasonal(crop, var, climate_model, rcp):
         print("Processing years...")
         yy = 0
         for year, ds in weatherbundle.yearbundles():
+    
+            #pdb.set_trace()
             print("Push", year)
             regions = np.array(ds.coords["region"])
             if gdd_cutoff and kdd_cutoff:
@@ -225,6 +245,7 @@ def get_seasonal(crop, var, climate_model, rcp):
                         cv = clim_var[kk].split('_')[0]
 
                         # Perform within-year collapse and update long-run averager.
+                        pdb.set_trace()
                         annual_calcs = lambda ds: func(ds[cv].values[plantii:harvestii])
                         yearval = annual_calcs(subds)
                         annualdata[yy, ii, kk] = yearval
@@ -240,17 +261,26 @@ def get_seasonal(crop, var, climate_model, rcp):
 
         rootgrp.close()
 
-
-#get_seasonal(crop='rice', var='seasonaltasmax', climate_model='CCSM4', rcp='rcp85')
-
+        return "done"
 
 
-crops = ['soy', 'rice', 'sorghum', 'cassava']
-Vars = ['seasonaltasmax', 'seasonalpr']
-climate_models=next(os.walk('/shares/gcp/outputs/temps/rcp45'))[1]
-rcps = ['rcp45', 'rcp85']
 
-with multiprocessing.Pool(processes=40) as pool:
-    pool.starmap(get_seasonal, product(crops, Vars, climate_models, rcps))
+
+
+#get_seasonal(crop='rice', var='seasonaltmin', climate_model='CCSM4', rcp='rcp85')
+
+get_seasonal(crop='rice', var='seasonaltasmin', climate_model='CCSM4', rcp='rcp85')
+
+
+#pdb.run('get_seasonal(crop='rice', var='seasonaltmin', climate_model='CCSM4', rcp='rcp85')')
+
+
+
+# crops = ['rice']
+# Vars = ['seasonaltmin']
+# climate_models=next(os.walk('/shares/gcp/outputs/temps/rcp45'))[1]
+# rcps = ['rcp45', 'rcp85']
+# with multiprocessing.Pool(processes=30) as pool:
+#     pool.starmap(get_seasonal, product(crops, Vars, climate_models, rcps))
 
 
