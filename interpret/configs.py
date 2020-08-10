@@ -6,7 +6,7 @@ from impactlab_tools.utils.files import get_file_config
 def merge_import_config(config, fpath):
     """Parse "import" in `config` dict and merge
 
-    Values in 'config' override values from any imported dict
+    Values in 'config' override values from any imported dict.
 
     Parameters
     ----------
@@ -37,7 +37,10 @@ def merge_import_config(config, fpath):
             fpath = Path(fpath)
         import_path = fpath.joinpath(import_path)
 
-    import_config = get_file_config(import_path)
+    import_config = merge_import_config(
+        get_file_config(import_path),
+        import_path.parent
+    )
 
     return {**import_config, **config}
 
