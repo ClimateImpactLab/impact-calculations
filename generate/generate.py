@@ -200,6 +200,11 @@ def main(config, config_name=None):
         shortmodule = os.path.basename(config['module'])[:-4]
     else:
         # Specification config uses old module/script system, module needs to be imported.
+        import warnings
+        warnings.warn(
+            "Pointing 'module:' to python modules is deprecated, please use 'module:' with YAML configuration files",
+            FutureWarning,
+        )
         mod = importlib.import_module("impacts." + config['module'] + ".allmodels")
         shortmodule = config['module']
 
