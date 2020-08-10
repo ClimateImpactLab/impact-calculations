@@ -506,3 +506,18 @@ class RollingYearTransformer(WeatherTransformer):
         if len(self.pastdses) == self.rolling_years:
             ds = fast_dataset.concat(self.pastdses, dim='time')
             yield year - self.rolling_years + 1, ds
+
+
+class RollingYearTransfomer(RollingYearTransformer):
+    """Deprecated variation of RollingYearTransformer
+
+    Emits a FutureWarning whenever used. Exists for backwards compatibility
+    and legacy support.
+    """
+    def init(self, *args, **kwargs):
+        import warnings
+        warnings.warn(
+            "`RollingYearTransfomer` is deprecated, please use `RollingYearTransformer`",
+            FutureWarning
+        )
+        super().__init__(*args, **kwargs)
