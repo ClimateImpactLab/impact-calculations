@@ -97,15 +97,15 @@ def test_shuffled(temp2year, weatherbundle_simple):
     npt.assert_array_less(years, 2006)
 
 
-class TestRollingYearTransfomer:
-    """Basic tests for RollingYearTransfomer
+class TestRollingYearTransformer:
+    """Basic tests for RollingYearTransformer
     """
 
     def test_get_years(self):
-        """Test RollingYearTransfomer.get_years() basic behavior
+        """Test RollingYearTransformer.get_years() basic behavior
         """
         n_roll = 2
-        transformer = weather.RollingYearTransfomer(rolling_years=n_roll)
+        transformer = weather.RollingYearTransformer(rolling_years=n_roll)
 
         input_years = [0, 1, 2]
         # NOTE: expected is based on existing code behavior
@@ -115,12 +115,12 @@ class TestRollingYearTransfomer:
         assert output_actual == output_expected
 
     def test_push2(self):
-        """Test RollingYearTransfomer.push() basic behavior with 2 obs
+        """Test RollingYearTransformer.push() basic behavior with 2 obs
 
         This might break because of changes in fragile open_estimate.fast_dataset.
         Cuidado.
         """
-        transformer = weather.RollingYearTransfomer(rolling_years=2)
+        transformer = weather.RollingYearTransformer(rolling_years=2)
 
         # Making some fake Datasets, one for each time coord.
         # This whole setup is a hack to get some test data to run through
@@ -163,12 +163,12 @@ class TestRollingYearTransfomer:
         )
 
     def test_push3(self):
-        """Test RollingYearTransfomer.push() basic behavior with 3 obs
+        """Test RollingYearTransformer.push() basic behavior with 3 obs
 
         This might break because of changes in fragile open_estimate.fast_dataset.
         Cuidado.
         """
-        transformer = weather.RollingYearTransfomer(rolling_years=2)
+        transformer = weather.RollingYearTransformer(rolling_years=2)
 
         # Making some fake Datasets, one for each time coord.
         # This whole setup is a hack to get some test data to run through
@@ -327,9 +327,9 @@ class TestHistoricalWeatherBundle:
         assert len(victim.pastyears) == 120
 
 
-class TestHistoricalRollingYearTransfomer:
+class TestHistoricalRollingYearTransformer:
     """
-    Integration test for HistoricalWeatherBundle and RollingYearTransfomer
+    Integration test for HistoricalWeatherBundle and RollingYearTransformer
     """
     @pytest.mark.parametrize(
         "seed,expected",
@@ -341,7 +341,7 @@ class TestHistoricalRollingYearTransfomer:
     )
     def test_init_seeding(self, seed, expected):
         """
-        Test that init with RollingYearTransfomer samples historical correctly
+        Test that init with RollingYearTransformer samples historical correctly
         """
         victim = weather.HistoricalWeatherBundle(
             pastreaders=[StubWeatherReader()],
@@ -349,7 +349,7 @@ class TestHistoricalRollingYearTransfomer:
             seed=seed,
             scenario="rcp45",
             model="CCSM4",
-            transformer=weather.RollingYearTransfomer(rolling_years=2)
+            transformer=weather.RollingYearTransformer(rolling_years=2)
         )
         npt.assert_equal(
             victim.pastyears,
@@ -367,7 +367,7 @@ class TestHistoricalRollingYearTransfomer:
             seed=123,
             scenario="rcp45",
             model="CCSM4",
-            transformer=weather.RollingYearTransfomer(rolling_years=2)
+            transformer=weather.RollingYearTransformer(rolling_years=2)
         )
         victim = list(hwb.yearbundles())
 
@@ -387,7 +387,7 @@ class TestHistoricalRollingYearTransfomer:
             seed=123,
             scenario="rcp45",
             model="CCSM4",
-            transformer=weather.RollingYearTransfomer(rolling_years=2)
+            transformer=weather.RollingYearTransformer(rolling_years=2)
         )
         victim = list(hwb.yearbundles())
 
