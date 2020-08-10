@@ -20,7 +20,7 @@ def iterate_bundles(*iterators_readers, **config):
     Return bundles for each RCP and model.
     """
     if 'rolling-years' in config:
-        transformer = RollingYearTransfomer(config['rolling-years'])
+        transformer = RollingYearTransformer(config['rolling-years'])
     else:
         transformer = WeatherTransformer()
 
@@ -458,7 +458,7 @@ class AmorphousWeatherBundle(WeatherBundle):
         pastfuturereaders = [self.pastfuturereader_dict[name] for name in names]
         return PastFutureWeatherBundle(pastfuturereaders, self.scenario, self.model)
 
-class RollingYearTransfomer(WeatherTransformer):
+class RollingYearTransformer(WeatherTransformer):
     """WeatherTransformer giving years and weather for a number of past years
 
     Parameters
