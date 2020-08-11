@@ -20,7 +20,7 @@ def read(filename):
     readers, `read_girdin` and `csvvfile_legacy.read`.
     """
 
-    with open(filename, 'rU') as fp:
+    with open(filename, 'r') as fp:
         attrs, coords, variables = metacsv.read_header(fp, parse_vars=True)
 
         # Clean up variables
