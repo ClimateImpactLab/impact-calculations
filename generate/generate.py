@@ -194,17 +194,19 @@ def main(config, config_name=None):
         shortmodule = str(config_name)
     elif config['module'][-4:] == '.yml':
         # Specification config in another yaml file.
+
+        import warnings
+        warnings.warn(
+            "Pointing 'module:' to YAML files is deprecated, please use 'module:' with Python modules",
+            FutureWarning,
+        )
+
         mod = importlib.import_module("interpret.container")
         with open(config['module'], 'r') as fp:
             config.update(yaml.load(fp))
         shortmodule = os.path.basename(config['module'])[:-4]
     else:
         # Specification config uses old module/script system, module needs to be imported.
-        import warnings
-        warnings.warn(
-            "Pointing 'module:' to python modules is deprecated, please use 'module:' with YAML configuration files",
-            FutureWarning,
-        )
         mod = importlib.import_module("impacts." + config['module'] + ".allmodels")
         shortmodule = config['module']
 
