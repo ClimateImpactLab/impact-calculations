@@ -13,7 +13,9 @@ import sys, os
 import datetime
 import numpy as np
 from netCDF4 import Dataset
-from . import weather, nc4writer
+# from . import weather, nc4writer
+import weather
+import nc4writer
 from openest.generate import fast_dataset
 from impactcommon.math import averages
 from datastore import irvalues
