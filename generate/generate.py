@@ -194,6 +194,13 @@ def main(config, config_name=None):
         shortmodule = str(config_name)
     elif config['module'][-4:] == '.yml':
         # Specification config in another yaml file.
+
+        import warnings
+        warnings.warn(
+            "Pointing 'module:' to YAML files is deprecated, please use 'module:' with Python modules",
+            FutureWarning,
+        )
+
         mod = importlib.import_module("interpret.container")
         with open(config['module'], 'r') as fp:
             config.update(yaml.load(fp))
@@ -310,7 +317,10 @@ if __name__ == '__main__':
     import sys
     from pathlib import Path
 
-    config_name = Path(sys.argv[1]).stem
+    config_path = Path(sys.argv[1])
+    config_name = config_path.stem
     run_config = configs.standardize(files.get_allargv_config())
+    # Interpret "import" in configs here while we have file path info.
+    file_configs = configs.merge_import_config(run_config, config_path.parent)
 
     main(run_config, config_name)
