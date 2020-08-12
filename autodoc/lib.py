@@ -108,7 +108,7 @@ def get_csvv(filepath, index0=None, indexend=None, fracsubset=(0, 1)):
     Report it the values and save them for later use.
     """
     csvv = {}
-    with open(filepath, 'rU') as fp:
+    with open(filepath, 'r') as fp:
         printline = None
         for line in fp:
             if printline is not None:
