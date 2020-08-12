@@ -17,6 +17,11 @@ included in the generate configuration file.
    considering a directory abandoned (default: 12).
  - `mc-n`: Desired number of Monte Carlo iterations ("batches") when 
     `mode: montecarlo`. Ignored if `only-batch-number` is set.
+ - `import`: Import and merge another configuration file. Give an optional
+   absolute or relative path from the current configuration file to another
+   YAML configuration file. This imported configuration will be shallow-merged
+   into the current configuration. The any conflicting options in the imported
+   configuration will be discarded.
 
 # Options within a target
 
