@@ -20,7 +20,7 @@ from datastore import irvalues
 from dateutil.relativedelta import relativedelta
 from interpret.container import get_bundle_iterator
 
-filename = 'maize_monthbinpr.nc4'
+filename = 'rice_seasonaltasmax.nc4'
 only_missing = False
 non_leap_year = 2010
 gdd_cutoff, kdd_cutoff, monthbin = None, None, None
@@ -53,8 +53,14 @@ if filename == 'maize_monthbinpr.nc4':
     clim_var = [c + '_bin' + str(m+1) for m in range(len(monthbin)) for c in clim_var]
     covars = ['monthbin' + c for c in clim_var]
 
+if filename == 'rice_seasonaltasmax.nc4':
+    clim_var = ['tasmax'] # Relevant climate variables.
+    seasonal_filepath = "social/baselines/agriculture/world-combo-201710-growing-seasons-rice-1stseason.csv"
+    func = np.mean # Within-year aggregation.
+    covars = ['seasonal' + c for c in clim_var] # Covariate prefix.
+
 config = {
-    'climate': ['tasmax', 'edd', 'pr', 'pr-poly-2 = pr-monthsum-poly-2'],
+    'climate': ['tasmax'], # ['tasmax', 'edd', 'pr', 'pr-poly-2 = pr-monthsum-poly-2'],
     'covariates': covars,
     'grid-weight': 'cropwt',
     'only-models': ['CCSM4'],
