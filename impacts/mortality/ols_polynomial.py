@@ -3,7 +3,7 @@ from datetime import date
 import numpy as np
 from adaptation import csvvfile, curvegen, curvegen_known, covariates, constraints
 from interpret import configs
-from openest.models.curve import ZeroInterceptPolynomialCurve, ClippedCurve, ShiftedCurve, MinimumCurve, OtherClippedCurve, SelectiveInputCurve, CoefficientsCurve, ProductCurve
+from openest.generate.smart_curve import ZeroInterceptPolynomialCurve, ClippedCurve, ShiftedCurve, MinimumCurve, OtherClippedCurve, SelectiveInputCurve, CoefficientsCurve, ProductCurve
 from openest.generate.stdlib import *
 from openest.generate import diagnostic
 from openest.curves import ushape_numeric
@@ -40,7 +40,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
         if config.get('clipping', 'both') == 'none':
             return coeff_curve
 
-        fulladapt_curve = ShiftedCurve(coeff_curve, -curve(baselinemins[region]))
+        fulladapt_curve = ShiftedCurve(coeff_curve, -curve.univariate(baselinemins[region]))
         if config.get('clipping', 'both') == 'clip':
             # Alternative: Turn off Goodmoney
             return ClippedCurve(fulladapt_curve)
@@ -49,7 +49,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
         covars['loggdppc'] = baselineloggdppcs[region]
         noincadapt_unshifted_curve = curr_curvegen.get_curve(region, None, covars, recorddiag=False)
         coeff_noincadapt_unshifted_curve = CoefficientsCurve(noincadapt_unshifted_curve.coeffs, weathernames)
-        noincadapt_curve = ShiftedCurve(coeff_noincadapt_unshifted_curve, -noincadapt_unshifted_curve(baselinemins[region]))
+        noincadapt_curve = ShiftedCurve(coeff_noincadapt_unshifted_curve, -noincadapt_unshifted_curve.univariate(baselinemins[region]))
 
         # Alternative: allow no anti-adaptation
         #noincadapt_curve = ShiftedCurve(baselinecurves[region], -baselinecurves[region](baselinemins[region]))
@@ -59,32 +59,32 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
         if not config.get('derivclip', False):
             return ClippedCurve(goodmoney_curve)
 
-        unicurve = MinimumCurve(ShiftedCurve(curve, -curve(baselinemins[region])), ShiftedCurve(noincadapt_unshifted_curve, -noincadapt_unshifted_curve(baselinemins[region])))
-        return ushape_numeric.UShapedCurve(ClippedCurve(goodmoney_curve), baselinemins[region], lambda xs: xs[:, 0], fillxxs=fillins, fillyys=unicurve(fillins))
+        unicurve = MinimumCurve(ShiftedCurve(curve, -curve.univariate(baselinemins[region])), ShiftedCurve(noincadapt_unshifted_curve, -noincadapt_unshifted_curve.univariate(baselinemins[region])))
+        return ushape_numeric.UShapedCurve(ClippedCurve(goodmoney_curve), baselinemins[region], lambda ds: ds['tas']._data, fillxxs=fillins, fillyys=unicurve.univariate(fillins))
 
     clip_curvegen = curvegen.TransformCurveGenerator(transform, "Clipping and Good Money", curr_curvegen)
     farm_curvegen = curvegen.FarmerCurveGenerator(clip_curvegen, covariator, farmer, endbaseline=config.get('endbaseline', 2015))
 
     # Generate the marginal income curve
-    climtas_effect_curve = ZeroInterceptPolynomialCurve([-np.inf, np.inf], 365 * np.array([csvvfile.get_gamma(csvv, tasvar, 'climtas') for tasvar in ['tas', 'tas2', 'tas3', 'tas4', 'tas5'][:order]])) # x 365, to undo / 365 later
+    climtas_effect_curve = ZeroInterceptPolynomialCurve(365 * np.array([csvvfile.get_gamma(csvv, tasvar, 'climtas') for tasvar in ['tas', 'tas2', 'tas3', 'tas4', 'tas5'][:order]]), weathernames) # x 365, to undo / 365 later
 
     def transform_climtas_effect(region, curve):
         climtas_coeff_curve = CoefficientsCurve(climtas_effect_curve.coeffs, weathernames)
         if config.get('clipping', 'both') == 'none':
             return climtas_coeff_curve
 
-        shifted_curve = ShiftedCurve(climtas_coeff_curve, -climtas_effect_curve(baselinemins[region]))
+        shifted_curve = ShiftedCurve(climtas_coeff_curve, -climtas_effect_curve.univariate(baselinemins[region]))
 
         if not config.get('derivclip', False):
             return OtherClippedCurve(curve, shifted_curve)
 
-        return ushape_numeric.UShapedClipping(curve, shifted_curve, baselinemins[region], lambda xs: xs[:, 0])
+        return ushape_numeric.UShapedClipping(curve, shifted_curve, baselinemins[region], lambda ds: ds['tas']._data)
 
     climtas_effect_curvegen = curvegen.TransformCurveGenerator(transform_climtas_effect, "Calculate climtas partial equation", farm_curvegen)
 
     # Produce the final calculation
 
-    if config.get('filter', 'jun-aug'):
+    if config.get('filter') == 'jun-aug':
         def weather_change(region, x):
             x2 = np.copy(x)
             # 1950 is a non-leap year
@@ -103,13 +103,3 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
                             'convert to deaths/person/year', "Divide by 100000 to convert to deaths/person/year.")
 
     return calculation, [], covariator.get_current
-
-if __name__ == '__main__':
-    curve = ZeroInterceptPolynomialCurve([-np.inf, np.inf], [-2, -12, 2, 1])
-    ucurve = ushape_numeric.UShapedCurve(curve, -1, lambda x: x)
-
-    xx = np.arange(-6, 4)
-    print(xx)
-    print(curve(xx))
-    print(ucurve(xx))
-    

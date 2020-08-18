@@ -73,8 +73,6 @@ class CSVVCurveGenerator(CurveGenerator):
                 print("WARNING: Dependent variable definition not in CSVV.")
             else:
                 assert checks.loosematch(csvv['variables']['outcome']['unit'], depenunit), "Dependent units %s does not match %s." % (csvv['variables']['outcome']['unit'], depenunit)
-                if 'unit' in csvv['variables'][predname] and csvv['variables'][predname]['unit'] is not None:
-                    assert csvv['variables'][predname]['unit'] == indepunits[ii], "Units error for %s: %s <> %s" % (predname, csvv['variables'][predname]['unit'], indepunits[ii])
 
         self.fill_marginals()
 
