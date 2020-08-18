@@ -288,14 +288,6 @@ class RenameReader(WeatherReader):
             if int(year) >= maxyear:
                 break
 
-    def read_iterator_to(self, maxyear):
-        """Yields a WeatherSlice in whatever chunks are convenient to the given year."""
-        for weatherslice in self.reader.read_iterator():
-            self.reorder_inplace(weatherslice)
-            yield weatherslice
-            if weatherslice.get_years()[0] >= maxyear:
-                break
-
     def read_year(self, year):
         if callable(self.renamer):
             renames = {name: self.renamer(name) for name in self.reader.get_dimension()}
