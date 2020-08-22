@@ -1,11 +1,18 @@
 ## Equivalent to `allmodels.py` for imperics .yml specifications.
 
-import os, glob, copy, warnings
+import copy
+import glob
+import os
+import warnings
+from functools import partial
+
 from impactlab_tools.utils import files
-from generate import weather, server, effectset, caller, checks
+
 from adaptation import csvvfile
-from climate.discover import discover_variable, discover_derived_variable, standard_variable
+from climate.discover import standard_variable
+from generate import weather, effectset, caller, checks
 from interpret import configs
+
 
 def preload():
     pass
@@ -90,7 +97,44 @@ def csvv_organization(specconf):
         return ["lowrisk", "highrisk"]
     else:
         return None
-        
+
+
+def _projection(targetdir, basename, suffix, config, csvv, module,
+                weatherbundle, economicmodel, pvals, specconf, push_callback,
+                deltamethod_vcv, diagnosefile=None, strategy='full'):
+    """Trigger projection with adaptation scenario
+
+    This is purely syntactic sugar to condense some crap. It's where
+    we deal with logic about input and configurations different adaption
+    scenarios.
+    """
+    opts = {
+        'full': ('Full Adaptation', 'with interpolation and adaptation through interpolation', ''),
+        'incadapt': ('Income-only adaptation', 'with no adaptation', '-incadapt'),
+        'noadapt': ('No adaptation', 'with interpolation and only environmental adaptation', '-noadapt'),
+    }
+    fullname, explanation, fileflag = opts[strategy]
+
+    if diagnosefile:
+        diagnosefile = diagnosefile.replace('.csv', '-' + basename + '.csv')
+
+    if check_doit(targetdir, f'{basename}{fileflag}', suffix, config):
+        print(fullname)
+        calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, module, weatherbundle,
+                                                                                        economicmodel, pvals[basename],
+                                                                                        specconf=specconf,
+                                                                                        farmer=strategy,
+                                                                                        config=config,
+                                                                                        standard=False)
+        effectset.generate(targetdir, f'{basename}{fileflag}{suffix}', weatherbundle, calculation,
+                           f"{specconf['description']}, {explanation}.",
+                           dependencies + weatherbundle.dependencies + economicmodel.dependencies, config,
+                           push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors,
+                                                                            basename),
+                           diagnosefile=diagnosefile,
+                           deltamethod_vcv=deltamethod_vcv)
+
+
 def produce_csvv(basename, csvv, module, specconf, targetdir, weatherbundle, economicmodel, pvals, config, push_callback, suffix, profile, diagnosefile):
     csvv_parts = csvv_organization(specconf)
     if csvv_parts is not None:
@@ -111,27 +155,30 @@ def produce_csvv(basename, csvv, module, specconf, targetdir, weatherbundle, eco
         if isinstance(csvv, str):
             csvv = csvvfile.read(csvv)
         deltamethod_vcv = csvv['gammavcv']
-        
-    # Full Adaptation
-    if check_doit(targetdir, basename, suffix, config):
-        print("Full Adaptation")
-        calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals[basename], specconf=specconf, config=config, standard=False)
 
-        effectset.generate(targetdir, basename + suffix, weatherbundle, calculation, specconf['description'] + ", with interpolation and adaptation through interpolation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, basename), diagnosefile=diagnosefile.replace('.csv', '-' + basename + '.csv') if diagnosefile else False, deltamethod_vcv=deltamethod_vcv)
+    if diagnosefile:
+        diagnosefile = diagnosefile.replace('.csv', '-' + basename + '.csv')
 
-    if profile:
-        return
-        
-    if config.get('do_farmers', False) and (not weatherbundle.is_historical() or config['do_farmers'] == 'always'):
-        # Lock in the values
-        pvals[basename].lock()
+    # So don't repeat big arg pass over and over...
+    adapt_projection = partial(_projection, targetdir, basename,
+                               suffix, config, csvv, module, weatherbundle,
+                               economicmodel, pvals, specconf, push_callback,
+                               deltamethod_vcv)
 
-        if check_doit(targetdir, basename + "-noadapt", suffix, config):
-            print("No adaptation")
-            calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals[basename], specconf=specconf, farmer='noadapt', config=config, standard=False)
-            effectset.generate(targetdir, basename + "-noadapt" + suffix, weatherbundle, calculation, specconf['description'] + ", with no adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, basename), deltamethod_vcv=deltamethod_vcv)
+    only_adapt = config.get('only-adapt')
+    if only_adapt:
+        adapt_projection(strategy=only_adapt, diagnosefile=diagnosefile)
+    else:
+        adapt_projection(
+            strategy='full',
+            diagnosefile=diagnosefile,
+        )
 
-        if check_doit(targetdir, basename + "-incadapt", suffix, config):
-            print("Income-only adaptation")
-            calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals[basename], specconf=specconf, farmer='incadapt', config=config, standard=False)
-            effectset.generate(targetdir, basename + "-incadapt" + suffix, weatherbundle, calculation, specconf['description'] + ", with interpolation and only environmental adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, basename), deltamethod_vcv=deltamethod_vcv)
+        if profile:
+            return
+
+        if config.get('do_farmers', False) and (not weatherbundle.is_historical() or config['do_farmers'] == 'always'):
+            # Lock in the values
+            pvals[basename].lock()
+            adapt_projection(strategy='noadapt')
+            adapt_projection(strategy='incadapt')
