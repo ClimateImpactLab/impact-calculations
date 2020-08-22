@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 
 setup(name='impactcalculations',
-      version='2.0.0',
+      use_scm_version=True,
       description='Launch impact projection calculations.',
       url='https://gitlab.com/ClimateImpactLab/Impacts/impact-calculations',
       author='Impacts Team',
@@ -13,6 +13,7 @@ setup(name='impactcalculations',
       install_requires=['numpy', 'xarray', 'netCDF4', 'statsmodels',
                         'scipy', 'click', 'impactcommon', 'impactlab-tools',
                         'openest>=3', 'metacsv'],
+      setup_requires=['setuptools_scm'],
       extras_require={
             "test": ["pytest", "pytest-mock", "black", "flake8"],
       },

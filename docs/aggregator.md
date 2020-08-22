@@ -70,7 +70,15 @@ Filtering Targets (also Optional):
  - `targetdir`: Only aggregate results in the given leaf output
    directory.  This should be a full path name (e.g.,
    `/shares/gcp/.../SSP3`)  Do not include a tailing slash.
- - `basename`: Only aggregate results for a given basename (the portion of the filename before `.nc4`, typically copied from the name of the CSVV file).
+ - `basename`: Only aggregate results for a given basename (the
+   portion of the filename before `.nc4`, typically copied from the
+   name of the CSVV file).
+ - `only-farmers`: Takes a list of farmer suffixes to aggregate and only
+   aggregates these. The list entries should be drawn from '',
+   'incadapt', 'noadapt', 'histclim', 'incadapt-histclim',
+   'noadapt-histclim'.
+ - `only-variables`: Takes a list of variables contained in the file
+   to process. If missing, all variables will be processed.
 
 ## Adaptation Costs files
 

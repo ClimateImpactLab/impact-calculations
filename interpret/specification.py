@@ -13,6 +13,7 @@ from adaptation import csvvfile, curvegen, curvegen_known, curvegen_arbitrary, c
 from datastore import irvalues
 from openest.generate import smart_curve, selfdocumented
 from openest.models.curve import ShiftedCurve, MinimumCurve, ClippedCurve
+from openest.curves.smart_linextrap import LinearExtrapolationCurve
 from openest.generate.stdlib import *
 from impactcommon.math import minpoly, minspline
 from . import calculator, variables, configs
@@ -58,10 +59,16 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config=None, quiet
         return get_covariator(list(covar.keys())[0], list(covar.values())[0], weatherbundle, economicmodel, config=config, quiet=quiet)
     elif covar in ['loggdppc', 'logpopop', 'year']:
         return covariates.EconomicCovariator(economicmodel, 2015, config=configs.merge(config, 'econcovar'))
+    elif covar in ['loggdppc.country', 'logpopop.country']:
+        return covariates.EconomicCovariator(economicmodel, 2015, country_level=True, config=configs.merge(config, 'econcovar'))
     elif covar == 'incbin':
         return covariates.BinnedEconomicCovariator(economicmodel, 2015, args, config=configs.merge(config, 'econcovar'))
     elif covar == 'loggdppc-shifted':
-        return covariates.ShiftedEconomicCovariator(economicmodel, 2015, config)
+        return covariates.ShiftedEconomicCovariator(economicmodel, 2015, config=config)
+    elif covar == 'incbin.country':
+        return covariates.BinnedEconomicCovariator(economicmodel, 2015, args, country_level=True, config=configs.merge(config, 'econcovar'))
+    elif covar == 'loggdppc-shifted.country':
+        return covariates.ShiftedEconomicCovariator(economicmodel, 2015, country_level=True, config=config)
     elif covar == 'ir-share':
         return covariates.ConstantCovariator('ir-share', irvalues.load_irweights("social/baselines/agriculture/world-combo-201710-irrigated-area.csv", 'irrigated_share'))
     elif '*' in covar:
@@ -218,15 +225,22 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
                                                                          csvv, betalimits=betalimits)
         weathernames = [] # Use curve directly
     elif specconf['functionalform'] == 'sum-by-time':
-        csvvcurvegens = []
-        for tt in range(len(specconf['suffixes'])):
+        if specconf['subspec']['functionalform'] == 'polynomial':
             subspecconf = configs.merge(specconf, specconf['subspec'])
-            subspecconf['final-t'] = tt
             csvvcurvegen = create_curvegen(csvv, None, regions, farmer=farmer, specconf=subspecconf, getcsvvcurve=True) # don't pass covariator, so skip farmer curvegen
-            assert isinstance(csvvcurvegen, curvegen.CSVVCurveGenerator), "Error: Curve-generator resulted in a " + str(csvvcurvegen.__class__)
-            csvvcurvegens.append(csvvcurvegen)
-        
-        curr_curvegen = curvegen.SumCurveGenerator(csvvcurvegens, specconf['suffixes'])
+            assert isinstance(csvvcurvegen, curvegen_known.PolynomialCurveGenerator), "Error: Curve-generator resulted in a " + str(csvvcurvegen.__class__)
+            curr_curvegen = curvegen_known.SumByTimePolynomialCurveGenerator(csvv, csvvcurvegen, specconf['suffixes'])
+        else:
+            print("WARNING: Sum-by-time is being performed reductively. Efficiency improvements possible.")
+            csvvcurvegens = []
+            for tt in range(len(specconf['suffixes'])):
+                subspecconf = configs.merge(specconf, specconf['subspec'])
+                subspecconf['final-t'] = tt
+                csvvcurvegen = create_curvegen(csvv, None, regions, farmer=farmer, specconf=subspecconf, getcsvvcurve=True) # don't pass covariator, so skip farmer curvegen
+                assert isinstance(csvvcurvegen, curvegen.CSVVCurveGenerator), "Error: Curve-generator resulted in a " + str(csvvcurvegen.__class__)
+                csvvcurvegens.append(csvvcurvegen)
+            curr_curvegen = curvegen.SumCurveGenerator(csvvcurvegens, specconf['suffixes'])
+
         weathernames = [] # Use curve directly
     else:
         user_failure("Unknown functional form %s." % specconf['functionalform'])
@@ -273,9 +287,28 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
             final_curve = MinimumCurve(final_curve, noincadapt_curve)
 
         if specconf.get('clipping', False):
-            return ClippedCurve(final_curve)
-        else:
-            return final_curve
+            final_curve = ClippedCurve(final_curve)
+
+        if specconf.get('extrapolation', False):
+            exargs = specconf['extrapolation']
+            assert 'indepvar' in exargs or 'indepvars' in exargs
+            indepvars = exargs.get('indepvars', [exargs['indepvar']])
+            
+            assert 'margin' in exargs or 'margins' in exargs
+            if 'margin' in exargs:
+                assert len(indepvars) == 1
+                margins = {indepvars[0]: exargs['margin']}
+            else:
+                margins = {indepvars[ii]: exargs['margins'][ii] for ii in range(len(indepvars))}
+
+            assert 'bounds' in exargs
+            if 'bounds' in exargs and isinstance(exargs['bounds'], tuple):
+                bounds = [(exargs['bounds'][0],), (exargs['bounds'][1],)]
+            else:
+                bounds = exargs['bounds']
+            final_curve = LinearExtrapolationCurve(final_curve, indepvars, bounds, margins, exargs.get('scaling', 1))
+
+        return final_curve
 
     if specconf.get('clipping', False) and specconf.get('goodmoney', False):
         final_curvegen = curvegen.TransformCurveGenerator(transform, "Clipping and Good Money transformation", curr_curvegen)
