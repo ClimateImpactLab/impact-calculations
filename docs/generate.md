@@ -10,6 +10,9 @@ included in the generate configuration file.
  - `include-patterns`: true or false; produce results for pattern models
  - `only-ssp` or `ssp`: The name of an SSP to use (e.g., `SSP3`), or a list of SSPs.
  - `only-iam` or `iam`: The name of an IAM to use (e.g., `high`).
+ - `only-adapt` or `adapt`: The name of an adaptation scenario to use (must be 
+    `full`, `noadapt`, or `incadapt`). This ignores `do_farmers` configs and 
+    whether projecting with historical climate.
  - `only-batch-number`: The batch number to use if projecting a single run with 
    `mode: montecarlo`. For instance, `only-batch-number: 1`, outputs results with a 
    `batch1` directory.
