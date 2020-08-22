@@ -184,10 +184,14 @@ class EconomicCovariator(Covariator):
     maxbaseline : int
         Year up to which the covariate baseline is calculated.
     limits : Sequence of float
+    country_level : bool, optional
+        Whether economic covariators are to be used at the country level.
+        If ``True``, any ``region`` str passed into methods will be split on
+        ".", and values for the first segment of the split name will be used.
     conf : dict or None, optional
         Configuration dict.
     """
-    def __init__(self, economicmodel, maxbaseline, config=None):
+    def __init__(self, economicmodel, maxbaseline, country_level=False, config=None):
         super(EconomicCovariator, self).__init__(maxbaseline, config=config)
 
         if config is None:
@@ -204,6 +208,14 @@ class EconomicCovariator(Covariator):
         else:
             self.slowgrowth = False
 
+        self.country_level = bool(country_level)
+
+    @staticmethod
+    def _get_root_region(x):
+        """Break hierid str into components and return str of root region
+        """
+        return str(x.split(".")[0])
+
     def get_econ_predictors(self, region):
         """
         Parameters
@@ -216,6 +228,7 @@ class EconomicCovariator(Covariator):
             Output has keys "loggdppc" and "popop" giving the nautral log per
             capita GDP and some other value.
         """
+        region = self._get_root_region(region) if self.country_level else region
         econpreds = self.econ_predictors.get(region, None)
 
         if econpreds is None:
@@ -251,6 +264,7 @@ class EconomicCovariator(Covariator):
             natural log of per capita GDP, the natural log of popop, and
             the year, respectively.
         """
+        region = self._get_root_region(region) if self.country_level else region
         econpreds = self.get_econ_predictors(region)
         return dict(loggdppc=econpreds['loggdppc'],
                     logpopop=np.log(econpreds['popop']),
@@ -265,6 +279,7 @@ class EconomicCovariator(Covariator):
         ds : xarray.Dataset
         """
         assert year < 10000
+        region = self._get_root_region(region) if self.country_level else region
         self.lastyear[region] = year
 
         if region in self.econ_predictors:
@@ -290,11 +305,15 @@ class BinnedEconomicCovariator(EconomicCovariator):
     maxbaseline : int
         Year up to which the covariate baseline is calculated.
     limits : Sequence of float
+    country_level : bool, optional
+        Whether economic covariators are to be used at the country level.
+        If ``True``, any ``region`` str passed into methods will be split on
+        ".", and values for the first segment of the split name will be used.
     conf : dict or None, optional
         Configuration dict.
     """
-    def __init__(self, economicmodel, maxbaseline, limits, config=None):
-        super(BinnedEconomicCovariator, self).__init__(economicmodel, maxbaseline, config=config)
+    def __init__(self, economicmodel, maxbaseline, limits, country_level=False, config=None):
+        super(BinnedEconomicCovariator, self).__init__(economicmodel, maxbaseline, country_level=country_level, config=config)
         if config is None:
             config = {}
         self.limits = limits
@@ -342,11 +361,15 @@ class ShiftedEconomicCovariator(EconomicCovariator):
     economicmodel : adaptation.SSPEconomicModel
     maxbaseline : int
         Year up to which the covariate baseline is calculated.
+    country_level : bool, optional
+        Whether economic covariators are to be used at the country level.
+        If ``True``, any ``region`` str passed into methods will be split on
+        ".", and values for the first segment of the split name will be used.
     conf : dict or None, optional
         Configuration dict.
     """
-    def __init__(self, economicmodel, maxbaseline, config=None):
-        super(ShiftedEconomicCovariator, self).__init__(economicmodel, maxbaseline, config=config)
+    def __init__(self, economicmodel, maxbaseline, country_level=False, config=None):
+        super(ShiftedEconomicCovariator, self).__init__(economicmodel, maxbaseline, country_level=country_level, config=config)
         if config is None:
             config = {}
         assert 'loggdppc-delta' in config, "Must define loggdppc-delta to use loggdppc-shifted."
@@ -416,7 +439,7 @@ class MeanWeatherCovariator(Covariator):
         self.dsvar = variable # Save this to be consistent
             
         temp_predictors = {}
-        for region, ds in weatherbundle.baseline_values(maxbaseline, quiet=quiet): # baseline through maxbaseline
+        for region, ds in weatherbundle.baseline_values(maxbaseline, quiet=quiet, only_region=config.get('filter-region')): # baseline through maxbaseline
             self.dsvar = 'daily' + variable if usedaily and 'daily' + variable in ds._variables else variable
             try:
                 temp_predictors[region] = averages.interpret(config, standard_climate_config, ds[self.dsvar][-self.numtempyears:])
@@ -514,7 +537,7 @@ class SubspanWeatherCovariator(MeanWeatherCovariator):
             print(("Collecting " + self.mustr))
             # Read in all regions
             self.all_values = {}
-            for year, ds in self.weatherbundle.yearbundles(maxyear=self.maxbaseline):
+            for year, ds in self.weatherbundle.yearbundles(maxyear=self.maxbaseline, variable_ofinterest=self.variable):
                 for region in self.weatherbundle.regions:
                     if region not in self.all_values:
                         self.all_values[region] = np.squeeze(ds[self.variable].sel(region=region).values[self.day_start:self.day_end])
@@ -577,7 +600,7 @@ class SeasonalWeatherCovariator(MeanWeatherCovariator):
         # Setup all averages
         self.byregion = {region: averages.interpret(config, standard_climate_config, []) for region in self.weatherbundle.regions}
 
-        for year, ds in self.weatherbundle.yearbundles(maxyear=self.maxbaseline):
+        for year, ds in self.weatherbundle.yearbundles(maxyear=self.maxbaseline, variable_ofinterest=self.variable):
             regions = np.array(ds.coords["region"])
             for region, subds in fast_dataset.region_groupby(ds, year, regions, {regions[ii]: ii for ii in range(len(regions))}):
                 if region in self.culture_periods:
@@ -739,7 +762,7 @@ class MeanBinsCovariator(Covariator):
         if not quiet:
             print("Collecting baseline information...")
         temp_predictors = {} # {region: [rm-bin-1, ...]}
-        for region, binyears in weatherbundle.baseline_values(maxbaseline, quiet=quiet): # baseline through maxbaseline
+        for region, binyears in weatherbundle.baseline_values(maxbaseline, quiet=quiet, only_region=config.get('filter-region')): # baseline through maxbaseline
             usedbinyears = []
             for kk in range(binyears.shape[-1]):
                 usedbinyears.append(averages.interpret(config, standard_climate_config, binyears[-self.numtempyears:, kk]))
@@ -1107,8 +1130,10 @@ class SplineCovariator(TranslateCovariator):
         for ii in range(len(self.leftlimits)):
             if covariates[self.covarname] - self.leftlimits[ii] < 0:
                 result[self.covarname + self.suffix + str(ii+1)] = 0
+                result[self.covarname + 'indic' + str(ii+1)] = 0
             else:
                 result[self.covarname + self.suffix + str(ii+1)] = covariates[self.covarname] - self.leftlimits[ii]
+                result[self.covarname + 'indic' + str(ii+1)] = 1
         return result
                 
 class CountryAggregatedCovariator(Covariator):

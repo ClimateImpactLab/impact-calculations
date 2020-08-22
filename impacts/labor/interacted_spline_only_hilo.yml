@@ -1,14 +1,14 @@
 timerate: day
 climate: [ tasmax, tasmax_rcspline ]
 models:
-  - csvvs: social/parameters/labor/post_replication/spline/labor_spline_test_post_replication.csvv
+  - csvvs: social/parameters/labor/post_replication/spline/labor_spline_3kn_27_37_39_interacted.csvv
     specification:
       csvv-organization: lowhigh
       covariates: [ loggdppc, climtasmax ]
       description: labor productivity
       depenunit: minutes worked by individual
       indepunit: C
-      knots: [ 16.6, 30.3, 36.6 ]
+      knots: [ 27, 37, 39 ]
       functionalform: cubicspline
       prefix: tasmax_rcspline
       variable: tasmax
