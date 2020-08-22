@@ -651,7 +651,6 @@ if __name__ == '__main__':
                         outfilename = fullfile(filename, costs_suffix + suffix, config)
                         if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)):
                             make_costs_aggregate(targetdir, fullfile(filename, costs_suffix, config), outfilename, halfweight_aggregate, weight_args_aggregate, halfweight_denom=halfweight_aggregate_denom, weight_args_denom=weight_args_aggregate_denom, config=config)
->>>>>>> master
                     elif 'indiamerge' in filename:
                         # Just aggregate the costs for indiamerge file
 
