@@ -165,7 +165,7 @@ def produce_csvv(basename, csvv, module, specconf, targetdir, weatherbundle, eco
                                economicmodel, pvals, specconf, push_callback,
                                deltamethod_vcv)
 
-    only_adapt = config.get('only-adapt')
+    only_adapt = config.get('only-adapt') or config.get('adapt')
     if only_adapt:
         adapt_projection(strategy=only_adapt, diagnosefile=diagnosefile)
     else:
