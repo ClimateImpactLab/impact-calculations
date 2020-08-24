@@ -54,7 +54,10 @@ def get_curve_minima(regions, curvegen, covariator, mint, maxt, analytic):
             writer = csv.writer(fp)
             writer.writerow(['region', 'brute', 'analytic'])
             for region in regions:
-                curve = curvegen.get_curve(region, 2005, covariator.get_current(region))
+                try:
+                    curve = curvegen.get_curve(region, 2005, covariator.get_current(region))
+                except KeyError:
+                    continue
                 baselinecurves[region] = curve
                 if isinstance(mint, dict):
                     temps = np.arange(np.floor(mint[region]), np.ceil(maxt[region])+1)

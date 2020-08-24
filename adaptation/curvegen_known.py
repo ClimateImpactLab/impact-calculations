@@ -61,7 +61,10 @@ class SmartCSVVCurveGenerator(curvegen.CSVVCurveGenerator):
         openest.generate.smart_curve.SmartCurve
         """
         coefficients = self.get_coefficients(covariates)
-        yy = np.array([coefficients[predname] for predname in self.prednames]).flatten().tolist() # list of values, not of np.arrays
+
+        yy = [coefficients[predname] for predname in self.prednames]
+        if len(yy) > 0 and isinstance(yy[0], np.ndarray) and len(yy[0]) == 1:
+            yy = np.array(yy).flatten().tolist() # list of values, not of np.arrays
 
         if recorddiag and diagnostic.is_recording():
             for predname in self.prednames:
@@ -122,7 +125,7 @@ class BetaLimitsDerivativeSmartCSVVCurveGenerator(CurveGenerator):
     def get_curve(self, region, year, covariates, recorddiag=True, **kwargs):
         prederiv_coeffs = self.prederiv_curvegen.get_coefficients(covariates)
         coeffs = self.curvegen.get_coefficients(covariates)
-
+        
         for predname in coeffs:
             if predname in self.prederiv_curvegen.betalimits:
                 if prederiv_coeffs[predname] == self.prederiv_curvegen.betalimits[predname][0] or prederiv_coeffs[predname] == self.prederiv_curvegen.betalimits[predname][1]:
