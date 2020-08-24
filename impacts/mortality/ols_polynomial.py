@@ -27,7 +27,10 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     if config.get('clipping', 'both') in ['both', 'clip']:
         baselineloggdppcs = {}
         for region in weatherbundle.regions:
-            baselineloggdppcs[region] = covariator.get_current(region)['loggdppc']
+            try:
+                baselineloggdppcs[region] = covariator.get_current(region)['loggdppc']
+            except KeyError:
+                pass
     
         # Determine minimum value of curve between 10C and 25C
         baselinecurves, baselinemins = constraints.get_curve_minima(weatherbundle.regions, curr_curvegen, covariator, config.get('clip-mintemp', 10), config.get('clip-maxtemp', 25),
