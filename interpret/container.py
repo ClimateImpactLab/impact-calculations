@@ -159,6 +159,9 @@ def produce_csvv(basename, csvv, module, specconf, targetdir, weatherbundle, eco
     if diagnosefile:
         diagnosefile = diagnosefile.replace('.csv', '-' + basename + '.csv')
 
+    if weatherbundle.is_historical() and not config.get('do_historical'):
+        return
+
     # So don't repeat big arg pass over and over...
     adapt_projection = partial(_projection, targetdir, basename,
                                suffix, config, csvv, module, weatherbundle,
