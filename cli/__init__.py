@@ -2,8 +2,9 @@
 """
 
 import os
-import click
 from pathlib import Path
+import click
+from yaml import safe_load
 from impactlab_tools.utils.files import get_file_config
 from interpret.configs import merge_import_config
 from generate.generate import main as ggmain
@@ -45,7 +46,10 @@ def generate(confpath, conf):
     # Interpret "import" in configs here while we have file path info.
     file_configs = merge_import_config(file_configs, confpath.parent)
 
-    arg_configs = dict(arg.strip().split("=") for arg in conf)
+    # Parse CLI config values as yaml str before merging.
+    arg_configs = {}
+    for k, v in (arg.strip().split("=") for arg in conf):
+        arg_configs[k] = safe_load(v)
     file_configs.update(arg_configs)
 
     # For legacy purposes
