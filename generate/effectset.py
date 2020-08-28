@@ -211,8 +211,6 @@ def write_ncdf(targetdir, basename, columndata, weatherbundle, calculation, desc
 
     infos = calculation.column_info()
     columns = []
-    # Store all in columndata, for faster feeding in
-    columndata = [] # [matrix(year x region)]
     usednames = [] # In order of infos
     for ii in range(len(calculation.unitses)):
         myname = infos[ii]['name']
@@ -226,14 +224,12 @@ def write_ncdf(targetdir, basename, columndata, weatherbundle, calculation, desc
         column.source = infos[ii]['description']
 
         columns.append(column)
-        columndata.append(np.zeros((len(yeardata), len(my_regions))) * np.nan)
 
         if deltamethod_vcv is not False:
             column = rootgrp.createVariable(myname + '_bcde', 'f4', ('coefficient', 'year', 'region'))
             column.long_title = infos[ii]['title'] + " by coefficient deltamethod evaluation"
 
             columns.append(column)
-            columndata.append(np.zeros((deltamethod_vcv.shape[0], len(yeardata), len(my_regions))) * np.nan)
 
     nc4writer.make_str_variable(rootgrp, 'operation', 'orderofoperations', list(reversed(usednames)),
                                 "Order of the operations applied to the input weather data.")
