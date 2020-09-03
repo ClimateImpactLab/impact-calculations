@@ -322,7 +322,9 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
     if specconf.get('clipping') or specconf.get('goodmoney'):
         final_curvegen.deltamethod_passthrough = True
 
-    final_curvegen = curvegen.FarmerCurveGenerator(final_curvegen, covariator, farmer)
+    if covariator:
+        final_curvegen = curvegen.FarmerCurveGenerator(final_curvegen, covariator, farmer)
+
     return final_curvegen
 
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', specconf=None, config=None):
