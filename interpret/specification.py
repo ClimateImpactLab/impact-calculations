@@ -248,12 +248,12 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
     if getcsvvcurve:
         return curr_curvegen
         
-    if specconf.get('goodmoney', False):
+    if specconf.get('goodmoney'):
         baselineloggdppcs = {}
         for region in regions:
             baselineloggdppcs[region] = covariator.get_current(region)['loggdppc']
 
-    if specconf.get('clipping', False):
+    if specconf.get('clipping'):
         mintemp = specconf.get('clip-mintemp', 10)
         maxtemp = specconf.get('clip-maxtemp', 25)
         # Determine minimum value of curve between 10C and 25C
@@ -266,10 +266,10 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
         else:
             final_curve = smart_curve.CoefficientsCurve(curve.ccs, weathernames)
 
-        if specconf.get('clipping', False):
+        if specconf.get('clipping'):
             final_curve = ShiftedCurve(final_curve, -curve(baselinemins[region]))
 
-        if specconf.get('goodmoney', False):
+        if specconf.get('goodmoney'):
             covars = covariator.get_current(region)
             covars['loggdppc'] = baselineloggdppcs[region]
             noincadapt_unshifted_curve = curr_curvegen.get_curve(region, None, covars, recorddiag=False)
@@ -281,10 +281,10 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
 
             final_curve = MinimumCurve(final_curve, noincadapt_curve)
 
-        if specconf.get('clipping', False):
+        if specconf.get('clipping'):
             final_curve = ClippedCurve(final_curve)
 
-        if specconf.get('extrapolation', False):
+        if specconf.get('extrapolation'):
             exargs = specconf['extrapolation']
             assert 'indepvar' in exargs or 'indepvars' in exargs
             indepvars = exargs.get('indepvars', [exargs['indepvar']])
