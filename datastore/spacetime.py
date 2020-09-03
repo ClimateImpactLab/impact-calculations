@@ -129,15 +129,22 @@ class SpaceTimeProductData(SpaceTimeData):
     def get_time(self, region):
         """Return timeseries for a region
         """
+        # import pdb; pdb.set_trace()
         datum1 = self.spdata1.get_time(region)
         datum2 = self.spdata2.get_time(region)
         if datum1 is None:
             return None
         if datum2 is None:
             return None
-        if len(datum1) != len(datum2):
-            datum1 = datum1[:min(len(datum1), len(datum2))]
-            datum2 = datum2[:min(len(datum1), len(datum2))]
+
+        ###### the patch that deals with missing 2100 during aggregation #######
+        datum1 = np.array(datum1)
+        datum2 = np.array(datum2)
+        min_shape = tuple([slice(0, min(datum1.shape[ii], datum2.shape[ii]), None) for ii in range(min(len(datum1.shape),len(datum2.shape)))])
+        datum1 = datum1[min_shape]
+        datum2 = datum2[min_shape]
+        ######## end of patch ##################################################
+
         return self.combiner(datum1, datum2)
 
 class SpaceTimeBipartiteData(SpaceTimeData):

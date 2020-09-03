@@ -213,6 +213,18 @@ def make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, d
                 # Add each sub-region to the numerator and denominator
                 for original in withinregions:
                     wws = stweight.get_time(original) # Get vector of weights vs. time
+
+                    ######## the patch to make aggregation work with missing 2100 #######3
+                    wws = np.array(wws)
+                    srcvalues = np.array(srcvalues)
+                    min_shape = tuple([slice(0, min(wws.shape[ii], srcvalues.shape[ii]), None) for ii in range(min(len(wws.shape),len(srcvalues.shape)))])
+                    wws = wws[min_shape]
+                    numers = numers[min_shape]
+                    denoms = denoms[min_shape]
+                    srcvalues = srcvalues[min_shape]
+                    ############## end of that patch ###########
+
+                    # import pdb; pdb.set_trace()
                     numers += wws * np.nan_to_num(srcvalues[:, original_indices[original]]) * np.isfinite(srcvalues[:, original_indices[original]])
                     if stweight_denom != weights.HALFWEIGHT_SUMTO1: # wait for sum-to-1
                         if stweight_denom:
