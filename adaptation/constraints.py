@@ -44,6 +44,29 @@ def make_get_coeff_goodmoney(weatherbundle, covariator, curvegen, baselinemins, 
     return coeff_getter
 
 def get_curve_minima(regions, curvegen, covariator, mint, maxt, analytic):
+    """Find minima of a CurveGenerator within a range
+
+    Parameters
+    ----------
+    regions : Sequence of str
+        Hierid regions.
+    curvegen : openest.generate.curvegen.CurveGenerator
+        Curve to find the minima of.
+    covariator : adaptation.covariates.Covariator
+    mint : int or float
+    maxt : int or float
+    analytic : Callable
+        Function that accepts two float args (min, max). The callable returns
+        another callable that takes a single argument, and returns a float.
+
+    Returns
+    -------
+    baselinecurves : dict
+        Mapping of openest.models.curve.CurveCurve-likes indexed on region
+        (hierid).
+    baselinemins : dict
+        Mapping of minima (floats or ints) index on region (hierid).
+    """
     # Determine minimum value of curve between mint and maxt
     print("Determining minimum temperatures.")
     baselinecurves = {}
