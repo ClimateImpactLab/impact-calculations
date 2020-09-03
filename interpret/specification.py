@@ -257,13 +257,8 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
         mintemp = specconf.get('clip-mintemp', 10)
         maxtemp = specconf.get('clip-maxtemp', 25)
         # Determine minimum value of curve between 10C and 25C
-        if covariator:
-            _, baselinemins = constraints.get_curve_minima(regions, curr_curvegen, covariator,
-                                                                        mintemp, maxtemp, minfinder(mintemp, maxtemp))
-        else:
-            curve = curr_curvegen.get_curve('global', 2000, {})
-            curvemin = minfinder(mintemp, maxtemp)(curve)
-            baselinemins = {region: curvemin for region in regions}
+        _, baselinemins = constraints.get_curve_minima(regions, curr_curvegen, covariator,
+                                                                    mintemp, maxtemp, minfinder(mintemp, maxtemp))
 
     def transform(region, curve):
         if isinstance(curve, smart_curve.SmartCurve):
