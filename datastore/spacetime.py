@@ -135,6 +135,9 @@ class SpaceTimeProductData(SpaceTimeData):
             return None
         if datum2 is None:
             return None
+        if len(datum1) != len(datum2):
+            datum1 = datum1[:min(len(datum1), len(datum2))]
+            datum2 = datum2[:min(len(datum1), len(datum2))]
         return self.combiner(datum1, datum2)
 
 class SpaceTimeBipartiteData(SpaceTimeData):
