@@ -305,11 +305,11 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
 
         return final_curve
 
-    if specconf.get('clipping', False) and specconf.get('goodmoney', False):
+    if specconf.get('clipping') and specconf.get('goodmoney'):
         final_curvegen = curvegen.TransformCurveGenerator(transform, "Clipping and Good Money transformation", curr_curvegen)
-    elif specconf.get('clipping', False):
+    elif specconf.get('clipping'):
         final_curvegen = curvegen.TransformCurveGenerator(transform, "Clipping transformation", curr_curvegen)
-    elif specconf.get('goodmoney', False):
+    elif specconf.get('goodmoney'):
         final_curvegen = curvegen.TransformCurveGenerator(transform, "Good Money transformation", curr_curvegen)
     else:
         final_curvegen = curvegen.TransformCurveGenerator(transform, "Smart curve transformation", curr_curvegen)
