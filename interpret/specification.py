@@ -305,19 +305,19 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
 
         return final_curve
 
+    description = "Smart curve transformation"
     if specconf.get('clipping') and specconf.get('goodmoney'):
-        final_curvegen = curvegen.TransformCurveGenerator(transform, "Clipping and Good Money transformation", curr_curvegen)
+        description = "Clipping and Good Money transformation"
     elif specconf.get('clipping'):
-        final_curvegen = curvegen.TransformCurveGenerator(transform, "Clipping transformation", curr_curvegen)
+        description = "Clipping transformation"
     elif specconf.get('goodmoney'):
-        final_curvegen = curvegen.TransformCurveGenerator(transform, "Good Money transformation", curr_curvegen)
-    else:
-        final_curvegen = curvegen.TransformCurveGenerator(transform, "Smart curve transformation", curr_curvegen)
+        description = "Good Money transformation"
+    final_curvegen = curvegen.TransformCurveGenerator(transform, description, curr_curvegen)
+
+    if specconf.get('clipping') or specconf.get('goodmoney'):
         final_curvegen.deltamethod_passthrough = True
 
-    if covariator:
-        final_curvegen = curvegen.FarmerCurveGenerator(final_curvegen, covariator, farmer)
-
+    final_curvegen = curvegen.FarmerCurveGenerator(final_curvegen, covariator, farmer)
     return final_curvegen
 
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', specconf=None, config=None):
