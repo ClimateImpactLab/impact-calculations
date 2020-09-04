@@ -182,7 +182,7 @@ def subset(csvv, toinclude):
         toinclist = toinclude
     else:
         toinclist = list(range(int(toinclude.start), int(toinclude.stop)))
-        assert len(csvv['prednames']) > np.max(toinclude), "Too few coefficients: requested index %d but only have %d." % (np.max(toinclude), len(csvv['prednames']))
+    assert len(csvv['prednames']) > np.max(toinclist), "Too few coefficients: requested index %d but only have %d." % (np.max(toinclist), len(csvv['prednames']))
 
     subcsvv = copy.copy(csvv)
     subcsvv['prednames'] = [csvv['prednames'][ii] for ii in toinclist]
