@@ -96,9 +96,14 @@ def interpret_ds_transform(name, config):
 def interpret_wrap_transform(transform, internal, as_selfdoc):
     if transform[:4] == 'bin(':
         value = float(transform[4:-1]) if '.' in transform else int(transform[4:-1])
+        validated_sel_setup = None
         def getbin(ds):
-            assert sum(ds.refTemp == value) == 1, "Cannot find the requested temperature cut-off."
-            return internal(ds).sel(refTemp=value)
+            nonlocal validated_sel_setup
+            internalvar = internal(ds)
+            if validated_sel_setup is None: # only do this once
+                assert sum(ds.refTemp == value) == 1, "Cannot find the requested temperature cut-off."
+                validated_sel_setup = internalvar.sel_setup(refTemp=value)
+            return internalvar.sel_apply(validated_sel_setup)
         return wrap_as_selfdoc(as_selfdoc, getbin, "Extract bin from weather",
                                docargs=[internal, value])
 
