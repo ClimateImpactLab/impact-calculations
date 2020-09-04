@@ -212,18 +212,13 @@ def make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, d
 
                 # Add each sub-region to the numerator and denominator
                 for original in withinregions:
-                    wws = stweight.get_time(original) # Get vector of weights vs. time
+                    wws = np.array(stweight.get_time(original)) # Get vector of weights vs. time
 
-                    ######## the temporary fix to make aggregation work with missing 2100 #######
-                    wws = np.array(wws)
-                    srcvalues = np.array(srcvalues)
-                    min_shape = tuple([slice(0, min(wws.shape[ii], srcvalues.shape[ii]), None) for ii in range(min(len(wws.shape),len(srcvalues.shape)))])
-                    wws = wws[min_shape]
-                    numers = numers[min_shape]
-                    denoms = denoms[min_shape]
-                    srcvalues = srcvalues[min_shape]
-                    dstvalues = dstvalues[min_shape]
-                    ############## end of fix ###########
+                    if len(wws.shape) == 1 and wws.shape[0] != srcvalues.shape[0]:
+                        # Shorten to the minimum of the two years
+                        wws = wws[:min(wws.shape[0], srcvalues.shape[0])]
+                        srcvalues = srcvalues[:min(wws.shape[0], srcvalues.shape[0]), :]
+                        dstvalues = srcvalues[:srcvalues.shape[0], :]
 
                     # import pdb; pdb.set_trace()
                     numers += wws * np.nan_to_num(srcvalues[:, original_indices[original]]) * np.isfinite(srcvalues[:, original_indices[original]])
@@ -418,25 +413,21 @@ def make_levels(targetdir, filename, outfilename, halfweight, weight_args, dimen
         
     # Iterate through all regional variables
     for key, variable in agglib.iter_timereg_variables(reader, config=config):
-
         dstvalues = np.zeros((len(years), len(regions))) # output matrix
-
         if vcv is None:
             # Multiply each entry by appropriate weight   
-            # srcvalues = np.array(variable[:, :])
+            srcvalues = np.array(variable[:, :])
                 
             for ii in range(len(regions)):
+                wws = np.array(stweight.get_time(regions[ii]))
 
-                ############# temporary fix to make ##############
-                srcvalues = np.array(variable[:, :])
-                temp = np.array(stweight.get_time(regions[ii]))
-                min_shape = tuple([slice(0, min(temp.shape[ii], dstvalues.shape[ii], srcvalues.shape[ii]), None) for ii in range(min(len(temp.shape),len(srcvalues.shape),len(dstvalues.shape)))])
-                dstvalues = dstvalues[min_shape]
-                srcvalues = srcvalues[min_shape]
-                temp = temp[min_shape]
-                ############# end of temporary fix ###############
-        
-                dstvalues[:, ii] = srcvalues[:, ii] * temp
+                if len(wws.shape) == 1 and wws.shape[0] != srcvalues.shape[0]:
+                    # Shorten to the minimum of the two years
+                    wws = wws[:min(wws.shape[0], srcvalues.shape[0])]
+                    srcvalues = srcvalues[:min(wws.shape[0], srcvalues.shape[0]), :]
+                    dstvalues = srcvalues[:srcvalues.shape[0], :]
+
+                dstvalues[:, ii] = wws * srcvalues[:, ii]
         else:
             # Handle deltamethod files
             coeffvalues = np.zeros((vcv.shape[0], len(years), len(regions)))
