@@ -218,7 +218,8 @@ def make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, d
                         # Shorten to the minimum of the two years
                         wws = wws[:min(wws.shape[0], srcvalues.shape[0])]
                         srcvalues = srcvalues[:min(wws.shape[0], srcvalues.shape[0]), :]
-                        dstvalues = srcvalues[:srcvalues.shape[0], :]
+                        numers = numers[:srcvalues.shape[0]]
+                        denoms = denoms[:srcvalues.shape[0]]
 
                     # import pdb; pdb.set_trace()
                     numers += wws * np.nan_to_num(srcvalues[:, original_indices[original]]) * np.isfinite(srcvalues[:, original_indices[original]])
@@ -231,9 +232,9 @@ def make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, d
 
                 # Fill in result
                 if stweight_denom == weights.HALFWEIGHT_SUMTO1: # wait for sum-to-1
-                    dstvalues[:, ii] = numers
+                    dstvalues[:len(numers), ii] = numers
                 else:
-                    dstvalues[:, ii] = numers / denoms
+                    dstvalues[:len(numers), ii] = numers / denoms
         else:
             # Handle deltamethod files
             coeffvalues = np.zeros((vcv.shape[0], len(years), len(prefixes)))
@@ -425,9 +426,9 @@ def make_levels(targetdir, filename, outfilename, halfweight, weight_args, dimen
                     # Shorten to the minimum of the two years
                     wws = wws[:min(wws.shape[0], srcvalues.shape[0])]
                     srcvalues = srcvalues[:min(wws.shape[0], srcvalues.shape[0]), :]
-                    dstvalues = srcvalues[:srcvalues.shape[0], :]
-
-                dstvalues[:, ii] = wws * srcvalues[:, ii]
+                    dstvalues[:len(wws), ii] = wws * srcvalues[:, ii]
+                else:
+                    dstvalues[:, ii] = wws * srcvalues[:, ii]
         else:
             # Handle deltamethod files
             coeffvalues = np.zeros((vcv.shape[0], len(years), len(regions)))
