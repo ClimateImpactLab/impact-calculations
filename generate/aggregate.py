@@ -221,7 +221,6 @@ def make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, d
                         numers = numers[:srcvalues.shape[0]]
                         denoms = denoms[:srcvalues.shape[0]]
 
-                    # import pdb; pdb.set_trace()
                     numers += wws * np.nan_to_num(srcvalues[:, original_indices[original]]) * np.isfinite(srcvalues[:, original_indices[original]])
                     if stweight_denom != weights.HALFWEIGHT_SUMTO1: # wait for sum-to-1
                         if stweight_denom:
