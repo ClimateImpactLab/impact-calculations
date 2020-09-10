@@ -427,7 +427,7 @@ def make_levels(targetdir, filename, outfilename, halfweight, weight_args, dimen
                     srcvalues = srcvalues[:min(wws.shape[0], srcvalues.shape[0]), :]
                     dstvalues[:len(wws), ii] = wws * srcvalues[:, ii]
                 else:
-                    dstvalues[:, ii] = wws * srcvalues[:, ii]
+                    dstvalues[:len(wws), ii] = wws * srcvalues[:, ii]
         else:
             # Handle deltamethod files
             coeffvalues = np.zeros((vcv.shape[0], len(years), len(regions)))
