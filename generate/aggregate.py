@@ -421,7 +421,7 @@ def make_levels(targetdir, filename, outfilename, halfweight, weight_args, dimen
             for ii in range(len(regions)):
                 wws = np.array(stweight.get_time(regions[ii]))
 
-                if len(wws.shape) == 1 and wws.shape[0] != srcvalues.shape[0]:
+                if len(wws.shape) == 1 and wws.shape[0] != dstvalues.shape[0]:
                     # Shorten to the minimum of the two years
                     wws = wws[:min(wws.shape[0], srcvalues.shape[0])]
                     srcvalues = srcvalues[:min(wws.shape[0], srcvalues.shape[0]), :]
