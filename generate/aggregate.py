@@ -195,6 +195,7 @@ def make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, d
     # Iterate through all aggregatable variables
     for key, variable in agglib.iter_timereg_variables(reader, config=config):
         dstvalues = np.zeros((len(years), len(prefixes))) # output matrix
+        dstvalues[:] = np.nan
         if vcv is None:
             srcvalues = variable[:, :]
             # Iterates over aggregated regions
@@ -414,6 +415,7 @@ def make_levels(targetdir, filename, outfilename, halfweight, weight_args, dimen
     # Iterate through all regional variables
     for key, variable in agglib.iter_timereg_variables(reader, config=config):
         dstvalues = np.zeros((len(years), len(regions))) # output matrix
+        dstvalues[:] = np.nan
         if vcv is None:
             # Multiply each entry by appropriate weight   
             srcvalues = np.array(variable[:, :])
