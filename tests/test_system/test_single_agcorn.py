@@ -63,7 +63,6 @@ def projection_netcdf():
                         ]
                     },
                     "Rebase",
-                    "Exponentiate",
                     {
                         "KeepOnly": [
                             "ddseasonaltasmax",
