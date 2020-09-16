@@ -105,7 +105,7 @@ class OnDemandRandomPvals(Pvals):
     def __getitem__(self, name):
         mydict = self.dicts.get(name, None)
         if mydict is None and not self.locked:
-            mydict = OnDemandRandomDictionary(relative_location if name in cross_sector_dictionaries else None)
+            mydict = OnDemandRandomDictionary(self.relative_location if name in cross_sector_dictionaries else None)
             self.dicts[name] = mydict
 
         return mydict
@@ -142,7 +142,7 @@ class OnDemandRandomDictionary(PvalsDictionary):
         if fullname in self.values:
             return self.values[fullname]
 
-        if self.relative_location == "":
+        if self.relative_location is None:
             # Not a cross-sector dictionary
             seed = int(time.time()) + plus
         else:
@@ -196,4 +196,4 @@ def load_pvals(pvals, relative_location, lock=False):
 
 def cross_sector_seed(relative_location, key="", value=0):
     hashkey = "".join(relative_location) + key
-    return zlib.crc32(hashkey, value=value)
+    return zlib.crc32(str.encode(hashkey), value)
