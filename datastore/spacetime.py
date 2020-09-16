@@ -135,6 +135,16 @@ class SpaceTimeProductData(SpaceTimeData):
             return None
         if datum2 is None:
             return None
+
+        # Drop extra years from either datum
+        datum1 = np.array(datum1)
+        datum2 = np.array(datum2)
+        if datum1.shape != datum2.shape and len(datum1.shape) == len(datum2.shape) and len(datum1.shape) > 0:
+            # This is the case where we're trying to combine equivalent arrays, except one is longer
+            min_shape = tuple([slice(0, min(datum1.shape[ii], datum2.shape[ii]), None) for ii in range(len(datum1.shape))])
+            datum1 = datum1[min_shape]
+            datum2 = datum2[min_shape]
+
         return self.combiner(datum1, datum2)
 
 class SpaceTimeBipartiteData(SpaceTimeData):
