@@ -186,7 +186,7 @@ def load_pvals(pvals, relative_location, lock=False):
 
     odrp = OnDemandRandomPvals(relative_location)
     for name in pvals:
-        odrp.dicts[name] = OnDemandRandomDictionary()
+        odrp.dicts[name] = OnDemandRandomDictionary(relative_location if name in cross_sector_dictionaries else None)
         odrp.dicts[name].values = pvals[name]
 
     if lock:
