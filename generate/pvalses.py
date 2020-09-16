@@ -9,15 +9,18 @@ the uncertainty forecasts for conflict and anything else that is
 stochastic.
 """
 
-import os, yaml, time
+import os, yaml, time, zlib
 import numpy as np
 
-def interpret(config):
+## These dictionaries (keys in the top-level Pvals object) have common values across sectors
+cross_sector_dictionaries = ['histclim']
+
+def interpret(config, relative_location):
     if 'pvals' not in config or config['pvals'] == 'median':
         return ConstantPvals(.5)
 
     if config['pvals'] == 'montecarlo':
-        return OnDemandRandomPvals()
+        return OnDemandRandomPvals(relative_location)
 
     try:
         pval = float(config['pvals'])
@@ -31,12 +34,36 @@ def interpret(config):
         return ConstantPvals(pval)
 
     if isinstance(config['pvals'], str):
-        return read_pval_file(config['pvals'])
+        return read_pval_file(config['pvals'], relative_location)
 
     if isinstance(config['pvals'], dict):
-        return load_pvals(config['pvals'])
+        return load_pvals(config['pvals'], relative_location)
 
-class ConstantPvals:
+## Abstract base classes
+    
+class Pvals(object):
+    def lock(self):
+        raise NotImplementedError()
+
+    def __getitem__(self, name):
+        raise NotImplementedError()
+
+    def __iter__(self):
+        raise NotImplementedError()
+
+class PvalsDictionary(object):
+    def lock(self):
+        raise NotImplementedError()
+
+    def __getitem__(self, name):
+        raise NotImplementedError()
+
+    def get_seed(self, name, plus=0):
+        raise NotImplementedError()
+
+## ConstantPvals always return the same value
+    
+class ConstantPvals(Pvals):
     def __init__(self, value):
         self.value = value
 
@@ -49,7 +76,7 @@ class ConstantPvals:
     def __iter__(self):
         yield ('all', self.value)
 
-class ConstantDictionary:
+class ConstantDictionary(PvalsDictionary):
     def __init__(self, value):
         self.value = value
 
@@ -62,8 +89,11 @@ class ConstantDictionary:
     def get_seed(self, name, plus=0):
         return None # for MC, have this also increment state
 
-class OnDemandRandomPvals:
-    def __init__(self):
+## OnDemandRandomPvals constructs random numbers as needed
+    
+class OnDemandRandomPvals(Pvals):
+    def __init__(self, relative_location):
+        self.relative_location = relative_location
         self.dicts = {}
         self.locked = False
 
@@ -75,7 +105,7 @@ class OnDemandRandomPvals:
     def __getitem__(self, name):
         mydict = self.dicts.get(name, None)
         if mydict is None and not self.locked:
-            mydict = OnDemandRandomDictionary()
+            mydict = OnDemandRandomDictionary(relative_location if name in cross_sector_dictionaries else None)
             self.dicts[name] = mydict
 
         return mydict
@@ -84,8 +114,9 @@ class OnDemandRandomPvals:
         for key in self.dicts:
             yield (key, self.dicts[key].values)
 
-class OnDemandRandomDictionary:
-    def __init__(self):
+class OnDemandRandomDictionary(PvalsDictionary):
+    def __init__(self, relative_location):
+        self.relative_location = relative_location
         self.values = {}
         self.locked = False
 
@@ -111,9 +142,15 @@ class OnDemandRandomDictionary:
         if fullname in self.values:
             return self.values[fullname]
 
-        seed = int(time.time()) + plus
+        if self.relative_location == "":
+            # Not a cross-sector dictionary
+            seed = int(time.time()) + plus
+        else:
+            seed = cross_sector_seed(self.relative_location, name, plus)
         self.values[fullname] = seed
         return seed
+
+## Helper functions
 
 def get_pval_file(targetdir):
     return os.path.join(targetdir, "pvals.yml")
@@ -131,7 +168,7 @@ def make_pval_file(targetdir, pvals):
 def has_pval_file(targetdir):
     return os.path.exists(get_pval_file(targetdir))
 
-def read_pval_file(path, lock=False):
+def read_pval_file(path, relative_location, lock=False):
     if not os.path.isfile(path):
         path = get_pval_file(path) # assume it's a directory containing pvals.yml
         
@@ -141,13 +178,13 @@ def read_pval_file(path, lock=False):
         if pvals is None:
             return None
         
-        return load_pvals(pvals, lock=lock)
+        return load_pvals(pvals, relative_location, lock=lock)
 
-def load_pvals(pvals, lock=False):
+def load_pvals(pvals, relative_location, lock=False):
     if len(pvals) == 1 and 'all' in pvals:
         return ConstantPvals(pvals['all'])
 
-    odrp = OnDemandRandomPvals()
+    odrp = OnDemandRandomPvals(relative_location)
     for name in pvals:
         odrp.dicts[name] = OnDemandRandomDictionary()
         odrp.dicts[name].values = pvals[name]
@@ -156,3 +193,7 @@ def load_pvals(pvals, lock=False):
         odrp.lock()
 
     return odrp
+
+def cross_sector_seed(relative_location, key="", value=0):
+    hashkey = "".join(relative_location) + key
+    return zlib.crc32(hashkey, value=value)
