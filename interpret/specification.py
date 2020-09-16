@@ -13,6 +13,7 @@ from adaptation import csvvfile, curvegen, curvegen_known, curvegen_arbitrary, c
 from datastore import irvalues
 from openest.generate import smart_curve, selfdocumented
 from openest.models.curve import ShiftedCurve, MinimumCurve, ClippedCurve
+from openest.curves import ushape_numeric
 from openest.curves.smart_linextrap import LinearExtrapolationCurve
 from openest.generate.stdlib import *
 from impactcommon.math import minpoly, minspline
