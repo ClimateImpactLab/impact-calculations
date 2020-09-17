@@ -71,7 +71,6 @@ RUN_CONFIGS = {
                     ]
                 },
                 "Rebase",
-                "Exponentiate",
                 {
                     "KeepOnly": [
                         "ddseasonaltasmax",
