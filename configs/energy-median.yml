@@ -1,4 +1,0 @@
-module: impacts/energy/allmodels.yml
-mode: median
-outputdir: /shares/gcp/outputs/energy/impacts-rover
-do_farmers: true
