@@ -2,9 +2,12 @@ import time
 import numpy as np
 from generate import multithread
 
-class TestLockstepParallelMaster(multithread.LockstepParallelMaster):
+slave_sleep = .01
+processed = {}
+
+class MyTestLockstepParallelMaster(multithread.LockstepParallelMaster):
     def __init__(self, mcdraws, preptime):
-        super(TestLockstepParallelMaster, self).__init__(mcdraws)
+        super(MyTestLockstepParallelMaster, self).__init__(mcdraws)
         self.preptime = preptime
         self.timestep = 0
         
@@ -36,26 +39,32 @@ def slave_process(proc, master):
 
     print("Slave: END")
 
-## Test with slave < master
-slave_sleep = .05
-processed = {}
-for proc in range(5):
-    processed[proc] = []
+def test_lockstep():
+    global slave_sleep, processed
+    
+    ## Test with slave < master
+    slave_sleep = .05
+    processed = {}
+    for proc in range(5):
+        processed[proc] = []
 
-master = TestLockstepParallelMaster(5, .1)
-master.loop(slave_process)
+    master = MyTestLockstepParallelMaster(5, .1)
+    master.loop(slave_process)
 
-for proc in range(5):
-    np.testing.assert_equal(processed[proc], np.arange(1, 10))
+    for proc in range(5):
+        np.testing.assert_equal(processed[proc], np.arange(1, 10))
 
-# Test with slave > master
-slave_sleep = .2
-processed = {}
-for proc in range(5):
-    processed[proc] = []
+    # Test with slave > master
+    slave_sleep = .2
+    processed = {}
+    for proc in range(5):
+        processed[proc] = []
 
-master = TestLockstepParallelMaster(5, .1)
-master.loop(slave_process)
+    master = MyTestLockstepParallelMaster(5, .1)
+    master.loop(slave_process)
 
-for proc in range(5):
-    np.testing.assert_equal(processed[proc], np.arange(1, 10))
+    for proc in range(5):
+        np.testing.assert_equal(processed[proc], np.arange(1, 10))
+
+if __name__ == '__main__':
+    test_lockstep()
