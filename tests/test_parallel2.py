@@ -9,9 +9,9 @@ covars = [weathersum[19]] * 20 + list(weathersum[20:])
 assert len(covars) == len(weather)
 results_true = weather * covars
 
-class TestFoldedActionsLockstepParallelMaster(multithread.FoldedActionsLockstepParallelMaster):
+class MyTestFoldedActionsLockstepParallelMaster(multithread.FoldedActionsLockstepParallelMaster):
     def __init__(self, mcdraws):
-        super(TestFoldedActionsLockstepParallelMaster, self).__init__(mcdraws)
+        super(MyTestFoldedActionsLockstepParallelMaster, self).__init__(mcdraws)
         self.covarval = 0
         self.weatheriter = None
 
@@ -73,6 +73,9 @@ def slave_process(proc, master):
     master.end_slave()
     print("DONE" + str(proc))
 
-master = TestFoldedActionsLockstepParallelMaster(5)
-master.loop(slave_process)
+def test_folded():
+    master = MyTestFoldedActionsLockstepParallelMaster(5)
+    master.loop(slave_process)
 
+if __name__ == '__main__':
+    test_folded()
