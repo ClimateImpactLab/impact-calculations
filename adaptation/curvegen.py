@@ -189,6 +189,8 @@ class FarmerCurveGenerator(DelayedCurveGenerator):
         Type of farmer adaptation.
     save_curve : bool, optional
         Do you want to save this curve in `adaptation.region_curves`?
+    endbaseline : int
+        Final year of the baseline period.
     """
     def __init__(self, curvegen, covariator, farmer='full', save_curve=True, endbaseline=2015):
         super(FarmerCurveGenerator, self).__init__(curvegen)

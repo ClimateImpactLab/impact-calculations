@@ -58,6 +58,8 @@ def check_doit(targetdir, basename, suffix, config):
 def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callback=None, suffix='', profile=False, diagnosefile=False):
     print(config['do_only'])
 
+    assert isinstance(diagnosefile, str) or isinstance(diagnosefile, bool)
+
     if config['do_only'] is None or config['do_only'] in ['interpolation', 'mle']:
         if push_callback is None:
             push_callback = lambda reg, yr, app, predget, mod: None
@@ -95,6 +97,8 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
                 numpreds = len(config['terms'])
                 module = 'impacts.mortality.ols_linear'
                 minpath_suffix = None
+            else:
+                raise ValueError("Unknown specification: " + specification)
             if minpath_suffix is not None and weatherbundle.is_historical():
                 minpath_suffix += "-histclim"
 

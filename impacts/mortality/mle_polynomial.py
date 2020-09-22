@@ -1,11 +1,8 @@
-import csv, copy
+import copy
 import numpy as np
-from adaptation import csvvfile, curvegen, curvegen_arbitrary, curvegen_known, covariates
-from generate import caller
-from interpret import configs
+from adaptation import csvvfile, curvegen, curvegen_arbitrary, curvegen_known, covariates, constraints
 from openest.models.curve import ZeroInterceptPolynomialCurve
 from openest.generate.stdlib import *
-from openest.generate import diagnostic
 from impactcommon.math import minpoly
 
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', config=None):
@@ -26,6 +23,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
 
     csvvfile.collapse_bang(csvv, qvals.get_seed('csvv'))
 
+    order = int(len(csvv['gamma']) / 3)
     curr_curvegen = curvegen_known.PolynomialCurveGenerator(['C'] + ['C^%d' % pow for pow in range(2, order+1)],
                                                             '100,000 * death/population', 'tas', order, csvv)
 
@@ -42,8 +40,8 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     
     climtas_marginals = curr_curvegen.get_marginals('climtas')
     climtas_marginals = np.array([climtas_marginals[predname] for predname in curr_curvegen.prednames]) # same order as temps
-    print "MARGINALS"
-    print climtas_marginals
+    print("MARGINALS")
+    print(climtas_marginals)
 
     def coeff_getter_positive(region, year, temps, curve):
         return curve.curr_curve.coeffs
@@ -57,11 +55,11 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     negcsvv = copy.copy(csvv)
     negcsvv['gamma'] = [-csvv['gamma'][ii] if csvv['covarnames'][ii] == '1' else csvv['gamma'][ii] for ii in range(len(csvv['gamma']))]
 
-    negcurr_curvegen = curvegen_arbitrary.MLECoefficientsCurveGenerator(lambda coeffs: ZeroInterceptPolynomialCurve(coeffs)
+    negcurr_curvegen = curvegen_arbitrary.MLECoefficientsCurveGenerator(lambda coeffs: ZeroInterceptPolynomialCurve([-np.inf, np.inf], coeffs),
                                                                         ['C'] + ['C^%d' % pow for pow in range(2, order+1)],
                                                                         '100,000 * death/population', 'tas', order, negcsvv)
     negfarm_curvegen = curvegen.FarmerCurveGenerator(negcurr_curvegen, covariator2, farmer, save_curve=False, endbaseline=config.get('endbaseline', 2015))
-    baseeffect = YearlyCoefficients('100,000 * death/population', negfarm_curvegen, 'offset to normalize to 20 C', coeff_getter_negative, weather_change=lambda region, temps: 365 * np.array(CubicSplineCurve(knots, np.zeros(len(knots)-1)).get_terms(baselinemins[region])))
+    baseeffect = YearlyCoefficients('100,000 * death/population', negfarm_curvegen, 'offset to normalize to 20 C', coeff_getter_negative, weather_change=lambda region, temps: 365 * np.array(ZeroInterceptPolynomialCurve([-np.inf, np.inf], coeffs)(baselinemins[region])))
 
     # Collect all baselines
     calculation = Transform(Sum([maineffect, baseeffect]),

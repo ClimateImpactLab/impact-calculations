@@ -30,7 +30,6 @@ def get_weather(weathertemplate, years, shapenum, show_all_years=None, variable=
             print((str(year) + ': ' + ','.join(map(str, data[:10])) + '...'))
 
         weather[year] = data
-        rootgrp.close()
 
     return weather
 
@@ -64,13 +63,13 @@ def get_outputs(outputpath, years, shapenum, timevar='year'):
 
     outyears = list(rootgrp.variables[timevar])
     outvars = [var for var in rootgrp.variables if len(rootgrp.variables[var].shape) == 2]
-    print 'year,' + ','.join(outvars)
+    print('year,' + ','.join(outvars))
     
     outputs = {}
     for year in years:
         data = {var: rootgrp.variables[var][outyears.index(year), shapenum] for var in outvars}
         outputs[year] = data
         
-        print ','.join([str(year)] + [str(data[var]) for var in outvars])
+        print(','.join([str(year)] + [str(data[var]) for var in outvars]))
 
     return outputs

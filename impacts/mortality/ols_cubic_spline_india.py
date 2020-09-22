@@ -1,16 +1,19 @@
 from adaptation import csvvfile, curvegen, curvegen_known
-from openest.models.curve import ZeroInterceptPolynomialCurve, ClippedCurve, ShiftedCurve, SelectiveInputCurve
+from openest.models.curve import ClippedCurve, ShiftedCurve, SelectiveInputCurve
 from openest.generate.stdlib import *
 from impactcommon.math import minspline
 
 knots = [-10, 0, 10, 20, 28, 33]
 
-def prepare_raw(csvv, weatherbundle, economicmodel, qvals, config={}):
+def prepare_raw(csvv, weatherbundle, economicmodel, qvals, config=None):
+    if config is None:
+        config = {}
+
     csvvfile.collapse_bang(csvv, qvals.get_seed('csvv'))
 
     orig_curvegen = curvegen_known.CubicSplineCurveGenerator(['C'] + ['C^3'] * (len(knots) - 2),
                                                               '100000 * death/population', 'spline_variables-',
-                                                              knots, csvv)
+                                                              knots, 'tas', csvv)
 
     curve = orig_curvegen.get_curve('global', 2000, {})
     
