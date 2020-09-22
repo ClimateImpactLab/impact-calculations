@@ -203,7 +203,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
 
         curr_curvegen = curvegen_known.CubicSplineCurveGenerator([indepunit] + ['%s^3' % indepunit] * (len(knots) - 2),
                                                                  depenunit, prefix, knots, variable_name, csvv, betalimits=betalimits)
-        minfinder = lambda mintemp, maxtemp, sign: lambda curve: minspline.findsplinemin(knots, sign * curve.coeffs, mintemp, maxtemp)
+        minfinder = lambda mintemp, maxtemp, sign: lambda curve: minspline.findsplinemin(knots, sign * np.asarray(curve.coeffs), mintemp, maxtemp)
         weathernames = [prefix]
     elif specconf['functionalform'] == 'coefficients':
         ds_transforms = {}
@@ -285,7 +285,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
             final_curve = smart_curve.CoefficientsCurve(curve.ccs, weathernames)
 
         if specconf.get('clipping', False):
-            final_curve = smart_curve.ShiftedCurve(final_curve, -curve.get_univariate()(baselineexts[region]))
+            final_curve = smart_curve.ShiftedCurve(final_curve, -curve.univariate(baselineexts[region]))
 
         if specconf.get('goodmoney', False):
             covars = covariator.get_current(region)
@@ -303,10 +303,10 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
             smart_curve.ClippedCurve(final_curve)
         elif specconf.get('clipping', False) == 'boatpose':
             final_curve = smart_curve.ClippedCurve(final_curve)
-            return ushape_numeric.UShapedDynamicCurve(final_curve, baselineexts[region], lambda ds: ds[weathernames[0]].data, final_curve.get_univariate())
+            return ushape_numeric.UShapedDynamicCurve(final_curve, baselineexts[region], lambda ds: ds[weathernames[0]].data, final_curve.univariate)
         elif specconf.get('clipping', False) == 'downdog':
             final_curve = smart_curve.ClippedCurve(final_curve, cliplow=False)
-            final_curve = ushape_numeric.UShapedDynamicCurve(final_curve, baselineexts[region], lambda ds: ds[weathernames[0]].data, final_curve.get_univariate(), direction='downdog')
+            final_curve = ushape_numeric.UShapedDynamicCurve(final_curve, baselineexts[region], lambda ds: ds[weathernames[0]].data, final_curve.univariate, direction='downdog')
 
         if specconf.get('extrapolation', False):
             exargs = specconf['extrapolation']
