@@ -206,7 +206,7 @@ class SpaceTimeBipartiteFromProviderData(SpaceTimeData):
 
         # Inclusive of the last year
         if year1 - year0 + 1 < len(prepared):
-            prepared = prepared[:year1 - year0]
+            prepared = prepared[:year1 - year0 + 1]
         elif year1 - year0 + 1 > len(prepared):
             prepared.extend([prepared[-1]] * (year1 - year0 + 1 - len(prepared)))
 
