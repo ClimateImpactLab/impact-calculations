@@ -1,10 +1,9 @@
 """Helper functions for the autodocumentation system.
 """
 
-import subprocess, csv, os
+import subprocess, csv
 import numpy as np
 import pandas as pd
-import xarray as xr
 from netCDF4 import Dataset
 
 def show_header(text):
@@ -163,6 +162,9 @@ def get_csvv(filepath, index0=None, indexend=None, fracsubset=(0, 1)):
     indexend : int or None, optional
         Second value of slice to select a subset of elements from the file
         line.
+    fracsubset : tuple of float
+        Alternative way to extract entries, from fracsubset[0] to
+        fracsubset[1] of the number of gammas.
 
     Returns
     -------
@@ -254,9 +256,8 @@ def show_coefficient(csvv, preds, year, coefname, covartrans=None, betalimits=No
     covartrans : dict
         Covariate transformations dictionary. Time has long forgotten what this
         actually does. But it does do something.
-    calconly : bool, optional
-        If True, simply return a str showing the julia calculation, otherwise
-        the calculation is run and printed to stdout.
+    betalimits : tuple of float, optional
+        Constrain beta value to be between betalimits[0] and betalimits[1]
 
     Returns
     -------

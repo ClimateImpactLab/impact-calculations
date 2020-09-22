@@ -1,13 +1,17 @@
-import re
 import numpy as np
 from adaptation import csvvfile, curvegen, curvegen_arbitrary, covariates
 from interpret import configs
-from openest.models.curve import StepCurve, OtherClippedCurve, CoefficientsCurve
+from openest.models.curve import CoefficientsCurve
 from openest.generate.stdlib import *
 
-def prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, farmer='full', config={}):
-    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, config.get('endbaseline', 2015), config=configs.merge(config, 'climcovar'), varindex=0), {'climtas': 'tas'}),
+def prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, farmer='full', config=None):
+    if config is None:
+        config = {}
+
+    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, config.get('endbaseline', 2015), config=configs.merge(config, 'climcovar'), variable='tas'), {'climtas': 'tas'}),
                                                 covariates.EconomicCovariator(economicmodel, config.get('endbaseline', 2015), config=configs.merge(config, 'econcovar'))])
+
+    raise NotImplementedError("This code is out of date and needs to be fixed.")
 
     curr_curvegen = curvegen_arbitrary.CoefficientsCurveGenerator(curvegen_arbitrary.ParameterHolderCurve, map(lambda label: config['terms'][label]['unit'], config['terms']), '100,000 * death/population', map(lambda label: config['terms'][label]['coeffvar'], config['terms']), csvv)
 
@@ -22,7 +26,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, farmer='full',
         if config.get('clipping', 'both') == 'none':
             coeffs = curve.params
         else:
-            coeffs = map(lambda coeff: max(coeff, 0), curve.params)
+            coeffs = list(map(lambda coeff: max(coeff, 0), curve.params))
 
             if config.get('clipping', 'both') == 'both':
                 covars = covariator.get_current(region)
@@ -37,9 +41,9 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, farmer='full',
         coeffs = map(lambda kk: csvvfile.get_gamma(csvv, terms[kk]['coeffvar'], 'climtas') if curve.coeffs[kk] > 0 else 0, range(len(curve.coeffs)))
         return CoefficientsCurve(coeffs, lambda x: np.nan)
 
-    clip_curvegen = curvegen.TransformCurveGenerator(clip_transform, curr_curvegen)
+    clip_curvegen = curvegen.TransformCurveGenerator(clip_transform, "Clipping", curr_curvegen)
     farm_curvegen = curvegen.FarmerCurveGenerator(clip_curvegen, covariator, farmer, endbaseline=config.get('endbaseline', 2015))
-    climtas_curvegen = curvegen.TransformCurveGenerator(clip_transform_climtas, farm_curvegen)
+    climtas_curvegen = curvegen.TransformCurveGenerator(clip_transform_climtas, "Clipping", farm_curvegen)
 
     getters = [lambda region, year, temps, curve: curve.coeffs[0], lambda region, year, temps, curve: curve.coeffs[1], lambda region, year, temps, curve: curve.coeffs[2], lambda region, year, temps, curve: curve.coeffs[3]]
     changers = [lambda region, x: x[1], lambda region, x: x[2], lambda region, x: x[3], lambda region, x: x[4]] # start with 1, so not use tas

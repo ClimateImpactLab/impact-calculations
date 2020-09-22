@@ -9,7 +9,7 @@ use_goodmoney = True
 
 polypower = 4
 
-dir = sys.argv[1]
+outdir = sys.argv[1]
 csvvpath = "/shares/gcp/social/parameters/mortality/Diagnostics_Apr17/global_interaction_Tmean-POLY-%d-AgeSpec.csvv" % polypower
 weathertemplate = "/shares/gcp/climate/BCSD/aggregation/cmip5/IR_level/{0}/CCSM4/tas/tas_day_aggregated_{0}_r1i1p1_CCSM4_{1}.nc"
 onlymodel = "global_interaction_Tmean-POLY-%d-AgeSpec-young" % polypower
@@ -20,18 +20,18 @@ skip_clipping = True #False
 module = 'lincom' #'mortality'
 
 lib.show_header("The Covariates File (allpreds):")
-preds = lib.get_excerpt(os.path.join(dir, module + "-allpreds.csv"), 3, region, [2001, 2009, futureyear-1, futureyear], onlymodel=onlymodel)
+preds = lib.get_excerpt(os.path.join(outdir, module + "-allpreds.csv"), 3, region, [2001, 2009, futureyear-1, futureyear], onlymodel=onlymodel)
 
 lib.show_header("The Result File (allcoeffs):")
-outputs = lib.get_outputs(os.path.join(dir, onlymodel + ".nc4"), [2009, futureyear-1, futureyear], region)
+outputs = lib.get_outputs(os.path.join(outdir, onlymodel + ".nc4"), [2009, futureyear-1, futureyear], region)
 
 lib.show_header("The Predictors File (allcalcs):")
-calcs = lib.get_excerpt(os.path.join(dir, module + "-allcalcs-" + onlymodel + ".csv"), 2, region, list(range(2000, 2011)) + [futureyear-1, futureyear], hasmodel=False)
+calcs = lib.get_excerpt(os.path.join(outdir, module + "-allcalcs-" + onlymodel + ".csv"), 2, region, list(range(2000, 2011)) + [futureyear-1, futureyear], hasmodel=False)
 
 if not skip_clipping:
     lib.show_header("The Minimum Temperature Point File:")
     shapenum = 0
-    with open(os.path.join(dir, onlymodel + "-polymins.csv"), 'r') as fp:
+    with open(os.path.join(outdir, onlymodel + "-polymins.csv"), 'r') as fp:
         reader = csv.reader(fp)
         header = next(reader)
         print((','.join(header)))
@@ -56,16 +56,16 @@ csvv = lib.get_csvv(csvvpath, *csvvargs)
 
 lib.show_header("Weather:")
 lib.show_header(" tas:")
-weather = lib.get_weather(weathertemplate, range(2001, 2011) + [futureyear-1, futureyear], region)
+weather = lib.get_weather(weathertemplate, list(range(2001, 2011)) + [futureyear-1, futureyear], region)
 lib.show_header(" tas^2:")
-weather2 = lib.get_weather(weathertemplate, range(2001, 2011) + [futureyear-1, futureyear], region, variable='tas-poly-2')
+weather2 = lib.get_weather(weathertemplate, list(range(2001, 2011)) + [futureyear-1, futureyear], region, variable='tas-poly-2')
 lib.show_header(" tas^3:")
-weather3 = lib.get_weather(weathertemplate, range(2001, 2011) + [futureyear-1, futureyear], region, variable='tas-poly-3')
+weather3 = lib.get_weather(weathertemplate, list(range(2001, 2011)) + [futureyear-1, futureyear], region, variable='tas-poly-3')
 lib.show_header(" tas^4:")
-weather4 = lib.get_weather(weathertemplate, range(2001, 2011) + [futureyear-1, futureyear], region, variable='tas-poly-4')
+weather4 = lib.get_weather(weathertemplate, list(range(2001, 2011)) + [futureyear-1, futureyear], region, variable='tas-poly-4')
 
 lib.show_header("Outputs:")
-outputs = lib.get_outputs(os.path.join(dir, onlymodel + '.nc4'), range(2001, 2011) + [futureyear-1, futureyear], shapenum if not onlyreg else 0)
+outputs = lib.get_outputs(os.path.join(outdir, onlymodel + '.nc4'), list(range(2001, 2011)) + [futureyear-1, futureyear], shapenum if not onlyreg else 0)
 
 for year in [2001, futureyear]:
     lib.show_header("Calc. of tas coefficient in %d (%f reported)" % (year, lib.excind(calcs, year-1, 'tas')))

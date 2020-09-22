@@ -10,7 +10,7 @@ from openest.generate import fast_dataset
 from interpret import configs
 from datastore import population
 from .reader import *
-from .dailyreader import DailyWeatherReader, YearlyBinnedWeatherReader, MonthlyBinnedWeatherReader, MonthlyDimensionedWeatherReader
+from .dailyreader import DailyWeatherReader, YearlyBinnedWeatherReader, MonthlyBinnedWeatherReader, MonthlyDimensionedWeatherReader, GDDKDDReader
 from .yearlyreader import YearlyWeatherReader, YearlyDayLikeWeatherReader
 from . import pattern_matching
 
@@ -331,6 +331,8 @@ def discover_binned(basedir, timerate, template, regionvar, ncvar, **config):
         elif timerate == 'month':
             pastreader = MonthlyBinnedWeatherReader(pasttemplate, config.get('startyear', 1981), regionvar, ncvar)
             futurereader = MonthlyBinnedWeatherReader(futuretemplate, 2006, regionvar, ncvar)
+        else:
+            raise ValueError("timerate must be year or month in `discover_binned`.")
 
         yield scenario, model, pastreader, futurereader
 
@@ -413,7 +415,7 @@ def discover_yearly_variables(basedir, vardir, *variables, **kwargs):
     """
 
     for scenario, model, pastpath, filepath in discover_yearly(basedir, vardir, rcp_only=kwargs.get('rcp_only')):
-        yield scenario, model, YearlyWeatherReader(pastpath, variable), YearlyWeatherReader(filepath, variable)
+        yield scenario, model, YearlyWeatherReader(pastpath, *variables, **kwargs), YearlyWeatherReader(filepath, *variables, **kwargs)
 
 def discover_yearly_corresponding(basedir, scenario, vardir, model, variable):
     for filename in os.listdir(os.path.join(basedir, scenario, vardir)):

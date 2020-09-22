@@ -311,6 +311,8 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
         Path to CSV file of regional hierarchy or "hierids".
     transformer : generate.weather.WeatherTransformer, optional
         Transformer to apply to the bundled weather Datasets.
+    pastyear_end : int or None
+        Latest year to use when constructing historical baseline.
     """
     def __init__(self, pastreaders, futureyear_end, seed, scenario, model, hierarchy='hierarchy.csv', transformer=WeatherTransformer(), pastyear_end=None):
         super(HistoricalWeatherBundle, self).__init__(scenario, model, hierarchy, transformer)

@@ -9,7 +9,7 @@ use_goodmoney = True
 
 polypower = 4
 
-dir = sys.argv[1]
+outdir = sys.argv[1]
 csvvpath = "/shares/gcp/social/parameters/mortality/mortality_nonFGLS_22052018/Agespec_interaction_GMFD_POLY-4_TINV_CYA_NW_w1.csvv"
 weathertemplate = "/shares/gcp/climate/BCSD/hierid/popwt/daily/{variable}/{rcp}/CCSM4/{year}/1.6.nc4"
 onlymodel = "Agespec_interaction_GMFD_POLY-4_TINV_CYA_NW_w1-oldest"
@@ -19,22 +19,22 @@ region = 'USA.5.203' #USA.14.608'
 onlyreg = True #False
 
 lib.show_header("The Covariates File (allpreds):")
-preds = lib.get_excerpt(os.path.join(dir, "mortality-allpreds.csv"), 3, region, [2001, 2009, futureyear-1, futureyear], onlymodel=onlymodel + adaptsuf)
+preds = lib.get_excerpt(os.path.join(outdir, "mortality-allpreds.csv"), 3, region, [2001, 2009, futureyear-1, futureyear], onlymodel=onlymodel + adaptsuf)
 
 lib.show_header("The Calculations File (allcalcs):")
-calcs = lib.get_excerpt(os.path.join(dir, "mortality-allcalcs-" + onlymodel + ".csv"), 2, region, range(2000, 2011) + [futureyear-1, futureyear], hasmodel=False)
+calcs = lib.get_excerpt(os.path.join(outdir, "mortality-allcalcs-" + onlymodel + ".csv"), 2, region, list(range(2000, 2011)) + [futureyear-1, futureyear], hasmodel=False)
 if adaptsuf == '-noadapt':
     calcs[str(futureyear-1)] = calcs[str(futureyear)] = calcs['2000']
 
 lib.show_header("The Minimum Temperature Point File:")
 shapenum = 0
-with open(os.path.join(dir, onlymodel + "-polymins.csv"), 'r') as fp:
+with open(os.path.join(outdir, onlymodel + "-polymins.csv"), 'r') as fp:
     reader = csv.reader(fp)
     header = reader.next()
-    print ','.join(header)
+    print(','.join(header))
     for row in reader:
         if row[0] == region:
-            print ','.join(row)
+            print(','.join(row))
             mintemps = {'header': header[1:], '2009': map(float, row[1:])}
             break
         shapenum += 1
@@ -44,16 +44,16 @@ csvv = lib.get_csvv(csvvpath, *csvvargs)
 
 lib.show_header("Weather:")
 lib.show_header(" tas:")
-weather = lib.get_weather(weathertemplate, range(2001, 2011) + [futureyear], region)
+weather = lib.get_weather(weathertemplate, list(range(2001, 2011)) + [futureyear], region)
 lib.show_header(" tas^2:")
-weather2 = lib.get_weather(weathertemplate, range(2001, 2011) + [futureyear], region, variable='tas-poly-2')
+weather2 = lib.get_weather(weathertemplate, list(range(2001, 2011)) + [futureyear], region, variable='tas-poly-2')
 lib.show_header(" tas^3:")
-weather3 = lib.get_weather(weathertemplate, range(2001, 2011) + [futureyear], region, variable='tas-poly-3')
+weather3 = lib.get_weather(weathertemplate, list(range(2001, 2011)) + [futureyear], region, variable='tas-poly-3')
 lib.show_header(" tas^4:")
-weather4 = lib.get_weather(weathertemplate, range(2001, 2011) + [futureyear], region, variable='tas-poly-4')
+weather4 = lib.get_weather(weathertemplate, list(range(2001, 2011)) + [futureyear], region, variable='tas-poly-4')
 
 lib.show_header("Outputs:")
-outputs = lib.get_outputs(os.path.join(dir, onlymodel + adaptsuf + '.nc4'), range(2001, 2011) + [futureyear-1, futureyear], shapenum if not onlyreg else 0)
+outputs = lib.get_outputs(os.path.join(outdir, onlymodel + adaptsuf + '.nc4'), list(range(2001, 2011)) + [futureyear-1, futureyear], shapenum if not onlyreg else 0)
 
 for year in [2001, futureyear]:
     lib.show_header("Calc. of tas coefficient in %d (%f reported)" % (year, lib.excind(calcs, year-1, 'tas')))
@@ -66,7 +66,7 @@ coefflist = ['tas'] + ['tas%d' % ii for ii in range(2, polypower + 1)]
 
 lib.show_header("Calc. of minimum point temperature (%f reported)" % lib.excind(mintemps, 2009, 'analytic'))
 curve = ZeroInterceptPolynomialCurve([-np.inf, np.inf], [lib.excind(calcs, 2000, coeff) for coeff in coefflist])
-print ', '.join(["%f: %f" % (temp, curve(temp)) for temp in np.arange(10, 31)])
+print(', '.join(["%f: %f" % (temp, curve(temp)) for temp in np.arange(10, 31)]))
 
 def get_preds(year):
     nonclipped = curve(weather[year]) > curve(lib.excind(mintemps, 2009, 'analytic'))

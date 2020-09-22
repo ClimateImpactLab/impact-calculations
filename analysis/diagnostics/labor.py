@@ -48,13 +48,13 @@ def main(projout_dir):
     lib.show_header("The Predictors File lowrisk (allcalcs):")
     calcs_lowrisk = lib.get_excerpt(os.path.join(projout_dir, "labor-allcalcs-%s.csv" % MODEL_LOWRISK),
                                     2, REGION,
-                                    range(2000, 2011) + [FUTUREYEAR - 1, FUTUREYEAR],
+                                    list(range(2000, 2011)) + [FUTUREYEAR - 1, FUTUREYEAR],
                                     hasmodel=False)
 
     lib.show_header("The Predictors File highrisk (allcalcs):")
     calcs_highrisk = lib.get_excerpt(os.path.join(projout_dir, "labor-allcalcs-%s.csv" % MODEL_HIGHRISK),
                                      2, REGION,
-                                     range(2000, 2011) + [FUTUREYEAR - 1, FUTUREYEAR],
+                                     list(range(2000, 2011)) + [FUTUREYEAR - 1, FUTUREYEAR],
                                      hasmodel=False)
 
     lib.show_header("Weather:")

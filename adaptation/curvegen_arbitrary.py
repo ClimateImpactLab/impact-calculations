@@ -179,13 +179,6 @@ class MLECoefficientsCurveGenerator(CoefficientsCurveGenerator):
 
     """
 
-    def __init__(self, curvefunc, indepunits, depenunit, prednames, csvv, zerostart=True):
-        if zerostart:
-            prednames = [prefix + str(ii) for ii in range(order)]
-        else:
-            prednames = [prefix + str(ii) if ii > 1 else prefix for ii in range(1, order+1)]
-        super(MLECoefficientsCurveGenerator, self).__init__(curvefunc, indepunits, depenunit, prednames, csvv)
-
     def get_coefficients(self, covariates, debug=False):
         coefficients = {} # {predname: beta * exp(gamma z)}
         for predname in set(self.prednames):

@@ -1,6 +1,5 @@
 import numpy as np
 from adaptation import csvvfile, curvegen, curvegen_known, covariates, constraints
-from generate import caller
 from interpret import configs
 from openest.generate.smart_curve import SelectiveInputCurve
 from openest.models.curve import CubicSplineCurve, ClippedCurve, ShiftedCurve, MinimumCurve, OtherClippedCurve
@@ -12,7 +11,7 @@ knots = [-10, 0, 10, 20, 28, 33]
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', config=None):
     if config is None:
         config = {}
-    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, config.get('endbaseline', 2015), config=configs.merge(config, 'climcovar'), varindex=0), {'climtas': 'tas'}),
+    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, config.get('endbaseline', 2015), config=configs.merge(config, 'climcovar'), variable='tas'), {'climtas': 'tas'}),
                                                 covariates.EconomicCovariator(economicmodel, config.get('endbaseline', 2015), config=configs.merge(config, 'econcovar'))])
 
     # Don't collapse: already collapsed in allmodels
@@ -20,7 +19,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
 
     curr_curvegen = curvegen_known.CubicSplineCurveGenerator(['C'] + ['C^3'] * (len(knots) - 2),
                                                              '100,000 * death/population', 'spline_variables-',
-                                                             knots, csvv)
+                                                             knots, 'tas', csvv)
 
     baselineloggdppcs = {}
     for region in weatherbundle.regions:
@@ -47,7 +46,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
         return ClippedCurve(goodmoney_curve)
 
     clip_curvegen = curvegen.TransformCurveGenerator(transform, "Clipping and Good Money", curr_curvegen)
-    farm_curvegen = curvegen.FarmerCurveGenerator(clip_curvegen, covariator, farmer, endbaseline=config.get('endbaseline', 2015)))
+    farm_curvegen = curvegen.FarmerCurveGenerator(clip_curvegen, covariator, farmer, endbaseline=config.get('endbaseline', 2015))
 
     # Generate the marginal income curve
     climtas_effect_curve = CubicSplineCurve(knots, 365 * np.array([csvvfile.get_gamma(csvv, tasvar, 'climtas') for tasvar in ['spline_variables-0', 'spline_variables-1', 'spline_variables-2', 'spline_variables-3', 'spline_variables-4']])) # x 365, to undo / 365 later

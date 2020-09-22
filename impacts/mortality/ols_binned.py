@@ -1,6 +1,5 @@
-import re
 import numpy as np
-from adaptation import csvvfile, curvegen, curvegen_step, covariates
+from adaptation import csvvfile, curvegen, curvegen_known, covariates
 from interpret import configs
 from openest.models.curve import StepCurve, OtherClippedCurve
 from openest.generate.stdlib import *
@@ -15,8 +14,11 @@ def u_shaped_curve(curve, min_bink):
 
     return StepCurve(curve.xxlimits, yy)
 
-def prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, farmer='full', config={}):
-    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, config.get('endbaseline', 2015), config=configs.merge(config, 'climcovar'), varindex=0), {'climtas': 'tas'}),
+def prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, farmer='full', config=None):
+    if config is None:
+        config = {}
+    
+    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, config.get('endbaseline', 2015), config=configs.merge(config, 'climcovar'), variable='tas'), {'climtas': 'tas'}),
                                                 covariates.EconomicCovariator(economicmodel, config.get('endbaseline', 2015), config=configs.merge(config, 'econcovar'))])
 
     # Don't collapse: already collapsed in allmodels
@@ -24,11 +26,11 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, pvals, farmer='full',
 
     clip_mintemp = config.get('clip-mintemp', 10)
     clip_maxtemp = config.get('clip-maxtemp', 25)
-    step_curvegen = curvegen_step.BinnedStepCurveGenerator(bin_limits, ['days / year'] * (len(bin_limits) - 1),
-                                                           '100,000 * death/population', csvv,
-                                                           clip_mintemp, clip_maxtemp)
+    step_curvegen = curvegen_known.BinnedStepCurveGenerator(bin_limits, ['days / year'] * (len(bin_limits) - 1),
+                                                            '100,000 * death/population', csvv,
+                                                            clip_mintemp, clip_maxtemp)
     if config.get('derivclip', False):
-        curr_curvegen = curvegen.TransformCurveGenerator(lambda region, curve: u_shaped_curve(curve, step_curvegen.min_binks[region]), step_curvegen)
+        curr_curvegen = curvegen.TransformCurveGenerator(lambda region, curve: u_shaped_curve(curve, step_curvegen.min_binks[region]), "U-clipping", step_curvegen)
     else:
         curr_curvegen = step_curvegen
         

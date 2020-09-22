@@ -1,11 +1,9 @@
-import csv, copy
 from datetime import date
 import numpy as np
 from adaptation import csvvfile, curvegen, curvegen_known, covariates, constraints
 from interpret import configs
-from openest.generate.smart_curve import ZeroInterceptPolynomialCurve, ClippedCurve, ShiftedCurve, MinimumCurve, OtherClippedCurve, CoefficientsCurve, ProductCurve
+from openest.generate.smart_curve import ZeroInterceptPolynomialCurve, ClippedCurve, ShiftedCurve, MinimumCurve, OtherClippedCurve, CoefficientsCurve
 from openest.generate.stdlib import *
-from openest.generate import diagnostic
 from openest.curves import ushape_numeric
 from impactcommon.math import minpoly
 
