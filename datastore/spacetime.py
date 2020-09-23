@@ -205,10 +205,11 @@ class SpaceTimeBipartiteFromProviderData(SpaceTimeData):
             prepared = series
 
         # Inclusive of the last year
-        if year1 - year0 + 1 < len(prepared):
-            prepared = prepared[:year1 - year0 + 1]
-        elif year1 - year0 + 1 > len(prepared):
-            prepared.extend([prepared[-1]] * (year1 - year0 + 1 - len(prepared)))
+        n_out = year1 - year0 + 1
+        if n_out < len(prepared):
+            prepared = prepared[:n_out]
+        elif n_out > len(prepared):
+            prepared.extend([prepared[-1]] * (n_out - len(prepared)))
 
         return prepared
             
