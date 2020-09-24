@@ -61,6 +61,7 @@ def random_order(bundle_iterator, config=None):
                 continue
             if mydo_econ_scenario_only is not None and econ_scenario[0:4] not in mydo_econ_scenario_only:
                 continue
+
             if mydo_clim_scenario_only is not None and clim_scenario not in mydo_clim_scenario_only:
                 continue
 

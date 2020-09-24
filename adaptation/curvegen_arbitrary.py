@@ -178,6 +178,7 @@ class MLECoefficientsCurveGenerator(CoefficientsCurveGenerator):
     curve to replace the linear sum with the expression above.
 
     """
+
     def get_coefficients(self, covariates, debug=False):
         coefficients = {} # {predname: beta * exp(gamma z)}
         for predname in set(self.prednames):

@@ -1,0 +1,7 @@
+module: labor
+mode: median
+outputdir: /home/liruixue/projection_repos/impact-calculations/temp_median
+do_only: interpolation
+do_farmers: False
+csvvfile: social/parameters/labor/csvv_oct2019/labor_test.csvv
+specification: polynomial

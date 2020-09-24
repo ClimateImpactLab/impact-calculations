@@ -54,13 +54,16 @@ def get_curve_minima(regions, curvegen, covariator, mint, maxt, analytic):
             writer = csv.writer(fp)
             writer.writerow(['region', 'brute', 'analytic'])
             for region in regions:
-                curve = curvegen.get_curve(region, 2005, covariator.get_current(region))
+                try:
+                    curve = curvegen.get_curve(region, 2005, covariator.get_current(region))
+                except KeyError:
+                    continue
                 baselinecurves[region] = curve
                 if isinstance(mint, dict):
                     temps = np.arange(np.floor(mint[region]), np.ceil(maxt[region])+1)
                 else:
                     temps = np.arange(mint, maxt+1)
-                mintemp = temps[np.argmin(curve(temps))]
+                mintemp = temps[np.argmin(curve.univariate(temps))]
                 mintemp2 = analytic(region, curve)
                 if np.abs(mintemp - mintemp2) > 1:
                     print(("WARNING: %s has unclear mintemp: %f, %f" % (region, mintemp, mintemp2)))

@@ -1,8 +1,8 @@
 module: mortality
 mode: single
-outputdir: /shares/gcp/outputs/mortality/impacts-cupim
+outputdir: /shares/gcp/outputs/mortality/impacts-formo
 do_only: interpolation
-do_farmers: false
+do_farmers: always
 csvvfile: social/parameters/mortality/mortality_nonFGLS_22052018/Agespec_interaction_GMFD_POLY-4_TINV_CYA_NW_w1.csvv
 specification: polynomial
 clipping: both # both, none, or clip
@@ -14,4 +14,6 @@ econcovar:
 climcovar:
    class: bartlett
    length: 30
-   
+startyear: 1950
+endbaseline: 1970
+endhistorical: 1980
