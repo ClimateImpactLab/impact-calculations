@@ -126,7 +126,6 @@ def make_pval_file(targetdir, pvals):
     except Exception as ex:
         print("Exception but passing:")
         print(ex)
-        pass # This can fail if someone else created the file
 
 def has_pval_file(targetdir):
     return os.path.exists(get_pval_file(targetdir))

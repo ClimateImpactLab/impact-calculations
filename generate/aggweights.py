@@ -2,7 +2,7 @@ import csv
 from adaptation import covariates
 from datastore import population
 
-halfweight = population.SpaceTimeBipartiteData(1981, 2100, None)
+halfweight = population.SpaceTimeBipartiteData(1950, 2100, None)
 
 #for clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in loadmodels.random_order():
 for econ_model, econ_scenario, economicmodel in covariates.iterate_econmodels():
@@ -11,7 +11,7 @@ for econ_model, econ_scenario, economicmodel in covariates.iterate_econmodels():
     
     print(econ_scenario)
 
-    stweight = halfweight.load(1981, 2100, econ_model, econ_scenario)
+    stweight = halfweight.load(1950, 2100, econ_model, econ_scenario)
 
     with open("/shares/gcp/outputs/covariates/population/%s.csv" % econ_scenario, 'w') as fp:
         writer = csv.writer(fp)
@@ -20,7 +20,7 @@ for econ_model, econ_scenario, economicmodel in covariates.iterate_econmodels():
         for region in stweight.regions:
             population = stweight.get_time(region)
             for yy in range(len(population)):
-                writer.writerow([region, 1981 + yy, population[yy]])
+                writer.writerow([region, 1950 + yy, population[yy]])
                 
         
 

@@ -23,7 +23,6 @@ import pytest
 _here = os.path.abspath(os.path.dirname(__file__))
 
 
-@pytest.mark.skip(reason="mortality sector projection is currently unimplemented")
 @pytest.mark.imperics_shareddir
 class TestSingleMortality(unittest.TestCase):
     """Check diagnostic projection run for mortality sector"""
