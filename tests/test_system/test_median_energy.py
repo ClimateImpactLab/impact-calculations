@@ -1,4 +1,4 @@
-"""System smoke tests for a single, diagnostic run for the energy sector.
+"""System smoke tests for a median run of the energy sector.
 
 These will likely fail if run as installed package as we unfortunately make
 strong assumptions about directory structure. These are also smoke tests,
@@ -23,9 +23,12 @@ def projection_netcdf():
     """Runs the projection in tmpdir, gets results netCDF, cleans output on exit
     """
     run_configs = {
-        "mode": "writecalcs",
-        "singledir": "single",
+        "mode": "median",
         "filter-region": "USA.14.608",
+        "only-models": ["CCSM4"],
+        "only-ssp": "SSP3",
+        "only-rcp": "rcp85",
+        "only-iam": "high",
         "do_farmers": False,
         "do_historical": False,
         "deltamethod": False,
@@ -175,10 +178,10 @@ def projection_netcdf():
         ],
     }
     # Trigger projection run in temprary directory:
-    with tmpdir_projection(run_configs, "single energy test") as tmpdirname:
+    with tmpdir_projection(run_configs, "median energy test") as tmpdirname:
         results_nc_path = Path(
             tmpdirname,
-            "single/rcp85/CCSM4/high/SSP3",
+            "median/rcp85/CCSM4/high/SSP3",
             "FD_FGLS_inter_climGMFD_Exclude_all-issues_break2_semi-parametric_poly2_OTHERIND_other_energy_TINV_clim_income_spline_lininter.nc4",
         )
         yield xr.open_dataset(results_nc_path)
