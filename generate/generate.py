@@ -71,11 +71,12 @@ def main(config, config_name=None):
         for batch in mc_batch_iter:
             for clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in loadmodels.random_order(mod.get_bundle_iterator(config), config):
                 # Use "pvals" seeds from config, if available.
+                relative_location = ['batch' + str(batch), clim_scenario, clim_model, econ_scenario, econ_model]
                 if 'pvals' in list(config.keys()):
-                    pvals = pvalses.load_pvals(config['pvals'])
+                    pvals = pvalses.load_pvals(config['pvals'], relative_location)
                 else:
                     # Old default.
-                    pvals = pvalses.OnDemandRandomPvals()
+                    pvals = pvalses.OnDemandRandomPvals(relative_location)
                 yield 'batch' + str(batch), pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
 
     def iterate_nosideeffects():
@@ -257,7 +258,8 @@ def main(config, config_name=None):
 
         # Load the pvals data, if available
         if pvalses.has_pval_file(targetdir):
-            oldpvals = pvalses.read_pval_file(targetdir)
+            relative_location = [batchdir, clim_scenario, clim_model, econ_model, econ_scenario]
+            oldpvals = pvalses.read_pval_file(targetdir, relative_location)
             if oldpvals is not None:
                 pvals = oldpvals
         else:
