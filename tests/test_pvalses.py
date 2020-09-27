@@ -6,6 +6,9 @@ import time
 from generate import pvalses
 
 def test_getseed():
+    """Check that different pvals objects with the same
+    `relative_location` produce same & different values as expected."""
+    
     pvals1 = pvalses.OnDemandRandomPvals(["one", "two"])
     pvals2 = pvalses.OnDemandRandomPvals(["one", "two"])
 

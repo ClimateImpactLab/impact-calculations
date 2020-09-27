@@ -1,12 +1,11 @@
 """
 Elsewhere in the code, pvals or qvals is an instance of either the
-ConstantPvals or OnDemandRandomPvals class from generate/pvalses.py
-(which I should have derive from a common superclass).  It's used to
-determine the set of p-values for a run, which is used for (1)
-determining parameters from the CSVV through collapse_bang, (2)
-determining the order of years for historical MC runs, (3) resolving
-the uncertainty forecasts for conflict and anything else that is
-stochastic.
+ConstantPvals or OnDemandRandomPvals class from generate/pvalses.py.
+It's used to determine the set of p-values for a run, which is used
+for (1) determining parameters from the CSVV through collapse_bang,
+(2) determining the order of years for historical MC runs, (3)
+resolving the uncertainty forecasts for conflict and anything else
+that is stochastic.
 """
 
 import os, yaml, time, zlib
@@ -16,6 +15,20 @@ import numpy as np
 cross_sector_dictionaries = ['histclim']
 
 def interpret(config, relative_location):
+    """Construct an appropriate `Pvals` object for the given configured
+    run.
+
+    Parameters
+    ----------
+    config : dict
+        A run configuration dictionary.
+    relative_location : list of str
+        list of features of the targetdir common across sectors.
+
+    Returns
+    -------
+    `Pvals`
+    """
     if 'pvals' not in config or config['pvals'] == 'median':
         return ConstantPvals(.5)
 
@@ -41,7 +54,8 @@ def interpret(config, relative_location):
 
 ## Abstract base classes
     
-class Pvals(object):
+class Pvals:
+    # Future work: Implement this as a Mapping
     def lock(self):
         raise NotImplementedError()
 
@@ -51,7 +65,8 @@ class Pvals(object):
     def __iter__(self):
         raise NotImplementedError()
 
-class PvalsDictionary(object):
+class PvalsDictionary:
+    # Future work: Implement this as a MutableMapping
     def lock(self):
         raise NotImplementedError()
 
@@ -61,9 +76,10 @@ class PvalsDictionary(object):
     def get_seed(self, name, plus=0):
         raise NotImplementedError()
 
-## ConstantPvals always return the same value
-    
+# ConstantPvals classes
+
 class ConstantPvals(Pvals):
+    """ConstantPvals always return the same value."""
     def __init__(self, value):
         self.value = value
 
@@ -89,9 +105,10 @@ class ConstantDictionary(PvalsDictionary):
     def get_seed(self, name, plus=0):
         return None # for MC, have this also increment state
 
-## OnDemandRandomPvals constructs random numbers as needed
-    
+# OnDemandRandomPvals classes
+
 class OnDemandRandomPvals(Pvals):
+    """OnDemandRandomPvals constructs random numbers as needed."""
     def __init__(self, relative_location):
         self.relative_location = relative_location
         self.dicts = {}
