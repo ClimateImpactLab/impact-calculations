@@ -18,11 +18,11 @@ do_profile = False
 config = files.get_allargv_config()
 
 targetdir = config['targetdir']
-pvals = pvalses.interpret(config) # pvals
 clim_scenario = config['rcp']
 clim_model = config['gcm']
 econ_scenario = config['ssp']
 econ_model = config['iam']
+pvals = pvalses.interpret(config, ["single", clim_scenario, clim_model, econ_scenario, econ_model])
 
 print("Loading weather...")
 variable_generators = [discover.standard_variable(name, 'day') for name in config['climate']]
