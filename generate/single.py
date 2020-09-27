@@ -22,7 +22,7 @@ clim_scenario = config['rcp']
 clim_model = config['gcm']
 econ_scenario = config['ssp']
 econ_model = config['iam']
-pvals = pvalses.interpret(config, ["single", clim_scenario, clim_model, econ_scenario, econ_model]) # pvals
+pvals = pvalses.interpret(config, ["single", clim_scenario, clim_model, econ_scenario, econ_model])
 
 print("Loading weather...")
 variable_generators = [discover.standard_variable(name, 'day') for name in config['climate']]
