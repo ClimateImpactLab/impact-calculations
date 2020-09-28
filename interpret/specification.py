@@ -302,7 +302,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
                 margins = {indepvars[ii]: exargs['margins'][ii] for ii in range(len(indepvars))}
 
             assert 'bounds' in exargs
-            if 'bounds' in exargs and isinstance(exargs['bounds'], tuple):
+            if 'bounds' in exargs and isinstance(exargs['bounds'], tuple) or (isinstance(exargs['bounds'], list) and len(exargs['bounds']) == 2 and isinstance(exargs['bounds'][0], float)):
                 bounds = [(exargs['bounds'][0],), (exargs['bounds'][1],)]
             else:
                 bounds = exargs['bounds']
