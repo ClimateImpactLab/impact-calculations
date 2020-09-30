@@ -269,14 +269,15 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
         for region in regions:
             baselineloggdppcs[region] = covariator.get_current(region)['loggdppc']
 
-    if specconf.get('clipping'):
+    specconf_clipping = specconf.get('clipping')
+    if specconf_clipping:
         mintemp = specconf.get('clip-mintemp', 10)
         maxtemp = specconf.get('clip-maxtemp', 25)
         # Determine extrema value of curve between mintemp and maxtemp...
 
         # To invert spline/poly coefs if finding minima (1) or maxima (-1):
         coef_multiplier = 1
-        if specconf.get('clipping') == 'baselinemaxima':
+        if specconf_clipping == 'baselinemaxima':
             coef_multiplier = -1
 
         if covariator:
@@ -295,8 +296,8 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
         else:
             final_curve = smart_curve.CoefficientsCurve(curve.ccs, weathernames)
 
-        if specconf.get('clipping'):
-            if specconf.get('clipping') == 'baselinemaxima':
+        if specconf_clipping:
+            if specconf_clipping == 'baselinemaxima':
                 final_curve = smart_curve.MinimumCurve(final_curve, FlatCurve(curve.univariate(baselineexts[region])))
             else:
                 final_curve = smart_curve.ShiftedCurve(final_curve, -curve.univariate(baselineexts[region]))
@@ -313,7 +314,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
 
             final_curve = smart_curve.MinimumCurve(final_curve, noincadapt_curve)
 
-        if specconf.get('clipping') and specconf.get('clipping') != 'baselinemaxima':
+        if specconf_clipping and specconf_clipping != 'baselinemaxima':
             final_curve = smart_curve.ClippedCurve(final_curve)
 
         if specconf.get('extrapolation', False):
@@ -337,9 +338,9 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
 
         return final_curve
 
-    if specconf.get('clipping', False) and specconf.get('goodmoney', False):
+    if specconf_clipping and specconf.get('goodmoney', False):
         final_curvegen = curvegen.TransformCurveGenerator(transform, "Clipping and Good Money transformation", curr_curvegen)
-    elif specconf.get('clipping', False):
+    elif specconf_clipping:
         final_curvegen = curvegen.TransformCurveGenerator(transform, "Clipping transformation", curr_curvegen)
     elif specconf.get('goodmoney', False):
         final_curvegen = curvegen.TransformCurveGenerator(transform, "Good Money transformation", curr_curvegen)
