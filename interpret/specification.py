@@ -96,7 +96,7 @@ def create_covariator(specconf, weatherbundle, economicmodel, config=None, quiet
     ----------
     specconf : dict, optional
         Specification configuration.
-    weatherbundle : generate.weather.DailyWeatherBundle
+    weatherbundle : generate.weather.WeatherBundle
     economicmodel : adaptation.econmodel.SSPEconomicModel
     config : dict, optional
     quiet : bool, optional
