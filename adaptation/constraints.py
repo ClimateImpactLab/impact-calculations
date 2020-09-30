@@ -43,38 +43,84 @@ def make_get_coeff_goodmoney(weatherbundle, covariator, curvegen, baselinemins, 
             return curve_get_coeff(curve)
     return coeff_getter
 
-def get_curve_minima(regions, curvegen, covariator, mint, maxt, analytic):
-    # Determine minimum value of curve between mint and maxt
-    print("Determining minimum temperatures.")
-    baselinecurves = {}
-    baselinemins = {}
+def get_curve_minima(*args, **kwargs):
+    """Determine minimum value of curve between mint and maxt
 
-    if caller.callinfo and 'minpath' in caller.callinfo:
-        with open(caller.callinfo['minpath'], 'w') as fp:
+    All arguments are passed to ``get_curve_extrema()``.
+    """
+    print("Determining minimum temperatures.")
+    return get_curve_extrema(*args, **kwargs, direction='minima',
+                             extpathkey='minpath')
+
+def get_curve_maxima(*args, **kwargs):
+    """Determine maximum value of curve between mint and maxt
+
+    All arguments are passed to ``get_curve_extrema()``.
+    """
+    print("Determining maximum temperatures.")
+    return get_curve_extrema(*args, **kwargs, direction='maxima',
+                             extpathkey='maxpath')
+
+def get_curve_extrema(regions, curvegen, covariator, mint, maxt, analytic,
+                      direction, extpathkey):
+    """Find extrema of curve between mint and maxt
+
+    Parameters
+    ----------
+    regions : Iterable
+        Hieriarchical regions (hierids) to consider.
+    curvegen : openest.generate.curvegen.CurveGenerator
+    covariator : adaptation.covariates.Covariator
+    mint : float or dict
+        Minimum window range to find extrema. Should be mapping of region keys
+        to float values if ``dict``.
+    maxt : float or dict
+        Maximum window range to find extrema. Should be mapping of region keys
+        to float values if ``dict``.
+    analytic : Callable
+    direction : {'minima', 'maxima'}
+    extpathkey : str
+
+    Returns
+    -------
+    baselinecurves : dict
+        Mapping of curves keyed on region.
+    baselineexts : dict
+        Mapping of extrema keyed on region.
+    """
+    direction = str(direction)
+    if direction not in ('maxima', 'minima'):
+        raise ValueError("direction arg must be 'minima' or 'maxima'")
+
+    baselinecurves = {}
+    baselineexts = {}
+
+    if caller.callinfo and extpathkey in caller.callinfo:
+        with open(caller.callinfo[extpathkey], 'w') as fp:
             writer = csv.writer(fp)
             writer.writerow(['region', 'brute', 'analytic'])
             for region in regions:
-                try:
-                    curve = curvegen.get_curve(region, 2005, covariator.get_current(region))
-                except KeyError:
-                    continue
+                curve = curvegen.get_curve(region, 2005, covariator.get_current(region))
                 baselinecurves[region] = curve
                 if isinstance(mint, dict):
                     temps = np.arange(np.floor(mint[region]), np.ceil(maxt[region])+1)
                 else:
                     temps = np.arange(mint, maxt+1)
-                mintemp = temps[np.argmin(curve.univariate(temps))]
-                mintemp2 = analytic(region, curve)
-                if np.abs(mintemp - mintemp2) > 1:
-                    print(("WARNING: %s has unclear mintemp: %f, %f" % (region, mintemp, mintemp2)))
-                baselinemins[region] = mintemp2
-                writer.writerow([region, mintemp, mintemp2])
-        os.chmod(caller.callinfo['minpath'], 0o664)
+                if direction == 'minima':
+                    exttemp = temps[np.argmin(curve(temps))]
+                else:
+                    exttemp = temps[np.argmax(curve(temps))]
+                exttemp2 = analytic(curve)
+                if np.abs(exttemp - exttemp2) > 1:
+                    print("WARNING: %s has unclear exttemp: %f, %f" % (region, exttemp, exttemp2))
+                baselineexts[region] = exttemp2
+                writer.writerow([region, exttemp, exttemp2])
+        os.chmod(caller.callinfo[extpathkey], 0o664)
     else:
         for region in regions:
             curve = curvegen.get_curve(region, 2005, covariator.get_current(region))
             baselinecurves[region] = curve
-            mintemp2 = analytic(region, curve)
-            baselinemins[region] = mintemp2
+            exttemp2 = analytic(curve)
+            baselineexts[region] = exttemp2
 
-    return baselinecurves, baselinemins
+    return baselinecurves, baselineexts
