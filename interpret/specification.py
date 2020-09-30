@@ -12,7 +12,6 @@ import re
 from adaptation import csvvfile, curvegen, curvegen_known, curvegen_arbitrary, covariates, constraints
 from datastore import irvalues
 from openest.generate import smart_curve, selfdocumented
-from openest.models.curve import ShiftedCurve, MinimumCurve, ClippedCurve
 from openest.curves.smart_linextrap import LinearExtrapolationCurve
 from openest.generate.stdlib import *
 from impactcommon.math import minpoly, minspline
@@ -192,7 +191,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
         curr_curvegen = curvegen_known.PolynomialCurveGenerator([indepunit] + ['%s^%d' % (indepunit, pow) for pow in range(2, order+1)],
                                                                 depenunit, coeffvar, order, csvv, predinfix=predinfix,
                                                                 weathernames=weathernames, betalimits=betalimits, allow_raising=specconf.get('allow-raising', False))
-        minfinder = lambda mintemp, maxtemp: lambda curve: minpoly.findpolymin([0] + curve.ccs, mintemp, maxtemp)
+        minfinder = lambda mintemp, maxtemp, sign: lambda curve: minpoly.findpolymin([0] + [sign * cc for cc in curve.coeffs], mintemp, maxtemp)
 
     elif specconf['functionalform'] == 'cubicspline':
         knots = specconf['knots']
@@ -202,7 +201,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
 
         curr_curvegen = curvegen_known.CubicSplineCurveGenerator([indepunit] + ['%s^3' % indepunit] * (len(knots) - 2),
                                                                  depenunit, prefix, knots, variable_name, csvv, betalimits=betalimits)
-        minfinder = lambda mintemp, maxtemp: lambda curve: minspline.findsplinemin(knots, curve.coeffs, mintemp, maxtemp)
+        minfinder = lambda mintemp, maxtemp, sign: lambda curve: minspline.findsplinemin(knots, sign * np.asarray(curve.coeffs), mintemp, maxtemp)
         weathernames = [prefix]
     elif specconf['functionalform'] == 'coefficients':
         ds_transforms = {}
@@ -275,10 +274,10 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
         # Determine minimum value of curve between 10C and 25C
         if covariator:
             baselinecurves, baselinemins = constraints.get_curve_minima(regions, curr_curvegen, covariator,
-                                                                        mintemp, maxtemp, minfinder(mintemp, maxtemp))
+                                                                        mintemp, maxtemp, minfinder(mintemp, maxtemp, 1))
         else:
             curve = curr_curvegen.get_curve('global', 2000, {})
-            curvemin = minfinder(mintemp, maxtemp)(curve)
+            curvemin = minfinder(mintemp, maxtemp, 1)(curve)
             baselinemins = {region: curvemin for region in regions}
 
     def transform(region, curve):
@@ -288,22 +287,22 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
             final_curve = smart_curve.CoefficientsCurve(curve.ccs, weathernames)
 
         if specconf.get('clipping', False):
-            final_curve = ShiftedCurve(final_curve, -curve(baselinemins[region]))
+            final_curve = smart_curve.ShiftedCurve(final_curve, -curve.univariate(baselinemins[region]))
 
         if specconf.get('goodmoney', False):
             covars = covariator.get_current(region)
             covars['loggdppc'] = baselineloggdppcs[region]
             noincadapt_unshifted_curve = curr_curvegen.get_curve(region, None, covars, recorddiag=False)
             if len(weathernames) > 1:
-                coeff_noincadapt_unshifted_curve = CoefficientsCurve(noincadapt_unshifted_curve.ccs, weathernames)
+                coeff_noincadapt_unshifted_curve = smart_curve.CoefficientsCurve(noincadapt_unshifted_curve.ccs, weathernames)
             else:
                 coeff_noincadapt_unshifted_curve = noincadapt_unshifted_curve
-            noincadapt_curve = ShiftedCurve(coeff_noincadapt_unshifted_curve, -noincadapt_unshifted_curve(baselinemins[region]))
+            noincadapt_curve = smart_curve.ShiftedCurve(coeff_noincadapt_unshifted_curve, -noincadapt_unshifted_curve(baselinemins[region]))
 
-            final_curve = MinimumCurve(final_curve, noincadapt_curve)
+            final_curve = smart_curve.MinimumCurve(final_curve, noincadapt_curve)
 
         if specconf.get('clipping', False):
-            final_curve = ClippedCurve(final_curve)
+            final_curve = smart_curve.ClippedCurve(final_curve)
 
         if specconf.get('extrapolation', False):
             exargs = specconf['extrapolation']
