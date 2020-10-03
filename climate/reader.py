@@ -387,3 +387,28 @@ class MapReader(WeatherReader):
             ds0[origvar] = result
 
         return ds0.rename({origvar: self.name})
+
+class FakeRepeatReader(WeatherReader):
+     def __init__(self, reader):
+         super(FakeRepeatReader, self).__init__(reader.version, reader.units, reader.time_units)
+         self.reader = reader
+
+    def get_times(self):
+        """Returns a list of all times available."""
+        return self.reader.get_times()
+
+    def get_years(self):
+        return self.reader.get_years()
+
+    def get_dimension(self):
+        return self.reader.get_dimension()
+
+    def read_iterator(self):
+        """Yields an xarray Dataset in whatever chunks are convenient."""
+        TODO
+        
+    def read_year(self, year):
+        TODO
+
+    def prepare_ds(self, ds0, allds):
+        TODO

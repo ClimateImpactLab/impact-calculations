@@ -18,6 +18,11 @@ RE_FLOATING = r"[-+]?[0-9]*\.?[0-9]*"
 re_dotsplit = re.compile("\.(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)")
 
 def standard_variable(name, mytimerate, **config):
+    if config.get('fakeweather', False):
+        realconfig = configs.copy(config)
+        realconfig['fakeweather'] = False
+        return discover_fakerepeat(standard_variable(name, mytimerate, realconfig))
+
     if '/' in name:
         if os.path.exists(files.configpath(name)):
             return discover_versioned(files.configpath(name), os.path.basename(name), **config)
@@ -78,7 +83,7 @@ def standard_variable(name, mytimerate, **config):
         chunks = name.split('==')
         name = chunks[0]
         version = chunks[1]
-
+        
     if 'grid-weight' in config:
         timerate_translate = dict(day='daily', month='monthly', year='annual')
         path = files.sharedpath(os.path.join("climate/BCSD/hierid", config['grid-weight'], timerate_translate[mytimerate], name))
@@ -680,3 +685,7 @@ def data_vars_time_conversion_year(name, ds, varset, accumfunc):
         return vardef
 
     return np.array([ds['time.year'][0]])
+
+def discover_fakerepeat(iterator):
+    for scenario, model, pastreader, futurereader:
+        yield scenario, model, FakeRepeaterWeather(pastreader), FakeRepeaterWeather(futurereader)
