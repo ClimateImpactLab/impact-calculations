@@ -405,16 +405,24 @@ class FakeRepeaterReader(WeatherReader):
     def get_years(self):
         return self.reader.get_years()
 
+    def get_regions(self):
+        """Returns a list of all regions available."""
+        return self.reader.get_regions()
+
     def get_dimension(self):
         return self.reader.get_dimension()
 
     def read_iterator(self):
         """Yields an xarray Dataset in whatever chunks are convenient."""
         for year in self.get_years():
-            yield self.source_fakeweather.get_single_ds()
+            ds = self.source_fakeweather.get_single_ds()
+            ds['time.year'] = year
+            yield year
         
     def read_year(self, year):
-        return self.source_fakeweather.get_single_ds()
+        ds = self.source_fakeweather.get_single_ds()
+        ds['time.year'] = year
+        return ds
 
     def get_single_ds(self):
         if self.saved_ds is None:
