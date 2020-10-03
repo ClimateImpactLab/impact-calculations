@@ -19,9 +19,9 @@ re_dotsplit = re.compile("\.(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)")
 
 def standard_variable(name, mytimerate, **config):
     if config.get('fakeweather', False):
-        realconfig = configs.copy(config)
+        realconfig = configs.deepcopy(config)
         realconfig['fakeweather'] = False
-        return discover_fakerepeat(standard_variable(name, mytimerate, realconfig))
+        return discover_fakerepeat(standard_variable(name, mytimerate, **realconfig))
 
     if '/' in name:
         if os.path.exists(files.configpath(name)):
@@ -687,5 +687,5 @@ def data_vars_time_conversion_year(name, ds, varset, accumfunc):
     return np.array([ds['time.year'][0]])
 
 def discover_fakerepeat(iterator):
-    for scenario, model, pastreader, futurereader:
-        yield scenario, model, FakeRepeaterWeather(pastreader), FakeRepeaterWeather(futurereader)
+    for scenario, model, pastreader, futurereader in iterator:
+        yield scenario, model, FakeRepeaterReader(pastreader), FakeRepeaterReader(futurereader)

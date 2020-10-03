@@ -93,5 +93,5 @@ def search_list(conflist, needle, pathroot=''):
 
     return found
             
-def copy(config):
+def deepcopy(config):
     return copy.deepcopy(config)
