@@ -160,19 +160,10 @@ class DailyWeatherBundle(WeatherBundle):
         """Yield the list of all weather values up to `maxyear` for each region."""
 
         if not hasattr(self, 'saved_baseline_values'):
-            # Construct an empty dataset to append to
-            allds = []
-
-            # Append each year
-            for year, ds in self.yearbundles(maxyear):
-                if not quiet:
-                    print(year)
-
-                # Stack this year below the previous years
-                if do_mean:
-                    allds.append(ds.mean('time'))
-                else:
-                    allds.append(ds)
+            if do_mean:
+                allds = [ds.mean('time') for _, ds in self.yearbundles(maxyear)]
+            else:
+                allds = [ds for _, ds in self.yearbundles(maxyear)]
 
             if isinstance(allds[0], fast_dataset.FastDataset):
                 self.saved_baseline_values = fast_dataset.concat(allds, dim='time')
