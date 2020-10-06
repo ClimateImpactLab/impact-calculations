@@ -21,17 +21,20 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     curr_curvegen = curvegen_known.PolynomialCurveGenerator(['C'] + ['C^%d' % pow for pow in range(2, order+1)],
                                                             '100,000 * death/population', 'tas', order, csvv,
                                                             weathernames=weathernames)
-    
+
+    # Subset to regions (i.e. hierids) to act on if config has
+    # filter-region.
+    filter_region = config.get("filter-region")
+    if filter_region:
+        target_regions = [str(filter_region)]
+    else:
+        target_regions = weatherbundle.regions
+
     if config.get('clipping', 'both') in ['both', 'clip']:
-        baselineloggdppcs = {}
-        for region in weatherbundle.regions:
-            try:
-                baselineloggdppcs[region] = covariator.get_current(region)['loggdppc']
-            except KeyError:
-                pass
+        baselineloggdppcs = {r : covariator.get_current(r)['loggdppc'] for r in target_regions}
     
         # Determine minimum value of curve between 10C and 25C
-        baselinecurves, baselinemins = constraints.get_curve_minima(weatherbundle.regions, curr_curvegen, covariator, config.get('clip-mintemp', 10), config.get('clip-maxtemp', 25),
+        baselinecurves, baselinemins = constraints.get_curve_minima(target_regions, curr_curvegen, covariator, config.get('clip-mintemp', 10), config.get('clip-maxtemp', 25),
                                                                     lambda region, curve: minpoly.findpolymin([0] + curve.coeffs, config.get('clip-mintemp', 10), config.get('clip-maxtemp', 25)))
 
         fillins = np.arange(-40, 50, 1.)
