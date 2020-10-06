@@ -174,8 +174,8 @@ class DailyWeatherBundle(WeatherBundle):
         if only_region is not None:
             yield only_region, self.saved_baseline_values.sel(region=only_region)
         else:
-            for ii in range(len(self.regions)):
-                yield self.regions[ii], self.saved_baseline_values.sel(region=self.regions[ii])
+            for r in self.regions:
+                yield r, self.saved_baseline_values.sel(region=r)
 
 class SingleWeatherBundle(ReaderWeatherBundle, DailyWeatherBundle):
     def is_historical(self):
