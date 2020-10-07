@@ -27,12 +27,17 @@ included in the generate configuration file.
 
  - `do_historical`: true or false; by default, historical climate
    results are not produced with the diagnostic run, but setting this
-   to `true` will produce them.
+   to `true` will produce them. by default, they will be produced for
+   a median or monte carlo run, but setting this to `false` will skip
+   them.
 
  - `do_farmers`: true, false, or 'always'; if true, alternative
    assumptions of adaptation (income-only and no-adaptation) will be
    generated.  If 'always', alternative adaptation assumptions will be
    calculated even with historical climate.
+
+ - `do_single`: true or false (default): Should we stop after a single
+   target directory?
 
  - `csvvfile`: A path to a CSVV file to be used for the coefficients.
    This can be given as a subpath from the data directory; e.g.,
@@ -43,6 +48,10 @@ included in the generate configuration file.
 It is sometimes not clear which weather data is selected for a given
 configration. You can add the run configuration option `show-source:
 true` to print out the location of each selected weather dataset.
+
+There is also a `fake_weather` option (true or false (default)), which
+reduces loading time by only loading one year of weather data and
+pushing that through the system for each future year.
 
 ## Covariate Averaging
 

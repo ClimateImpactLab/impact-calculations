@@ -13,9 +13,6 @@ from openest.generate import diagnostic
 from impactlab_tools.utils import files, paralog
 import cProfile, pstats, io, metacsv
 
-# Top-level configuration (for debugging)
-do_single = False
-
 def main(config, config_name=None):
     """Main generate func, given run config dict and run ID str for logging
 
@@ -42,6 +39,7 @@ def main(config, config_name=None):
     # Collect the configuration
     claim_timeout = config.get('timeout', 12) * 60*60
     singledir = config.get('singledir', 'single')
+    do_single = config.get('do_single', False)
 
     # Create the object for claiming directories
     statman = paralog.StatusManager('generate', "generate.generate " + str(config_name), 'logs', claim_timeout)
@@ -292,7 +290,9 @@ def main(config, config_name=None):
 
         # Also produce historical climate results
 
-        if config['mode'] not in ['writesplines', 'writepolys', 'writecalcs', 'diagnostic'] or config.get('do_historical', False):
+        is_diagnostic = config['mode'] in ['writesplines', 'writepolys', 'writecalcs', 'diagnostic']
+        if ((is_diagnostic and config.get('do_historical', False)) or # default no histclim
+            (not is_diagnostic and config.get('do_historical', True))): # default do histclim
             # Generate historical baseline
             print("Historical")
             historybundle = weather.HistoricalWeatherBundle.make_historical(weatherbundle, None if config['mode'] == 'median' else pvals['histclim'].get_seed('yearorder'))
