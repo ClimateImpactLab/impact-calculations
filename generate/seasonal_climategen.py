@@ -94,7 +94,7 @@ def get_seasonal(crop, var, climate_model, rcp):
         'rice':[2, 3, 24-2-3],
         'soy':[1, 1, 2, 24-1-1-2],
         'cassava':[24],
-        'sorghum':[24],
+        'sorghum':[1,2,24-1-2],
         'cotton':[24]
     }
 
@@ -269,8 +269,8 @@ def get_seasonal(crop, var, climate_model, rcp):
 #get_seasonal(crop='rice', var='seasonaltmin', climate_model='CCSM4', rcp='rcp85')
 
 
-crops = ['rice']
-Vars = ['seasonaltasmin']
+crops = ['sorghum']
+Vars = ['monthbinpr']
 climate_models=next(os.walk('/shares/gcp/outputs/temps/rcp45'))[1]
 rcps = ['rcp45', 'rcp85']
 with multiprocessing.Pool(processes=60) as pool:
