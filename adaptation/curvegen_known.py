@@ -324,73 +324,87 @@ class SumByTimePolynomialCurveGenerator(SmartCSVVCurveGenerator):
     """
     Apply a range of weather to a PolynomialCurveGenerator, which uses different coefficients by month
     """
-    def __init__(self, csvv, polycurvegen, coeffsuffixes, diagprefix='coeff-'):
-        # Don't enumerate, so not confuse get_coefficients
-        # allprednames = []
-        # allindepunits = []
-        # for coeffsuffix in coeffsuffixes:
-        #     allprednames += [predname + "-%s" % coeffsuffix for predname in polycurvegen.prednames]
-        #     allindepunits += polycurvegen.indepunits
-            
+    def __init__(self, csvv, polycurvegen, coeff_suffix_triangle, diagprefix='coeff-'):
         super(SumByTimePolynomialCurveGenerator, self).__init__(polycurvegen.prednames, polycurvegen.indepunits, polycurvegen.depenunit,
                                                                 csvv, diagprefix=diagprefix)
         assert isinstance(polycurvegen, PolynomialCurveGenerator)
         self.csvv = csvv
         self.polycurvegen = polycurvegen
-        self.coeffsuffixes = coeffsuffixes
+        self.coeff_suffix_triangle = coeff_suffix_triangle
         assert not polycurvegen.betalimits, "Cannot handle betalimits in a sum-by-time setup."
         
         self.weathernames = polycurvegen.weathernames
 
         # Preprocessing marginals
-        self.constant = {} # {predname: 0 or T [constants_t]}
-        self.predcovars = {} # {predname: K [covarname]}
-        self.predgammas = {} # {predname: T x K np.array}
-        for predname in set(self.polycurvegen.prednames):
-            assert predname not in self.constant
-            self.constant[predname] = []
-            self.predgammas[predname] = []
+        self.constant_triangle = []
+        self.predcovars_triangle = []
+        self.predgammas_triangle = []
+        for row_coeff_suffixes in coeff_suffix_triangle:
+            row_constant = {} # {predname: 0 or T [constants_t]}
+            row_predcovars = {} # {predname: K [covarname]}
+            row_predgammas = {} # {predname: T x K np.array}
 
-            covarorder = None
-            for coeffsuffix in self.coeffsuffixes:
-                predname_time = predname + "-%s" % coeffsuffix
+            for predname in set(self.polycurvegen.prednames):
+                assert predname not in row_constant
+                row_constant[predname] = []
+                row_predgammas[predname] = []
 
-                # Decide on the canonical order
-                if covarorder is None:
-                    indices = [ii for ii, xx in enumerate(self.csvv['prednames']) if xx == predname_time]
-                    covarorder = [self.csvv['covarnames'][index] for index in indices]
-                else:
-                    unordered = [ii for ii, xx in enumerate(self.csvv['prednames']) if xx == predname_time]
-                    indices = []
-                    for predcovar in covarorder:
-                        for uu in unordered:
-                            if self.csvv['covarnames'][uu] == predcovar:
-                                indices.append(uu)
-                                break
-                    assert len(indices) == len(covarorder)
+                covarorder = None
+                for coeffsuffix in row_coeffsuffixes:
+                    predname_time = predname + "-%s" % coeffsuffix
 
-                constant_time = []  # make sure have 0 or 1
-                predgammas_time = []
-                for index in indices:
-                    if self.csvv['covarnames'][index] == '1':
-                        constant_time.append(self.csvv['gamma'][index])
+                    # Decide on the canonical order
+                    if covarorder is None:
+                        indices = [ii for ii, xx in enumerate(self.csvv['prednames']) if xx == predname_time]
+                        covarorder = [self.csvv['covarnames'][index] for index in indices]
                     else:
-                        predgammas_time.append(self.csvv['gamma'][index])
+                        unordered = [ii for ii, xx in enumerate(self.csvv['prednames']) if xx == predname_time]
+                        indices = []
+                        for predcovar in covarorder:
+                            for uu in unordered:
+                                if self.csvv['covarnames'][uu] == predcovar:
+                                    indices.append(uu)
+                                    break
+                        assert len(indices) == len(covarorder)
 
-                self.constant[predname] += constant_time
-                self.predgammas[predname].append(predgammas_time)
+                    constant_time = []  # make sure have 0 or 1
+                    predgammas_time = []
+                    for index in indices:
+                        if self.csvv['covarnames'][index] == '1':
+                            constant_time.append(self.csvv['gamma'][index])
+                        else:
+                            predgammas_time.append(self.csvv['gamma'][index])
 
-            if len(self.constant[predname]) == 0:
-                self.constant[predname] = 0
-            else:
-                assert len(self.constant[predname]) == len(self.coeffsuffixes)
-                self.constant[predname] = np.array(self.constant[predname])
+                    row_constant[predname] += constant_time
+                    row_predgammas[predname].append(predgammas_time)
+
+                if len(row_constant[predname]) == 0:
+                    row_constant[predname] = 0
+                else:
+                    assert len(row_constant[predname]) == len(row_coeffsuffixes)
+                    row_constant[predname] = np.array(row_constant[predname])
             
-            self.predcovars[predname] = covarorder
-            if '1' in covarorder:
-                self.predcovars[predname].remove('1')
-            self.predgammas[predname] = np.array(self.predgammas[predname])
+                row_predcovars[predname] = covarorder
+                if '1' in covarorder:
+                    row_predcovars[predname].remove('1')
+                row_predgammas[predname] = np.array(row_predgammas[predname])
+
+            self.constant_triangle.append(row_constant)
+            self.predcovars_triangle.append(row_predcovars)
+            self.predgammas_triangle.append(row_predgammas)
+
+    def get_curve(self, region, year, covariates, recorddiag=True, **kwargs):
+        timesteps = get_season_length(region)
+        self.constant = self.constant_triangle[timesteps - 1]
+        self.predcovars = self.predcovars_triangle[timesteps - 1]
+        self.predgammas = self.predgammas_triangle[timesteps - 1]
         
+        curve = super(SumByTimePolynomialCurveGenerator, self).get_curve(region, year, covariates, recorddiag=recorddiag, **kwargs)
+        
+        # Reset these, to raise errors if logic is circumvented
+        self.constant = self.predcovars = self.predgammas = None
+        return curve
+            
     def get_smartcurve(self, yy):
         return SumByTimePolynomialCurve(np.array(yy), self.polycurvegen.weathernames, self.polycurvegen.allow_raising)
 

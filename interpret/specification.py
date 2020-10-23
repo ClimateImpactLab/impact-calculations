@@ -229,13 +229,26 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
             subspecconf = configs.merge(specconf, specconf['subspec'])
             csvvcurvegen = create_curvegen(csvv, None, regions, farmer=farmer, specconf=subspecconf, getcsvvcurve=True) # don't pass covariator, so skip farmer curvegen
             assert isinstance(csvvcurvegen, curvegen_known.PolynomialCurveGenerator), "Error: Curve-generator resulted in a " + str(csvvcurvegen.__class__)
-            curr_curvegen = curvegen_known.SumByTimePolynomialCurveGenerator(csvv, csvvcurvegen, specconf['suffixes'])
+
+            
+            if 'suffixes' in specconf:
+                suffix_triangle = [specconf['suffixes'][:ii+1] for ii in range(len(specconf['suffixes']))]
+            elif 'suffix-triangle' in specconf:
+                suffix_triangle = specconf['suffix-triangle']
+                for rr in range(len(suffix_triangle)):
+                    assert isinstance(suffix_triangle, list) and len(suffix_triangle[rr]) == rr + 1
+            else:
+                raise AssertionError("Either 'suffixes' or 'suffix-triangle' required for functional form 'sum-by-time'.")
+            
+            curr_curvegen = curvegen_known.SumByTimePolynomialCurveGenerator(csvv, csvvcurvegen, suffix_triangle)
         else:
+            assert 'suffixes' in specconf, "Only 'suffixes' is allowed for arbitrary subform with 'sum-by-time'."
             print("WARNING: Sum-by-time is being performed reductively. Efficiency improvements possible.")
+            
             csvvcurvegens = []
             for tt in range(len(specconf['suffixes'])):
                 subspecconf = configs.merge(specconf, specconf['subspec'])
-                subspecconf['final-t'] = tt
+                subspecconf['final-t'] = tt # timestep of weather; also used by subspec to get suffix
                 csvvcurvegen = create_curvegen(csvv, None, regions, farmer=farmer, specconf=subspecconf, getcsvvcurve=True) # don't pass covariator, so skip farmer curvegen
                 assert isinstance(csvvcurvegen, curvegen.CSVVCurveGenerator), "Error: Curve-generator resulted in a " + str(csvvcurvegen.__class__)
                 csvvcurvegens.append(csvvcurvegen)
