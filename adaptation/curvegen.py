@@ -33,6 +33,7 @@ import numpy as np
 from openest.generate.curvegen import *
 from openest.generate import checks, fast_dataset, formatting, smart_curve, formattools
 from openest.models.curve import FlatCurve
+from datastore import irvalues
 
 region_curves = {}
 
@@ -370,3 +371,36 @@ class SumCurveGenerator(CurveGenerator):
         derivative with respect to a covariate.
         """
         return SumCurveGenerator([curvegen.get_partial_derivative_curvegen(covariate, covarunit) for curvegen in self.curvegens], self.coeffsuffixes)
+
+class SeasonTriangleCurveGenerator(CurveGenerator):
+    """
+    Select a curve generator by region, depending on the length of that region's season
+    """
+    def __init__(self, culture_map, curvegen_triangle=None, get_curvegen=None, coeff_suffix_triangle=None):
+        self.culture_map = culture_map
+        assert curvegen_triangle is not None or (get_curvegen is not None and coeff_suffix_triangle is not None)
+
+        if curvegen_triangle is not None:
+            self.curvegen_triangle = curvegen_triangle
+        else:
+            self.curvegen_triangle = []
+            for row_coeff_suffixes in coeff_suffix_triangle:
+                self.curvegen_triangle.append(get_curvegen(row_coeff_suffixes))
+
+        super(SeasonTriangleCurveGenerator, self).__init__(self.curvegen_triangle[0].indepunits,
+                                                                    self.curvegen_triangle[0].depenunit)
+
+    def get_curve(self, region, year, covariates, recorddiag=True, **kwargs):
+        culture = self.culture_map.get(region, None)
+        timesteps = culture[1] - culture[0] + 1
+        return self.curvegen_triangle[timesteps - 1].get_curve(region, year, covariates, recorddiag=recorddiag, **kwargs)
+
+    def format_call(self, lang, *args):
+        raise NotImplementedError()
+        
+    def get_partial_derivative_curvegen(self, covariate, covarunit):
+        deriv_curvegen_triangle = []
+        for curvegen in self.curvegen_triangle:
+            deriv_curvegen_triangle.append(curvegen.get_partial_derivative_curvegen(covariate, covarunit))
+
+        return SeasonTriangleCurveGenerator(curvegen_triangle=deriv_curvegen_triangle)
