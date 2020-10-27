@@ -33,7 +33,6 @@ import numpy as np
 from openest.generate.curvegen import *
 from openest.generate import checks, fast_dataset, formatting, smart_curve, formattools
 from openest.models.curve import FlatCurve
-from datastore import irvalues
 
 region_curves = {}
 
