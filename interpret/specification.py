@@ -233,19 +233,17 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
             if 'suffixes' in specconf:
                 curr_curvegen = curvegen_known.SumByTimePolynomialCurveGenerator(csvv, csvvcurvegen, specconf['suffixes'])
             elif 'suffix-triangle' in specconf:
-                assert 'within-season' in config
+                assert 'within-season' in specconf
                 suffix_triangle = specconf['suffix-triangle']
                 for rr in range(len(suffix_triangle)):
                     assert isinstance(suffix_triangle, list) and len(suffix_triangle[rr]) == rr + 1
 
-                culture_map = irvalues.get_file_cached(config['within-season'], irvalues.load_culture_months)
+                culture_map = irvalues.get_file_cached(specconf['within-season'], irvalues.load_culture_months)
                 get_curvegen = lambda suffixes: curvegen_known.SumByTimePolynomialCurveGenerator(csvv, csvvcurvegen, suffixes)
                 
-                curr_curvegen = curvegen.SeasonTriangleCurveGenerator(culture_map, get_curvegen, suffix_triangle)
+                curr_curvegen = curvegen.SeasonTriangleCurveGenerator(culture_map, get_curvegen=get_curvegen, suffix_triangle=suffix_triangle)
             else:
                 raise AssertionError("Either 'suffixes' or 'suffix-triangle' required for functional form 'sum-by-time'.")
-            
-            curr_curvegen = curvegen_known.SumByTimePolynomialCurveGenerator(csvv, csvvcurvegen, suffix_triangle)
         else:
             assert 'suffixes' in specconf, "Only 'suffixes' is allowed for arbitrary subform with 'sum-by-time'."
             print("WARNING: Sum-by-time is being performed reductively. Efficiency improvements possible.")
