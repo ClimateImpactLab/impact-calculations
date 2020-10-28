@@ -375,16 +375,16 @@ class SeasonTriangleCurveGenerator(CurveGenerator):
     """
     Select a curve generator by region, depending on the length of that region's season
     """
-    def __init__(self, culture_map, curvegen_triangle=None, get_curvegen=None, coeff_suffix_triangle=None):
+    def __init__(self, culture_map, curvegen_triangle=None, get_curvegen=None, suffix_triangle=None):
         self.culture_map = culture_map
-        assert curvegen_triangle is not None or (get_curvegen is not None and coeff_suffix_triangle is not None)
+        assert curvegen_triangle is not None or (get_curvegen is not None and suffix_triangle is not None)
 
         if curvegen_triangle is not None:
             self.curvegen_triangle = curvegen_triangle
         else:
             self.curvegen_triangle = []
-            for row_coeff_suffixes in coeff_suffix_triangle:
-                self.curvegen_triangle.append(get_curvegen(row_coeff_suffixes))
+            for row_suffixes in suffix_triangle:
+                self.curvegen_triangle.append(get_curvegen(row_suffixes))
 
         super(SeasonTriangleCurveGenerator, self).__init__(self.curvegen_triangle[0].indepunits,
                                                                     self.curvegen_triangle[0].depenunit)
