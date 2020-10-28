@@ -372,8 +372,23 @@ class SumCurveGenerator(CurveGenerator):
         return SumCurveGenerator([curvegen.get_partial_derivative_curvegen(covariate, covarunit) for curvegen in self.curvegens], self.coeffsuffixes)
 
 class SeasonTriangleCurveGenerator(CurveGenerator):
-    """
-    Select a curve generator by region, depending on the length of that region's season
+    """Select a curve generator by region, depending on the length of that region's season.
+
+    Constructor should be called with either curvegen_triangle keyword
+    (to give the season-to-curvegen mapping directly), or both
+    get_curvegen and suffix_triangle keywords (to have each curvegen
+    returned by get_curvegen for a given row of the suffix_triangle).
+
+    Parameters
+    ----------
+    culture_map : dict of str -> pair
+        Season timestep endpoints for each region, as returned by irvalues.load_culture_months
+    curvegen_triangle : list of CurveGenerators
+        Item s (1-indexed) of list corresponds to CurveGenerator for season length s
+    get_curvegen : function(list of str) -> CurveGenerator
+        Function that is called for each row of suffix_triangle to create/pull a CurveGenerator
+    suffix_triangle : list of list of str
+        Coefficient suffixes used for each season length, starting from a season of 1 timestep
     """
     def __init__(self, culture_map, curvegen_triangle=None, get_curvegen=None, suffix_triangle=None):
         self.culture_map = culture_map
