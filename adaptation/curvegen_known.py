@@ -325,13 +325,6 @@ class SumByTimePolynomialCurveGenerator(SmartCSVVCurveGenerator):
     Apply a range of weather to a PolynomialCurveGenerator, which uses different coefficients by month
     """
     def __init__(self, csvv, polycurvegen, coeffsuffixes, diagprefix='coeff-'):
-        # Don't enumerate, so not confuse get_coefficients
-        # allprednames = []
-        # allindepunits = []
-        # for coeffsuffix in coeffsuffixes:
-        #     allprednames += [predname + "-%s" % coeffsuffix for predname in polycurvegen.prednames]
-        #     allindepunits += polycurvegen.indepunits
-            
         super(SumByTimePolynomialCurveGenerator, self).__init__(polycurvegen.prednames, polycurvegen.indepunits, polycurvegen.depenunit,
                                                                 csvv, diagprefix=diagprefix)
         assert isinstance(polycurvegen, PolynomialCurveGenerator)
