@@ -377,7 +377,14 @@ class SeasonTriangleCurveGenerator(CurveGenerator):
     Constructor should be called with either curvegen_triangle keyword
     (to give the season-to-curvegen mapping directly), or both
     get_curvegen and suffix_triangle keywords (to have each curvegen
-    returned by get_curvegen for a given row of the suffix_triangle).
+    returned by get_curvegen for a given item of the suffix_triangle).
+
+    The suffix_triangle is a list-of-lists. Item k (at index k-1) of
+    this list describes the coefficients suffixes to be used for a
+    season of length k. As a result, item k (a list) should itself
+    contain k strings, the suffixes for month 1 to k of the
+    season. The length of suffix_triangle should be equal to the
+    longest possible season length.
 
     Parameters
     ----------
@@ -386,9 +393,10 @@ class SeasonTriangleCurveGenerator(CurveGenerator):
     curvegen_triangle : list of CurveGenerators
         Item s (1-indexed) of list corresponds to CurveGenerator for season length s
     get_curvegen : function(list of str) -> CurveGenerator
-        Function that is called for each row of suffix_triangle to create/pull a CurveGenerator
+        Function that is called for each item of suffix_triangle to create/pull a CurveGenerator
     suffix_triangle : list of list of str
         Coefficient suffixes used for each season length, starting from a season of 1 timestep
+
     """
     def __init__(self, culture_map, curvegen_triangle=None, get_curvegen=None, suffix_triangle=None):
         self.culture_map = culture_map
@@ -404,10 +412,10 @@ class SeasonTriangleCurveGenerator(CurveGenerator):
         super(SeasonTriangleCurveGenerator, self).__init__(self.curvegen_triangle[0].indepunits,
                                                                     self.curvegen_triangle[0].depenunit)
 
-    def get_curve(self, region, year, covariates, recorddiag=True, **kwargs):
+    def get_curve(self, region, year, covariates, recorddiag=True, *args, **kwargs):
         culture = self.culture_map.get(region, None)
         timesteps = culture[1] - culture[0] + 1
-        return self.curvegen_triangle[timesteps - 1].get_curve(region, year, covariates, recorddiag=recorddiag, **kwargs)
+        return self.curvegen_triangle[timesteps - 1].get_curve(region, year, covariates, recorddiag=recorddiag, *args, **kwargs)
 
     def format_call(self, lang, *args):
         raise NotImplementedError()
@@ -417,4 +425,4 @@ class SeasonTriangleCurveGenerator(CurveGenerator):
         for curvegen in self.curvegen_triangle:
             deriv_curvegen_triangle.append(curvegen.get_partial_derivative_curvegen(covariate, covarunit))
 
-        return SeasonTriangleCurveGenerator(curvegen_triangle=deriv_curvegen_triangle)
+        return SeasonTriangleCurveGenerator(self.culture_map, curvegen_triangle=deriv_curvegen_triangle)
