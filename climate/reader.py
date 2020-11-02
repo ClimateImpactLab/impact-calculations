@@ -387,3 +387,45 @@ class MapReader(WeatherReader):
             ds0[origvar] = result
 
         return ds0.rename({origvar: self.name})
+
+class FakeRepeaterReader(WeatherReader):
+    def __init__(self, reader, source_fakeweather=None):
+        super(FakeRepeaterReader, self).__init__(reader.version, reader.units, reader.time_units)
+        self.reader = reader
+        if source_fakeweather is None:
+            self.source_fakeweather = self
+        else:
+            self.source_fakeweather = source_fakeweather
+        self.saved_ds = None
+        
+    def get_times(self):
+        """Returns a list of all times available."""
+        return self.reader.get_times()
+
+    def get_years(self):
+        return self.reader.get_years()
+
+    def get_regions(self):
+        """Returns a list of all regions available."""
+        return self.reader.get_regions()
+
+    def get_dimension(self):
+        return self.reader.get_dimension()
+
+    def read_iterator(self):
+        """Yields an xarray Dataset in whatever chunks are convenient."""
+        for year in self.get_years():
+            ds = self.source_fakeweather.get_single_ds()
+            ds['time.year'] = year
+            yield year
+        
+    def read_year(self, year):
+        ds = self.source_fakeweather.get_single_ds()
+        ds['time.year'] = year
+        return ds
+
+    def get_single_ds(self):
+        if self.saved_ds is None:
+            self.saved_ds = self.reader.read_year(self.get_years()[0])
+        return self.saved_ds
+        
