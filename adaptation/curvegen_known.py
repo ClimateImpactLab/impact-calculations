@@ -374,12 +374,14 @@ class SumByTimePolynomialCurveGenerator(SmartCSVVCurveGenerator):
                 preceding_zeros += 1
 
             covarorder = None
-            for coeffsuffix in self.coeffsuffixes[preceding_zeros:]
+            for coeffsuffix in self.coeffsuffixes[preceding_zeros:]:
                 if coeffsuffix == 0:
-                    if len(self.constant[predname]) > 0:
-                        self.constant[predname].append(0)
                     # We'll always have covarorder by now
-                    self.predgammas[predname].append([0] * len(covarorder))
+                    if '1' in covarorder:
+                        self.constant[predname].append(0)
+                        self.predgammas[predname].append([0] * (len(covarorder)-1))
+                    else:
+                        self.predgammas[predname].append([0] * len(covarorder))
                     continue
                     
                 predname_time = predname + "-%s" % coeffsuffix
@@ -410,9 +412,11 @@ class SumByTimePolynomialCurveGenerator(SmartCSVVCurveGenerator):
                 # If this is the first non-zero suffix
                 if preceding_zeros > 0:
                     for kk in range(preceding_zeros):
-                        if len(constant_time) > 0:
+                        if '1' in covarorder:
                             self.constant[predname].append(0)
-                        self.predgammas[predname].append([0] * len(covarorder))
+                            self.predgammas[predname].append([0] * (len(covarorder)-1))
+                        else:
+                            self.predgammas[predname].append([0] * len(covarorder))
                     preceding_zeros = 0 # Disable this case
                         
                 self.constant[predname] += constant_time
