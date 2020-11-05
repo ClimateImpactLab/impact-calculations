@@ -124,6 +124,7 @@ def setup():
 
     return dict(config=config, weatherbundle=weatherbundle, economicmodel=economicmodel, pvals=pvals, csvv=csvv, outputs=outputs_master)
 
+@pytest.mark.imperics_shareddir
 def test_triangle(setup):
     """Try to use a triangle suffixes config equivalent to the list suffixes."""
     config_triangle = modify_config_triangle(setup['config'])
@@ -137,6 +138,7 @@ def test_triangle(setup):
 
     np.testing.assert_array_almost_equal(setup['outputs'], outputs_triangle)
 
+@pytest.mark.imperics_shareddir
 def test_condition(setup):
     """Try to use two predictors conditionally, equivalent to the single predictor."""
     config_condition = modify_config_condition(setup['config'])
