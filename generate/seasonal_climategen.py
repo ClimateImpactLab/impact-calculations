@@ -25,6 +25,7 @@ from dateutil.relativedelta import relativedelta
 from interpret.container import get_bundle_iterator
 import multiprocessing
 from itertools import product
+import pdb 
 
 non_leap_year = 2010
 
@@ -175,6 +176,7 @@ def get_seasonal(crop, var, climate_model, rcp):
 
     for clim_scenario, clim_model, weatherbundle in get_bundle_iterator(config):
 
+        pdb.set_trace()
 
         targetdir = os.path.join(outputdir, clim_scenario, clim_model)
 
@@ -269,11 +271,14 @@ def get_seasonal(crop, var, climate_model, rcp):
 #get_seasonal(crop='rice', var='seasonaltmin', climate_model='CCSM4', rcp='rcp85')
 
 
-crops = ['sorghum']
-Vars = ['monthbinpr']
-climate_models=next(os.walk('/shares/gcp/outputs/temps/rcp45'))[1]
-rcps = ['rcp45', 'rcp85']
-with multiprocessing.Pool(processes=60) as pool:
-    pool.starmap(get_seasonal, product(crops, Vars, climate_models, rcps))
+# crops = ['rice']
+# Vars = ['seasonaltasmin']
+# #climate_models=next(os.walk('/shares/gcp/outputs/temps/rcp85'))[1]
+# climate_models='surrogate_GFDL-ESM2G_06'
+# rcps = ['rcp85']
+# with multiprocessing.Pool(processes=1) as pool:
+#     pool.starmap(get_seasonal, product(crops, Vars, climate_models, rcps))
 
+# get_seasonal(crop='maize', var='seasonaledd', climate_model='surrogate_GFDL-ESM2G_06', rcp='rcp85')
 
+get_seasonal(crop='maize', var='seasonaledd', climate_model='CCSM4', rcp='rcp85')
