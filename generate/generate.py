@@ -13,39 +13,36 @@ from openest.generate import diagnostic
 from impactlab_tools.utils import files, paralog
 import cProfile, pstats, io, metacsv
 
-# Top-level configuration (for debugging)
-do_single = False
-
-def main(config, runid=None):
+def main(config, config_name=None):
     """Main generate func, given run config dict and run ID str for logging
 
     Parameters
     ----------
     config : MutableMapping
         Run configurations.
-    runid : str or None, optional
-        Run ID, used for logging and output filenames if `config` is missing
-        "module". If `None`, then uses `config["runid"]`. This argument is
-        for legacy purposes. Prefer using "runid" in `config`. If `runid` is
-        given and "runid" is also in `config` then uses `runid` arg and a 
-        warning is printed. This is for backwards compatibility.
+    config_name : str or None, optional
+        Configuration name, used for logging and output filenames if `config`
+        is missing "module". If `None`, then uses `config["config_name"]`. If
+        `config_name` is given and "config_name" is also in `config` then uses
+        `config_name` arg and a warning is printed.
     """
     print("Initializing...")
 
-    if runid is None:
-        runid = config["runid"]
-    elif config.get("runid"):
-        # For backwards compatibility, if runid is passed in *and* in config, 
+    if config_name is None:
+        config_name = config["config_name"]
+    elif config.get("config_name"):
+        # For backwards compatibility, if config_name is passed in *and* in config,
         # then use arg.
-        print(f"WARNING: Overriding configuration runid:{config['runid']} with argument runid:{runid}")
-        config["runid"] = runid
+        print(f"WARNING: Overriding configuration config_name:{config['config_name']} with argument config_name:{config_name}")
+        config["config_name"] = config_name
 
     # Collect the configuration
     claim_timeout = config.get('timeout', 12) * 60*60
     singledir = config.get('singledir', 'single')
+    do_single = config.get('do_single', False)
 
     # Create the object for claiming directories
-    statman = paralog.StatusManager('generate', "generate.generate " + str(runid), 'logs', claim_timeout)
+    statman = paralog.StatusManager('generate', "generate.generate " + str(config_name), 'logs', claim_timeout)
 
     targetdir = None # The current targetdir
 
@@ -72,11 +69,12 @@ def main(config, runid=None):
         for batch in mc_batch_iter:
             for clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in loadmodels.random_order(mod.get_bundle_iterator(config), config):
                 # Use "pvals" seeds from config, if available.
+                relative_location = ['batch' + str(batch), clim_scenario, clim_model, econ_scenario, econ_model]
                 if 'pvals' in list(config.keys()):
-                    pvals = pvalses.load_pvals(config['pvals'])
+                    pvals = pvalses.load_pvals(config['pvals'], relative_location)
                 else:
                     # Old default.
-                    pvals = pvalses.OnDemandRandomPvals()
+                    pvals = pvalses.OnDemandRandomPvals(relative_location)
                 yield 'batch' + str(batch), pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
 
     def iterate_nosideeffects():
@@ -192,9 +190,16 @@ def main(config, runid=None):
     if not config.get('module'):
         # Specification and run config already together.
         mod = importlib.import_module("interpret.container")
-        shortmodule = str(runid)
+        shortmodule = str(config_name)
     elif config['module'][-4:] == '.yml':
         # Specification config in another yaml file.
+
+        import warnings
+        warnings.warn(
+            "Pointing 'module:' to YAML files is deprecated, please use 'module:' with Python modules",
+            FutureWarning,
+        )
+
         mod = importlib.import_module("interpret.container")
         with open(config['module'], 'r') as fp:
             config.update(yaml.load(fp))
@@ -251,7 +256,8 @@ def main(config, runid=None):
 
         # Load the pvals data, if available
         if pvalses.has_pval_file(targetdir):
-            oldpvals = pvalses.read_pval_file(targetdir)
+            relative_location = [batchdir, clim_scenario, clim_model, econ_model, econ_scenario]
+            oldpvals = pvalses.read_pval_file(targetdir, relative_location)
             if oldpvals is not None:
                 pvals = oldpvals
         else:
@@ -284,7 +290,9 @@ def main(config, runid=None):
 
         # Also produce historical climate results
 
-        if config['mode'] not in ['writesplines', 'writepolys', 'writecalcs', 'diagnostic'] or config.get('do_historical', False):
+        is_diagnostic = config['mode'] in ['writesplines', 'writepolys', 'writecalcs', 'diagnostic']
+        if ((is_diagnostic and config.get('do_historical', False)) or # default no histclim
+            (not is_diagnostic and config.get('do_historical', True))): # default do histclim
             # Generate historical baseline
             print("Historical")
             historybundle = weather.HistoricalWeatherBundle.make_historical(weatherbundle, None if config['mode'] == 'median' else pvals['histclim'].get_seed('yearorder'))
@@ -311,7 +319,10 @@ if __name__ == '__main__':
     import sys
     from pathlib import Path
 
-    run_id = Path(sys.argv[1]).stem
+    config_path = Path(sys.argv[1])
+    config_name = config_path.stem
     run_config = configs.standardize(files.get_allargv_config())
+    # Interpret "import" in configs here while we have file path info.
+    file_configs = configs.merge_import_config(run_config, config_path.parent)
 
-    main(run_config, run_id)
+    main(run_config, config_name)

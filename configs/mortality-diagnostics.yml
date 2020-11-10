@@ -1,11 +1,13 @@
 module: mortality
-mode: writepolys
-outputdir: /shares/gcp/outputs/mortality/impacts-crypto
+mode: single
+outputdir: /shares/gcp/outputs/mortality/impacts-cupim
 do_only: interpolation
 do_farmers: false
 csvvfile: social/parameters/mortality/mortality_nonFGLS_22052018/Agespec_interaction_GMFD_POLY-4_TINV_CYA_NW_w1.csvv
 specification: polynomial
 clipping: both # both, none, or clip
+derivclip: true
+clip-maxtemp: 30
 econcovar:
    class: bartlett
    length: 13

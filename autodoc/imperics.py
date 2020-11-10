@@ -120,8 +120,10 @@ lib.show_header("Weather:")
 clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel = loadmodels.single(container.get_bundle_iterator(configs.merge(config, {'only-models': [gcm]})))
 
 weather = {}
-for year, ds in weatherbundle.yearbundles(futureyear + 2):
+for year, ds in weatherbundle.yearbundles(max(futureyear + 2, 2012)):
     if year in list(range(2001, 2011)) + [futureyear-1, futureyear]:
+        if shapenum == 0:
+            shapenum = list(ds['region'].values).index(region)
         ds = ds.isel(region=shapenum)
         weather[str(year)] = {variable: ds[variable].values for variable in ds}
 

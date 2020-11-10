@@ -47,18 +47,20 @@ def test_generate_basic(tmpconf_path, ggmain_stub):
     """Check generate CLI subcommand with config path
     """
     runner = CliRunner()
-    expected = f"({{'k1': 'v1', 'runid': 'conf_file'}},)\n"
+    expected = f"({{'k1': 'v1', 'config_name': 'conf_file'}},)\n"
     result = runner.invoke(cli.impactcalculations_cli, ["generate", tmpconf_path])
     assert result.output == expected
 
 
 def test_generate_extraconfigs(tmpconf_path, ggmain_stub):
     """Check generate CLI subcommand with config path and -c args
+
+    -c args should be evaluated as yaml
     """
     runner = CliRunner()
-    expected = f"({{'k1': 'v1', 'k2': 'v2', 'k3': 'v3', 'runid': 'conf_file'}},)\n"
+    expected = f"({{'k1': 'v1', 'k2': 'v2', 'k3': True, 'config_name': 'conf_file'}},)\n"
     result = runner.invoke(
-        cli.impactcalculations_cli, ["generate", tmpconf_path, "-c k2=v2", "-c k3=v3"]
+        cli.impactcalculations_cli, ["generate", tmpconf_path, "-c k2=v2", "-c k3=yes"]
     )
     assert result.output == expected
 
@@ -71,7 +73,7 @@ def test_diagnostic_basic(tmpconf_path, ggmain_stub):
     # Setup expected output
     diagnostic_configs = {
         "k1": "v1",
-        "runid": "conf_file",
+        "config_name": "conf_file",
         "filter-region": "USA.14.608",
         "outputdir": os.path.join(os.getcwd(), "temp"),  # PWD/temp
         "singledir": "single",

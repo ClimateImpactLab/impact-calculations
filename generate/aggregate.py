@@ -40,7 +40,7 @@ missing_only = True       # generate only missing output files, or regenerate al
 debug_aggregate = False   # If not false, set to the name of an aggregated region to report. e.g., 'ARE'
 
 # Command to run to generate adaptation costs files
-costs_command = "Rscript generate/cost_curves.R \"%s\" \"%s\" \"%s\" \"%s\"" # tavgpath rcp gcm impactspath
+costs_command = "Rscript generate/cost_curves.R \"%s\" \"%s\" \"%s\" \"%s\" \"%s\"" # tavgpath rcp gcm impactspath suffix
 
 ## Filters on target directories to aggregate
 
@@ -195,6 +195,7 @@ def make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, d
     # Iterate through all aggregatable variables
     for key, variable in agglib.iter_timereg_variables(reader, config=config):
         dstvalues = np.zeros((len(years), len(prefixes))) # output matrix
+        dstvalues[:] = np.nan
         if vcv is None:
             srcvalues = variable[:, :]
             # Iterates over aggregated regions
@@ -212,7 +213,15 @@ def make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, d
 
                 # Add each sub-region to the numerator and denominator
                 for original in withinregions:
-                    wws = stweight.get_time(original) # Get vector of weights vs. time
+                    wws = np.array(stweight.get_time(original)) # Get vector of weights vs. time
+
+                    if len(wws.shape) == 1 and wws.shape[0] != srcvalues.shape[0]:
+                        # Shorten to the minimum of the two years
+                        wws = wws[:min(wws.shape[0], srcvalues.shape[0])]
+                        srcvalues = srcvalues[:min(wws.shape[0], srcvalues.shape[0]), :]
+                        numers = numers[:srcvalues.shape[0]]
+                        denoms = denoms[:srcvalues.shape[0]]
+
                     numers += wws * np.nan_to_num(srcvalues[:, original_indices[original]]) * np.isfinite(srcvalues[:, original_indices[original]])
                     if stweight_denom != weights.HALFWEIGHT_SUMTO1: # wait for sum-to-1
                         if stweight_denom:
@@ -223,9 +232,9 @@ def make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, d
 
                 # Fill in result
                 if stweight_denom == weights.HALFWEIGHT_SUMTO1: # wait for sum-to-1
-                    dstvalues[:, ii] = numers
+                    dstvalues[:len(numers), ii] = numers
                 else:
-                    dstvalues[:, ii] = numers / denoms
+                    dstvalues[:len(numers), ii] = numers / denoms
         else:
             # Handle deltamethod files
             coeffvalues = np.zeros((vcv.shape[0], len(years), len(prefixes)))
@@ -406,11 +415,21 @@ def make_levels(targetdir, filename, outfilename, halfweight, weight_args, dimen
     # Iterate through all regional variables
     for key, variable in agglib.iter_timereg_variables(reader, config=config):
         dstvalues = np.zeros((len(years), len(regions))) # output matrix
+        dstvalues[:] = np.nan
         if vcv is None:
-            # Multiply each entry by appropriate weight
-            srcvalues = variable[:, :]
+            # Multiply each entry by appropriate weight   
+            srcvalues = np.array(variable[:, :])
+                
             for ii in range(len(regions)):
-                dstvalues[:, ii] = srcvalues[:, ii] * stweight.get_time(regions[ii])
+                wws = np.array(stweight.get_time(regions[ii]))
+
+                if len(wws.shape) == 1 and wws.shape[0] != dstvalues.shape[0]:
+                    # Shorten to the minimum of the two years
+                    wws = wws[:min(wws.shape[0], srcvalues.shape[0])]
+                    srcvalues = srcvalues[:min(wws.shape[0], srcvalues.shape[0]), :]
+                    dstvalues[:len(wws), ii] = wws * srcvalues[:, ii]
+                else:
+                    dstvalues[:, ii] = wws * srcvalues[:, ii]
         else:
             # Handle deltamethod files
             coeffvalues = np.zeros((vcv.shape[0], len(years), len(regions)))
@@ -471,17 +490,23 @@ def make_costs_levels(targetdir, filename, outfilename, halfweight, weight_args,
 def fullfile(filename, suffix, config):
     """Convenience function, to add config infix as needed to final filename."""
     if 'infix' in config:
-        return fullfile(filename, '-' + config['infix'] + suffix, {})
+        return fullfile(filename, '-' + str(config['infix']) + suffix, {})
 
     return filename[:-4] + suffix + '.nc4'
     
 if __name__ == '__main__':
     # Prepare environment
     import sys
+    from pathlib import Path
     from impactlab_tools.utils import files
+    from interpret.configs import merge_import_config
     from datastore import population, agecohorts
 
     config = files.get_allargv_config()
+    config_path = Path(sys.argv[1])
+    # Interpret "import" in configs here while we have file path info.
+    file_configs = merge_import_config(config, config_path.parent)
+
     regioncount = config.get('region-count', 24378) # used by checks to ensure complete files
 
     # Construct object to claim directories
@@ -604,7 +629,8 @@ if __name__ == '__main__':
 
                     if '-noadapt' not in filename and '-incadapt' not in filename and 'histclim' not in filename and 'indiamerge' not in filename:
                         # Generate costs
-                        if not missing_only or not os.path.exists(os.path.join(targetdir, fullfile(filename, costs_suffix, config))):
+                        outfilename = fullfile(filename, costs_suffix, config)
+                        if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)) or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable='costs_lb', regioncount=5665):
                             if '-combined' in filename:
                                 # Look for age-specific costs
                                 agegroups = ['young', 'older', 'oldest']
@@ -619,39 +645,21 @@ if __name__ == '__main__':
                                 if hasall:
                                     # Combine costs across age-groups
                                     print("Has all component costs")
-                                    get_stweights = [lambda year0, year1: halfweight_levels.load(1981, 2100, econ_model, econ_scenario, 'age0-4'), lambda year0, year1: halfweight_levels.load(1981, 2100, econ_model, econ_scenario, 'age5-64'), lambda year0, year1: halfweight_levels.load(1981, 2100, econ_model, econ_scenario, 'age65+')]
+                                    get_stweights = [lambda year0, year1: halfweight_levels.load(1950, 2100, econ_model, econ_scenario, 'age0-4', shareonly=True), lambda year0, year1: halfweight_levels.load(1950, 2100, econ_model, econ_scenario, 'age5-64', shareonly=True), lambda year0, year1: halfweight_levels.load(1950, 2100, econ_model, econ_scenario, 'age65+', shareonly=True)]
                                     agglib.combine_results(targetdir, filename[:-4] + costs_suffix, basenames, get_stweights, "Combined costs across age-groups for " + filename.replace('-combined.nc4', ''))
                             else:
                                 # Prepare arguments to adaptation costs system
                                 tavgpath = '/shares/gcp/outputs/temps/%s/%s/climtas.nc4' % (clim_scenario, clim_model)
                                 impactspath = os.path.join(targetdir, filename)
-                                gammapath = '/shares/gcp/social/parameters/mortality/Diagnostics_Apr17/' + filename.replace('.nc4', '.csvv')
-                                gammapath = gammapath.replace('-young', '').replace('-older', '').replace('-oldest', '')
 
-                                if 'POLY-4' in filename:
-                                    numpreds = 4
-                                    minpath = os.path.join(targetdir, filename.replace('.nc4', '-polymins.csv'))
-                                elif 'POLY-5' in filename:
-                                    numpreds = 5
-                                    minpath = os.path.join(targetdir, filename.replace('.nc4', '-polymins.csv'))
-                                elif 'CSpline' in filename:
-                                    numpreds = 5
-                                    minpath = os.path.join(targetdir, filename.replace('.nc4', '-splinemins.csv'))
-                                else:
-                                    ValueError('Unknown functional form')
-                                
-                                if '-young' in filename:
-                                    gammarange = '1:%s' % (numpreds * 3)
-                                elif '-older' in filename:
-                                    gammarange = '%s:%s' % (numpreds * 3 + 1, numpreds * 6)
-                                elif '-oldest' in filename:
-                                    gammarange = '%s:%s' % (numpreds * 6 + 1, numpreds * 9)
+                                if 'infix' in config:
+                                    fullcostsuffix = '-' + str(config['infix']) + costs_suffix
                                 else:
                                     continue # Cannot calculate costs
 
                                 # Call the adaptation costs system
-                                print(costs_command % (tavgpath, clim_scenario, clim_model, impactspath))
-                                os.system(costs_command % (tavgpath, clim_scenario, clim_model, impactspath))
+                                print(costs_command % (tavgpath, clim_scenario, clim_model, impactspath, fullcostsuffix))
+                                os.system(costs_command % (tavgpath, clim_scenario, clim_model, impactspath, fullcostsuffix))
 
                         # Levels of costs
                         outfilename = fullfile(filename, costs_suffix + levels_suffix, config)

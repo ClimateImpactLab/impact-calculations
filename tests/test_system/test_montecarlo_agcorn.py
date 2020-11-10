@@ -49,7 +49,7 @@ RUN_CONFIGS = {
                     ]
                 },
                 {
-                    "AuxillaryResult": [
+                    "AuxiliaryResult": [
                         {
                             "PartialDerivative": {
                                 "covariate": "seasonaltasmax",
@@ -60,7 +60,7 @@ RUN_CONFIGS = {
                     ]
                 },
                 {
-                    "AuxillaryResult": [
+                    "AuxiliaryResult": [
                         {
                             "PartialDerivative": {
                                 "covariate": "seasonalpr",
@@ -71,7 +71,6 @@ RUN_CONFIGS = {
                     ]
                 },
                 "Rebase",
-                "Exponentiate",
                 {
                     "KeepOnly": [
                         "ddseasonaltasmax",
@@ -245,7 +244,7 @@ class TestRebased:
             ("base_ds", np.array([[16553001.0, -22093280.0, -3109495.8]]).T),
             ("noadapt_ds", np.array([[16719406.0, -19189916.0, -822137.2]]).T),
             ("incadapt_ds", np.array([[16719406.0, -19189874.0, -822115.2]]).T),
-            ("histclim_ds", np.array([[2393200.0, -6320445.0, np.nan]]).T),
+            ("histclim_ds", np.array([[2393200.0, -6320445.0, 1069611.9]]).T),
         ],
     )
     def test_tail(self, projection_payload, result_file, expected):

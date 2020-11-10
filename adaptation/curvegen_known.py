@@ -11,7 +11,7 @@ respect to a covariate to produce another known CurveGenerator.
 import numpy as np
 from . import csvvfile, curvegen
 from openest.generate import diagnostic, formatting, selfdocumented
-from openest.generate.smart_curve import ZeroInterceptPolynomialCurve, CubicSplineCurve
+from openest.generate.smart_curve import ZeroInterceptPolynomialCurve, CubicSplineCurve, SumByTimePolynomialCurve
 from openest.models.curve import StepCurve
 from openest.generate.curvegen import CurveGenerator
 
@@ -61,7 +61,10 @@ class SmartCSVVCurveGenerator(curvegen.CSVVCurveGenerator):
         openest.generate.smart_curve.SmartCurve
         """
         coefficients = self.get_coefficients(covariates)
+
         yy = [coefficients[predname] for predname in self.prednames]
+        if len(yy) > 0 and isinstance(yy[0], np.ndarray) and len(yy[0]) == 1:
+            yy = np.array(yy).flatten().tolist() # list of values, not of np.arrays
 
         if recorddiag and diagnostic.is_recording():
             for predname in self.prednames:
@@ -122,7 +125,7 @@ class BetaLimitsDerivativeSmartCSVVCurveGenerator(CurveGenerator):
     def get_curve(self, region, year, covariates, recorddiag=True, **kwargs):
         prederiv_coeffs = self.prederiv_curvegen.get_coefficients(covariates)
         coeffs = self.curvegen.get_coefficients(covariates)
-
+        
         for predname in coeffs:
             if predname in self.prederiv_curvegen.betalimits:
                 if prederiv_coeffs[predname] == self.prederiv_curvegen.betalimits[predname][0] or prederiv_coeffs[predname] == self.prederiv_curvegen.betalimits[predname][1]:
@@ -316,3 +319,93 @@ class BinnedStepCurveGenerator(curvegen.CSVVCurveGenerator):
             yy = np.maximum(min_beta, yy)
 
         return StepCurve(self.xxlimits, yy)
+
+class SumByTimePolynomialCurveGenerator(SmartCSVVCurveGenerator):
+    """
+    Apply a range of weather to a PolynomialCurveGenerator, which uses different coefficients by month
+    """
+    def __init__(self, csvv, polycurvegen, coeffsuffixes, diagprefix='coeff-'):
+        super(SumByTimePolynomialCurveGenerator, self).__init__(polycurvegen.prednames, polycurvegen.indepunits, polycurvegen.depenunit,
+                                                                csvv, diagprefix=diagprefix)
+        assert isinstance(polycurvegen, PolynomialCurveGenerator)
+        self.csvv = csvv
+        self.polycurvegen = polycurvegen
+        self.coeffsuffixes = coeffsuffixes
+        assert not polycurvegen.betalimits, "Cannot handle betalimits in a sum-by-time setup."
+        
+        self.weathernames = polycurvegen.weathernames
+
+        # Preprocessing marginals
+        self.constant = {} # {predname: 0 or T [constants_t]}
+        self.predcovars = {} # {predname: K [covarname]}
+        self.predgammas = {} # {predname: T x K np.array}
+        for predname in set(self.polycurvegen.prednames):
+            assert predname not in self.constant
+            self.constant[predname] = []
+            self.predgammas[predname] = []
+
+            covarorder = None
+            for coeffsuffix in self.coeffsuffixes:
+                predname_time = predname + "-%s" % coeffsuffix
+
+                # Decide on the canonical order
+                if covarorder is None:
+                    indices = [ii for ii, xx in enumerate(self.csvv['prednames']) if xx == predname_time]
+                    covarorder = [self.csvv['covarnames'][index] for index in indices]
+                else:
+                    unordered = [ii for ii, xx in enumerate(self.csvv['prednames']) if xx == predname_time]
+                    indices = []
+                    for predcovar in covarorder:
+                        for uu in unordered:
+                            if self.csvv['covarnames'][uu] == predcovar:
+                                indices.append(uu)
+                                break
+                    assert len(indices) == len(covarorder)
+
+                constant_time = []  # make sure have 0 or 1
+                predgammas_time = []
+                for index in indices:
+                    if self.csvv['covarnames'][index] == '1':
+                        constant_time.append(self.csvv['gamma'][index])
+                    else:
+                        predgammas_time.append(self.csvv['gamma'][index])
+
+                self.constant[predname] += constant_time
+                self.predgammas[predname].append(predgammas_time)
+
+            if len(self.constant[predname]) == 0:
+                self.constant[predname] = 0
+            else:
+                assert len(self.constant[predname]) == len(self.coeffsuffixes)
+                self.constant[predname] = np.array(self.constant[predname])
+            
+            self.predcovars[predname] = covarorder
+            if '1' in covarorder:
+                self.predcovars[predname].remove('1')
+            self.predgammas[predname] = np.array(self.predgammas[predname])
+        
+    def get_smartcurve(self, yy):
+        return SumByTimePolynomialCurve(np.array(yy), self.polycurvegen.weathernames, self.polycurvegen.allow_raising)
+
+    def format_call(self, lang, *args):
+        assert self.weathernames is None, "Weathernames in sum-by-time not implemented yet."
+
+        coeffs = [self.diagprefix + predname for predname in self.prednames]
+        coeffreps = [formatting.get_parametername(coeff, lang) for coeff in coeffs]
+
+        if lang == 'latex':
+            beta = formatting.get_beta(lang)
+            elements = {'main': formatting.FormatElement(r"\sum_{t=1} \sum_{k=1}^%d %s_{kt} %s_t^k" % (self.order, beta, args[0]), [beta], is_primitive=True),
+                        beta: formatting.FormatElement('[' + ', '.join(coeffreps) + ']', coeffs)}
+        elif lang == 'julia':
+            elements = {'main': formatting.FormatElement(' + '.join(["sum(%s .* %s^%d)" % (coeffreps[kk], args[0], order+1) for kk in range(self.order)]), coeffs, is_primitive=True)}
+
+        for ii in range(len(coeffs)):
+            elements[coeffs[ii]] = formatting.ParameterFormatElement(coeffs[ii], coeffreps[ii])
+
+        return elements
+        
+    def get_partial_derivative_curvegen(self, covariate, covarunit):
+        ddpoly = self.polycurvegen.get_partial_derivative_curvegen(covariate, covarunit)
+        return SumByTimePolynomialCurveGenerator(ddpoly.csvv, ddpoly, self.coeffsuffixes,
+                                                 diagprefix=ddpoly.diagprefix)
