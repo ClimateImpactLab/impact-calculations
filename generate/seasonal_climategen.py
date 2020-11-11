@@ -176,8 +176,6 @@ def get_seasonal(crop, var, climate_model, rcp):
 
     for clim_scenario, clim_model, weatherbundle in get_bundle_iterator(config):
 
-        pdb.set_trace()
-
         targetdir = os.path.join(outputdir, clim_scenario, clim_model)
 
         if only_missing and os.path.exists(os.path.join(targetdir, filename)):
@@ -225,7 +223,7 @@ def get_seasonal(crop, var, climate_model, rcp):
         print("Processing years...")
         yy = 0
         for year, ds in weatherbundle.yearbundles():
-    
+            
             print("Push", year)
             regions = np.array(ds.coords["region"])
             if gdd_cutoff and kdd_cutoff:
@@ -271,14 +269,16 @@ def get_seasonal(crop, var, climate_model, rcp):
 #get_seasonal(crop='rice', var='seasonaltmin', climate_model='CCSM4', rcp='rcp85')
 
 
-# crops = ['rice']
-# Vars = ['seasonaltasmin']
-# #climate_models=next(os.walk('/shares/gcp/outputs/temps/rcp85'))[1]
-# climate_models='surrogate_GFDL-ESM2G_06'
-# rcps = ['rcp85']
-# with multiprocessing.Pool(processes=1) as pool:
-#     pool.starmap(get_seasonal, product(crops, Vars, climate_models, rcps))
+crops = ['maize', 'soy', 'sorghum', 'cassava', 'rice']
+Vars = ['monthbinpr']
+#climate_models=next(os.walk('/shares/gcp/outputs/temps/rcp85'))[1]
+climate_models=['GFDL-CM3']
+rcps = ['rcp45']
+with multiprocessing.Pool(processes=5) as pool:
+    pool.starmap(get_seasonal, product(crops, Vars, climate_models, rcps))
 
-# get_seasonal(crop='maize', var='seasonaledd', climate_model='surrogate_GFDL-ESM2G_06', rcp='rcp85')
 
-get_seasonal(crop='maize', var='seasonaledd', climate_model='CCSM4', rcp='rcp85')
+
+# get_seasonal(crop='maize', var='monthbinpr', climate_model='GFDL-CM3', rcp='rcp45')
+
+# get_seasonal(crop='maize', var='seasonaledd', climate_model='CCSM4', rcp='rcp85')
