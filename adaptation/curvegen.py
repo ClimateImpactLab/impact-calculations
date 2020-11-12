@@ -426,3 +426,81 @@ class SeasonTriangleCurveGenerator(CurveGenerator):
             deriv_curvegen_triangle.append(curvegen.get_partial_derivative_curvegen(covariate, covarunit))
 
         return SeasonTriangleCurveGenerator(self.culture_map, curvegen_triangle=deriv_curvegen_triangle)
+
+class SumByTimeMixin:
+    def fill_marginals(self, csvv, prednames, coeffsuffixes):
+        # Preprocessing marginals
+        self.constant = {} # {predname: 0 or T [constants_t]}
+        self.predcovars = {} # {predname: K [covarname]}
+        self.predgammas = {} # {predname: T x K np.array}
+        for predname in set(prednames):
+            assert predname not in self.constant
+            self.constant[predname] = []
+            self.predgammas[predname] = []
+
+            # Check if coeffsuffixes starts with zeros
+            preceding_zeros = 0
+            for coeffsuffix in coeffsuffixes:
+                if coeffsuffix != 0:
+                    break
+                preceding_zeros += 1
+
+            covarorder = None
+            for coeffsuffix in coeffsuffixes[preceding_zeros:]:
+                if coeffsuffix == 0:
+                    # We'll always have covarorder by now
+                    if '1' in covarorder:
+                        self.constant[predname].append(0)
+                        self.predgammas[predname].append([0] * (len(covarorder)-1))
+                    else:
+                        self.predgammas[predname].append([0] * len(covarorder))
+                    continue
+                    
+                predname_time = predname + "-%s" % coeffsuffix
+
+                if covarorder is None:
+                    # Decide on the canonical order of covars
+                    indices = [ii for ii, xx in enumerate(csvv['prednames']) if xx == predname_time]
+                    covarorder = [csvv['covarnames'][index] for index in indices]
+                else:
+                    # Re-order indices to match canonical order
+                    unordered = [ii for ii, xx in enumerate(csvv['prednames']) if xx == predname_time]
+                    indices = []
+                    for predcovar in covarorder:
+                        for uu in unordered:
+                            if csvv['covarnames'][uu] == predcovar:
+                                indices.append(uu)
+                                break
+                    assert len(indices) == len(covarorder)
+
+                constant_time = []  # make sure have 0 or 1
+                predgammas_time = []
+                for index in indices:
+                    if csvv['covarnames'][index] == '1':
+                        constant_time.append(csvv['gamma'][index])
+                    else:
+                        predgammas_time.append(csvv['gamma'][index])
+
+                # If this is the first non-zero suffix
+                if preceding_zeros > 0:
+                    for kk in range(preceding_zeros):
+                        if '1' in covarorder:
+                            self.constant[predname].append(0)
+                            self.predgammas[predname].append([0] * (len(covarorder)-1))
+                        else:
+                            self.predgammas[predname].append([0] * len(covarorder))
+                    preceding_zeros = 0 # Disable this case
+                        
+                self.constant[predname] += constant_time
+                self.predgammas[predname].append(predgammas_time)
+
+            if len(self.constant[predname]) == 0:
+                self.constant[predname] = 0
+            else:
+                assert len(self.constant[predname]) == len(coeffsuffixes)
+                self.constant[predname] = np.array(self.constant[predname])
+            
+            self.predcovars[predname] = covarorder
+            if '1' in covarorder:
+                self.predcovars[predname].remove('1')
+            self.predgammas[predname] = np.array(self.predgammas[predname])
