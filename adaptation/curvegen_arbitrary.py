@@ -167,7 +167,38 @@ class BetaLimitsDerivativeSumCoefficientsCurveGenerator(SumCoefficientsCurveGene
                     coeffs[predname] = 0
 
         return [coeffs[predname] for predname in self.prednames]
-    
+
+class SumByTimeCoefficientsCurveGenerator(LinearCSVVCurveGenerator, SumByTimeMixin):
+    def __init__(self, csvv, coeffcurvegen, coeffsuffixes, betalimits=None):
+        super(SumByTimeCoefficientsCurveGenerator, self).__init__(coeffcurvegen.prednames, coeffcurvegen.indepunits, coeffcurvegen.depenunit, csvv, betalimits=betalimits)
+        assert isinstance(coeffcurvegen, PolynomialCurveGenerator)
+        self.csvv = csvv
+        self.coeffcurvegen = coeffcurvegen
+        self.coeffsuffixes = coeffsuffixes
+        # We'll be handling these
+        self.ds_transforms = coeffcurvegen.ds_transforms
+        self.transform_descriptions = coeffcurvegen.transform_descriptions
+        self.diagprefix = coeffcurvegen.diagprefix
+
+        self.fill_marginals(self.csvv, self.coeffcurvegen.prednames, self.coeffsuffixes)
+
+    def get_curve(self, region, year, covariates=None, recorddiag=True, **kwargs):
+        if covariates is None:
+            covariates = {}
+        mycoeffs = self.get_curve_parameters(region, year, covariates)
+
+        if recorddiag and diagnostic.is_recording():
+            for ii in range(len(self.prednames)):
+                diagnostic.record(region, covariates.get('year', 2000), self.diagprefix + self.prednames[ii], mycoeffs[ii])
+
+        return SumByTimeTransformCoefficientsCurve(mycoeffs, [self.ds_transforms[predname] for predname in self.prednames], self.transform_descriptions, self.prednames if recorddiag and diagnostic.is_recording() else None)
+
+    def format_call(self, lang, *args):
+        raise NotImplementedError()
+
+    def get_partial_derivative_curvegen(self, covariate, covarunit):
+        raise NotImplementedError()
+
 class MLECoefficientsCurveGenerator(CoefficientsCurveGenerator):
     """Implementation of CoefficientsCurveGenerator for standard MLE curves.
 
