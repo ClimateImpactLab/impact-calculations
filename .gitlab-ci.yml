@@ -18,7 +18,8 @@ before_script:
 build:
   stage: build
   script:
-  - docker build --pull -t $CONTAINER_TEST_IMAGE .
+  - docker pull $CI_REGISTRY_IMAGE:latest || true
+  - docker build --cache-from $CI_REGISTRY_IMAGE:latest --tag $CONTAINER_TEST_IMAGE .
   - docker push $CONTAINER_TEST_IMAGE
 
 test-cli:
@@ -31,7 +32,7 @@ test-pytest:
   stage: test
   script:
   - docker pull $CONTAINER_TEST_IMAGE
-  - docker run $CONTAINER_TEST_IMAGE pytest -v -m "not imperics_shareddir" /opt/src/app
+  - docker run $CONTAINER_TEST_IMAGE /bin/bash -c 'cd /opt/src/app; pytest -v -m "not imperics_shareddir" /opt/src/app'
 
 release-gitlab:
   stage: release

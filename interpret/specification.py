@@ -230,13 +230,29 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
             subspecconf = configs.merge(specconf, specconf['subspec'])
             csvvcurvegen = create_curvegen(csvv, None, regions, farmer=farmer, specconf=subspecconf, getcsvvcurve=True) # don't pass covariator, so skip farmer curvegen
             assert isinstance(csvvcurvegen, curvegen_known.PolynomialCurveGenerator), "Error: Curve-generator resulted in a " + str(csvvcurvegen.__class__)
-            curr_curvegen = curvegen_known.SumByTimePolynomialCurveGenerator(csvv, csvvcurvegen, specconf['suffixes'])
+            
+            if 'suffixes' in specconf:
+                curr_curvegen = curvegen_known.SumByTimePolynomialCurveGenerator(csvv, csvvcurvegen, specconf['suffixes'])
+            elif 'suffix-triangle' in specconf:
+                assert 'within-season' in specconf
+                suffix_triangle = specconf['suffix-triangle']
+                for rr in range(len(suffix_triangle)):
+                    assert isinstance(suffix_triangle, list) and len(suffix_triangle[rr]) == rr + 1
+
+                culture_map = irvalues.get_file_cached(specconf['within-season'], irvalues.load_culture_months)
+                get_curvegen = lambda suffixes: curvegen_known.SumByTimePolynomialCurveGenerator(csvv, csvvcurvegen, suffixes)
+                
+                curr_curvegen = curvegen.SeasonTriangleCurveGenerator(culture_map, get_curvegen=get_curvegen, suffix_triangle=suffix_triangle)
+            else:
+                raise AssertionError("Either 'suffixes' or 'suffix-triangle' required for functional form 'sum-by-time'.")
         else:
+            assert 'suffixes' in specconf, "Only 'suffixes' is allowed for arbitrary subform with 'sum-by-time'."
             print("WARNING: Sum-by-time is being performed reductively. Efficiency improvements possible.")
+            
             csvvcurvegens = []
             for tt in range(len(specconf['suffixes'])):
                 subspecconf = configs.merge(specconf, specconf['subspec'])
-                subspecconf['final-t'] = tt
+                subspecconf['final-t'] = tt # timestep of weather; also used by subspec to get suffix
                 csvvcurvegen = create_curvegen(csvv, None, regions, farmer=farmer, specconf=subspecconf, getcsvvcurve=True) # don't pass covariator, so skip farmer curvegen
                 assert isinstance(csvvcurvegen, curvegen.CSVVCurveGenerator), "Error: Curve-generator resulted in a " + str(csvvcurvegen.__class__)
                 csvvcurvegens.append(csvvcurvegen)
@@ -321,7 +337,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
                 margins = {indepvars[ii]: exargs['margins'][ii] for ii in range(len(indepvars))}
 
             assert 'bounds' in exargs
-            if 'bounds' in exargs and isinstance(exargs['bounds'], tuple):
+            if 'bounds' in exargs and isinstance(exargs['bounds'], tuple) or (isinstance(exargs['bounds'], list) and len(exargs['bounds']) == 2 and isinstance(exargs['bounds'][0], float)):
                 bounds = [(exargs['bounds'][0],), (exargs['bounds'][1],)]
             else:
                 bounds = exargs['bounds']

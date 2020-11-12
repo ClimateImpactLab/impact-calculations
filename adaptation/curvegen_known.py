@@ -61,7 +61,10 @@ class SmartCSVVCurveGenerator(curvegen.CSVVCurveGenerator):
         openest.generate.smart_curve.SmartCurve
         """
         coefficients = self.get_coefficients(covariates)
+
         yy = [coefficients[predname] for predname in self.prednames]
+        if len(yy) > 0 and isinstance(yy[0], np.ndarray) and len(yy[0]) == 1:
+            yy = np.array(yy).flatten().tolist() # list of values, not of np.arrays
 
         if recorddiag and diagnostic.is_recording():
             for predname in self.prednames:
@@ -122,7 +125,7 @@ class BetaLimitsDerivativeSmartCSVVCurveGenerator(CurveGenerator):
     def get_curve(self, region, year, covariates, recorddiag=True, **kwargs):
         prederiv_coeffs = self.prederiv_curvegen.get_coefficients(covariates)
         coeffs = self.curvegen.get_coefficients(covariates)
-
+        
         for predname in coeffs:
             if predname in self.prederiv_curvegen.betalimits:
                 if prederiv_coeffs[predname] == self.prederiv_curvegen.betalimits[predname][0] or prederiv_coeffs[predname] == self.prederiv_curvegen.betalimits[predname][1]:
@@ -318,17 +321,32 @@ class BinnedStepCurveGenerator(curvegen.CSVVCurveGenerator):
         return StepCurve(self.xxlimits, yy)
 
 class SumByTimePolynomialCurveGenerator(SmartCSVVCurveGenerator):
-    """
-    Apply a range of weather to a PolynomialCurveGenerator, which uses different coefficients by month
+    """Apply a range of weather to a PolynomialCurveGenerator, which uses different coefficients by month
+
+    When used, the CSVV should contain prednames entries of the form
+    <predname>-<suffix>, where <suffix> is drawn from the list
+    `coeffsuffixes`. The suffixes may change by timestep, to allow
+    different coefficients for different timesteps.  Different
+    prednames can have different covariates, but all time-specific
+    suffixed versions of a predname should have the same covariates.
+
+    The coeffsuffixes list may contain zeros. For the corresponding
+    timestep, the term is dropped. The CSVV should not contain any
+    predname entries of the form <predname>-0.
+
+    Parameters
+    ----------
+    csvv : csvv dictionary
+        Source for all parameter calculations.
+    polycurvegen : PolynomialCurveGenerator
+        CurveGenerator template for meta-data.
+    coeffsuffixes : seq of str or 0
+        The suffixes used with each predname, with an entry for each timestep.
+    diagprefix : str
+        prefix used for reporting beta coefficients in a diagnostics run.
+
     """
     def __init__(self, csvv, polycurvegen, coeffsuffixes, diagprefix='coeff-'):
-        # Don't enumerate, so not confuse get_coefficients
-        # allprednames = []
-        # allindepunits = []
-        # for coeffsuffix in coeffsuffixes:
-        #     allprednames += [predname + "-%s" % coeffsuffix for predname in polycurvegen.prednames]
-        #     allindepunits += polycurvegen.indepunits
-            
         super(SumByTimePolynomialCurveGenerator, self).__init__(polycurvegen.prednames, polycurvegen.indepunits, polycurvegen.depenunit,
                                                                 csvv, diagprefix=diagprefix)
         assert isinstance(polycurvegen, PolynomialCurveGenerator)
@@ -348,15 +366,32 @@ class SumByTimePolynomialCurveGenerator(SmartCSVVCurveGenerator):
             self.constant[predname] = []
             self.predgammas[predname] = []
 
-            covarorder = None
+            # Check if coeffsuffixes starts with zeros
+            preceding_zeros = 0
             for coeffsuffix in self.coeffsuffixes:
+                if coeffsuffix != 0:
+                    break
+                preceding_zeros += 1
+
+            covarorder = None
+            for coeffsuffix in self.coeffsuffixes[preceding_zeros:]:
+                if coeffsuffix == 0:
+                    # We'll always have covarorder by now
+                    if '1' in covarorder:
+                        self.constant[predname].append(0)
+                        self.predgammas[predname].append([0] * (len(covarorder)-1))
+                    else:
+                        self.predgammas[predname].append([0] * len(covarorder))
+                    continue
+                    
                 predname_time = predname + "-%s" % coeffsuffix
 
-                # Decide on the canonical order
                 if covarorder is None:
+                    # Decide on the canonical order of covars
                     indices = [ii for ii, xx in enumerate(self.csvv['prednames']) if xx == predname_time]
                     covarorder = [self.csvv['covarnames'][index] for index in indices]
                 else:
+                    # Re-order indices to match canonical order
                     unordered = [ii for ii, xx in enumerate(self.csvv['prednames']) if xx == predname_time]
                     indices = []
                     for predcovar in covarorder:
@@ -374,6 +409,16 @@ class SumByTimePolynomialCurveGenerator(SmartCSVVCurveGenerator):
                     else:
                         predgammas_time.append(self.csvv['gamma'][index])
 
+                # If this is the first non-zero suffix
+                if preceding_zeros > 0:
+                    for kk in range(preceding_zeros):
+                        if '1' in covarorder:
+                            self.constant[predname].append(0)
+                            self.predgammas[predname].append([0] * (len(covarorder)-1))
+                        else:
+                            self.predgammas[predname].append([0] * len(covarorder))
+                    preceding_zeros = 0 # Disable this case
+                        
                 self.constant[predname] += constant_time
                 self.predgammas[predname].append(predgammas_time)
 

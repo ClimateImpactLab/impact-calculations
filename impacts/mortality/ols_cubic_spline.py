@@ -1,5 +1,6 @@
 import numpy as np
 from adaptation import csvvfile, curvegen, curvegen_known, covariates, constraints
+from interpret import configs
 from openest.generate.smart_curve import SelectiveInputCurve
 from openest.models.curve import CubicSplineCurve, ClippedCurve, ShiftedCurve, MinimumCurve, OtherClippedCurve
 from openest.generate.stdlib import *
@@ -10,23 +11,23 @@ knots = [-10, 0, 10, 20, 28, 33]
 def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', config=None):
     if config is None:
         config = {}
-    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, 'tas', config=config.get('climcovar', {}), varindex=0), {'climtas': 'tas'}),
-                                                covariates.EconomicCovariator(economicmodel, 2015, config=config.get('econcovar', {}))])
+    covariator = covariates.CombinedCovariator([covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, config.get('endbaseline', 2015), config=configs.merge(config, 'climcovar'), variable='tas'), {'climtas': 'tas'}),
+                                                covariates.EconomicCovariator(economicmodel, config.get('endbaseline', 2015), config=configs.merge(config, 'econcovar'))])
 
     # Don't collapse: already collapsed in allmodels
     #csvvfile.collapse_bang(csvv, qvals.get_seed('csvv'))
 
     curr_curvegen = curvegen_known.CubicSplineCurveGenerator(['C'] + ['C^3'] * (len(knots) - 2),
                                                              '100,000 * death/population', 'spline_variables-',
-                                                             knots, csvv)
+                                                             knots, 'tas', csvv)
 
     baselineloggdppcs = {}
     for region in weatherbundle.regions:
         baselineloggdppcs[region] = covariator.get_current(region)['loggdppc']
 
     # Determine minimum value of curve between 10C and 25C
-    baselinecurves, baselinemins = constraints.get_curve_minima(weatherbundle.regions, curr_curvegen, covariator, 10, 25,
-                                                                lambda region, curve: minspline.findsplinemin(knots, curve.coeffs, 10, 25))
+    baselinecurves, baselinemins = constraints.get_curve_minima(weatherbundle.regions, curr_curvegen, covariator, config.get('clip-mintemp', 10), config.get('clip-maxtemp', 25),
+                                                                lambda region, curve: minspline.findsplinemin(knots, curve.coeffs, config.get('clip-mintemp', 10), config.get('clip-maxtemp', 25)))
 
     def transform(region, curve):
         fulladapt_curve = ShiftedCurve(SelectiveInputCurve(curve, 'tas'), -curve(baselinemins[region]))
@@ -45,7 +46,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
         return ClippedCurve(goodmoney_curve)
 
     clip_curvegen = curvegen.TransformCurveGenerator(transform, "Clipping and Good Money", curr_curvegen)
-    farm_curvegen = curvegen.FarmerCurveGenerator(clip_curvegen, covariator, farmer)
+    farm_curvegen = curvegen.FarmerCurveGenerator(clip_curvegen, covariator, farmer, endbaseline=config.get('endbaseline', 2015))
 
     # Generate the marginal income curve
     climtas_effect_curve = CubicSplineCurve(knots, 365 * np.array([csvvfile.get_gamma(csvv, tasvar, 'climtas') for tasvar in ['spline_variables-0', 'spline_variables-1', 'spline_variables-2', 'spline_variables-3', 'spline_variables-4']])) # x 365, to undo / 365 later

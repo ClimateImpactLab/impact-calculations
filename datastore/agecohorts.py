@@ -125,7 +125,12 @@ class SpaceTimeBipartiteData(spacetime.SpaceTimeBipartiteData):
         super(SpaceTimeBipartiteData, self).__init__(year0, year1, self.regions)
 
     # Keep as load_population, to not conflat with load() which doesn't need age group
-    def load(self, year0, year1, model, scenario, agegroup):
+    def load(self, year0, year1, model, scenario, agegroup, shareonly=False):
+        if shareonly and agegroup != 'total':
+            ageshares = load_ageshares_allyears(year0, year1, model, scenario, agegroup)
+
+            return spacetime.SpaceTimeLazyData(self.year0, self.year1, self.regions, lambda region: ageshares.get(region[:3], ageshares['mean']))
+            
         stweight = self.total_population.load(year0, year1, model, scenario)
 
         if agegroup == 'total':
