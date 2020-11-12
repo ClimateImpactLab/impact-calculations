@@ -69,9 +69,9 @@ def get_curve_extrema(regions, curvegen, covariator, mint, maxt, analytic, direc
                 else:
                     temps = np.arange(mint, maxt+1)
                 if direction == 'boatpose':
-                    exttemp = temps[np.argmin(curve(temps))]
+                    exttemp = temps[np.argmin(curve.univariate(temps))]
                 else:
-                    exttemp = temps[np.argmax(curve(temps))]
+                    exttemp = temps[np.argmax(curve.univariate(temps))]
                 exttemp2 = analytic(curve)
                 if np.abs(exttemp - exttemp2) > 1:
                     print("WARNING: %s has unclear exttemp: %f, %f" % (region, exttemp, exttemp2))
