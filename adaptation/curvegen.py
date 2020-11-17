@@ -455,8 +455,8 @@ class SumByTimeMixin:
                     else:
                         self.predgammas[predname].append([0] * len(covarorder))
                     continue
-                    
-                predname_time = predname + "-%s" % coeffsuffix
+
+                predname_time = predname + "-%s" % coeffsuffix if coeffsuffix != '' else predname
 
                 if covarorder is None:
                     # Decide on the canonical order of covars
