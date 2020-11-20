@@ -249,8 +249,8 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
             return
 
         # Set this here so it's not called in nested for-loops.
-        # Legacy behavior is to suppress or log all Exceptions raised when
-        # reading climate data below. This creates can create NaNs in
+        # Legacy behavior is to suppress Exceptions raised when
+        # reading climate data below. This can create NaNs in
         # projection output. Work around is to set 'IMPERICS_ALLOW_IOEXCEPTIONS'
         # environment variable to "1", allowing IO exceptions to raise and
         # halt execution with error message.
