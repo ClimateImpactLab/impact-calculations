@@ -247,7 +247,15 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
                     for year2, ds2 in self.transformer.push(year, ds):
                         yield year2, ds2
             return
-        
+
+        # Set this here so it's not called in nested for-loops.
+        # Legacy behavior is to suppress or log all Exceptions raised when
+        # reading climate data below. This creates can create NaNs in
+        # projection output. Work around is to set 'IMPERICS_ALLOW_IOEXCEPTIONS'
+        # environment variable to "1", allowing IO exceptions to raise and
+        # halt execution with error message.
+        allow_ioexceptions = int(os.environ.get("IMPERICS_ALLOW_IOEXCEPTIONS", "0"))
+
         for year in self.get_reader_years():
             if year == maxyear:
                 break
@@ -264,11 +272,15 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
                     else:
                         ds = futurereader.read_year(year)
                 except Exception as ex:
-                    print("Got exception but returning:")
-                    print(ex)
-                    print("Failed to get year", year)
-                    traceback.print_exc()
-                    return # No more!
+                    if allow_ioexceptions:
+                        raise ex
+                    else:
+                        # Legacy behavior continues execution despite exception
+                        print("Got exception but returning:")
+                        print(ex)
+                        print("Failed to get year", year)
+                        traceback.print_exc()
+                        return # No more!
 
                 assert ds.region.shape[0] == len(self.regions)
                 allds = fast_dataset.merge((allds, ds)) #xr.merge((allds, ds))
