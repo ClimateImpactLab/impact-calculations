@@ -320,7 +320,7 @@ class BinnedStepCurveGenerator(curvegen.CSVVCurveGenerator):
 
         return StepCurve(self.xxlimits, yy)
 
-class SumByTimePolynomialCurveGenerator(SmartCSVVCurveGenerator, SumByTimeMixin):
+class SumByTimePolynomialCurveGenerator(SmartCSVVCurveGenerator, curvegen.SumByTimeMixin):
     """Apply a range of weather to a PolynomialCurveGenerator, which uses different coefficients by month
 
     When used, the CSVV should contain prednames entries of the form
@@ -357,7 +357,7 @@ class SumByTimePolynomialCurveGenerator(SmartCSVVCurveGenerator, SumByTimeMixin)
         
         self.weathernames = polycurvegen.weathernames
 
-        self.fill_marginals(self.csvv, self.polycurvegen.prednames, self.coeffsuffixes)
+        self.fill_suffixes_marginals(self.csvv, self.polycurvegen.prednames, self.coeffsuffixes)
         
     def get_smartcurve(self, yy):
         return SumByTimePolynomialCurve(np.array(yy), self.polycurvegen.weathernames, self.polycurvegen.allow_raising)

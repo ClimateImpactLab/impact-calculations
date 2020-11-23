@@ -106,6 +106,60 @@ def modify_config_condition(config):
     config['models'][0]['calculation'][0]['Sum'] = yaml.load(json_str)
     return config
 
+def modify_config_gddsplit(config):
+    json_str1 = """
+        functionalform: sum-by-time
+        description: Temperature-driven yield rate for corn
+        depenunit: log kg / Ha
+        subspec:
+          functionalform: coefficients
+          variables:
+            gdd-8-31: edd.bin(8) - edd.bin(31) [C day]
+            kdd-31: edd.bin(31) [C day]
+          beta-limits:
+            kdd-31: -inf, 0
+    """
+    json_str2 = """
+        - YearlySumIrregular:
+            model: gddkdd-fall
+        - YearlySumIrregular:
+            model: gddkdd-winter
+        - YearlySumIrregular:
+            model: gddkdd-summer
+        - YearlySumIrregular:
+            model: precip
+    """
+    
+    allseasons = [['summ'],
+                  ['summ', 'summ'],
+                  ['summ', 'summ', 'summ'],
+                  ['summ', 'summ', 'summ', 'summ'],
+                  ['summ', 'summ', 'summ', 'summ', 'summ'],
+                  ['fall', 'summ', 'summ', 'summ', 'summ', 'summ'],
+                  ['fall', 'fall', 'summ', 'summ', 'summ', 'summ', 'summ'],
+                  ['fall', 'fall', 'wint', 'summ', 'summ', 'summ', 'summ', 'summ'],
+                  ['fall', 'fall', 'wint', 'wint', 'summ', 'summ', 'summ', 'summ', 'summ'],
+                  ['fall', 'fall', 'wint', 'wint', 'wint', 'summ', 'summ', 'summ', 'summ', 'summ'],
+                  ['fall', 'fall', 'wint', 'wint', 'wint', 'wint', 'summ', 'summ', 'summ', 'summ', 'summ'],
+                  ['fall', 'fall', 'wint', 'wint', 'wint', 'wint', 'wint', 'summ', 'summ', 'summ', 'summ', 'summ']]
+                  
+    config = copy.deepcopy(config)
+
+    del config['models'][0]['specifications']['gddkdd']
+    gddkdd_fall = yaml.load(json_str1)
+    gddkdd_fall['suffix-triangle'] = [['' if season == 'fall' else 0 for season in row] for row in allseasons]
+    gddkdd_winter = yaml.load(json_str1)
+    gddkdd_winter['suffix-triangle'] = [['' if season == 'wint' else 0 for season in row] for row in allseasons]
+    gddkdd_summer = yaml.load(json_str1)
+    gddkdd_summer['suffix-triangle'] = [['' if season == 'summ' else 0 for season in row] for row in allseasons]
+
+    config['models'][0]['specifications']['gddkdd-fall'] = gddkdd_fall
+    config['models'][0]['specifications']['gddkdd-winter'] = gddkdd_winter
+    config['models'][0]['specifications']['gddkdd-summer'] = gddkdd_summer
+    config['models'][0]['calculation'][0]['Sum'] = yaml.load(json_str2)
+    
+    return config
+
 module = 'interpret.calcspec'
 
 @pytest.fixture
@@ -124,17 +178,20 @@ def setup():
 
     return dict(config=config, weatherbundle=weatherbundle, economicmodel=economicmodel, pvals=pvals, csvv=csvv, outputs=outputs_master)
 
-@pytest.mark.imperics_shareddir
-def test_triangle(setup):
-    """Try to use a triangle suffixes config equivalent to the list suffixes."""
-    config_triangle = modify_config_triangle(setup['config'])
+def run_config(setup, config):
     weatherbundle = setup['weatherbundle']
     economicmodel = setup['economicmodel']
     pvals = setup['pvals']
     csvv = setup['csvv']
 
-    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals["full"], specconf=config_triangle['models'][0], config=config_triangle, standard=False)
-    outputs_triangle = effectset.small_print(weatherbundle, calculation, ['USA.14.608'])
+    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals["full"], specconf=config['models'][0], config=config, standard=False)
+    return effectset.small_print(weatherbundle, calculation, ['USA.14.608'])
+
+@pytest.mark.imperics_shareddir
+def test_triangle(setup):
+    """Try to use a triangle suffixes config equivalent to the list suffixes."""
+    config_triangle = modify_config_triangle(setup['config'])
+    outputs_triangle = run_config(setup, config_triangle)
 
     np.testing.assert_array_almost_equal(setup['outputs'], outputs_triangle)
 
@@ -142,13 +199,15 @@ def test_triangle(setup):
 def test_condition(setup):
     """Try to use two predictors conditionally, equivalent to the single predictor."""
     config_condition = modify_config_condition(setup['config'])
-    weatherbundle = setup['weatherbundle']
-    economicmodel = setup['economicmodel']
-    pvals = setup['pvals']
-    csvv = setup['csvv']
-
-    calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals["full"], specconf=config_condition['models'][0], config=config_condition, standard=False)
-    outputs_condition = effectset.small_print(weatherbundle, calculation, ['USA.14.608'])
+    outputs_condition = run_config(setup, config_condition)
 
     np.testing.assert_array_almost_equal(setup['outputs'], outputs_condition)
 
+@pytest.mark.imperics_shareddir
+def test_gddsplit(setup):
+    """Try to use three specifications conditionally with the new coefficients sum-by-time spec."""
+    config_gddsplit = modify_config_gddsplit(setup['config'])
+    outputs_gddsplit = run_config(setup, config_gddsplit)
+    
+    np.testing.assert_array_almost_equal(setup['outputs'], outputs_gddsplit)
+    
