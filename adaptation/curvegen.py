@@ -429,6 +429,17 @@ class SeasonTriangleCurveGenerator(CurveGenerator):
 
 class SumByTimeMixin:
     def fill_suffixes_marginals(self, csvv, prednames, coeffsuffixes):
+        """Construct the pre-organized gamma dictionaries, for later use with `get_coefficients`.
+
+        Parameters
+        ----------
+        csvv : csvv dictionary
+            Source for all parameter calculations.
+        prednames : seq of str
+            Predictor names (up to suffix) referenced in the CSVV prednames
+        coeffsuffixes : seq of str or 0
+            Suffixes added to predictor names in CSVV, by timestep, or 0 for timestep-dropping of predictor
+        """
         # Preprocessing marginals
         self.constant = {} # {predname: 0 or T [constants_t]}
         self.predcovars = {} # {predname: K [covarname]}
