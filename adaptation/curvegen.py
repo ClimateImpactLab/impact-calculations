@@ -428,7 +428,7 @@ class SeasonTriangleCurveGenerator(CurveGenerator):
         return SeasonTriangleCurveGenerator(self.culture_map, curvegen_triangle=deriv_curvegen_triangle)
 
 class SumByTimeMixin:
-    def fill_marginals(self, csvv, prednames, coeffsuffixes):
+    def fill_suffixes_marginals(self, csvv, prednames, coeffsuffixes):
         # Preprocessing marginals
         self.constant = {} # {predname: 0 or T [constants_t]}
         self.predcovars = {} # {predname: K [covarname]}
@@ -499,8 +499,11 @@ class SumByTimeMixin:
             else:
                 assert len(self.constant[predname]) == len(coeffsuffixes)
                 self.constant[predname] = np.array(self.constant[predname])
-            
-            self.predcovars[predname] = covarorder
-            if '1' in covarorder:
-                self.predcovars[predname].remove('1')
+
+            if covarorder is not None:
+                self.predcovars[predname] = covarorder
+                if '1' in covarorder:
+                    self.predcovars[predname].remove('1')
+            else:
+                self.predcovars[predname] = []
             self.predgammas[predname] = np.array(self.predgammas[predname])
