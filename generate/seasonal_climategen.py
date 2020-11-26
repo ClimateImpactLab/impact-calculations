@@ -270,13 +270,20 @@ def get_seasonal(crop, var, climate_model, rcp):
 
 
 crops = ['maize', 'soy', 'sorghum', 'cassava', 'rice']
-Vars = ['monthbinpr']
+Vars = ['seasonaltasmax','seasonalpr','seasonaledd','monthbinpr']
 #climate_models=next(os.walk('/shares/gcp/outputs/temps/rcp85'))[1]
-climate_models=['GFDL-CM3']
-rcps = ['rcp45']
-with multiprocessing.Pool(processes=5) as pool:
+climate_models=['surrogate_GFDL-ESM2G_06']
+rcps = ['rcp85']
+with multiprocessing.Pool(processes=20) as pool:
     pool.starmap(get_seasonal, product(crops, Vars, climate_models, rcps))
 
+crops = ['rice']
+Vars = ['seasonaltasmin']
+#climate_models=next(os.walk('/shares/gcp/outputs/temps/rcp85'))[1]
+climate_models=['surrogate_GFDL-ESM2G_06']
+rcps = ['rcp85']
+with multiprocessing.Pool(processes=1) as pool:
+    pool.starmap(get_seasonal, product(crops, Vars, climate_models, rcps))
 
 
 # get_seasonal(crop='maize', var='monthbinpr', climate_model='GFDL-CM3', rcp='rcp45')
