@@ -122,7 +122,10 @@ def setup():
     calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals["full"], specconf=config['models'][0], config=config, standard=False)
     outputs_master = effectset.small_print(weatherbundle, calculation, ['USA.14.608'])
 
-    return dict(config=config, weatherbundle=weatherbundle, economicmodel=economicmodel, pvals=pvals, csvv=csvv, outputs=outputs_master)
+    yield dict(config=config, weatherbundle=weatherbundle, economicmodel=economicmodel, pvals=pvals, csvv=csvv, outputs=outputs_master)
+    # Teardown workaround resets global variable in imported module. So other
+    # tests are are not influenced by state change from these tests:
+    files.server_config = None
 
 @pytest.mark.imperics_shareddir
 def test_triangle(setup):
