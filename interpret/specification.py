@@ -320,7 +320,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
 
             final_curve = smart_curve.MinimumCurve(final_curve, noincadapt_curve)
 
-        if clipping_cfg:
+        if clipping_cfg is True:
             smart_curve.ClippedCurve(final_curve)
         elif clipping_cfg == 'boatpose':
             final_curve = smart_curve.ClippedCurve(final_curve)
