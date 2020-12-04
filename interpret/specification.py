@@ -281,7 +281,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
         mintemp = specconf.get('clip-mintemp', 10)
         maxtemp = specconf.get('clip-maxtemp', 25)
 
-        # Determine extra value of curve within temperature window.
+        # Determine extrema value of curve within temperature window.
         if clipping_cfg == 'boatpose' or clipping_cfg is True:
             curve_extrema = minfinder(mintemp, maxtemp, 1)
             get_baselineextrema = constraints.get_curve_minima
