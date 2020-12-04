@@ -321,10 +321,10 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
             final_curve = smart_curve.MinimumCurve(final_curve, noincadapt_curve)
 
         if clipping_cfg is True:
-            smart_curve.ClippedCurve(final_curve)
+            final_curve = smart_curve.ClippedCurve(final_curve)
         elif clipping_cfg == 'boatpose':
             final_curve = smart_curve.ClippedCurve(final_curve)
-            return ushape_numeric.UShapedDynamicCurve(final_curve, baselineexts[region], lambda ds: ds[weathernames[0]].data, final_curve.univariate)
+            final_curve = ushape_numeric.UShapedDynamicCurve(final_curve, baselineexts[region], lambda ds: ds[weathernames[0]].data, final_curve.univariate)
         elif clipping_cfg == 'downdog':
             final_curve = smart_curve.ClippedCurve(final_curve, cliplow=False)
             final_curve = ushape_numeric.UShapedDynamicCurve(final_curve, baselineexts[region], lambda ds: ds[weathernames[0]].data, final_curve.univariate, direction='downdog')
