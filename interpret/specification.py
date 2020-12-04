@@ -270,28 +270,31 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
         for region in regions:
             baselineloggdppcs[region] = covariator.get_current(region)['loggdppc']
 
-    if specconf.get('clipping', False):
+    clipping_cfg = specconf.get('clipping', False)
+    if clipping_cfg:
+        # Validate clipping configuration option.
+        if clipping_cfg not in ['boatpose', 'downdog', True]:
+            raise ValueError("unknown option for configuration key 'clipping'")
+
+        # Grab temperature window to search for curve extrema.
         mintemp = specconf.get('clip-mintemp', 10)
         maxtemp = specconf.get('clip-maxtemp', 25)
-        # Determine minimum value of curve between 10C and 25C
+
+        # Determine extra value of curve within temperature window.
         if covariator:
-            if specconf['clipping'] == 'boatpose' or specconf['clipping'] == True:
+            if clipping_cfg == 'boatpose' or clipping_cfg == True:
                 baselinecurves, baselineexts = constraints.get_curve_minima(regions, curr_curvegen, covariator,
                                                                             mintemp, maxtemp, minfinder(mintemp, maxtemp, 1))
-            elif specconf['clipping'] == 'downdog':
+            elif clipping_cfg == 'downdog':
                 baselinecurves, baselineexts = constraints.get_curve_maxima(regions, curr_curvegen, covariator,
                                                                             mintemp, maxtemp, minfinder(mintemp, maxtemp, -1))
-            else:
-                assert False, "Unknown option for configuration key 'clipping'."
         else:
             curve = curr_curvegen.get_curve('global', 2000, {})
-            if specconf['clipping'] == 'boatpose' or specconf['clipping'] == True:
+            if clipping_cfg == 'boatpose' or clipping_cfg == True:
                 curvemin = minfinder(mintemp, maxtemp, 1)(curve)
-            elif specconf['clipping'] == 'downdog':
+            elif clipping_cfg == 'downdog':
                 curvemin = minfinder(mintemp, maxtemp, -1)(curve)
-            else:
-                assert False, "Unknown option for configuration key 'clipping'."
-                
+
             baselineexts = {region: curvemin for region in regions}
 
     def transform(region, curve):
@@ -300,7 +303,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
         else:
             final_curve = smart_curve.CoefficientsCurve(curve.ccs, weathernames)
 
-        if specconf.get('clipping', False):
+        if clipping_cfg:
             final_curve = smart_curve.ShiftedCurve(final_curve, -curve.univariate(baselineexts[region]))
 
         if specconf.get('goodmoney', False):
@@ -315,12 +318,12 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
 
             final_curve = smart_curve.MinimumCurve(final_curve, noincadapt_curve)
 
-        if specconf.get('clipping', False):
+        if clipping_cfg:
             smart_curve.ClippedCurve(final_curve)
-        elif specconf.get('clipping', False) == 'boatpose':
+        elif clipping_cfg == 'boatpose':
             final_curve = smart_curve.ClippedCurve(final_curve)
             return ushape_numeric.UShapedDynamicCurve(final_curve, baselineexts[region], lambda ds: ds[weathernames[0]].data, final_curve.univariate)
-        elif specconf.get('clipping', False) == 'downdog':
+        elif clipping_cfg == 'downdog':
             final_curve = smart_curve.ClippedCurve(final_curve, cliplow=False)
             final_curve = ushape_numeric.UShapedDynamicCurve(final_curve, baselineexts[region], lambda ds: ds[weathernames[0]].data, final_curve.univariate, direction='downdog')
 
@@ -345,9 +348,9 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
 
         return final_curve
 
-    if specconf.get('clipping', False) and specconf.get('goodmoney', False):
+    if clipping_cfg and specconf.get('goodmoney', False):
         final_curvegen = curvegen.TransformCurveGenerator(transform, "Clipping and Good Money transformation", curr_curvegen)
-    elif specconf.get('clipping', False):
+    elif clipping_cfg:
         final_curvegen = curvegen.TransformCurveGenerator(transform, "Clipping transformation", curr_curvegen)
     elif specconf.get('goodmoney', False):
         final_curvegen = curvegen.TransformCurveGenerator(transform, "Good Money transformation", curr_curvegen)
