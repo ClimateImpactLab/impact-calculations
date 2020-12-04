@@ -270,6 +270,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
         for region in regions:
             baselineloggdppcs[region] = covariator.get_current(region)['loggdppc']
 
+    # Clause to set curve baseline extents if configured.
     clipping_cfg = specconf.get('clipping', False)
     if clipping_cfg:
         # Validate clipping configuration option.
@@ -281,21 +282,22 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
         maxtemp = specconf.get('clip-maxtemp', 25)
 
         # Determine extra value of curve within temperature window.
+        if clipping_cfg == 'boatpose' or clipping_cfg is True:
+            curve_extrema = minfinder(mintemp, maxtemp, 1)
+            get_baselineextrema = constraints.get_curve_minima
+        elif clipping_cfg == 'downdog':
+            curve_extrema = minfinder(mintemp, maxtemp, -1)
+            get_baselineextrema = constraints.get_curve_maxima
+        else:
+            raise ValueError("unknown option for configuration key 'clipping'")
+
         if covariator:
-            if clipping_cfg == 'boatpose' or clipping_cfg == True:
-                baselinecurves, baselineexts = constraints.get_curve_minima(regions, curr_curvegen, covariator,
-                                                                            mintemp, maxtemp, minfinder(mintemp, maxtemp, 1))
-            elif clipping_cfg == 'downdog':
-                baselinecurves, baselineexts = constraints.get_curve_maxima(regions, curr_curvegen, covariator,
-                                                                            mintemp, maxtemp, minfinder(mintemp, maxtemp, -1))
+            _, baselineexts = get_baselineextrema(regions, curr_curvegen, covariator,
+                                                  mintemp, maxtemp, curve_extrema)
         else:
             curve = curr_curvegen.get_curve('global', 2000, {})
-            if clipping_cfg == 'boatpose' or clipping_cfg == True:
-                curvemin = minfinder(mintemp, maxtemp, 1)(curve)
-            elif clipping_cfg == 'downdog':
-                curvemin = minfinder(mintemp, maxtemp, -1)(curve)
-
-            baselineexts = {region: curvemin for region in regions}
+            curve_global_extrema = curve_extrema(curve)
+            baselineexts = {r: curve_global_extrema for r in regions}
 
     def transform(region, curve):
         if isinstance(curve, smart_curve.SmartCurve):
