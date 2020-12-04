@@ -320,7 +320,7 @@ class BinnedStepCurveGenerator(curvegen.CSVVCurveGenerator):
 
         return StepCurve(self.xxlimits, yy)
 
-class SumByTimePolynomialCurveGenerator(SmartCSVVCurveGenerator, curvegen.SumByTimeMixin):
+class SumByTimePolynomialCurveGenerator(curvegen.SumByTimeMixin, SmartCSVVCurveGenerator):
     """Apply a range of weather to a PolynomialCurveGenerator, which uses different coefficients by month
 
     When used, the CSVV should contain prednames entries of the form

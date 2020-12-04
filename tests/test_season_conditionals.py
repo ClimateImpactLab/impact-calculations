@@ -80,7 +80,7 @@ def modify_config_triangle(config):
 
     config = copy.deepcopy(config)
     del config['models'][0]['specifications']['precip']['suffixes']
-    config['models'][0]['specifications']['precip']['suffix-triangle'] = yaml.load(json_str)
+    config['models'][0]['specifications']['precip']['suffix-triangle'] = yaml.safe_load(json_str)
     return config
 
 def modify_config_condition(config):
@@ -103,7 +103,7 @@ def modify_config_condition(config):
     
     config['models'][0]['specifications']['precip1'] = precip1_config
     config['models'][0]['specifications']['precip2'] = precip2_config
-    config['models'][0]['calculation'][0]['Sum'] = yaml.load(json_str)
+    config['models'][0]['calculation'][0]['Sum'] = yaml.safe_load(json_str)
     return config
 
 def modify_config_gddsplit(config):
@@ -146,17 +146,17 @@ def modify_config_gddsplit(config):
     config = copy.deepcopy(config)
 
     del config['models'][0]['specifications']['gddkdd']
-    gddkdd_fall = yaml.load(json_str1)
+    gddkdd_fall = yaml.safe_load(json_str1)
     gddkdd_fall['suffix-triangle'] = [['' if season == 'fall' else 0 for season in row] for row in allseasons]
-    gddkdd_winter = yaml.load(json_str1)
+    gddkdd_winter = yaml.safe_load(json_str1)
     gddkdd_winter['suffix-triangle'] = [['' if season == 'wint' else 0 for season in row] for row in allseasons]
-    gddkdd_summer = yaml.load(json_str1)
+    gddkdd_summer = yaml.safe_load(json_str1)
     gddkdd_summer['suffix-triangle'] = [['' if season == 'summ' else 0 for season in row] for row in allseasons]
 
     config['models'][0]['specifications']['gddkdd-fall'] = gddkdd_fall
     config['models'][0]['specifications']['gddkdd-winter'] = gddkdd_winter
     config['models'][0]['specifications']['gddkdd-summer'] = gddkdd_summer
-    config['models'][0]['calculation'][0]['Sum'] = yaml.load(json_str2)
+    config['models'][0]['calculation'][0]['Sum'] = yaml.safe_load(json_str2)
     
     return config
 
@@ -165,7 +165,7 @@ module = 'interpret.calcspec'
 @pytest.fixture
 def setup():
     """Run projection with default config and save elements."""
-    config = yaml.load(master_config)
+    config = yaml.safe_load(master_config)
 
     container.preload()
 
