@@ -292,8 +292,11 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
             raise ValueError("unknown option for configuration key 'clipping'")
 
         if covariator:
-            _, baselineexts = get_baselineextrema(regions, curr_curvegen, covariator,
-                                                  mintemp, maxtemp, curve_extrema)
+            _, baselineexts = get_baselineextrema(
+                regions, curr_curvegen, covariator,
+                mintemp, maxtemp,
+                analytic=curve_extrema
+            )
         else:
             curve = curr_curvegen.get_curve('global', 2000, {})
             curve_global_extrema = curve_extrema(curve)
@@ -330,7 +333,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
                 cliplow = False
 
             final_curve = ushape_numeric.UShapedDynamicCurve(
-                curve=smart_curve.ClippedCurve(final_curve, cliplow=cliplow),
+                smart_curve.ClippedCurve(final_curve, cliplow),
                 midtemp=baselineexts[region],
                 gettas=lambda ds: ds[weathernames[0]].data,
                 unicurve=final_curve.univariate,
