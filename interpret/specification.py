@@ -129,7 +129,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
     ----------
     csvv : dict
         Various parameters and curve descriptions from CSVV file.
-    covariator : adaptation.covariates.Covariator
+    covariator : adaptation.covariates.Covariator or None
     regions : xarray.Dataset
     farmer : {'full', 'noadapt', 'incadapt'}, optional
         Type of farmer adaptation.
