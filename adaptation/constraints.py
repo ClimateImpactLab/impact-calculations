@@ -24,9 +24,7 @@ For each x, f(x | gdppc_t) against f(x | gdppc_0) and take the better of the two
 
 def make_get_coeff_goodmoney(weatherbundle, covariator, curvegen, baselinemins, curve_get_coeff, flipsign=False):
     # Record all baseline log GDP p.c.
-    baseline_loggdppc = {}
-    for region in weatherbundle.regions:
-        baseline_loggdppc[region] = covariator.get_current(region)['loggdppc']
+    baseline_loggdppc = {r: covariator.get_current(r)['loggdppc'] for r in weatherbundle.regions}
 
     # Get marginals on loggdppc (assumed to be constant)
     loggdppc_marginals = curvegen.get_marginals('loggdppc')
