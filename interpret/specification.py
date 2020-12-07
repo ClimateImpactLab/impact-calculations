@@ -225,13 +225,18 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
                                                                          csvv, betalimits=betalimits)
         weathernames = [] # Use curve directly
     elif specconf['functionalform'] == 'sum-by-time':
-        if specconf['subspec']['functionalform'] == 'polynomial':
+        if specconf['subspec']['functionalform'] in ['polynomial', 'coefficients']:
             subspecconf = configs.merge(specconf, specconf['subspec'])
             csvvcurvegen = create_curvegen(csvv, None, regions, farmer=farmer, specconf=subspecconf, getcsvvcurve=True) # don't pass covariator, so skip farmer curvegen
-            assert isinstance(csvvcurvegen, curvegen_known.PolynomialCurveGenerator), "Error: Curve-generator resulted in a " + str(csvvcurvegen.__class__)
+            if isinstance(csvvcurvegen, curvegen_known.PolynomialCurveGenerator):
+                sumbytime_constructor = curvegen_known.SumByTimePolynomialCurveGenerator
+            elif isinstance(csvvcurvegen, curvegen_arbitrary.SumCoefficientsCurveGenerator):
+                sumbytime_constructor = curvegen_arbitrary.SumByTimeCoefficientsCurveGenerator
+            else:
+                raise ValueError("Error: Curve-generator resulted in a " + str(csvvcurvegen.__class__))
             
             if 'suffixes' in specconf:
-                curr_curvegen = curvegen_known.SumByTimePolynomialCurveGenerator(csvv, csvvcurvegen, specconf['suffixes'])
+                curr_curvegen = sumbytime_constructor(csvv, csvvcurvegen, specconf['suffixes'])
             elif 'suffix-triangle' in specconf:
                 assert 'within-season' in specconf
                 suffix_triangle = specconf['suffix-triangle']
@@ -239,7 +244,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
                     assert isinstance(suffix_triangle, list) and len(suffix_triangle[rr]) == rr + 1
 
                 culture_map = irvalues.get_file_cached(specconf['within-season'], irvalues.load_culture_months)
-                get_curvegen = lambda suffixes: curvegen_known.SumByTimePolynomialCurveGenerator(csvv, csvvcurvegen, suffixes)
+                get_curvegen = lambda suffixes: sumbytime_constructor(csvv, csvvcurvegen, suffixes)
                 
                 curr_curvegen = curvegen.SeasonTriangleCurveGenerator(culture_map, get_curvegen=get_curvegen, suffix_triangle=suffix_triangle)
             else:
