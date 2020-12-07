@@ -12,7 +12,7 @@ first argument : filename
 second argument : climate model
 third argument : rcp
 """
-import pdb
+
 import sys, os
 import datetime
 import numpy as np
@@ -256,36 +256,3 @@ def get_seasonal(crop, var, climate_model, rcp):
         rootgrp.close()
 
         return "done"
-
-
-
-
-#redo 
-#rice_seasonaltasmin
-#rice_seasonaltasmax
-#maize_seasonaltasmax 
-#nohup python -m generate.seasonal_climategen > /dev/null 2>&1 &
-
-#get_seasonal(crop='rice', var='seasonaltmin', climate_model='CCSM4', rcp='rcp85')
-
-
-crops = ['maize', 'soy', 'sorghum', 'cassava', 'rice']
-Vars = ['seasonaltasmax','seasonalpr','seasonaledd','monthbinpr']
-#climate_models=next(os.walk('/shares/gcp/outputs/temps/rcp85'))[1]
-climate_models=['surrogate_GFDL-ESM2G_06']
-rcps = ['rcp85']
-with multiprocessing.Pool(processes=20) as pool:
-    pool.starmap(get_seasonal, product(crops, Vars, climate_models, rcps))
-
-crops = ['rice']
-Vars = ['seasonaltasmin']
-#climate_models=next(os.walk('/shares/gcp/outputs/temps/rcp85'))[1]
-climate_models=['surrogate_GFDL-ESM2G_06']
-rcps = ['rcp85']
-with multiprocessing.Pool(processes=1) as pool:
-    pool.starmap(get_seasonal, product(crops, Vars, climate_models, rcps))
-
-
-# get_seasonal(crop='maize', var='monthbinpr', climate_model='GFDL-CM3', rcp='rcp45')
-
-# get_seasonal(crop='maize', var='seasonaledd', climate_model='CCSM4', rcp='rcp85')
