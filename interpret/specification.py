@@ -203,7 +203,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
         curr_curvegen = curvegen_known.CubicSplineCurveGenerator([indepunit] + ['%s^3' % indepunit] * (len(knots) - 2),
                                                                  depenunit, prefix, knots, variable_name, csvv, betalimits=betalimits)
         minfinder = lambda mintemp, maxtemp, sign: lambda curve: minspline.findsplinemin(knots, sign * np.asarray(curve.coeffs), mintemp, maxtemp)
-        weathernames = [prefix]
+        weathernames = curr_curvegen.weathernames[:]
     elif specconf['functionalform'] == 'coefficients':
         ds_transforms = {}
         indepunits = []
