@@ -334,7 +334,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
             final_curve = ushape_numeric.UShapedDynamicCurve(
                 smart_curve.ClippedCurve(final_curve, cliplow),
                 midtemp=baselineexts[region],
-                gettas=lambda ds: ds[weathernames[0]].data,
+                gettas=lambda ds: ds[weathernames[0]].data,  # Grab independent variable data, at [0].
                 unicurve=final_curve.univariate,
                 direction=ucurve_direction,
             )
