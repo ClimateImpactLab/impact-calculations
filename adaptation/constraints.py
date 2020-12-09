@@ -63,6 +63,10 @@ def get_curve_extrema(regions, curvegen, covariator, mint, maxt, analytic, direc
     baselineexts = {}
 
     if caller.callinfo and extpathkey in caller.callinfo:
+
+        if direction not in ['boatpose', 'downdog']:
+            raise ValueError("'direction' must be 'boatpose' or 'downdog'")
+
         with open(caller.callinfo[extpathkey], 'w') as fp:
             writer = csv.writer(fp)
             writer.writerow(['region', 'brute', 'analytic'])
