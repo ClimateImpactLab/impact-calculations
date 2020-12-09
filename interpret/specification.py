@@ -324,20 +324,23 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
 
         # Clause for additional curve clipping transforms, if configured.
         if clipping_cfg:
-            ucurve_direction = 'boatpose'
-            cliplow = True
+            if clipping_cfg is True:
+                final_curve = smart_curve.ClippedCurve(final_curve, cliplow=True)
+            else:
+                if clipping_cfg == 'boatpose':
+                    cliplow = True
+                    ucurve_direction = 'boatpost'
+                elif clipping_cfg == 'downdog':
+                    cliplow = False
+                    ucurve_direction = 'boatpost'
 
-            if clipping_cfg == 'downdog':
-                ucurve_direction = 'downdog'
-                cliplow = False
-
-            final_curve = ushape_numeric.UShapedDynamicCurve(
-                smart_curve.ClippedCurve(final_curve, cliplow),
-                midtemp=baselineexts[region],
-                gettas=lambda ds: ds[weathernames[0]].data,  # Grab independent variable data, at [0].
-                unicurve=final_curve.univariate,
-                direction=ucurve_direction,
-            )
+                final_curve = ushape_numeric.UShapedDynamicCurve(
+                    smart_curve.ClippedCurve(final_curve, cliplow),
+                    midtemp=baselineexts[region],
+                    gettas=lambda ds: ds[weathernames[0]].data,  # Grab independent variable data, at [0].
+                    unicurve=final_curve.univariate,
+                    direction=ucurve_direction,
+                )
 
         if specconf.get('extrapolation', False):
             exargs = specconf['extrapolation']
