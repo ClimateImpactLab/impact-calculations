@@ -332,7 +332,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
                     ucurve_direction = 'boatpost'
                 elif clipping_cfg == 'downdog':
                     cliplow = False
-                    ucurve_direction = 'boatpost'
+                    ucurve_direction = 'downdog'
 
                 final_curve = ushape_numeric.UShapedDynamicCurve(
                     smart_curve.ClippedCurve(final_curve, cliplow),
