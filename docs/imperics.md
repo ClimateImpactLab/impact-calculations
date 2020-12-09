@@ -78,7 +78,7 @@ Basic model configration:
   Filepath expansions are interpretted by
   https://docs.python.org/2/library/glob.html
 
-* `clipping` (required): Should curve values less the region minimum be replaced with the region minimum?  Currently this only supports clipping of curves that are expected to have a minimum.  The default limits for the region-specific temperature at which this can occur are 10C and 25C, but these can be adjusted with `clip-mintemp` and `clip-maxtemp` options.
+* `clipping` : A boolean or string (default is `False`). Should values less than a region's curve minimum be replaced with the region minimum? The limits for the region-specific temperature at which this can occur are in the 10C and 25C range window by default, but these can be adjusted with `clip-mintemp` and `clip-maxtemp` options. Weak monotonicity clipping, also known as "U-clipping", is used if `clipping:` is set to `"boatpose"` or `"downdog"`. The `"boatpose"` behavior limits the minimum curve search to the default temperature window range. The range for the temperature window can be adjusted with `clip-mintemp:` and `clip-maxtemp:` options. Similarly, the `"downdog"` option will use this temperature window to find the regional *maximum*. Clipping is only supported for curves that are expected to have a minimum (if `"boatpose"` or `True`) or maximum (if `"downdog"`).
 
 * `covariates` (required): A list of known covariate names,
   interpretted by `interpret.specification::get_covariator`.  See the
