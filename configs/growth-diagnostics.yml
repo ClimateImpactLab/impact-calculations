@@ -1,5 +1,0 @@
-module: impacts/growth/constant.yml
-mode: montecarlo
-outputdir: /shares/gcp/outputs/growth/impacts-blesmol
-do_farmers: no
-do_historical: false

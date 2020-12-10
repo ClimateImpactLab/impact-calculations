@@ -20,15 +20,19 @@ def read(filename):
     readers, `read_girdin` and `csvvfile_legacy.read`.
     """
 
-    with open(filename, 'rU') as fp:
+    with open(filename, 'r') as fp:
         attrs, coords, variables = metacsv.read_header(fp, parse_vars=True)
 
         # Clean up variables
         for variable in variables:
             assert isinstance(variable[1], dict), "Variable definition '%s' malformed." % str(variable[1])
-            fullunit = variable[1]['unit']
-            if ']' in fullunit:
-                variable[1]['unit'] = fullunit[:fullunit.index(']')]
+            if 'unit' in variable[1]:
+                fullunit = variable[1]['unit']
+                if ']' in fullunit:
+                    variable[1]['unit'] = fullunit[:fullunit.index(']')]
+            else:
+                print("WARNING: Missing unit for variable %s." % variable)
+                variable[1]['unit'] = None
 
         data = {'attrs': attrs, 'variables': variables, 'coords': coords}
         
@@ -97,7 +101,7 @@ def read_girdin(data, fp):
 
 def collapse_bang(data, seed):
     """collapse_bang draws from the multivariate uncertainty in the parameters of a CSVV, and changes those values accordingly."""
-    if seed == None:
+    if seed is None:
         data['gammavcv'] = None
     else:
         np.random.seed(seed)
@@ -174,10 +178,11 @@ def subset(csvv, toinclude):
         elif isinstance(toinclude[0], bool):
             toinclude = np.nonzero(toinclude)[0]
         else:
-            toinclude = np.array(toinclude)
+            toinclude = np.array(toinclude, dtype=np.int32)
         toinclist = toinclude
     else:
         toinclist = list(range(int(toinclude.start), int(toinclude.stop)))
+    assert len(csvv['prednames']) > np.max(toinclist), "Too few coefficients: requested index %d but only have %d." % (np.max(toinclist), len(csvv['prednames']))
 
     subcsvv = copy.copy(csvv)
     subcsvv['prednames'] = [csvv['prednames'][ii] for ii in toinclist]
@@ -225,17 +230,24 @@ def partial_derivative(csvv, covariate, covarunit):
     include = []
     for ii in range(len(csvv['gamma'])):
         # Look for products
-        m1 = re.search(r'\b' + covariate + r'\b\s*[*]\s*', csvv['covarnames'][ii])
-        m2 = re.search(r'\s*[*]\s*\b' + covariate + r'\b', csvv['covarnames'][ii])
+        mcx = re.search(r'\b' + covariate + r'\b\s*[*]\s*', csvv['covarnames'][ii])
+        mxc = re.search(r'\s*[*]\s*\b' + covariate + r'\b', csvv['covarnames'][ii])
+        mspline = re.search(r'\b' + covariate + r'spline\d+\b', csvv['covarnames'][ii])
+        msplinex = re.search(r'\b' + covariate + r'spline\d+\b\s*[*]\s*', csvv['covarnames'][ii])
+        mxspline = re.search(r'\s*[*]\s*\b' + covariate + r'spline\d+\b', csvv['covarnames'][ii])
         if csvv['covarnames'][ii] == covariate: # Uninteracted covariate
             covarnames.append('1')
             include.append(True)
-        elif m1:
+        elif mcx:
             # The remaining covariate
             covarnames.append(re.sub(r'\b' + covariate + r'\b\s*[*]\s*', '', csvv['covarnames'][ii]))
             include.append(True)
-        elif m2:
+        elif mxc:
             covarnames.append(re.sub(r'\s*[*]\s*\b' + covariate + r'\b', '', csvv['covarnames'][ii]))
+            include.append(True)
+        elif mspline or msplinex or mxspline:
+            # d (C - ki) (C > ki) / dC = (C > ki)
+            covarnames.append(re.sub(r'\b' + covariate + r'spline', covariate + 'indic', csvv['covarnames'][ii]))
             include.append(True)
         else:
             include.append(False)
@@ -266,3 +278,7 @@ def partial_derivative(csvv, covariate, covarunit):
         # gammavcv already was collapsed, because we successfully called subset
     
     return csvvpart
+
+def get_errorvar(csvv):
+    assert csvv['residvcv'].shape == (1, 1)
+    return csvv['residvcv'][0, 0]

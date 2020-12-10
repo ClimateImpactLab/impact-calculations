@@ -20,7 +20,7 @@ def iterate_bundles(*iterators_readers, **config):
     Return bundles for each RCP and model.
     """
     if 'rolling-years' in config:
-        transformer = RollingYearTransfomer(config['rolling-years'])
+        transformer = RollingYearTransformer(config['rolling-years'])
     else:
         transformer = WeatherTransformer()
 
@@ -123,7 +123,7 @@ class ReaderWeatherBundle(WeatherBundle):
         return self.reader.get_dimension()
 
 class DailyWeatherBundle(WeatherBundle):
-    def yearbundles(self, maxyear=np.inf):
+    def yearbundles(self, maxyear=np.inf, variable_ofinterest=None):
         """Yields a tuple of (year, xarray Dataset) for each year up to `maxyear`.
         Each yield should should produce all and only data for a single year.
         """
@@ -156,7 +156,7 @@ class DailyWeatherBundle(WeatherBundle):
         for ii in range(len(self.regions)):
             yield self.regions[ii], region_averages[ii]
 
-    def baseline_values(self, maxyear, do_mean=True, quiet=False):
+    def baseline_values(self, maxyear, do_mean=True, quiet=False, only_region=None):
         """Yield the list of all weather values up to `maxyear` for each region."""
 
         if not hasattr(self, 'saved_baseline_values'):
@@ -180,14 +180,17 @@ class DailyWeatherBundle(WeatherBundle):
                 self.saved_baseline_values = xr.concat(allds, dim='time') # slower but more reliable
 
         # Yield the entire collection of values for each region
-        for ii in range(len(self.regions)):
-            yield self.regions[ii], self.saved_baseline_values.sel(region=self.regions[ii])
+        if only_region is not None:
+            yield only_region, self.saved_baseline_values.sel(region=only_region)
+        else:
+            for ii in range(len(self.regions)):
+                yield self.regions[ii], self.saved_baseline_values.sel(region=self.regions[ii])
 
 class SingleWeatherBundle(ReaderWeatherBundle, DailyWeatherBundle):
     def is_historical(self):
         return False
 
-    def yearbundles(self, maxyear=np.inf):
+    def yearbundles(self, maxyear=np.inf, variable_ofinterest=None):
         for year, ds in self.reader.read_iterator_to(maxyear):
             for year2, ds2 in self.transformer.push(year, ds):
                 yield year2, ds2
@@ -200,9 +203,16 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
         super(PastFutureWeatherBundle, self).__init__(scenario, model, hierarchy, transformer)
         self.pastfuturereaders = pastfuturereaders
 
+        self.variable2readers = {}
         for pastfuturereader in pastfuturereaders:
             assert pastfuturereader[0].get_dimension() == pastfuturereader[1].get_dimension()
-        
+            for variable in pastfuturereader[0].get_dimension():
+                if variable not in self.variable2readers:
+                    self.variable2readers[variable] = pastfuturereader
+                else:
+                    self.variable2readers[variable] = None # ambiguous-- don't provide shortcut
+                    print("WARNING: Multiple weather readers provide " + variable)
+                    
         onefuturereader = self.pastfuturereaders[0][1]
         self.futureyear1 = min(onefuturereader.get_years())
 
@@ -212,7 +222,7 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
     def is_historical(self):
         return False
 
-    def yearbundles(self, maxyear=np.inf):
+    def yearbundles(self, maxyear=np.inf, variable_ofinterest=None):
         """Yields xarray Datasets for each year up to (but not including) `maxyear`"""
         if len(self.pastfuturereaders) == 1:
             year = None # In case no additional years in pastreader
@@ -237,25 +247,40 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
                     for year2, ds2 in self.transformer.push(year, ds):
                         yield year2, ds2
             return
-        
-        for year in self.get_years():
+
+        # Set this here so it's not called in nested for-loops.
+        # Legacy behavior is to suppress Exceptions raised when
+        # reading climate data below. This can create NaNs in
+        # projection output. Work around is to set 'IMPERICS_ALLOW_IOEXCEPTIONS'
+        # environment variable to "1", allowing IO exceptions to raise and
+        # halt execution with error message.
+        allow_ioexceptions = int(os.environ.get("IMPERICS_ALLOW_IOEXCEPTIONS", "0"))
+
+        for year in self.get_reader_years():
             if year == maxyear:
                 break
 
             allds = xr.Dataset({'region': self.regions})
 
             for pastreader, futurereader in self.pastfuturereaders:
+                if variable_ofinterest and self.variable2readers.get(variable_ofinterest) != (pastreader, futurereader):
+                    continue # skip this
+                
                 try:
                     if year < self.futureyear1:
                         ds = pastreader.read_year(year)
                     else:
                         ds = futurereader.read_year(year)
                 except Exception as ex:
-                    print("Got exception but returning:")
-                    print(ex)
-                    print("Failed to get year", year)
-                    traceback.print_exc()
-                    return # No more!
+                    if allow_ioexceptions:
+                        raise ex
+                    else:
+                        # Legacy behavior continues execution despite exception
+                        print("Got exception but returning:")
+                        print(ex)
+                        print("Failed to get year", year)
+                        traceback.print_exc()
+                        return # No more!
 
                 assert ds.region.shape[0] == len(self.regions)
                 allds = fast_dataset.merge((allds, ds)) #xr.merge((allds, ds))
@@ -263,8 +288,11 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
             for year2, ds2 in self.transformer.push(year, allds):
                 yield year2, ds2
 
+    def get_reader_years(self):
+        return np.unique(self.pastfuturereaders[0][0].get_years() + self.pastfuturereaders[0][1].get_years())
+
     def get_years(self):
-        return self.transformer.get_years(np.unique(self.pastfuturereaders[0][0].get_years() + self.pastfuturereaders[0][1].get_years()))
+        return self.transformer.get_years(self.get_reader_years())
 
     def get_dimension(self):
         alldims = []
@@ -274,14 +302,41 @@ class PastFutureWeatherBundle(DailyWeatherBundle):
         return alldims
 
 class HistoricalWeatherBundle(DailyWeatherBundle):
-    def __init__(self, pastreaders, futureyear_end, seed, scenario, model, hierarchy='hierarchy.csv', transformer=WeatherTransformer()):
+    """WeatherBundle composed of randomly or sequentially drawn historical weather
+
+    Parameters
+    ----------
+    pastreaders : Sequence of climate.reader.WeatherReader
+        Sequence of WeatherReader populated with historical weather data to
+        sample.
+    futureyear_end : int
+        Year in the future to randomly sample to. Random weather events are
+        drawn to extend from the last year in `pastreaders` to this year.
+    seed : int or None
+        Seed for RNG when randomly sampling from historical weather record.
+        If `None`, then cycles in year order.
+    scenario : str
+        The Representative Concentration Pathway name, e.g. ``"rcp85"``.
+    model : str
+        Climate model name, e.g. ``"CCSM4"``.
+    hierarchy : str, optional
+        Path to CSV file of regional hierarchy or "hierids".
+    transformer : generate.weather.WeatherTransformer, optional
+        Transformer to apply to the bundled weather Datasets.
+    pastyear_end : int or None
+        Latest year to use when constructing historical baseline.
+    """
+    def __init__(self, pastreaders, futureyear_end, seed, scenario, model, hierarchy='hierarchy.csv', transformer=WeatherTransformer(), pastyear_end=None):
         super(HistoricalWeatherBundle, self).__init__(scenario, model, hierarchy, transformer)
         self.pastreaders = pastreaders
 
         onereader = self.pastreaders[0]
         years = onereader.get_years()
         self.pastyear_start = min(years)
-        self.pastyear_end = max(years)
+        if pastyear_end is None:
+            self.pastyear_end = max(years)
+        else:
+            self.pastyear_end = pastyear_end
         self.futureyear_end = futureyear_end
 
         # Generate the full list of past years
@@ -311,7 +366,21 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
     def is_historical(self):
         return True
 
-    def yearbundles(self, maxyear=np.inf):
+    def yearbundles(self, maxyear=np.inf, variable_ofinterest=None):
+        """Generator yielding per-year weather xr.Datasets
+
+        Parameters
+        ----------
+        maxyear : int, optional
+        variable_ofinterest : str or None, optional
+
+        Yields
+        ------
+        int
+            Year of dataset
+        xr.Dataset
+            Dataset of weather values
+        """
         year = self.pastyear_start
 
         if len(self.pastreaders) == 1:
@@ -342,6 +411,19 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
             year += 1
 
     def update_year(self, ds, pastyear, futureyear):
+        """Corrects resampled weather Dataset 'time' coordinate to a new range
+
+        Parameters
+        ----------
+        ds : xr.Dataset
+            Weather data with 'time' coordinate.
+        pastyear : int
+        futureyear : int
+
+        Returns
+        -------
+        xr.Dataset
+        """
         # Correct the time - should generalize
         if isinstance(ds['time'][0], np.datetime64):
             ds['time']._values = np.array([str(futureyear) + str(date)[4:] for date in ds['time']._values])
@@ -354,7 +436,8 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
         return ds
             
     def get_years(self):
-        return list(range(int(self.pastyear_start), int(self.futureyear_end) + 1))
+        """Get list of years represented in this bundle"""
+        return self.transformer.get_years(list(range(int(self.pastyear_start), int(self.futureyear_end) + 1)))
 
     def get_dimension(self):
         alldims = []
@@ -364,10 +447,23 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
         return alldims
 
     @staticmethod
-    def make_historical(weatherbundle, seed):
-        futureyear_end = weatherbundle.get_years()[-1]
+    def make_historical(weatherbundle, seed, pastyear_end=None):
+        """Sugar to easily instantiate a HistoricalWeatherBundle from a PastFutureWeatherBundle
+
+        Parameters
+        ----------
+        weatherbundle : generate.weather.PastFutureWeatherBundle
+            Weatherbundle to resample.
+        seed : int
+            Seed for RNG.
+
+        Returns
+        -------
+        HistoricalWeatherBundle
+        """
+        futureyear_end = max(weatherbundle.get_reader_years())
         pastreaders = [pastreader for pastreader, futurereader in weatherbundle.pastfuturereaders]
-        return HistoricalWeatherBundle(pastreaders, futureyear_end, seed, weatherbundle.scenario, weatherbundle.model, transformer=weatherbundle.transformer)
+        return HistoricalWeatherBundle(pastreaders, futureyear_end, seed, weatherbundle.scenario, weatherbundle.model, transformer=weatherbundle.transformer, pastyear_end=pastyear_end)
 
 class AmorphousWeatherBundle(WeatherBundle):
     def __init__(self, pastfuturereader_dict, scenario, model, hierarchy='hierarchy.csv', transformer=WeatherTransformer()):
@@ -379,7 +475,15 @@ class AmorphousWeatherBundle(WeatherBundle):
         pastfuturereaders = [self.pastfuturereader_dict[name] for name in names]
         return PastFutureWeatherBundle(pastfuturereaders, self.scenario, self.model)
 
-class RollingYearTransfomer(WeatherTransformer):
+class RollingYearTransformer(WeatherTransformer):
+    """WeatherTransformer giving years and weather for a number of past years
+
+    Parameters
+    ----------
+    rolling_years : int, optional
+        Number of previous years to include in output transformation. Must be
+        > 1.
+    """
     def __init__(self, rolling_years=1):
         self.rolling_years = rolling_years
         assert self.rolling_years > 1
@@ -387,9 +491,26 @@ class RollingYearTransfomer(WeatherTransformer):
         self.last_year = None
 
     def get_years(self, years):
+        """Get rolling years from 'years' sequence"""
         return years[:-self.rolling_years + 1]
         
     def push(self, year, ds):
+        """Yield transformed year(s) and Dataset(s) for year and Dataset
+
+        Parameters
+        ----------
+        year : int
+            Input year to transform.
+        ds : xarray.Dataset
+            Dataset of weather. Assumed to have a "time" dim.
+
+        Yields
+        ------
+        int
+            Transformed year.
+        xarray.Dataset
+            Weather data for transformed year.
+        """
         if self.last_year is not None and year != self.last_year + 1:
             self.pastdses = []
         self.last_year = year
@@ -402,3 +523,4 @@ class RollingYearTransfomer(WeatherTransformer):
         if len(self.pastdses) == self.rolling_years:
             ds = fast_dataset.concat(self.pastdses, dim='time')
             yield year - self.rolling_years + 1, ds
+

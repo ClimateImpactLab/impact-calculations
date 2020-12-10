@@ -64,8 +64,8 @@ description can be many lines or missing."""
     if prefix != '':
         fp.write(endheader)
 
-def deparse(fp, dependencies):
-    header = parse(fp)
+def deparse(fp, dependencies, encoding=None):
+    header = parse(fp, encoding=encoding)
 
     if 'version' in header and header['version'] not in dependencies:
         dependencies.append(header['version'])
@@ -96,7 +96,7 @@ class Variable(object):
     def __str__(self):
         return '{name}: {desc} [{unit}]'.format(name=self.name, desc=self.description, unit=self.unit)
 
-def parse(fp, metafile=False):
+def parse(fp, metafile=False, encoding=None):
     '''
     Reads a text or csv file and returns a parsed metadata dictionary
 
@@ -106,8 +106,8 @@ def parse(fp, metafile=False):
 
     i = 0
 
-    if isinstance(fp, str) or isinstance(fp, str):
-        with open(fp, 'r') as fp2:
+    if isinstance(fp, str):
+        with open(fp, 'r', encoding=encoding) as fp2:
             return parse(fp2, metafile)
 
     header = {}

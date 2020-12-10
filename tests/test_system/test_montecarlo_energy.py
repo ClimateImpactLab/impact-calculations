@@ -14,7 +14,7 @@ import xarray as xr
 import numpy as np
 import numpy.testing as npt
 
-from generate.generate import tmpdir_projection
+from utils import tmpdir_projection
 
 
 pytestmark = pytest.mark.imperics_shareddir
@@ -22,7 +22,6 @@ pytestmark = pytest.mark.imperics_shareddir
 
 RUN_BASENAME = "FD_FGLS_inter_climGMFD_Exclude_all-issues_break2_semi-parametric_poly2_OTHERIND_other_energy_TINV_clim_income_spline_lininter"
 RUN_CONFIGS = {
-    "module": "impacts/energy/hddcddspline_t_OTHERIND_other_energy.yml",
     "filter-region": "USA.14.608",
     "mode": "montecarlo",
     "do_farmers": True,
@@ -36,6 +35,147 @@ RUN_CONFIGS = {
     "loggdppc-delta": 9.087,
     "mc-n": 1,
     "pvals": {RUN_BASENAME: {"seed-csvv": 123}, "histclim": {"seed-yearorder": 123},},
+    "timerate": "year",
+    "climate": [
+        "tas",
+        "tas-poly-2",
+        "tas-cdd-20",
+        "tas-cdd-20-poly-2",
+        "tas-hdd-20",
+        "tas-hdd-20-poly-2",
+    ],
+    "models": [
+        {
+            "csvvs": "social/parameters/energy/projectionT/*.csvv",
+            "covariates": [
+                {
+                    "incbin": [
+                        "-inf",
+                        7.246,
+                        7.713,
+                        8.136,
+                        8.475,
+                        8.776,
+                        9.087,
+                        9.385,
+                        9.783,
+                        10.198,
+                        "inf",
+                    ]
+                },
+                {
+                    "year*incbin": [
+                        "-inf",
+                        7.246,
+                        7.713,
+                        8.136,
+                        8.475,
+                        8.776,
+                        9.087,
+                        9.385,
+                        9.783,
+                        10.198,
+                        "inf",
+                    ]
+                },
+                "climtas-cdd-20",
+                "climtas-hdd-20",
+                {
+                    "climtas-cdd-20*incbin": [
+                        "-inf",
+                        7.246,
+                        7.713,
+                        8.136,
+                        8.475,
+                        8.776,
+                        9.087,
+                        9.385,
+                        9.783,
+                        10.198,
+                        "inf",
+                    ]
+                },
+                {
+                    "climtas-hdd-20*incbin": [
+                        "-inf",
+                        7.246,
+                        7.713,
+                        8.136,
+                        8.475,
+                        8.776,
+                        9.087,
+                        9.385,
+                        9.783,
+                        10.198,
+                        "inf",
+                    ]
+                },
+                {
+                    "loggdppc-shifted*incbin": [
+                        "-inf",
+                        7.246,
+                        7.713,
+                        8.136,
+                        8.475,
+                        8.776,
+                        9.087,
+                        9.385,
+                        9.783,
+                        10.198,
+                        "inf",
+                    ]
+                },
+                {
+                    "loggdppc-shifted*year*incbin": [
+                        "-inf",
+                        7.246,
+                        7.713,
+                        8.136,
+                        8.475,
+                        8.776,
+                        9.087,
+                        9.385,
+                        9.783,
+                        10.198,
+                        "inf",
+                    ]
+                },
+            ],
+            "clipping": False,
+            "description": "Change in energy usage driven by a single day's mean temperature",
+            "depenunit": "kWh/pc",
+            "specifications": {
+                "tas": {
+                    "description": "Uninteracted term.",
+                    "indepunit": "C",
+                    "functionalform": "polynomial",
+                    "variable": "tas",
+                },
+                "hdd-20": {
+                    "description": "Below 20C days.",
+                    "indepunit": "C",
+                    "functionalform": "polynomial",
+                    "variable": "tas-hdd-20",
+                },
+                "cdd-20": {
+                    "description": "Above 20C days.",
+                    "indepunit": "C",
+                    "functionalform": "polynomial",
+                    "variable": "tas-cdd-20",
+                },
+            },
+            "calculation": [
+                {
+                    "Sum": [
+                        {"YearlyApply": {"model": "tas"}},
+                        {"YearlyApply": {"model": "hdd-20"}},
+                        {"YearlyApply": {"model": "cdd-20"}},
+                    ]
+                },
+                "Rebase",
+            ],
+        }
+    ],
 }
 
 
@@ -122,7 +262,7 @@ class TestRebased:
     """
 
     target_variable = "rebased"
-    atol = 1e-4
+    atol = 1e-3
     rtol = 0
 
     @pytest.mark.parametrize(
@@ -136,10 +276,10 @@ class TestRebased:
     @pytest.mark.parametrize(
         "result_file,expected",
         [
-            ("base_ds", np.array([[182.74854, 138.99937, 432.08884]]).T),
-            ("noadapt_ds", np.array([[182.74854, 138.99937, 432.08884]]).T),
-            ("incadapt_ds", np.array([[182.74854, 138.99937, 432.08884]]).T),
-            ("histclim_ds", np.array([[463.31558, 320.79092, 320.79092]]).T),
+            ("base_ds", np.array([[182.65338, 139.14749, 433.79944]]).T),
+            ("noadapt_ds", np.array([[182.65338, 139.14749, 433.79944]]).T),
+            ("incadapt_ds", np.array([[182.65338, 139.14749, 433.79944]]).T),
+            ("histclim_ds", np.array([[465.45935, 318.4206, 318.4206]]).T),
         ],
     )
     def test_head(self, projection_payload, result_file, expected):
@@ -155,10 +295,10 @@ class TestRebased:
     @pytest.mark.parametrize(
         "result_file,expected",
         [
-            ("base_ds", np.array([[4340.6616, 3850.7495, 3353.314]]).T),
-            ("noadapt_ds", np.array([[2130.226, 1964.3873, 1609.678]]).T),
-            ("incadapt_ds", np.array([[4839.495, 4291.672, 3885.245]]).T),
-            ("histclim_ds", np.array([[598.6438, 1263.2665, 689.26575]]).T),
+            ("base_ds", np.array([[4314.9644, 3825.0522, 3327.6165]]).T),
+            ("noadapt_ds", np.array([[2124.3157, 1955.8206, 1604.8887]]).T),
+            ("incadapt_ds", np.array([[4833.5845, 4283.1055, 3880.456]]).T),
+            ("histclim_ds", np.array([[710.44824, 1375.0709, 801.07025]]).T),
         ],
     )
     def test_tail(self, projection_payload, result_file, expected):

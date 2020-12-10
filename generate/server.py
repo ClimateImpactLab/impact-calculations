@@ -2,9 +2,7 @@ import urllib.request, urllib.error, urllib.parse, json, os
 try:
     import gspread
     from oauth2client.client import SignedJwtAssertionCredentials
-except Exception as ex:
-    print("Exception but passing:")
-    print(ex)
+except ModuleNotFoundError as ex:
     print("Failed to load gspread and oauth2client; Google functions will not work.")
 
 def open_url(path):

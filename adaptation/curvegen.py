@@ -51,9 +51,11 @@ class CSVVCurveGenerator(CurveGenerator):
         CSVV dict as produced by `interpret.container.produce_csvv`.
     betalimits: dict
     """
-    def __init__(self, prednames, indepunits, depenunit, csvv, betalimits={}, ignore_units=False):
+    def __init__(self, prednames, indepunits, depenunit, csvv, betalimits=None, ignore_units=False):
         super(CSVVCurveGenerator, self).__init__(indepunits, depenunit)
 
+        if betalimits is None:
+            betalimits = {}
         assert isinstance(prednames, list) or isinstance(prednames, set) or isinstance(prednames, tuple)
         self.prednames = prednames
         self.csvv = csvv
@@ -95,7 +97,15 @@ class CSVVCurveGenerator(CurveGenerator):
             self.predgammas[predname] = np.array(self.predgammas[predname])
 
     def get_coefficients(self, covariates, debug=False):
-        """
+        """Calculate the beta coefficient for each predictor.
+
+        Typically, self.constant[predname] is a number or missing, and
+        self.predgammas[predname] is a sequence of gammas
+        corresponding to self.predcovars[predname]. However, in the
+        case of sum-by-time entries, self.constant[predname] is either
+        0 or an array_like of T numbers, self.predcovars[predname] is
+        a list of length K, and self.predgammas[predname] is a T x K
+        np.array matrix of the corresponding gammas.
 
         Parameters
         ----------
@@ -111,6 +121,7 @@ class CSVVCurveGenerator(CurveGenerator):
         coefficients : dict
             With str keys giving variable names and values giving the
             corresponding float coefficients.
+
         """
         coefficients = {} # {predname: sum}
         for predname in set(self.prednames):
@@ -122,11 +133,9 @@ class CSVVCurveGenerator(CurveGenerator):
                     raise
             else:
                 try:
-                    coefficients[predname] = self.constant.get(predname, 0) + np.sum(self.predgammas[predname] * np.array([covariates[covar] for covar in self.predcovars[predname]]))
-                    if not np.isscalar(coefficients[predname]):
-                        coefficients[predname] = coefficients[predname][0]
+                    coefficients[predname] = self.constant.get(predname, 0) + np.dot(self.predgammas[predname], np.array([covariates[covar] for covar in self.predcovars[predname]]))
                     if predname in self.betalimits and not np.isnan(coefficients[predname]):
-                        coefficients[predname] = min(max(self.betalimits[predname][0], coefficients[predname]), self.betalimits[predname][1])
+                        coefficients[predname] = np.minimum(np.maximum(self.betalimits[predname][0], coefficients[predname]), self.betalimits[predname][1])
                     
                     if debug:
                         print((predname, coefficients[predname], self.constant.get(predname, 0), self.predgammas[predname], np.array([covariates[covar] for covar in self.predcovars[predname]])))
@@ -145,14 +154,18 @@ class CSVVCurveGenerator(CurveGenerator):
             marginals[predname] = self.predgammas[predname][self.predcovars[predname].index(covar)]
         return marginals
 
-    def get_curve(self, region, year, covariates={}):
+    def get_curve(self, region, year, covariates=None):
+        if covariates is None:
+            covariates = {}
         raise NotImplementedError()
 
     def get_lincom_terms(self, region, year, predictors):
         raise NotImplementedError()
 
-    def get_lincom_terms_simple(self, predictors, covariates={}):
+    def get_lincom_terms_simple(self, predictors, covariates=None):
         # Return in the order of the CSVV
+        if covariates is None:
+            covariates = {}
         terms = []
         for ii in range(len(self.csvv['prednames'])):
             predname = self.csvv['prednames'][ii]
@@ -176,14 +189,17 @@ class FarmerCurveGenerator(DelayedCurveGenerator):
         Type of farmer adaptation.
     save_curve : bool, optional
         Do you want to save this curve in `adaptation.region_curves`?
+    endbaseline : int
+        Final year of the baseline period.
     """
-    def __init__(self, curvegen, covariator, farmer='full', save_curve=True):
+    def __init__(self, curvegen, covariator, farmer='full', save_curve=True, endbaseline=2015):
         super(FarmerCurveGenerator, self).__init__(curvegen)
         self.covariator = covariator
         self.farmer = farmer
         self.save_curve = save_curve
         self.lincom_last_covariates = {}
         self.lincom_last_year = {}
+        self.endbaseline = endbaseline
 
     def get_next_curve(self, region, year, *args, **kwargs):
         """
@@ -204,7 +220,7 @@ class FarmerCurveGenerator(DelayedCurveGenerator):
         openest.generate.SmartCurve-like
 
         """
-        if year < 2015:
+        if year < self.endbaseline:
             if region not in self.last_curves:
                 covariates = self.covariator.get_current(region)
                 curve = self.curvegen.get_curve(region, year, covariates)
@@ -243,8 +259,10 @@ class FarmerCurveGenerator(DelayedCurveGenerator):
         return FarmerCurveGenerator(self.curvegen.get_partial_derivative_curvegen(covariate, covarunit),
                                     self.covariator, self.farmer, self.save_curve)
         
-    def get_lincom_terms(self, region, year, predictors={}, origds=None):
+    def get_lincom_terms(self, region, year, predictors=None, origds=None):
         # Get last covariates
+        if predictors is None:
+            predictors = {}
         if self.lincom_last_year.get(region, None) == year:
             covariates = self.lincom_last_covariates[region]
         else:
@@ -268,7 +286,9 @@ class FarmerCurveGenerator(DelayedCurveGenerator):
         
         return self.curvegen.get_lincom_terms_simple(predictors, covariates)
 
-    def get_lincom_terms_simple(self, predictors, covariates={}):
+    def get_lincom_terms_simple(self, predictors, covariates=None):
+        if covariates is None:
+            covariates = {}
         raise NotImplementedError()
     
     def get_csvv_coeff(self):
@@ -334,7 +354,9 @@ class SumCurveGenerator(CurveGenerator):
         self.curvegens = curvegens
         self.coeffsuffixes = coeffsuffixes
 
-    def get_curve(self, region, year, covariates={}, **kwargs):
+    def get_curve(self, region, year, covariates=None, **kwargs):
+        if covariates is None:
+            covariates = {}
         curves = [curvegen.get_curve(region, year, covariates, **kwargs) for curvegen in self.curvegens]
         return smart_curve.SumCurve(curves)
 
@@ -348,3 +370,151 @@ class SumCurveGenerator(CurveGenerator):
         derivative with respect to a covariate.
         """
         return SumCurveGenerator([curvegen.get_partial_derivative_curvegen(covariate, covarunit) for curvegen in self.curvegens], self.coeffsuffixes)
+
+class SeasonTriangleCurveGenerator(CurveGenerator):
+    """Select a curve generator by region, depending on the length of that region's season.
+
+    Constructor should be called with either curvegen_triangle keyword
+    (to give the season-to-curvegen mapping directly), or both
+    get_curvegen and suffix_triangle keywords (to have each curvegen
+    returned by get_curvegen for a given item of the suffix_triangle).
+
+    The suffix_triangle is a list-of-lists. Item k (at index k-1) of
+    this list describes the coefficients suffixes to be used for a
+    season of length k. As a result, item k (a list) should itself
+    contain k strings, the suffixes for month 1 to k of the
+    season. The length of suffix_triangle should be equal to the
+    longest possible season length.
+
+    Parameters
+    ----------
+    culture_map : dict of str -> pair
+        Season timestep endpoints for each region, as returned by irvalues.load_culture_months
+    curvegen_triangle : list of CurveGenerators
+        Item s (1-indexed) of list corresponds to CurveGenerator for season length s
+    get_curvegen : function(list of str) -> CurveGenerator
+        Function that is called for each item of suffix_triangle to create/pull a CurveGenerator
+    suffix_triangle : list of list of str
+        Coefficient suffixes used for each season length, starting from a season of 1 timestep
+
+    """
+    def __init__(self, culture_map, curvegen_triangle=None, get_curvegen=None, suffix_triangle=None):
+        self.culture_map = culture_map
+        assert curvegen_triangle is not None or (get_curvegen is not None and suffix_triangle is not None)
+
+        if curvegen_triangle is not None:
+            self.curvegen_triangle = curvegen_triangle
+        else:
+            self.curvegen_triangle = []
+            for row_suffixes in suffix_triangle:
+                self.curvegen_triangle.append(get_curvegen(row_suffixes))
+
+        super(SeasonTriangleCurveGenerator, self).__init__(self.curvegen_triangle[0].indepunits,
+                                                                    self.curvegen_triangle[0].depenunit)
+
+    def get_curve(self, region, year, covariates, recorddiag=True, *args, **kwargs):
+        culture = self.culture_map.get(region, None)
+        timesteps = culture[1] - culture[0] + 1
+        return self.curvegen_triangle[timesteps - 1].get_curve(region, year, covariates, recorddiag=recorddiag, *args, **kwargs)
+
+    def format_call(self, lang, *args):
+        raise NotImplementedError()
+        
+    def get_partial_derivative_curvegen(self, covariate, covarunit):
+        deriv_curvegen_triangle = []
+        for curvegen in self.curvegen_triangle:
+            deriv_curvegen_triangle.append(curvegen.get_partial_derivative_curvegen(covariate, covarunit))
+
+        return SeasonTriangleCurveGenerator(self.culture_map, curvegen_triangle=deriv_curvegen_triangle)
+
+class SumByTimeMixin:
+    def fill_suffixes_marginals(self, csvv, prednames, coeffsuffixes):
+        """Construct the pre-organized gamma dictionaries, for later use with `get_coefficients`.
+
+        Parameters
+        ----------
+        csvv : csvv dictionary
+            Source for all parameter calculations.
+        prednames : seq of str
+            Predictor names (up to suffix) referenced in the CSVV prednames
+        coeffsuffixes : seq of str or 0
+            Suffixes added to predictor names in CSVV, by timestep, or 0 for timestep-dropping of predictor
+        """
+        # Preprocessing marginals
+        self.constant = {} # {predname: 0 or T [constants_t]}
+        self.predcovars = {} # {predname: K [covarname]}
+        self.predgammas = {} # {predname: T x K np.array}
+        for predname in set(prednames):
+            assert predname not in self.constant
+            self.constant[predname] = []
+            self.predgammas[predname] = []
+
+            # Check if coeffsuffixes starts with zeros
+            preceding_zeros = 0
+            for coeffsuffix in coeffsuffixes:
+                if coeffsuffix != 0:
+                    break
+                preceding_zeros += 1
+
+            covarorder = None
+            for coeffsuffix in coeffsuffixes[preceding_zeros:]:
+                if coeffsuffix == 0:
+                    # We'll always have covarorder by now
+                    if '1' in covarorder:
+                        self.constant[predname].append(0)
+                        self.predgammas[predname].append([0] * (len(covarorder)-1))
+                    else:
+                        self.predgammas[predname].append([0] * len(covarorder))
+                    continue
+
+                predname_time = predname + "-%s" % coeffsuffix if coeffsuffix != '' else predname
+
+                if covarorder is None:
+                    # Decide on the canonical order of covars
+                    indices = [ii for ii, xx in enumerate(csvv['prednames']) if xx == predname_time]
+                    covarorder = [csvv['covarnames'][index] for index in indices]
+                else:
+                    # Re-order indices to match canonical order
+                    unordered = [ii for ii, xx in enumerate(csvv['prednames']) if xx == predname_time]
+                    indices = []
+                    for predcovar in covarorder:
+                        for uu in unordered:
+                            if csvv['covarnames'][uu] == predcovar:
+                                indices.append(uu)
+                                break
+                    assert len(indices) == len(covarorder)
+
+                constant_time = []  # make sure have 0 or 1
+                predgammas_time = []
+                for index in indices:
+                    if csvv['covarnames'][index] == '1':
+                        constant_time.append(csvv['gamma'][index])
+                    else:
+                        predgammas_time.append(csvv['gamma'][index])
+
+                # If this is the first non-zero suffix
+                if preceding_zeros > 0:
+                    for kk in range(preceding_zeros):
+                        if '1' in covarorder:
+                            self.constant[predname].append(0)
+                            self.predgammas[predname].append([0] * (len(covarorder)-1))
+                        else:
+                            self.predgammas[predname].append([0] * len(covarorder))
+                    preceding_zeros = 0 # Disable this case
+                        
+                self.constant[predname] += constant_time
+                self.predgammas[predname].append(predgammas_time)
+
+            if len(self.constant[predname]) == 0:
+                self.constant[predname] = 0
+            else:
+                assert len(self.constant[predname]) == len(coeffsuffixes)
+                self.constant[predname] = np.array(self.constant[predname])
+
+            if covarorder is not None:
+                self.predcovars[predname] = covarorder
+                if '1' in covarorder:
+                    self.predcovars[predname].remove('1')
+            else:
+                self.predcovars[predname] = []
+            self.predgammas[predname] = np.array(self.predgammas[predname])

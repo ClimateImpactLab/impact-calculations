@@ -25,6 +25,7 @@ def hierid_df():
         (["C"], "Ba", False),
         (["A"], "Afoobar", False),
         (["A", "C"], "Baa", False),
+        (["Aa"], "Aa", True),
     ]
 )
 def test_contains_region(hierid_df, query_parent, query_child, expected):

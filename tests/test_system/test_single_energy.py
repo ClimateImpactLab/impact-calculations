@@ -12,7 +12,7 @@ import xarray as xr
 import numpy as np
 import numpy.testing as npt
 
-from generate.generate import tmpdir_projection
+from utils import tmpdir_projection
 
 
 pytestmark = pytest.mark.imperics_shareddir
@@ -23,7 +23,6 @@ def projection_netcdf():
     """Runs the projection in tmpdir, gets results netCDF, cleans output on exit
     """
     run_configs = {
-        "module": "impacts/energy/hddcddspline_t_OTHERIND_other_energy.yml",
         "mode": "writecalcs",
         "singledir": "single",
         "filter-region": "USA.14.608",
@@ -33,6 +32,147 @@ def projection_netcdf():
         "econcovar": {"class": "mean", "length": 15},
         "climcovar": {"class": "mean", "length": 15},
         "loggdppc-delta": 9.087,
+        "timerate": "year",
+        "climate": [
+            "tas",
+            "tas-poly-2",
+            "tas-cdd-20",
+            "tas-cdd-20-poly-2",
+            "tas-hdd-20",
+            "tas-hdd-20-poly-2",
+        ],
+        "models": [
+            {
+                "csvvs": "social/parameters/energy/projectionT/*.csvv",
+                "covariates": [
+                    {
+                        "incbin": [
+                            "-inf",
+                            7.246,
+                            7.713,
+                            8.136,
+                            8.475,
+                            8.776,
+                            9.087,
+                            9.385,
+                            9.783,
+                            10.198,
+                            "inf",
+                        ]
+                    },
+                    {
+                        "year*incbin": [
+                            "-inf",
+                            7.246,
+                            7.713,
+                            8.136,
+                            8.475,
+                            8.776,
+                            9.087,
+                            9.385,
+                            9.783,
+                            10.198,
+                            "inf",
+                        ]
+                    },
+                    "climtas-cdd-20",
+                    "climtas-hdd-20",
+                    {
+                        "climtas-cdd-20*incbin": [
+                            "-inf",
+                            7.246,
+                            7.713,
+                            8.136,
+                            8.475,
+                            8.776,
+                            9.087,
+                            9.385,
+                            9.783,
+                            10.198,
+                            "inf",
+                        ]
+                    },
+                    {
+                        "climtas-hdd-20*incbin": [
+                            "-inf",
+                            7.246,
+                            7.713,
+                            8.136,
+                            8.475,
+                            8.776,
+                            9.087,
+                            9.385,
+                            9.783,
+                            10.198,
+                            "inf",
+                        ]
+                    },
+                    {
+                        "loggdppc-shifted*incbin": [
+                            "-inf",
+                            7.246,
+                            7.713,
+                            8.136,
+                            8.475,
+                            8.776,
+                            9.087,
+                            9.385,
+                            9.783,
+                            10.198,
+                            "inf",
+                        ]
+                    },
+                    {
+                        "loggdppc-shifted*year*incbin": [
+                            "-inf",
+                            7.246,
+                            7.713,
+                            8.136,
+                            8.475,
+                            8.776,
+                            9.087,
+                            9.385,
+                            9.783,
+                            10.198,
+                            "inf",
+                        ]
+                    },
+                ],
+                "clipping": False,
+                "description": "Change in energy usage driven by a single day's mean temperature",
+                "depenunit": "kWh/pc",
+                "specifications": {
+                    "tas": {
+                        "description": "Uninteracted term.",
+                        "indepunit": "C",
+                        "functionalform": "polynomial",
+                        "variable": "tas",
+                    },
+                    "hdd-20": {
+                        "description": "Below 20C days.",
+                        "indepunit": "C",
+                        "functionalform": "polynomial",
+                        "variable": "tas-hdd-20",
+                    },
+                    "cdd-20": {
+                        "description": "Above 20C days.",
+                        "indepunit": "C",
+                        "functionalform": "polynomial",
+                        "variable": "tas-cdd-20",
+                    },
+                },
+                "calculation": [
+                    {
+                        "Sum": [
+                            {"YearlyApply": {"model": "tas"}},
+                            {"YearlyApply": {"model": "hdd-20"}},
+                            {"YearlyApply": {"model": "cdd-20"}},
+                        ]
+                    },
+                    "Rebase",
+                ],
+            }
+        ],
     }
     # Trigger projection run in temprary directory:
     with tmpdir_projection(run_configs, "single energy test") as tmpdirname:
@@ -80,7 +220,7 @@ class TestRebased:
     """
 
     target_variable = "rebased"
-    atol = 1e-4
+    atol = 1e-3
     rtol = 0
 
     def test_shape(self, projection_netcdf):
@@ -91,7 +231,7 @@ class TestRebased:
         """Test head of variable array"""
         npt.assert_allclose(
             projection_netcdf[self.target_variable].values[:3],
-            np.array([[20.582834, 108.4278, 449.78918]]).T,
+            np.array([[20.576303, 108.616135, 451.51030]]).T,
             atol=self.atol,
             rtol=self.rtol,
         )
@@ -100,7 +240,7 @@ class TestRebased:
         """Test tail of variable array"""
         npt.assert_allclose(
             projection_netcdf[self.target_variable].values[-3:],
-            np.array([[-2572.8152, -3596.9329, -2827.6426]]).T,
+            np.array([[-2595.0160, -3619.1338, -2849.8433]]).T,
             atol=self.atol,
             rtol=self.rtol,
         )

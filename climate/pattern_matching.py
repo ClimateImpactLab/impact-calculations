@@ -1,5 +1,6 @@
 """Materials that support the interpreting of weather configurations."""
 
+# Baseline model for each surrogate model
 rcp_models = {
     'rcp45': {
         'surrogate_CanESM2_89': 'CanESM2',

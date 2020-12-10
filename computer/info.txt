@@ -1,1 +1,0 @@
-Assumes http://github.com/jrising/computer is in lib/
