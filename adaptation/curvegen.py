@@ -414,7 +414,10 @@ class SeasonTriangleCurveGenerator(CurveGenerator):
 
     def get_curve(self, region, year, covariates, recorddiag=True, *args, **kwargs):
         culture = self.culture_map.get(region, None)
-        timesteps = culture[1] - culture[0] + 1
+        if culture is not None:
+            timesteps = culture[1] - culture[0] + 1
+        else:
+            timesteps = 0 # gets the last entry, consistent with no-season-limits
         return self.curvegen_triangle[timesteps - 1].get_curve(region, year, covariates, recorddiag=recorddiag, *args, **kwargs)
 
     def format_call(self, lang, *args):
