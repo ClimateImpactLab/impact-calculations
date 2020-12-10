@@ -92,7 +92,10 @@ def get_curve_extrema(regions, curvegen, covariator, mint, maxt, analytic, direc
         os.chmod(caller.callinfo[extpathkey], 0o664)
     else:
         for region in regions:
-            curve = curvegen.get_curve(region, 2005, covariator.get_current(region))
+            try:
+                curve = curvegen.get_curve(region, 2005, covariator.get_current(region))
+            except KeyError:  # If region isn't available (e.g. for diagnostic runs)...
+                continue
             baselinecurves[region] = curve
             exttemp2 = analytic(curve)
             baselineexts[region] = exttemp2
