@@ -8,6 +8,9 @@ from climate import forecasts
 class TestForecastReader(unittest.TestCase):
     def setUp(self):
         files.server_config = {'shareddir': 'tests/testdata'}
+    
+    def tearDown(self):
+        files.server_config = None
 
     def test_zscore(self):
         weatherreader = MonthlyForecastReader("tests/testdata/tas_aggregated_forecast_2012-2016Aug.nc", 'mean')

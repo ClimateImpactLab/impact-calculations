@@ -16,7 +16,7 @@ for batch1 in range(100):
         print(targetdir)
         os.makedirs(targetdir, 0o775)
 
-        pvals = pvalses.OnDemandRandomPvals()
+        pvals = pvalses.OnDemandRandomPvals(['batch' + str(batch1), 'batch' + str(batch2)])
 
         weatherbundle = mod.get_bundle(pvals['weather'])
 

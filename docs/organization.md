@@ -21,3 +21,5 @@ Multiple `WeatherReader` objects are then wrapped into a single `WeatherBundle` 
 ## Socioeconomic data
 
 Socioeconomic data is specific to an SSP and an IAM.
+
+*See also the Building the baseline data.docx document.*

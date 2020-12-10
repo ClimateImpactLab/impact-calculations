@@ -9,3 +9,5 @@ The purpose of dependencies is to facilitate updating. When an input
 is changed, the dependencies of all available files can be checked,
 and the output file can be regenerated as needed. This process can be
 performed recursively, allowing file changes to propagate.
+
+*See also the Computing Conventions.docx document.*

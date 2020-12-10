@@ -14,7 +14,7 @@ from impactcommon.exogenous_economy import provider, gdppc
 from helpers import header
 from datastore import population, popdensity
 
-def iterate_econmodels(config={}):
+def iterate_econmodels(config=None):
     """Discover and yield each known scenario as a SSPEconomicModel.
     
     Parameters
@@ -27,6 +27,8 @@ def iterate_econmodels(config={}):
     tuple of str, str, SSPEconomicModel
         The first str is the model producing the data; the second is the scenario.
     """
+    if config is None:
+        config = {}
     modelscenarios = set() # keep track of model-scenario pairs
 
     dependencies = []
@@ -38,8 +40,6 @@ def iterate_econmodels(config={}):
         for row in reader:
             model = row[headrow.index('model')]
             scenario = row[headrow.index('scenario')]
-            if scenario == 'SSP5' and config.get('ssp', None) != 'SSP5':
-                continue # Dropping entire scenario
 
             # Yield each newly discovered model, scenario combination
             if (model, scenario) not in modelscenarios:
@@ -59,6 +59,7 @@ class SSPEconomicModel(object):
         self.income_model = provider.BySpaceTimeFromSpaceProvider(gdppc.GDPpcProvider(model, scenario))
         self.pop_future_years = {} # {hierid: {year: value}}
         self.densities = {}
+        self.endbaseline = config.get('endbaseline', 2015)
 
     def reset(self):
         self.income_model.reset()
@@ -75,7 +76,7 @@ class SSPEconomicModel(object):
             self.pop_future_years[region][year] = value
 
         # Prepare population baseline
-        pop_baseline = population.population_baseline_data(2000, 2015, self.dependencies)
+        pop_baseline = population.population_baseline_data(2000, self.endbaseline, self.dependencies)
 
         # Prepare densitiy factor
         self.densities = popdensity.load_popop()
@@ -87,7 +88,10 @@ class SSPEconomicModel(object):
         for region in list(pop_baseline.keys()):
             # Get the income timeseries
             gdppcs = self.income_model.get_timeseries(region)
-            baseline_gdppcs = gdppcs[:maxbaseline - self.income_model.get_startyear()]
+            if maxbaseline < self.income_model.get_startyear():
+                baseline_gdppcs = [gdppcs[0]]
+            else:
+                baseline_gdppcs = gdppcs[:maxbaseline - self.income_model.get_startyear()]
             # Get the popop value
             popop = self.densities.get(region, mean_density)
             # Pass it into the func

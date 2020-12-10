@@ -11,7 +11,9 @@ precipitation.
 import re
 from adaptation import csvvfile, curvegen, curvegen_known, curvegen_arbitrary, covariates, constraints
 from datastore import irvalues
-from openest.generate import smart_curve, selfdocumented
+from openest.generate import smart_curve
+from openest.curves import ushape_numeric
+from openest.curves.smart_linextrap import LinearExtrapolationCurve
 from openest.generate.stdlib import *
 from impactcommon.math import minpoly, minspline
 from openest.curves import ushape_numeric
@@ -33,7 +35,7 @@ def user_assert(check, message):
     if not check:
         user_failure(message)
 
-def get_covariator(covar, args, weatherbundle, economicmodel, config={}, quiet=False):
+def get_covariator(covar, args, weatherbundle, economicmodel, config=None, quiet=False):
     """Intreprets a single entry in the covariates dictionary.
 
     Parameters
@@ -52,14 +54,22 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config={}, quiet=F
     -------
     adaptation.covariates.Covariator
     """
+    if config is None:
+        config = {}
     if isinstance(covar, dict):
         return get_covariator(list(covar.keys())[0], list(covar.values())[0], weatherbundle, economicmodel, config=config, quiet=quiet)
     elif covar in ['loggdppc', 'logpopop', 'year']:
         return covariates.EconomicCovariator(economicmodel, 2015, config=configs.merge(config, 'econcovar'))
+    elif covar in ['loggdppc.country', 'logpopop.country']:
+        return covariates.EconomicCovariator(economicmodel, 2015, country_level=True, config=configs.merge(config, 'econcovar'))
     elif covar == 'incbin':
         return covariates.BinnedEconomicCovariator(economicmodel, 2015, args, config=configs.merge(config, 'econcovar'))
     elif covar == 'loggdppc-shifted':
-        return covariates.ShiftedEconomicCovariator(economicmodel, 2015, config)
+        return covariates.ShiftedEconomicCovariator(economicmodel, 2015, config=config)
+    elif covar == 'incbin.country':
+        return covariates.BinnedEconomicCovariator(economicmodel, 2015, args, country_level=True, config=configs.merge(config, 'econcovar'))
+    elif covar == 'loggdppc-shifted.country':
+        return covariates.ShiftedEconomicCovariator(economicmodel, 2015, country_level=True, config=config)
     elif covar == 'ir-share':
         return covariates.ConstantCovariator('ir-share', irvalues.load_irweights("social/baselines/agriculture/world-combo-201710-irrigated-area.csv", 'irrigated_share'))
     elif '*' in covar:
@@ -80,7 +90,7 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config={}, quiet=F
     else:
         user_failure("Covariate %s is unknown." % covar)
 
-def create_covariator(specconf, weatherbundle, economicmodel, config={}, quiet=False):
+def create_covariator(specconf, weatherbundle, economicmodel, config=None, quiet=False):
     """Interprets the entire covariates dictionary in the configuration file.
 
     Parameters
@@ -96,6 +106,8 @@ def create_covariator(specconf, weatherbundle, economicmodel, config={}, quiet=F
     -------
     covariator : adaptation.covariates.Covariator or None
     """
+    if config is None:
+        config = {}
     if 'covariates' in specconf:
         covariators = []
         for covar in specconf['covariates']:
@@ -111,14 +123,14 @@ def create_covariator(specconf, weatherbundle, economicmodel, config={}, quiet=F
 
     return covariator
         
-def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}, getcsvvcurve=False):
+def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, getcsvvcurve=False):
     """Create a CurveGenerator instance from specifications
 
     Parameters
     ----------
     csvv : dict
         Various parameters and curve descriptions from CSVV file.
-    covariator : adaptation.covariates.Covariator
+    covariator : adaptation.covariates.Covariator or None
     regions : xarray.Dataset
     farmer : {'full', 'noadapt', 'incadapt'}, optional
         Type of farmer adaptation.
@@ -131,6 +143,8 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}, getcs
     -------
     openest.generate.CurveGenerator
     """
+    if specconf is None:
+        specconf = {}
     user_assert('depenunit' in specconf, "Specification configuration missing 'depenunit' string.")
     user_assert('functionalform' in specconf, "Specification configuration missing 'functionalform' string.")
     if specconf['functionalform'] in ['polynomial', 'cubicspline']:
@@ -189,8 +203,8 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}, getcs
 
         curr_curvegen = curvegen_known.CubicSplineCurveGenerator([indepunit] + ['%s^3' % indepunit] * (len(knots) - 2),
                                                                  depenunit, prefix, knots, variable_name, csvv, betalimits=betalimits)
-        minfinder = lambda mintemp, maxtemp, sign: lambda curve: minspline.findsplinemin(knots, sign * curve.coeffs, mintemp, maxtemp)
-        weathernames = [prefix]
+        minfinder = lambda mintemp, maxtemp, sign: lambda curve: minspline.findsplinemin(knots, sign * np.asarray(curve.coeffs), mintemp, maxtemp)
+        weathernames = curr_curvegen.weathernames[:]
     elif specconf['functionalform'] == 'coefficients':
         ds_transforms = {}
         indepunits = []
@@ -212,15 +226,43 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}, getcs
                                                                          csvv, betalimits=betalimits)
         weathernames = [] # Use curve directly
     elif specconf['functionalform'] == 'sum-by-time':
-        csvvcurvegens = []
-        for tt in range(len(specconf['suffixes'])):
+        if specconf['subspec']['functionalform'] in ['polynomial', 'coefficients']:
             subspecconf = configs.merge(specconf, specconf['subspec'])
-            subspecconf['final-t'] = tt
             csvvcurvegen = create_curvegen(csvv, None, regions, farmer=farmer, specconf=subspecconf, getcsvvcurve=True) # don't pass covariator, so skip farmer curvegen
-            assert isinstance(csvvcurvegen, curvegen.CSVVCurveGenerator), "Error: Curve-generator resulted in a " + str(csvvcurvegen.__class__)
-            csvvcurvegens.append(csvvcurvegen)
-        
-        curr_curvegen = curvegen.SumCurveGenerator(csvvcurvegens, specconf['suffixes'])
+            if isinstance(csvvcurvegen, curvegen_known.PolynomialCurveGenerator):
+                sumbytime_constructor = curvegen_known.SumByTimePolynomialCurveGenerator
+            elif isinstance(csvvcurvegen, curvegen_arbitrary.SumCoefficientsCurveGenerator):
+                sumbytime_constructor = curvegen_arbitrary.SumByTimeCoefficientsCurveGenerator
+            else:
+                raise ValueError("Error: Curve-generator resulted in a " + str(csvvcurvegen.__class__))
+            
+            if 'suffixes' in specconf:
+                curr_curvegen = sumbytime_constructor(csvv, csvvcurvegen, specconf['suffixes'])
+            elif 'suffix-triangle' in specconf:
+                assert 'within-season' in specconf
+                suffix_triangle = specconf['suffix-triangle']
+                for rr in range(len(suffix_triangle)):
+                    assert isinstance(suffix_triangle, list) and len(suffix_triangle[rr]) == rr + 1
+
+                culture_map = irvalues.get_file_cached(specconf['within-season'], irvalues.load_culture_months)
+                get_curvegen = lambda suffixes: sumbytime_constructor(csvv, csvvcurvegen, suffixes)
+                
+                curr_curvegen = curvegen.SeasonTriangleCurveGenerator(culture_map, get_curvegen=get_curvegen, suffix_triangle=suffix_triangle)
+            else:
+                raise AssertionError("Either 'suffixes' or 'suffix-triangle' required for functional form 'sum-by-time'.")
+        else:
+            assert 'suffixes' in specconf, "Only 'suffixes' is allowed for arbitrary subform with 'sum-by-time'."
+            print("WARNING: Sum-by-time is being performed reductively. Efficiency improvements possible.")
+            
+            csvvcurvegens = []
+            for tt in range(len(specconf['suffixes'])):
+                subspecconf = configs.merge(specconf, specconf['subspec'])
+                subspecconf['final-t'] = tt # timestep of weather; also used by subspec to get suffix
+                csvvcurvegen = create_curvegen(csvv, None, regions, farmer=farmer, specconf=subspecconf, getcsvvcurve=True) # don't pass covariator, so skip farmer curvegen
+                assert isinstance(csvvcurvegen, curvegen.CSVVCurveGenerator), "Error: Curve-generator resulted in a " + str(csvvcurvegen.__class__)
+                csvvcurvegens.append(csvvcurvegen)
+            curr_curvegen = curvegen.SumCurveGenerator(csvvcurvegens, specconf['suffixes'])
+
         weathernames = [] # Use curve directly
     else:
         user_failure("Unknown functional form %s." % specconf['functionalform'])
@@ -233,29 +275,37 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}, getcs
         for region in regions:
             baselineloggdppcs[region] = covariator.get_current(region)['loggdppc']
 
-    if specconf.get('clipping', False):
+    # Clause to set curve baseline extents if configured.
+    clipping_cfg = specconf.get('clipping', False)
+    if clipping_cfg:
+        # Validate clipping configuration option.
+        if clipping_cfg not in ['boatpose', 'downdog', True]:
+            raise ValueError("unknown option for configuration key 'clipping'")
+
+        # Grab temperature window to search for curve extrema.
         mintemp = specconf.get('clip-mintemp', 10)
         maxtemp = specconf.get('clip-maxtemp', 25)
-        # Determine minimum value of curve between 10C and 25C
+
+        # Determine extrema value of curve within temperature window.
+        if clipping_cfg == 'boatpose' or clipping_cfg is True:
+            curve_extrema = minfinder(mintemp, maxtemp, 1)
+            get_baselineextrema = constraints.get_curve_minima
+        elif clipping_cfg == 'downdog':
+            curve_extrema = minfinder(mintemp, maxtemp, -1)
+            get_baselineextrema = constraints.get_curve_maxima
+        else:
+            raise ValueError("unknown option for configuration key 'clipping'")
+
         if covariator:
-            if specconf['clipping'] == 'boatpose' or specconf['clipping'] == True:
-                baselinecurves, baselineexts = constraints.get_curve_minima(regions, curr_curvegen, covariator,
-                                                                            mintemp, maxtemp, minfinder(mintemp, maxtemp, 1))
-            elif specconf['clipping'] == 'downdog':
-                baselinecurves, baselineexts = constraints.get_curve_maxima(regions, curr_curvegen, covariator,
-                                                                            mintemp, maxtemp, minfinder(mintemp, maxtemp, -1))
-            else:
-                assert False, "Unknown option for configuration key 'clipping'."
+            _, baselineexts = get_baselineextrema(
+                regions, curr_curvegen, covariator,
+                mintemp, maxtemp,
+                analytic=curve_extrema
+            )
         else:
             curve = curr_curvegen.get_curve('global', 2000, {})
-            if specconf['clipping'] == 'boatpose' or specconf['clipping'] == True:
-                curvemin = minfinder(mintemp, maxtemp, 1)(curve)
-            elif specconf['clipping'] == 'downdog':
-                curvemin = minfinder(mintemp, maxtemp, -1)(curve)
-            else:
-                assert False, "Unknown option for configuration key 'clipping'."
-                
-            baselineexts = {region: curvemin for region in regions}
+            curve_global_extrema = curve_extrema(curve)
+            baselineexts = {r: curve_global_extrema for r in regions}
 
     def transform(region, curve):
         if isinstance(curve, smart_curve.SmartCurve):
@@ -263,8 +313,8 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}, getcs
         else:
             final_curve = smart_curve.CoefficientsCurve(curve.ccs, weathernames)
 
-        if specconf.get('clipping', False):
-            final_curve = smart_curve.ShiftedCurve(final_curve, -curve.get_univariate()(baselineexts[region]))
+        if clipping_cfg:
+            final_curve = smart_curve.ShiftedCurve(final_curve, -curve.univariate(baselineexts[region]))
 
         if specconf.get('goodmoney', False):
             covars = covariator.get_current(region)
@@ -278,20 +328,50 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}, getcs
 
             final_curve = smart_curve.MinimumCurve(final_curve, noincadapt_curve)
 
-        if specconf.get('clipping', False) == True:
-            return smart_curve.ClippedCurve(final_curve)
-        elif specconf.get('clipping', False) == 'boatpose':
-            final_curve = smart_curve.ClippedCurve(final_curve)
-            return ushape_numeric.UShapedDynamicCurve(final_curve, baselineexts[region], lambda ds: ds[weathernames[0]].data, final_curve.get_univariate())
-        elif specconf.get('clipping', False) == 'downdog':
-            final_curve = smart_curve.ClippedCurve(final_curve, cliplow=False)
-            return ushape_numeric.UShapedDynamicCurve(final_curve, baselineexts[region], lambda ds: ds[weathernames[0]].data, final_curve.get_univariate(), direction='downdog')
-        else:
-            return final_curve
+        # Clause for additional curve clipping transforms, if configured.
+        if clipping_cfg:
+            if clipping_cfg is True:
+                final_curve = smart_curve.ClippedCurve(final_curve, cliplow=True)
+            else:
+                if clipping_cfg == 'boatpose':
+                    cliplow = True
+                    ucurve_direction = 'boatpost'
+                elif clipping_cfg == 'downdog':
+                    cliplow = False
+                    ucurve_direction = 'downdog'
 
-    if specconf.get('clipping', False) and specconf.get('goodmoney', False):
+                final_curve = ushape_numeric.UShapedDynamicCurve(
+                    smart_curve.ClippedCurve(final_curve, cliplow),
+                    midtemp=baselineexts[region],
+                    gettas=lambda ds: ds[weathernames[0]].data,  # Grab independent variable data, at [0].
+                    unicurve=final_curve.univariate,
+                    direction=ucurve_direction,
+                )
+
+        if specconf.get('extrapolation', False):
+            exargs = specconf['extrapolation']
+            assert 'indepvar' in exargs or 'indepvars' in exargs
+            indepvars = exargs.get('indepvars', [exargs['indepvar']])
+            
+            assert 'margin' in exargs or 'margins' in exargs
+            if 'margin' in exargs:
+                assert len(indepvars) == 1
+                margins = {indepvars[0]: exargs['margin']}
+            else:
+                margins = {indepvars[ii]: exargs['margins'][ii] for ii in range(len(indepvars))}
+
+            assert 'bounds' in exargs
+            if 'bounds' in exargs and isinstance(exargs['bounds'], tuple) or (isinstance(exargs['bounds'], list) and len(exargs['bounds']) == 2 and isinstance(exargs['bounds'][0], float)):
+                bounds = [(exargs['bounds'][0],), (exargs['bounds'][1],)]
+            else:
+                bounds = exargs['bounds']
+            final_curve = LinearExtrapolationCurve(final_curve, indepvars, bounds, margins, exargs.get('scaling', 1))
+
+        return final_curve
+
+    if clipping_cfg and specconf.get('goodmoney', False):
         final_curvegen = curvegen.TransformCurveGenerator(transform, "Clipping and Good Money transformation", curr_curvegen)
-    elif specconf.get('clipping', False):
+    elif clipping_cfg:
         final_curvegen = curvegen.TransformCurveGenerator(transform, "Clipping transformation", curr_curvegen)
     elif specconf.get('goodmoney', False):
         final_curvegen = curvegen.TransformCurveGenerator(transform, "Good Money transformation", curr_curvegen)
@@ -304,7 +384,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf={}, getcs
 
     return final_curvegen
 
-def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', specconf={}, config={}):
+def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', specconf=None, config=None):
     """
 
     Parameters
@@ -326,6 +406,10 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     list
     object
     """
+    if specconf is None:
+        specconf = {}
+    if config is None:
+        config = {}
     user_assert('depenunit' in specconf, "Specification configuration missing 'depenunit' string.")
     user_assert('calculation' in specconf, "Specification configuration missing 'calculation' list.")
     user_assert('description' in specconf, "Specification configuration missing 'description' list.")
@@ -340,7 +424,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     covariator = create_covariator(specconf, weatherbundle, economicmodel, config)
     final_curvegen = create_curvegen(csvv, covariator, weatherbundle.regions, farmer=farmer, specconf=specconf)
 
-    extras = dict(output_unit=depenunit, units=depenunit, curve_description=specconf['description'])
+    extras = dict(output_unit=depenunit, units=depenunit, curve_description=specconf['description'], errorvar=csvvfile.get_errorvar(csvv))
     calculation = calculator.create_postspecification(specconf['calculation'], {'default': final_curvegen}, None, extras=extras)
         
     if covariator is None:

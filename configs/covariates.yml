@@ -1,5 +1,0 @@
-module: covariates
-mode: median
-outputdir: /shares/gcp/outputs/covariates/results-carson
-do_only: interpolation
-do_farmers: false

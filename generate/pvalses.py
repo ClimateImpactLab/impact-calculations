@@ -1,23 +1,39 @@
 """
 Elsewhere in the code, pvals or qvals is an instance of either the
-ConstantPvals or OnDemandRandomPvals class from generate/pvalses.py
-(which I should have derive from a common superclass).  It's used to
-determine the set of p-values for a run, which is used for (1)
-determining parameters from the CSVV through collapse_bang, (2)
-determining the order of years for historical MC runs, (3) resolving
-the uncertainty forecasts for conflict and anything else that is
-stochastic.
+ConstantPvals or OnDemandRandomPvals class from generate/pvalses.py.
+It's used to determine the set of p-values for a run, which is used
+for (1) determining parameters from the CSVV through collapse_bang,
+(2) determining the order of years for historical MC runs, (3)
+resolving the uncertainty forecasts for conflict and anything else
+that is stochastic.
 """
 
-import os, yaml, time
+import os, yaml, time, zlib
 import numpy as np
 
-def interpret(config):
+## These dictionaries (keys in the top-level Pvals object) have common values across sectors
+cross_sector_dictionaries = ['histclim']
+
+def interpret(config, relative_location):
+    """Construct an appropriate `Pvals` object for the given configured
+    run.
+
+    Parameters
+    ----------
+    config : dict
+        A run configuration dictionary.
+    relative_location : list of str
+        list of features of the targetdir common across sectors.
+
+    Returns
+    -------
+    `Pvals`
+    """
     if 'pvals' not in config or config['pvals'] == 'median':
         return ConstantPvals(.5)
 
     if config['pvals'] == 'montecarlo':
-        return OnDemandRandomPvals()
+        return OnDemandRandomPvals(relative_location)
 
     try:
         pval = float(config['pvals'])
@@ -31,12 +47,39 @@ def interpret(config):
         return ConstantPvals(pval)
 
     if isinstance(config['pvals'], str):
-        return read_pval_file(config['pvals'])
+        return read_pval_file(config['pvals'], relative_location)
 
     if isinstance(config['pvals'], dict):
-        return load_pvals(config['pvals'])
+        return load_pvals(config['pvals'], relative_location)
 
-class ConstantPvals:
+## Abstract base classes
+    
+class Pvals:
+    # Future work: Implement this as a Mapping
+    def lock(self):
+        raise NotImplementedError()
+
+    def __getitem__(self, name):
+        raise NotImplementedError()
+
+    def __iter__(self):
+        raise NotImplementedError()
+
+class PvalsDictionary:
+    # Future work: Implement this as a MutableMapping
+    def lock(self):
+        raise NotImplementedError()
+
+    def __getitem__(self, name):
+        raise NotImplementedError()
+
+    def get_seed(self, name, plus=0):
+        raise NotImplementedError()
+
+# ConstantPvals classes
+
+class ConstantPvals(Pvals):
+    """ConstantPvals always return the same value."""
     def __init__(self, value):
         self.value = value
 
@@ -49,7 +92,7 @@ class ConstantPvals:
     def __iter__(self):
         yield ('all', self.value)
 
-class ConstantDictionary:
+class ConstantDictionary(PvalsDictionary):
     def __init__(self, value):
         self.value = value
 
@@ -62,8 +105,12 @@ class ConstantDictionary:
     def get_seed(self, name, plus=0):
         return None # for MC, have this also increment state
 
-class OnDemandRandomPvals:
-    def __init__(self):
+# OnDemandRandomPvals classes
+
+class OnDemandRandomPvals(Pvals):
+    """OnDemandRandomPvals constructs random numbers as needed."""
+    def __init__(self, relative_location):
+        self.relative_location = relative_location
         self.dicts = {}
         self.locked = False
 
@@ -75,7 +122,7 @@ class OnDemandRandomPvals:
     def __getitem__(self, name):
         mydict = self.dicts.get(name, None)
         if mydict is None and not self.locked:
-            mydict = OnDemandRandomDictionary()
+            mydict = OnDemandRandomDictionary(self.relative_location if name in cross_sector_dictionaries else None)
             self.dicts[name] = mydict
 
         return mydict
@@ -84,8 +131,9 @@ class OnDemandRandomPvals:
         for key in self.dicts:
             yield (key, self.dicts[key].values)
 
-class OnDemandRandomDictionary:
-    def __init__(self):
+class OnDemandRandomDictionary(PvalsDictionary):
+    def __init__(self, relative_location):
+        self.relative_location = relative_location
         self.values = {}
         self.locked = False
 
@@ -111,9 +159,15 @@ class OnDemandRandomDictionary:
         if fullname in self.values:
             return self.values[fullname]
 
-        seed = int(time.time()) + plus
+        if self.relative_location is None:
+            # Not a cross-sector dictionary
+            seed = int(time.time()) + plus
+        else:
+            seed = cross_sector_seed(self.relative_location, name, plus)
         self.values[fullname] = seed
         return seed
+
+## Helper functions
 
 def get_pval_file(targetdir):
     return os.path.join(targetdir, "pvals.yml")
@@ -126,12 +180,11 @@ def make_pval_file(targetdir, pvals):
     except Exception as ex:
         print("Exception but passing:")
         print(ex)
-        pass # This can fail if someone else created the file
 
 def has_pval_file(targetdir):
     return os.path.exists(get_pval_file(targetdir))
 
-def read_pval_file(path, lock=False):
+def read_pval_file(path, relative_location, lock=False):
     if not os.path.isfile(path):
         path = get_pval_file(path) # assume it's a directory containing pvals.yml
         
@@ -141,18 +194,22 @@ def read_pval_file(path, lock=False):
         if pvals is None:
             return None
         
-        return load_pvals(pvals, lock=lock)
+        return load_pvals(pvals, relative_location, lock=lock)
 
-def load_pvals(pvals, lock=False):
+def load_pvals(pvals, relative_location, lock=False):
     if len(pvals) == 1 and 'all' in pvals:
         return ConstantPvals(pvals['all'])
 
-    odrp = OnDemandRandomPvals()
+    odrp = OnDemandRandomPvals(relative_location)
     for name in pvals:
-        odrp.dicts[name] = OnDemandRandomDictionary()
+        odrp.dicts[name] = OnDemandRandomDictionary(relative_location if name in cross_sector_dictionaries else None)
         odrp.dicts[name].values = pvals[name]
 
     if lock:
         odrp.lock()
 
     return odrp
+
+def cross_sector_seed(relative_location, key="", value=0):
+    hashkey = "".join(relative_location) + key
+    return zlib.crc32(str.encode(hashkey), value)

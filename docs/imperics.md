@@ -20,6 +20,9 @@ calculation translates high-resolution weather data to yearly values,
 and these calculations rely on a "specification", which describes how
 the dose-response curve varies across space and time.
 
+For information about CSVV files, see the CSVV File Format
+Specification.docx document.
+
 Configuration file structure paradigms:
 
 The configuration file consists of a tree of sub-configurations.  At
@@ -75,7 +78,7 @@ Basic model configration:
   Filepath expansions are interpretted by
   https://docs.python.org/2/library/glob.html
 
-* `clipping` (required): Should curve values less the region minimum be replaced with the region minimum?  Currently this only supports clipping of curves that are expected to have a minimum.  The default limits for the region-specific temperature at which this can occur are 10C and 25C, but these can be adjusted with `clip-mintemp` and `clip-maxtemp` options.
+* `clipping` : A boolean or string (default is `False`). Should values less than a region's curve minimum be replaced with the region minimum? The limits for the region-specific temperature at which this can occur are in the 10C and 25C range window by default, but these can be adjusted with `clip-mintemp` and `clip-maxtemp` options. Weak monotonicity clipping, also known as "U-clipping", is used if `clipping:` is set to `"boatpose"` or `"downdog"`. The `"boatpose"` behavior limits the minimum curve search to the default temperature window range. The range for the temperature window can be adjusted with `clip-mintemp:` and `clip-maxtemp:` options. Similarly, the `"downdog"` option will use this temperature window to find the regional *maximum*. Clipping is only supported for curves that are expected to have a minimum (if `"boatpose"` or `True`) or maximum (if `"downdog"`).
 
 * `covariates` (required): A list of known covariate names,
   interpretted by `interpret.specification::get_covariator`.  See the
@@ -83,6 +86,23 @@ Basic model configration:
   
 * `description` (required): A description for the final result of the
   calculation.
+
+* `csvv-subset` (optional): A two-element list giving the slice of CSVV columns
+  to subset and use. Like Python's slicing, this
+  uses a zero-based index. For example, `csvv-subset: [0, 12]` extracts columns
+  0 - 11 from the CSVV file to use as input for the model specification.
+  
+* `csvv-reunit` (optional): A list of dictionaries overriding CSVV-file units
+  with specified values. For example,
+  ```yaml
+  csvv-reunit:
+    - variable: "a-variable-name"
+      new-unit: "new-overriding-unit"
+    - variable: "another-variable-name"
+      new-unit: "new-overriding-unit"
+  ```
+  overrides the CSVV's "a-variable-name" and "another-variable-name" to use 
+  "new-overriding-unit" units.
   
 * `csvv-organization` (optional):
   Typically blank, but may be included if the CSVV file has the
@@ -99,6 +119,22 @@ Basic model configration:
   weather parameters will be limited to seasons specified by the given
   CSV file.  The columns of file should include `hierid`,
   `plant_date`, `harvest_date`, `plant_month`, `harvest_month`.
+
+* `extrapolation` (optional): Assumes linear extrapolation outside of
+  certain bounds, if given. The following arguments specify the
+  extrapolation scheme: 
+  - `indepvar` (for one independent variable) or `indepvars` (a list of several)
+  - `margin` (a value for a single variable) or `margins` (a list of values)
+  - `scaling` (a optional scaling factor, multiplied against the resulting slope)
+  - `bounds` (a tuple of lower and upper bounds for a single variable, a 
+  dictionary of such bounds, or a polytope list structure). 
+  
+  A flat response (fixed at the level of the response curve
+  at the edge) can be achieved as a special case through changing the `scaling` 
+  factor.
+  
+  For details on the use of these options, see the docstrings in 
+  `open-estimate` for `curves.linextrap`. 
 
 ## Climate naming
 
@@ -164,9 +200,9 @@ For polynomial form has the following additional configuation options:
 * `coeffvar` (optional): The name of the CSVV predname, or prefix for
   higher powers.  Defaults to `variable`.
 * `indepunit` (required): The unit for the independent variable.
-* `allow-raising` (optional): If `yes`, the higher powers of the
+* `allow-raising` (optional): If `True`, the higher powers of the
   variable will be calculated from the linear form, if the other
-  options are not available.
+  options are not available. Default is `False`.
 
 The cubic spline form has the following additional options:
 
@@ -216,6 +252,12 @@ Modifications of covariates:
   except that it the weather variable values for the `within-season` span.
 * `*`: Multiplication of two covariates.
 * `^`: A covariate raised to a power.
+* `.country` appended to the end of a covariate name means that the covariate
+  values input into the model will be aggregates at the country-level, rather 
+  than regional-level. This refers to the first portion of each 
+  region's hierarchical "region-keys" as given in 
+  /shares/gcp/regions/hierarchy.csv. The "country-level" is the first portion
+  of the key when it is split by ".".
 
 Additionally, `hierid-...` can be given as a covariate to add a constant for 
 just a subset of the impact regions. To define the regions that will have a 

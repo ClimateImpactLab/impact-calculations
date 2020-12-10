@@ -24,6 +24,5 @@ def check_result_100years(filepath, variable='rebased', regioncount=24378):
 
         return True
     except Exception as ex:
-        print("Exception raised but returning anyways:")
-        print(ex)
+        # Any failure here is a successful check giving a negative result (that is, the file needs to be regenerated)
         return False

@@ -44,13 +44,32 @@ standard_climate_config = {'class': 'bartlett', 'length': 30}
 class Covariator(object):
     """
     Provides both baseline data and updated covariates in response to each year's values.
+
+    Parameters
+    ----------
+    maxbaseline : int
+        Year up to which the covariate baseline is calculated.
+    conf : dict or None, optional
+        Configuration dict.
     """
-    def __init__(self, maxbaseline, config={}):
+    def __init__(self, maxbaseline, config=None):
+        if config is None:
+            config = {}
         self.startupdateyear = maxbaseline
         self.lastyear = {}
         self.yearcovarscale = config.get('yearcovarscale', 1)
 
     def get_yearcovar(self, region):
+        """
+        Parameters
+        ----------
+        region : str
+            Target impact region.
+
+        Returns
+        -------
+        year
+        """
         year = self.lastyear.get(region, self.startupdateyear)
         if year > self.startupdateyear:
             return (year - self.startupdateyear) * self.yearcovarscale + self.startupdateyear
@@ -58,11 +77,26 @@ class Covariator(object):
             return year
         
     def get_current(self, region):
-        """This can be called as many times as we want."""
+        """
+        This can be called as many times as we want.
+
+        Parameters
+        ----------
+        region : str
+        """
         raise NotImplementedError
 
     def offer_update(self, region, year, ds):
-        """This can be called as many times as we want."""
+        """
+
+        This can be called as many times as we want.
+
+        Parameters
+        ----------
+        region : str
+        year : int
+        ds : xarray.Dataset
+        """
         assert year < 10000
         # Ensure that we aren't called with a year twice
         assert self.lastyear.get(region, -np.inf) <= year, "Called with %d, but previously did %d" % (year, self.lastyear.get(region, -np.inf))
@@ -73,23 +107,45 @@ class Covariator(object):
         return self.get_current(region)
 
     def get_update(self, region, year, ds):
-        """This should only be called by offer_update, because it can only be called once per year-region combination."""
+        """
+        This should only be called by `offer_update`, because it can only be called once per year-region combination.
+
+        Parameters
+        ----------
+        region : str
+        year : int
+        ds : xarray.Dataset
+        """
         raise NotImplementedError
 
     def get_current_args(self, region):
+        """
+        Parameters
+        ----------
+        region : str
+
+        Returns
+        -------
+        tuple
+        """
         return (self.get_current(region),)
 
 class GlobalExogenousCovariator(Covariator):
     """Produces a externally given sequence of covariate values for all regions.
-     
+
     {'covarname': `baseline`} will returned up to (and including) `startupdateyear`.
     In `startupdateyear` + N, the Nth value of `values` will be returned (`values[N-1]`).
 
-    Args:
-        startupdateyear (year): Last year to report `baseline` value.
-        covarname (str): Covariate name to report.
-        baseline (numeric): The value to report up to `startupdateyear`.
-        values (list-like of numeric): Values to report after `startupdateyear`.
+    Parameters
+    ----------
+    startupdateyear : year
+        Last year to report `baseline` value.
+    covarname : str
+        Covariate name to report.
+    baseline : float or int
+        The value to report up to `startupdateyear`.
+    values : Sequence of floats
+        Values to report after `startupdateyear`.
     """
     def __init__(self, startupdateyear, covarname, baseline, values):
         super(GlobalExogenousCovariator, self).__init__(startupdateyear)
@@ -99,19 +155,47 @@ class GlobalExogenousCovariator(Covariator):
         self.cached_index = -1
 
     def get_current(self, region):
+        """
+        Parameters
+        ----------
+        region : str
+        """
         return {self.covarname: self.cached_value}
 
     def get_update(self, region, year, ds):
+        """
+        Parameters
+        ----------
+        region : str
+        year : int
+        ds : xarray.Dataset
+        """
         if year > self.startupdateyear:
             self.cached_index += 1
             self.cached_value = self.values[self.cached_index]
         return self.get_current(region)
-    
+
 class EconomicCovariator(Covariator):
-    """Provides information on log GDP per capita and Population-weight population density."""
-    def __init__(self, economicmodel, maxbaseline, config={}):
+    """Provides information on log GDP per capita and Population-weight population density.
+
+    Parameters
+    ----------
+    economicmodel : adaptation.SSPEconomicModel
+    maxbaseline : int
+        Year up to which the covariate baseline is calculated.
+    limits : Sequence of float
+    country_level : bool, optional
+        Whether economic covariators are to be used at the country level.
+        If ``True``, any ``region`` str passed into methods will be split on
+        ".", and values for the first segment of the split name will be used.
+    conf : dict or None, optional
+        Configuration dict.
+    """
+    def __init__(self, economicmodel, maxbaseline, country_level=False, config=None):
         super(EconomicCovariator, self).__init__(maxbaseline, config=config)
 
+        if config is None:
+            config = {}
         self.numeconyears = config.get('length', standard_economic_config['length'])
 
         self.econ_predictors = economicmodel.baseline_prepared(maxbaseline, self.numeconyears, lambda values: averages.interpret(config, standard_economic_config, values))
@@ -124,7 +208,27 @@ class EconomicCovariator(Covariator):
         else:
             self.slowgrowth = False
 
+        self.country_level = bool(country_level)
+
+    @staticmethod
+    def _get_root_region(x):
+        """Break hierid str into components and return str of root region
+        """
+        return str(x.split(".")[0])
+
     def get_econ_predictors(self, region):
+        """
+        Parameters
+        ----------
+        region : str
+
+        Returns
+        -------
+        dict
+            Output has keys "loggdppc" and "popop" giving the nautral log per
+            capita GDP and some other value.
+        """
+        region = self._get_root_region(region) if self.country_level else region
         econpreds = self.econ_predictors.get(region, None)
 
         if econpreds is None:
@@ -148,13 +252,34 @@ class EconomicCovariator(Covariator):
         return dict(loggdppc=loggdppc, popop=density)
 
     def get_current(self, region):
+        """Get year's economic values for a given region
+        Parameters
+        ----------
+        region : str
+
+        Returns
+        -------
+        dict
+            Output has keys "loggdppc", "logpopop" "year", which give the
+            natural log of per capita GDP, the natural log of popop, and
+            the year, respectively.
+        """
+        region = self._get_root_region(region) if self.country_level else region
         econpreds = self.get_econ_predictors(region)
         return dict(loggdppc=econpreds['loggdppc'],
                     logpopop=np.log(econpreds['popop']),
                     year=self.get_yearcovar(region))
 
     def get_update(self, region, year, ds):
+        """
+        Parameters
+        ----------
+        region : str
+        year : int
+        ds : xarray.Dataset
+        """
         assert year < 10000
+        region = self._get_root_region(region) if self.country_level else region
         self.lastyear[region] = year
 
         if region in self.econ_predictors:
@@ -172,12 +297,36 @@ class EconomicCovariator(Covariator):
         return dict(loggdppc=loggdppc, logpopop=np.log(popop), year=self.get_yearcovar(region))
 
 class BinnedEconomicCovariator(EconomicCovariator):
-    """Provides income as a series of indicator values for the income bin."""
-    def __init__(self, economicmodel, maxbaseline, limits, config={}):
-        super(BinnedEconomicCovariator, self).__init__(economicmodel, maxbaseline, config=config)
+    """Provides income as a series of indicator values for the income bin.
+
+    Parameters
+    ----------
+    economicmodel : adaptation.SSPEconomicModel
+    maxbaseline : int
+        Year up to which the covariate baseline is calculated.
+    limits : Sequence of float
+    country_level : bool, optional
+        Whether economic covariators are to be used at the country level.
+        If ``True``, any ``region`` str passed into methods will be split on
+        ".", and values for the first segment of the split name will be used.
+    conf : dict or None, optional
+        Configuration dict.
+    """
+    def __init__(self, economicmodel, maxbaseline, limits, country_level=False, config=None):
+        super(BinnedEconomicCovariator, self).__init__(economicmodel, maxbaseline, country_level=country_level, config=config)
+        if config is None:
+            config = {}
         self.limits = limits
 
     def add_bins(self, covars):
+        """
+        Parameters
+        ----------
+        covars : dict
+            A dictionary with keys "loggdppc", "logpopop", and "year", giving 
+            the natural log of per capita GDP, the natural log of popop, and
+            the year, respectively.
+        """
         bin_limits = np.array(self.limits, dtype='float')
         incbin = np.digitize(covars['loggdppc'], bin_limits) # starts at 1
         for ii in range(1, len(self.limits)):
@@ -185,37 +334,103 @@ class BinnedEconomicCovariator(EconomicCovariator):
         return covars
         
     def get_current(self, region):
+        """
+        Parameters
+        ----------
+        region : str
+        """
         covars = super(BinnedEconomicCovariator, self).get_current(region)
         return self.add_bins(covars)
 
     def get_update(self, region, year, ds):
+        """
+        Parameters
+        ----------
+        region : str
+        year : int
+        ds : xarray.Dataset
+        """
         covars = super(BinnedEconomicCovariator, self).get_update(region, year, ds)
         return self.add_bins(covars)
 
 class ShiftedEconomicCovariator(EconomicCovariator):
-    """Provides a 'loggdppc-delta' covariate, which is the loggdppc with a constant subtracted."""
-    def __init__(self, economicmodel, maxbaseline, config={}):
-        super(ShiftedEconomicCovariator, self).__init__(economicmodel, maxbaseline, config=config)
+    """Provides a 'loggdppc-delta' covariate, which is the loggdppc with a constant subtracted.
+
+    Parameters
+    ----------
+    economicmodel : adaptation.SSPEconomicModel
+    maxbaseline : int
+        Year up to which the covariate baseline is calculated.
+    country_level : bool, optional
+        Whether economic covariators are to be used at the country level.
+        If ``True``, any ``region`` str passed into methods will be split on
+        ".", and values for the first segment of the split name will be used.
+    conf : dict or None, optional
+        Configuration dict.
+    """
+    def __init__(self, economicmodel, maxbaseline, country_level=False, config=None):
+        super(ShiftedEconomicCovariator, self).__init__(economicmodel, maxbaseline, country_level=country_level, config=config)
+        if config is None:
+            config = {}
         assert 'loggdppc-delta' in config, "Must define loggdppc-delta to use loggdppc-shifted."
         self.delta = config['loggdppc-delta']
 
     def add_shifted(self, covars):
+        """Shift `covars['loggdppc']` by subtracting ``self.data``, creating covars['loggdppc-shifted']
+        """
         covars['loggdppc-shifted'] = covars['loggdppc'] - self.delta
         return covars
         
     def get_current(self, region):
+        """Get year's (shifted) economic values for a given region
+
+        Parameters
+        ----------
+        region : str
+
+        Returns
+        -------
+        dict
+            Output has keys "loggdppc", "logpopop" "year", which give the
+            natural log of per capita GDP, the natural log of popop, and
+            the year, respectively. Also includes "loggdppc-shifted", the 
+            shifted value.
+        """
         covars = super(ShiftedEconomicCovariator, self).get_current(region)
         return self.add_shifted(covars)
 
     def get_update(self, region, year, ds):
+        """Get shifted update
+
+        Parameters
+        ----------
+        region : str
+        year : int
+        ds : xarray.Dataset
+        """
         covars = super(ShiftedEconomicCovariator, self).get_update(region, year, ds)
         return self.add_shifted(covars)
 
 class MeanWeatherCovariator(Covariator):
-    """Provides an average climate variable covariate."""
-    def __init__(self, weatherbundle, maxbaseline, variable, config={}, usedaily=True, quiet=False):
+    """Provides an average climate variable covariate.
+
+    Parameters
+    ----------
+    weatherbundle : generate.weather.WeatherBundle
+    maxbaseline : int
+        Year up to which the covariate baseline is calculated.
+    variable : str
+        Target weather variable.
+    conf : dict or None, optional
+        Configuration dict.
+    usedaily : bool, optional
+    quiet : bool, optional
+    """
+    def __init__(self, weatherbundle, maxbaseline, variable, config=None, usedaily=True, quiet=False):
         super(MeanWeatherCovariator, self).__init__(maxbaseline, config=config)
 
+        if config is None:
+            config = {}
         self.numtempyears = config.get('length', standard_climate_config['length'])
         self.variable = variable
 
@@ -224,7 +439,7 @@ class MeanWeatherCovariator(Covariator):
         self.dsvar = variable # Save this to be consistent
             
         temp_predictors = {}
-        for region, ds in weatherbundle.baseline_values(maxbaseline, quiet=quiet): # baseline through maxbaseline
+        for region, ds in weatherbundle.baseline_values(maxbaseline, quiet=quiet, only_region=config.get('filter-region')): # baseline through maxbaseline
             self.dsvar = 'daily' + variable if usedaily and 'daily' + variable in ds._variables else variable
             try:
                 temp_predictors[region] = averages.interpret(config, standard_climate_config, ds[self.dsvar][-self.numtempyears:])
@@ -248,6 +463,13 @@ class MeanWeatherCovariator(Covariator):
         self.usedaily = usedaily
 
     def get_current(self, region):
+        """
+        This can be called as many times as we want.
+
+        Parameters
+        ----------
+        region : str
+        """
         #assert region in self.temp_predictors, "Missing " + region
         value = self.temp_predictors[region].get()
         if not np.isscalar(value):
@@ -258,7 +480,20 @@ class MeanWeatherCovariator(Covariator):
             return {self.variable: value}
 
     def get_update(self, region, year, ds):
-        """Allow ds = None for incadapt farmer who cannot adapt to temperature."""
+        """
+
+        Allow ds = None for incadapt farmer who cannot adapt to temperature.
+
+        Parameters
+        ----------
+        region : str
+        year : int
+        ds : xarray.Dataset
+
+        Returns
+        -------
+        dict
+        """
         if ds is not None and year > self.startupdateyear:
             self.temp_predictors[region].update(np.mean(ds[self.dsvar]._values)) # if only yearly values
 
@@ -271,9 +506,24 @@ class MeanWeatherCovariator(Covariator):
             return {self.variable: value, 'year': self.get_yearcovar(region)}
 
 class SubspanWeatherCovariator(MeanWeatherCovariator):
-    """Provides an average climate variable covariate, using only data from a span of days in each year."""
-    def __init__(self, weatherbundle, maxbaseline, day_start, day_end, variable, config={}):
+    """Provides an average climate variable covariate, using only data from a span of days in each year.
+
+    Parameters
+    ----------
+    weatherbundle : generate.weather.WeatherBundle
+    maxbaseline : int
+        Year up to which the covariate baseline is calculated.
+    day_start
+    day_end
+    variable : str
+        Target weather variable.
+    conf : dict or None, optional
+        Configuration dict.
+    """
+    def __init__(self, weatherbundle, maxbaseline, day_start, day_end, variable, config=None):
         super(SubspanWeatherCovariator, self).__init__(weatherbundle, maxbaseline, variable, config=config)
+        if config is None:
+            config = {}
         self.maxbaseline = maxbaseline
         self.day_start = day_start
         self.day_end = day_end
@@ -283,11 +533,17 @@ class SubspanWeatherCovariator(MeanWeatherCovariator):
         self.sigmastr = "%ssigma%d-%d" % (variable, self.day_start, self.day_end)
 
     def get_current(self, region):
+        """
+
+        Parameters
+        ----------
+        region : str
+        """
         if self.all_values is None:
             print(("Collecting " + self.mustr))
             # Read in all regions
             self.all_values = {}
-            for year, ds in self.weatherbundle.yearbundles(maxyear=self.maxbaseline):
+            for year, ds in self.weatherbundle.yearbundles(maxyear=self.maxbaseline, variable_ofinterest=self.variable):
                 for region in self.weatherbundle.regions:
                     if region not in self.all_values:
                         self.all_values[region] = np.squeeze(ds[self.variable].sel(region=region).values[self.day_start:self.day_end])
@@ -300,6 +556,20 @@ class SubspanWeatherCovariator(MeanWeatherCovariator):
         return {self.mustr: mu, self.sigmastr: sigma}
 
     def get_update(self, region, year, ds):
+        """
+
+        Allow ds = None for incadapt farmer who cannot adapt to temperature.
+
+        Parameters
+        ----------
+        region : str
+        year : int
+        ds : xarray.Dataset
+
+        Returns
+        -------
+        dict
+        """
         if self.all_values is None:
             self.get_current(region)
             
@@ -312,9 +582,23 @@ class SubspanWeatherCovariator(MeanWeatherCovariator):
         return {self.mustr: mu, self.sigmastr: sigma}
 
 class SeasonalWeatherCovariator(MeanWeatherCovariator):
-    """Provides an average climate variable covariate, using planting and harvesting dates that are IR-specific."""
-    def __init__(self, weatherbundle, maxbaseline, filepath, variable, config={}):
+    """Provides an average climate variable covariate, using planting and harvesting dates that are IR-specific.
+
+    Parameters
+    ----------
+    weatherbundle : generate.weather.WeatherBundle
+    maxbaseline : int
+        Year up to which the covariate baseline is calculated.
+    filepath : str
+    variable : str
+        Target weather variable.
+    conf : dict or None, optional
+        Configuration dict.
+    """
+    def __init__(self, weatherbundle, maxbaseline, filepath, variable, config=None):
         super(SeasonalWeatherCovariator, self).__init__(weatherbundle, maxbaseline, variable, config=config)
+        if config is None:
+            config = {}
         self.maxbaseline = maxbaseline
         assert config['timerate'] == 'month', "Cannot handle daily seasons."
         self.culture_periods = irvalues.get_file_cached(filepath, irvalues.load_culture_months)
@@ -322,25 +606,51 @@ class SeasonalWeatherCovariator(MeanWeatherCovariator):
         # Setup all averages
         self.byregion = {region: averages.interpret(config, standard_climate_config, []) for region in self.weatherbundle.regions}
 
-        for year, ds in self.weatherbundle.yearbundles(maxyear=self.maxbaseline):
+        for year, ds in self.weatherbundle.yearbundles(maxyear=self.maxbaseline, variable_ofinterest=self.variable):
             regions = np.array(ds.coords["region"])
             for region, subds in fast_dataset.region_groupby(ds, year, regions, {regions[ii]: ii for ii in range(len(regions))}):
                 if region in self.culture_periods:
                     plantii = int(self.culture_periods[region][0] - 1)
-                    harvestii = int(self.culture_periods[region][1] - 1)
+                    harvestii = int(self.culture_periods[region][1])
                     self.byregion[region].update(np.mean(subds[self.variable]._values[plantii:harvestii]))
 
     def get_current(self, region):
+        """
+        This can be called as many times as we want.
+
+        Parameters
+        ----------
+        region : str
+
+        Returns
+        -------
+        dict
+        """
+
         if region in self.culture_periods:
             return {'seasonal' + self.variable: self.byregion[region].get()}
         else:
             return {'seasonal' + self.variable: np.nan}
 
     def get_update(self, region, year, ds):
+        """
+
+        Allow ds = None for incadapt farmer who cannot adapt to temperature.
+
+        Parameters
+        ----------
+        region : str
+        year : int
+        ds : xarray.Dataset
+
+        Returns
+        -------
+        dict
+        """
         if ds is not None and year > self.startupdateyear:
             if region in self.culture_periods:
                 plantii = int(self.culture_periods[region][0] - 1)
-                harvestii = int(self.culture_periods[region][1] - 1)
+                harvestii = int(self.culture_periods[region][1])
                 self.byregion[region].update(np.mean(ds[self.variable]._values[plantii:harvestii]))
 
         return self.get_current(region)
@@ -361,10 +671,21 @@ class YearlyWeatherCovariator(Covariator):
     YearlyWeatherCovariator takes a YearlyWeatherReader and collects
     data from it as needed, rather than depending on the
     weatherbundle.
+
+    Parameters
+    ----------
+    yearlyreader
+    regions
+    baseline_end
+    is_historical
+    conf : dict or None, optional
+        Configuration dict.
     """
-    def __init__(self, yearlyreader, regions, baseline_end, is_historical, config={}):
+    def __init__(self, yearlyreader, regions, baseline_end, is_historical, config=None):
         super(YearlyWeatherCovariator, self).__init__(baseline_end)
 
+        if config is None:
+            config = {}
         predictors = {region: averages.interpret(config, standard_climate_config, []) for region in regions}
 
         for ds in yearlyreader.read_iterator():
@@ -383,9 +704,32 @@ class YearlyWeatherCovariator(Covariator):
         self.random_year_access = RandomYearlyAccess(yearlyreader)
 
     def get_current(self, region):
+        """
+        This can be called as many times as we want.
+
+        Parameters
+        ----------
+        region : str
+
+        Return
+        ------
+        dict
+        """
         return {self.yearlyreader.get_dimension()[0]: self.predictors[region].get()}
 
     def get_update(self, region, year, ds):
+        """
+
+        Parameters
+        ----------
+        region : str
+        year : int
+        ds : xarray.Dataset
+
+        Returns
+        -------
+        dict
+        """
         if self.is_historical or ds is None:
             return self.get_current(region)
 
@@ -398,10 +742,25 @@ class YearlyWeatherCovariator(Covariator):
 
 class MeanBinsCovariator(Covariator):
     """Provides binned weather data.
-    This class has not been updated to reflect xarray use."""
-    def __init__(self, weatherbundle, binlimits, dropbin, maxbaseline, config={}, quiet=False):
+
+    This class has not been updated to reflect xarray use.
+    
+    Parameters
+    ----------
+    weatherbundle : generate.weather.WeatherBundle
+    binlimits
+    dropbin
+    maxbaseline : int
+        Year up to which the covariate baseline is calculated.
+    conf : dict or None, optional
+        Configuration dict.
+    quiet : bool, optional
+    """
+    def __init__(self, weatherbundle, binlimits, dropbin, maxbaseline, config=None, quiet=False):
         super(MeanBinsCovariator, self).__init__(maxbaseline)
 
+        if config is None:
+            config = {}
         self.binlimits = binlimits
         self.dropbin = dropbin
         self.numtempyears = config.get('length', standard_climate_config['length'])
@@ -409,7 +768,7 @@ class MeanBinsCovariator(Covariator):
         if not quiet:
             print("Collecting baseline information...")
         temp_predictors = {} # {region: [rm-bin-1, ...]}
-        for region, binyears in weatherbundle.baseline_values(maxbaseline, quiet=quiet): # baseline through maxbaseline
+        for region, binyears in weatherbundle.baseline_values(maxbaseline, quiet=quiet, only_region=config.get('filter-region')): # baseline through maxbaseline
             usedbinyears = []
             for kk in range(binyears.shape[-1]):
                 usedbinyears.append(averages.interpret(config, standard_climate_config, binyears[-self.numtempyears:, kk]))
@@ -419,11 +778,30 @@ class MeanBinsCovariator(Covariator):
         self.weatherbundle = weatherbundle
 
     def get_current(self, region):
+        """
+        This can be called as many times as we want.
+
+        Parameters
+        ----------
+        region : str
+
+        Returns
+        -------
+        dict
+        """
         #assert region in self.temp_predictors, "Missing " + region
         assert len(self.weatherbundle.get_dimension()) == len(self.temp_predictors[region])
         return {self.weatherbundle.get_dimension()[ii]: self.temp_predictors[region][ii].get() for ii in range(len(self.weatherbundle.get_dimension()))}
 
     def get_update(self, region, year, ds):
+        """
+
+        Parameters
+        ----------
+        region : str
+        year : int
+        ds : xarray.Dataset
+        """
         assert year < 10000
 
         """Allow ds = None for incadapt farmer who cannot adapt to temperature."""
@@ -449,10 +827,21 @@ class MeanBinsCovariator(Covariator):
         return {self.weatherbundle.get_dimension()[ii]: self.temp_predictors[region][ii].get() for ii in range(len(self.weatherbundle.get_dimension()))}
 
 class AgeShareCovariator(Covariator):
-    """Provides the share of the population in each age group."""
-    def __init__(self, economicmodel, maxbaseline, config={}):
+    """Provides the share of the population in each age group.
+
+    Parameters
+    ----------
+    economicmodel : adaptation.SSPEconomicModel
+    maxbaseline : int
+        Year up to which the covariate baseline is calculated.
+    conf : dict or None, optional
+        Configuration dict.
+    """
+    def __init__(self, economicmodel, maxbaseline, config=None):
         super(AgeShareCovariator, self).__init__(maxbaseline)
 
+        if config is None:
+            config = {}
         self.config = config
 
         self.ageshares = agecohorts.load_ageshares(economicmodel.model, economicmodel.scenario)
@@ -462,6 +851,17 @@ class AgeShareCovariator(Covariator):
         self.get_current('mean') # Fill in the mean agerm
 
     def get_current(self, region):
+        """
+        This can be called as many times as we want.
+
+        Parameters
+        ----------
+        region : str
+
+        Returns
+        -------
+        dict
+        """
         # Fill in the rm for this region
         if region != 'mean':
             region = region[:3] # Just country code
@@ -483,6 +883,18 @@ class AgeShareCovariator(Covariator):
         return {column: rmdata[column].get() for column in agecohorts.columns}
 
     def get_update(self, region, year, ds):
+        """
+
+        Parameters
+        ----------
+        region : str
+        year : int
+        ds : xarray.Dataset
+
+        Returns
+        -------
+        dict
+        """
         region = region[:3] # Just country code
         if region not in self.ageshares:
             region = 'mean' # XXX: This updates for every country!
@@ -495,16 +907,44 @@ class AgeShareCovariator(Covariator):
         return {column: self.agerm[region][column].get() for column in agecohorts.columns}
 
 class ConstantCovariator(Covariator):
-    """Provides an IR-specific value that is constant across time."""
+    """Provides an IR-specific value that is constant across time.
+
+    Parameters
+    ----------
+    name : str
+    irvalues
+    """
     def __init__(self, name, irvalues):
         super(ConstantCovariator, self).__init__(None)
         self.name = name
         self.irvalues = irvalues
 
     def get_current(self, region):
+        """
+
+        Parameters
+        ----------
+        region : str
+
+        Returns
+        -------
+        dict
+        """
         return {self.name: self.irvalues[region]}
 
     def get_update(self, region, year, ds):
+        """
+
+        Parameters
+        ----------
+        region : str
+        year : int
+        ds : xarray.Dataset
+
+        Returns
+        -------
+        dict
+        """
         return {self.name: self.irvalues[region]}
 
 def populate_constantcovariator_by_hierid(covar_name, parent_hierids, hi_df=None):
@@ -544,7 +984,12 @@ def populate_constantcovariator_by_hierid(covar_name, parent_hierids, hi_df=None
     return ConstantCovariator(covar_name, ir_dict)
 
 class CombinedCovariator(Covariator):
-    """Reports all covariates provided by a collection of Covariator objects."""
+    """Reports all covariates provided by a collection of Covariator objects.
+    
+    Parameters
+    ----------
+    covariators : Sequence of adaptation.covariates.Covariator
+    """
     def __init__(self, covariators):
         commonstartyear = None
         for covariator in covariators:
@@ -558,6 +1003,16 @@ class CombinedCovariator(Covariator):
         self.covariators = covariators
 
     def get_current(self, region):
+        """
+
+        Parameters
+        ----------
+        region : str
+
+        Returns
+        -------
+        dict
+        """
         result = {}
         for covariator in self.covariators:
             subres = covariator.get_current(region)
@@ -567,6 +1022,14 @@ class CombinedCovariator(Covariator):
         return result
 
     def get_update(self, region, year, ds):
+        """
+
+        Parameters
+        ----------
+        region : str
+        year : int
+        ds : xarray.Dataset
+        """
         result = {}
         for covariator in self.covariators:
             subres = covariator.get_update(region, year, ds)
@@ -576,14 +1039,33 @@ class CombinedCovariator(Covariator):
         return result
 
 class TranslateCovariator(Covariator):
-    """Rename or otherwise transform the results of another Covariator."""
-    def __init__(self, covariator, renames, transforms={}):
+    """Rename or otherwise transform the results of another Covariator.
+
+    Parameters
+    ----------
+    covariator : adaptation.covariates.Covariator
+    renames
+    transforms : dict or None, optional
+    """
+    def __init__(self, covariator, renames, transforms=None):
         super(TranslateCovariator, self).__init__(covariator.startupdateyear)
+        if transforms is None:
+            transforms = {}
         self.covariator = covariator
         self.renames = renames
         self.transforms = transforms
 
     def translate(self, covariates):
+        """
+
+        Parameters
+        ----------
+        covariates : dict
+
+        Returns
+        -------
+        result : dict
+        """
         result = {}
         for newname in self.renames:
             oldname = self.renames[newname]
@@ -592,10 +1074,24 @@ class TranslateCovariator(Covariator):
         return result
 
     def get_current(self, region):
+        """
+
+        Parameters
+        ----------
+        region : str
+        """
         baseline = self.covariator.get_current(region)
         return self.translate(baseline)
 
     def get_update(self, region, year, ds):
+        """
+
+        Parameters
+        ----------
+        region : str
+        year : int
+        ds : xarray.Dataset
+        """
         update = self.covariator.get_update(region, year, ds)
         return self.translate(update)
 
@@ -606,13 +1102,18 @@ class SplineCovariator(TranslateCovariator):
     `covariator` should be a Covariator, returning dictionaries containing `covarname`.
 
     The resulting spline covariate dictionary will contain keys of
-    the form `[covarname][suffix][k]`, for `k` in 1 ... len(leftlimits). 
+    the form `[covarname][suffix][k]`, for `k` in 1 ... len(leftlimits).
         
-    Args:
-        covariator (Covariator): Source for variable to be splined.
-        covarname (str): The covariate reported by `covariator`.
-        suffix (str): Added to the covariate name when reporting splines.
-        leftlimits (list-like of numeric): The values for l_k as defined above.
+    Parameters
+    ----------
+    covariator : Covariator 
+        Source for variable to be splined.
+    covarname : str
+        The covariate reported by `covariator`.
+    suffix : str
+        Added to the covariate name when reporting splines.
+    leftlimits : list-like of numeric
+        The values for l_k as defined above.
     """
     def __init__(self, covariator, covarname, suffix, leftlimits):
         super(SplineCovariator, self).__init__(covariator, {})
@@ -621,20 +1122,39 @@ class SplineCovariator(TranslateCovariator):
         self.leftlimits = leftlimits
 
     def translate(self, covariates):
+        """
+
+        Parameters
+        ----------
+        covariates : dict
+
+        Returns
+        -------
+        result : dict
+        """
         result = {}
         for ii in range(len(self.leftlimits)):
             if covariates[self.covarname] - self.leftlimits[ii] < 0:
                 result[self.covarname + self.suffix + str(ii+1)] = 0
+                result[self.covarname + 'indic' + str(ii+1)] = 0
             else:
                 result[self.covarname + self.suffix + str(ii+1)] = covariates[self.covarname] - self.leftlimits[ii]
+                result[self.covarname + 'indic' + str(ii+1)] = 1
         return result
                 
 class CountryAggregatedCovariator(Covariator):
-    """Spatially average the covariates across all regions within a country."""
+    """Spatially average the covariates across all regions within a country.
+
+    Parameters
+    ----------
+    source
+    regions
+    """
     def __init__(self, source, regions):
         self.source = source
         bycountry = {}
         for region in regions:
+            # Should replace much of this with a DefaultDict...
             if region[:3] in bycountry:
                 bycountry[region[:3]].append(region)
             else:
@@ -642,12 +1162,33 @@ class CountryAggregatedCovariator(Covariator):
         self.bycountry = bycountry
 
     def get_current(self, country):
+        """
+
+        Parameters
+        ----------
+        country : str
+
+        Returns
+        -------
+        dict
+        """
         values = [self.source.get_current(region) for region in self.bycountry[country]]
         return {key: np.mean([value[key] for value in values]) for key in values[0]}
 
 class CountryDeviationCovariator(CountryAggregatedCovariator):
-    """Report the deviation between a region-specific covariate and its country average."""
+    """Report the deviation between a region-specific covariate and its country average.
+    """
     def get_current(self, region):
+        """
+
+        Parameters
+        ----------
+        region : str
+
+        Returns
+        -------
+        dict
+        """
         countrylevel = super(CountryDeviationCovariator, self).get_current(region[:3])
         subcountrylevel = self.source.get_current(region)
 
@@ -655,8 +1196,13 @@ class CountryDeviationCovariator(CountryAggregatedCovariator):
 
 class HistoricalCovariator(Covariator):
     """Just don't ignore get_update; note that this means that the source
-covariator should not be used elsewhere where it might have get_update
-called.
+    covariator should not be used elsewhere where it might have get_update
+    called.
+
+    Parameters
+    ----------
+    source
+    suffix
     """
     def __init__(self, source, suffix):
         super(HistoricalCovariator, self).__init__(source.startupdateyear)
@@ -664,14 +1210,34 @@ called.
         self.suffix = suffix
 
     def get_update(self, region, year, ds):
+        """
+
+        Parameters
+        ----------
+        region : str
+        year : int
+        ds : xarray.Dataset
+        """
         return self.get_current(region)
 
     def get_current(self, region):
+        """
+
+        Parameters
+        ----------
+        region : str
+        """
         covariates = self.source.get_current(region)
         return {covar + self.suffix: covariates[covar] for covar in covariates}
 
 class ProductCovariator(Covariator):
-    """Multiple the covariates provided by two other Covariators."""
+    """Multiple the covariates provided by two other Covariators.
+
+    Parameters
+    ----------
+    source1 : Covariator
+    source2 : Covariator
+    """
     def __init__(self, source1, source2):
         assert source1.startupdateyear == source2.startupdateyear
         super(ProductCovariator, self).__init__(source1.startupdateyear)
@@ -679,6 +1245,17 @@ class ProductCovariator(Covariator):
         self.source2 = source2
 
     def make_product(self, covars1, covars2):
+        """
+
+        Parameters
+        ----------
+        covars1 : dict
+        covars2 : dict
+
+        Returns
+        -------
+        dict
+        """
         combos = itertools.product(list(covars1.keys()), list(covars2.keys()))
         result = {"%s*%s" % (key1, key2): covars1[key1] * covars2[key2] for key1, key2 in combos}
         if 'year' in covars1:
@@ -688,29 +1265,74 @@ class ProductCovariator(Covariator):
         return result
         
     def get_update(self, region, year, ds):
+        """
+
+        Parameters
+        ----------
+        region : str
+        year : int
+        ds : xarray.Dataset
+        """
         covars1 = self.source1.get_update(region, year, ds)
         covars2 = self.source2.get_update(region, year, ds)
         return self.make_product(covars1, covars2)
 
     def get_current(self, region):
+        """
+
+        Parameters
+        ----------
+        region : str
+        """
         covars1 = self.source1.get_current(region)
         covars2 = self.source2.get_current(region)
         return self.make_product(covars1, covars2)
     
 class PowerCovariator(Covariator):
-    """Raise a covariate provided by another Covariator to a power."""
+    """Raise a covariate provided by another Covariator to a power.
+    
+    Parameters
+    ----------
+    source
+    power : float or int
+    """
     def __init__(self, source, power):
         super(PowerCovariator, self).__init__(source.startupdateyear)
         self.source = source
         self.power = power
 
     def make_power(self, covars):
+        """
+
+        Parameters
+        ----------
+        covars : dict
+
+        Returns
+        -------
+        dict
+        """
         return {"%s^%g" % (key, self.power): covars[key] ** self.power for key in covars}
         
     def get_update(self, region, year, ds):
+        """
+
+        Parameters
+        ----------
+        region : str
+        year : int
+        ds : xarray.Dataset
+        """
         covars = self.source.get_update(region, year, ds)
         return self.make_power(covars)
 
     def get_current(self, region):
+        """
+        This can be called as many times as we want.
+
+        Parameters
+        ----------
+        region : str
+        """
         covars = self.source.get_current(region)
         return self.make_power(covars)

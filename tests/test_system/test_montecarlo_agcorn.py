@@ -14,7 +14,7 @@ import xarray as xr
 import numpy as np
 import numpy.testing as npt
 
-from generate.generate import tmpdir_projection
+from utils import tmpdir_projection
 
 
 pytestmark = pytest.mark.imperics_shareddir
@@ -22,7 +22,6 @@ pytestmark = pytest.mark.imperics_shareddir
 
 RUN_BASENAME = "corn_global_t-tbar_pbar_lnincbr_ir_tp_binp-tbar_pbar_lnincbr_ir_tp_fe-A1TT_A0Y_clus-A1_A0Y_TINV-191220"
 RUN_CONFIGS = {
-    "module": "tests/configs/corn_prsplitmodel_partiald.yml",
     "filter-region": "USA.14.608",
     "mode": "montecarlo",
     "do_farmers": True,
@@ -38,6 +37,85 @@ RUN_CONFIGS = {
         RUN_BASENAME: {"seed-csvv": 123},
         "histclim": {"seed-yearorder": 123},
     },
+    "climate": ["tasmax", "edd", "pr", "pr-poly-2 = pr-monthsum-poly-2"],
+    "grid-weight": "cropwt",
+    "models": [
+        {
+            "calculation": [
+                {
+                    "Sum": [
+                        {"YearlySumIrregular": {"model": "gddkdd"}},
+                        {"YearlySumIrregular": {"model": "precip"}},
+                    ]
+                },
+                {
+                    "AuxiliaryResult": [
+                        {
+                            "PartialDerivative": {
+                                "covariate": "seasonaltasmax",
+                                "covarunit": "C",
+                            }
+                        },
+                        "ddseasonaltasmax",
+                    ]
+                },
+                {
+                    "AuxiliaryResult": [
+                        {
+                            "PartialDerivative": {
+                                "covariate": "seasonalpr",
+                                "covarunit": "mm",
+                            }
+                        },
+                        "ddseasonalpr",
+                    ]
+                },
+                "Rebase",
+                {
+                    "KeepOnly": [
+                        "ddseasonaltasmax",
+                        "ddseasonalpr",
+                        "rebased",
+                        "response",
+                        "response2",
+                    ]
+                },
+            ],
+            "clipping": False,
+            "covariates": [
+                "loggdppc",
+                "seasonaltasmax",
+                "seasonalpr",
+                "ir-share",
+                "seasonaltasmax*seasonalpr",
+            ],
+            "csvvs": "social/parameters/agriculture/corn/corn_global_t-tbar_pbar_lnincbr_ir_tp_binp-tbar_pbar_lnincbr_ir_tp_fe-A1TT_A0Y_clus-A1_A0Y_TINV-191220.csvv",
+            "description": "Yield rate for corn",
+            "specifications": {
+                "gddkdd": {
+                    "beta-limits": {"kdd-31": "-inf, 0"},
+                    "depenunit": "log kg / Ha",
+                    "description": "Temperature-driven " "yield rate for corn",
+                    "functionalform": "coefficients",
+                    "variables": {
+                        "gdd-8-31": "edd.bin(8) " "- " "edd.bin(31) " "[C day]",
+                        "kdd-31": "edd.bin(31) " "[C day]",
+                    },
+                },
+                "precip": {
+                    "depenunit": "log kg / Ha",
+                    "description": "Precipitation-driven " "yield rate for corn",
+                    "functionalform": "sum-by-time",
+                    "indepunit": "mm",
+                    "subspec": {"functionalform": "polynomial", "variable": "pr"},
+                    "suffixes": [1, 2, 3, 4, 5, 6, 7, 8, 9, "r", "r", "r"],
+                },
+            },
+            "within-season": "social/baselines/agriculture/world-combo-201710-growing-seasons-corn-1stseason.csv",
+        }
+    ],
+    "rolling-years": 2,
+    "timerate": "month",
 }
 
 
@@ -144,10 +222,10 @@ class TestRebased:
     @pytest.mark.parametrize(
         "result_file,expected",
         [
-            ("base_ds", np.array([[18437142.0, 15240259.0, 13820419.0]]).T),
-            ("noadapt_ds", np.array([[18437142.0, 15240259.0, 13820419.0]]).T),
-            ("incadapt_ds", np.array([[18437142.0, 15240259.0, 13820419.0]]).T),
-            ("histclim_ds", np.array([[-2261668.0, 3017162.0, 3017162.0]]).T),
+            ("base_ds", np.array([[16763353.0, 13856688.0, 12565748.0]]).T),
+            ("noadapt_ds", np.array([[16763353.0, 13856688.0, 12565748.0]]).T),
+            ("incadapt_ds", np.array([[16763353.0, 13856688.0, 12565748.0]]).T),
+            ("histclim_ds", np.array([[-2035501.0, 2715450.0, 2715450.0]]).T),
         ],
     )
     def test_head(self, projection_payload, result_file, expected):
@@ -163,10 +241,10 @@ class TestRebased:
     @pytest.mark.parametrize(
         "result_file,expected",
         [
-            ("base_ds", np.array([[18277254.0, -23021556.0, np.nan]]).T),
-            ("noadapt_ds", np.array([[18388806.0, -21105998.0, np.nan]]).T),
-            ("incadapt_ds", np.array([[18388806.0, -21105956.0, np.nan]]).T),
-            ("histclim_ds", np.array([[2662714.8, -6997009.5, np.nan]]).T),
+            ("base_ds", np.array([[16553001.0, -22093280.0, -3109495.8]]).T),
+            ("noadapt_ds", np.array([[16719406.0, -19189916.0, -822137.2]]).T),
+            ("incadapt_ds", np.array([[16719406.0, -19189874.0, -822115.2]]).T),
+            ("histclim_ds", np.array([[2393200.0, -6320445.0, 1069611.9]]).T),
         ],
     )
     def test_tail(self, projection_payload, result_file, expected):

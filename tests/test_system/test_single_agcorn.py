@@ -12,7 +12,7 @@ import xarray as xr
 import numpy as np
 import numpy.testing as npt
 
-from generate.generate import tmpdir_projection
+from utils import tmpdir_projection
 
 
 pytestmark = pytest.mark.imperics_shareddir
@@ -23,14 +23,93 @@ def projection_netcdf():
     """Runs the projection in tmpdir, gets results netCDF, cleans output on exit
     """
     run_configs = {
-        "module": "tests/configs/corn_prsplitmodel_partiald.yml",
         "mode": "writecalcs",
         "singledir": "single",
         "filter-region": "USA.14.608",
         "do_farmers": False,
         "do_historical": False,
         "deltamethod": False,
+        "climate": ["tasmax", "edd", "pr", "pr-poly-2 = pr-monthsum-poly-2"],
+        "grid-weight": "cropwt",
+        "models": [
+            {
+                "calculation": [
+                    {
+                        "Sum": [
+                            {"YearlySumIrregular": {"model": "gddkdd"}},
+                            {"YearlySumIrregular": {"model": "precip"}},
+                        ]
+                    },
+                    {
+                        "AuxiliaryResult": [
+                            {
+                                "PartialDerivative": {
+                                    "covariate": "seasonaltasmax",
+                                    "covarunit": "C",
+                                }
+                            },
+                            "ddseasonaltasmax",
+                        ]
+                    },
+                    {
+                        "AuxiliaryResult": [
+                            {
+                                "PartialDerivative": {
+                                    "covariate": "seasonalpr",
+                                    "covarunit": "mm",
+                                }
+                            },
+                            "ddseasonalpr",
+                        ]
+                    },
+                    "Rebase",
+                    {
+                        "KeepOnly": [
+                            "ddseasonaltasmax",
+                            "ddseasonalpr",
+                            "rebased",
+                            "response",
+                            "response2",
+                        ]
+                    },
+                ],
+                "clipping": False,
+                "covariates": [
+                    "loggdppc",
+                    "seasonaltasmax",
+                    "seasonalpr",
+                    "ir-share",
+                    "seasonaltasmax*seasonalpr",
+                ],
+                "csvvs": "social/parameters/agriculture/corn/corn_global_t-tbar_pbar_lnincbr_ir_tp_binp-tbar_pbar_lnincbr_ir_tp_fe-A1TT_A0Y_clus-A1_A0Y_TINV-191220.csvv",
+                "description": "Yield rate for corn",
+                "specifications": {
+                    "gddkdd": {
+                        "beta-limits": {"kdd-31": "-inf, 0"},
+                        "depenunit": "log kg / Ha",
+                        "description": "Temperature-driven " "yield rate for corn",
+                        "functionalform": "coefficients",
+                        "variables": {
+                            "gdd-8-31": "edd.bin(8) " "- " "edd.bin(31) " "[C day]",
+                            "kdd-31": "edd.bin(31) " "[C day]",
+                        },
+                    },
+                    "precip": {
+                        "depenunit": "log kg / Ha",
+                        "description": "Precipitation-driven " "yield rate for corn",
+                        "functionalform": "sum-by-time",
+                        "indepunit": "mm",
+                        "subspec": {"functionalform": "polynomial", "variable": "pr"},
+                        "suffixes": [1, 2, 3, 4, 5, 6, 7, 8, 9, "r", "r", "r"],
+                    },
+                },
+                "within-season": "social/baselines/agriculture/world-combo-201710-growing-seasons-corn-1stseason.csv",
+            }
+        ],
+        "rolling-years": 2,
+        "timerate": "month",
     }
+
     # Trigger projection run in temprary directory:
     with tmpdir_projection(run_configs, "single agcorn test") as tmpdirname:
         results_nc_path = Path(
@@ -88,7 +167,7 @@ class TestRebased:
         """Test head of variable array"""
         npt.assert_allclose(
             projection_netcdf[self.target_variable].values[:3],
-            np.array([[-0.16533269, -0.0223633, 0.02246693]]).T,
+            np.array([[-0.15186098, -0.02401909, 0.01957218]]).T,
             atol=self.atol,
             rtol=self.rtol,
         )
@@ -97,7 +176,7 @@ class TestRebased:
         """Test tail of variable array"""
         npt.assert_allclose(
             projection_netcdf[self.target_variable].values[-3:],
-            np.array([[-0.59789735, -0.10988867, np.nan]]).T,
+            np.array([[-0.7143772, -0.1421862, -0.46114084]]).T,
             atol=self.atol,
             rtol=self.rtol,
         )
@@ -119,7 +198,7 @@ class TestDdseasonaltasmax:
         """Test head of variable array"""
         npt.assert_allclose(
             projection_netcdf[self.target_variable].values[:3],
-            np.array([[-0.04894612, -0.03128264, -0.02922709]]).T,
+            np.array([[-0.046792, -0.034199, -0.033085]]).T,
             atol=self.atol,
             rtol=self.rtol,
         )
@@ -128,7 +207,7 @@ class TestDdseasonaltasmax:
         """Test tail of variable array"""
         npt.assert_allclose(
             projection_netcdf[self.target_variable].values[-3:],
-            np.array([[-0.08493597, -0.06603191, np.nan]]).T,
+            np.array([[0.05074588, -0.01188053, 0.01536257]]).T,
             atol=self.atol,
             rtol=self.rtol,
         )
@@ -150,7 +229,7 @@ class TestDdseasonalpr:
         """Test head of variable array"""
         npt.assert_allclose(
             projection_netcdf[self.target_variable].values[:3],
-            np.array([[0.00524488, 0.00486552, 0.00480848]]).T,
+            np.array([[0.00369034, 0.00358236, 0.00359436]]).T,
             atol=self.atol,
             rtol=self.rtol,
         )
@@ -159,7 +238,7 @@ class TestDdseasonalpr:
         """Test tail of variable array"""
         npt.assert_allclose(
             projection_netcdf[self.target_variable].values[-3:],
-            np.array([[0.01309601, 0.01345166, np.nan]]).T,
+            np.array([[0.01058231, 0.01140384, 0.01080828]]).T,
             atol=self.atol,
             rtol=self.rtol,
         )
