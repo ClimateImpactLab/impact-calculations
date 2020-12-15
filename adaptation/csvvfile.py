@@ -104,8 +104,11 @@ def collapse_bang(data, seed):
     if seed is None:
         data['gammavcv'] = None
     else:
-        np.random.seed(seed)
-        data['gamma'] = multivariate_normal.rvs(data['gamma'], data['gammavcv'])
+        data['gamma'] = multivariate_normal.rvs(
+            data['gamma'],
+            data['gammavcv'],
+            random_state=seed,
+        )
         data['gammavcv'] = None # this will cause errors if used again
 
 def binnames(xxlimits, prefix):
