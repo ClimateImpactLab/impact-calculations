@@ -18,7 +18,7 @@ from utils import tmpdir_projection
 
 
 pytestmark = pytest.mark.imperics_shareddir
-
+np.set_printoptions(precision=1e-8, floatmode="fixed")
 
 RUN_BASENAME = "corn_global_t-tbar_pbar_lnincbr_ir_tp_binp-tbar_pbar_lnincbr_ir_tp_fe-A1TT_A0Y_clus-A1_A0Y_TINV-191220"
 RUN_CONFIGS = {
@@ -245,6 +245,218 @@ class TestRebased:
             ("noadapt_ds", np.array([[16719406.0, -19189916.0, -822137.2]]).T),
             ("incadapt_ds", np.array([[16719406.0, -19189874.0, -822115.2]]).T),
             ("histclim_ds", np.array([[2393200.0, -6320445.0, 1069611.9]]).T),
+        ],
+    )
+    def test_tail(self, projection_payload, result_file, expected):
+        """Test tail of variable array"""
+        projection_netcdf = getattr(projection_payload, result_file)
+        npt.assert_allclose(
+            projection_netcdf[self.target_variable].values[-3:],
+            expected,
+            atol=self.atol,
+            rtol=self.rtol,
+        )
+
+
+class TestResponse:
+    """Test netCDF output 'response' variable
+    """
+
+    target_variable = "response"
+    atol = 0
+    rtol = 1e-05
+
+    @pytest.mark.parametrize(
+        "result_file", [("base_ds"), ("noadapt_ds"), ("incadapt_ds"), ("histclim_ds"),]
+    )
+    def test_shape(self, projection_payload, result_file):
+        """Test variable array shape"""
+        projection_netcdf = getattr(projection_payload, result_file)
+        assert projection_netcdf[self.target_variable].values.shape == (118, 1)
+
+    @pytest.mark.parametrize(
+        "result_file,expected",
+        [
+            ("base_ds", np.array([[0.553748, 0.600050, 0.614162]]).T),
+            ("noadapt_ds", np.array([[0.553748, 0.600050, 0.614162]]).T),
+            ("incadapt_ds", np.array([[0.553748, 0.600050, 0.614162]]).T),
+            ("histclim_ds", np.array([[0.587755, 0.631167, 0.631167]]).T),
+        ],
+    )
+    def test_head(self, projection_payload, result_file, expected):
+        """Test head of variable array"""
+        projection_netcdf = getattr(projection_payload, result_file)
+        npt.assert_allclose(
+            projection_netcdf[self.target_variable].values[:3],
+            expected,
+            atol=self.atol,
+            rtol=self.rtol,
+        )
+
+    @pytest.mark.parametrize(
+        "result_file,expected",
+        [
+            ("base_ds", np.array([[-0.133272, 0.308531, 0.097674]]).T),
+            ("noadapt_ds", np.array([[-0.799397, 0.166109, -0.328904]]).T),
+            ("incadapt_ds", np.array([[-0.789274, 0.264811, -0.278646]]).T),
+            ("histclim_ds", np.array([[0.689890, 0.759562, 0.668043]]).T),
+        ],
+    )
+    def test_tail(self, projection_payload, result_file, expected):
+        """Test tail of variable array"""
+        projection_netcdf = getattr(projection_payload, result_file)
+        npt.assert_allclose(
+            projection_netcdf[self.target_variable].values[-3:],
+            expected,
+            atol=self.atol,
+            rtol=self.rtol,
+        )
+
+
+class TestResponse2:
+    """Test netCDF output 'response2' variable
+    """
+
+    target_variable = "response2"
+    atol = 0
+    rtol = 1e-07
+
+    @pytest.mark.parametrize(
+        "result_file", [("base_ds"), ("noadapt_ds"), ("incadapt_ds"), ("histclim_ds"),]
+    )
+    def test_shape(self, projection_payload, result_file):
+        """Test variable array shape"""
+        projection_netcdf = getattr(projection_payload, result_file)
+        assert projection_netcdf[self.target_variable].values.shape == (118, 1)
+
+    @pytest.mark.parametrize(
+        "result_file,expected",
+        [
+            ("base_ds", np.array([[-1753726.750000, -4660392.500000, -5951332.000000]]).T),
+            ("noadapt_ds", np.array([[-1753726.750000, -4660392.500000, -5951332.000000]]).T),
+            ("incadapt_ds", np.array([[-1753726.750000, -4660392.500000, -5951332.000000]]).T),
+            ("histclim_ds", np.array([[-10273791.000000, -5522839.000000, -5522839.000000]]).T),
+        ],
+    )
+    def test_head(self, projection_payload, result_file, expected):
+        """Test head of variable array"""
+        projection_netcdf = getattr(projection_payload, result_file)
+        npt.assert_allclose(
+            projection_netcdf[self.target_variable].values[:3],
+            expected,
+            atol=self.atol,
+            rtol=self.rtol,
+        )
+
+    @pytest.mark.parametrize(
+        "result_file,expected",
+        [
+            ("base_ds", np.array([[-1964078.500000, -40610360.000000, -21626576.000000]]).T),
+            ("noadapt_ds", np.array([[-1797673.250000, -37706996.000000, -19339216.000000]]).T),
+            ("incadapt_ds", np.array([[-1797672.375000, -37706956.000000, -19339194.000000]]).T),
+            ("histclim_ds", np.array([[-5845090.000000, -14558735.000000, -7168678.000000]]).T),
+        ],
+    )
+    def test_tail(self, projection_payload, result_file, expected):
+        """Test tail of variable array"""
+        projection_netcdf = getattr(projection_payload, result_file)
+        npt.assert_allclose(
+            projection_netcdf[self.target_variable].values[-3:],
+            expected,
+            atol=self.atol,
+            rtol=self.rtol,
+        )
+
+
+class TestDdseasonalpr:
+    """Test netCDF output 'ddseasonalpr' variable
+    """
+
+    target_variable = "ddseasonalpr"
+    atol = 0
+    rtol = 1e-07
+
+    @pytest.mark.parametrize(
+        "result_file", [("base_ds"), ("histclim_ds"),]  # Don't need to test adapt files if aux variable.
+    )
+    def test_shape(self, projection_payload, result_file):
+        """Test variable array shape"""
+        projection_netcdf = getattr(projection_payload, result_file)
+        assert projection_netcdf[self.target_variable].values.shape == (118, 1)
+
+    @pytest.mark.parametrize(
+        "result_file,expected",
+        [
+            ("base_ds", np.array([[-18458.062500, -49050.210938, -62637.726562]]).T),
+            ("histclim_ds", np.array([[-114823.539062, -61724.328125, -61724.328125]]).T),
+        ],
+    )
+    def test_head(self, projection_payload, result_file, expected):
+        """Test head of variable array"""
+        projection_netcdf = getattr(projection_payload, result_file)
+        npt.assert_allclose(
+            projection_netcdf[self.target_variable].values[:3],
+            expected,
+            atol=self.atol,
+            rtol=self.rtol,
+        )
+
+    @pytest.mark.parametrize(
+        "result_file,expected",
+        [
+            ("base_ds", np.array([[-22936.699219, -482788.218750, -247396.328125]]).T),
+            ("histclim_ds", np.array([[-62181.828125, -157876.531250, -76794.304688]]).T),
+        ],
+    )
+    def test_tail(self, projection_payload, result_file, expected):
+        """Test tail of variable array"""
+        projection_netcdf = getattr(projection_payload, result_file)
+        npt.assert_allclose(
+            projection_netcdf[self.target_variable].values[-3:],
+            expected,
+            atol=self.atol,
+            rtol=self.rtol,
+        )
+
+
+class TestDdseasonaltasmax:
+    """Test netCDF output 'ddseasonaltasmax' variable
+    """
+
+    target_variable = "ddseasonaltasmax"
+    atol = 0
+    rtol = 1e-07
+
+    @pytest.mark.parametrize(
+        "result_file", [("base_ds"), ("histclim_ds"),]  # Don't need to test adapt files if aux variable.
+    )
+    def test_shape(self, projection_payload, result_file):
+        """Test variable array shape"""
+        projection_netcdf = getattr(projection_payload, result_file)
+        assert projection_netcdf[self.target_variable].values.shape == (118, 1)
+
+    @pytest.mark.parametrize(
+        "result_file,expected",
+        [
+            ("base_ds", np.array([[-70058.070312, -186171.593750, -237743.250000]]).T),
+            ("histclim_ds", np.array([[-416495.187500, -223890.703125, -223890.703125]]).T),
+        ],
+    )
+    def test_head(self, projection_payload, result_file, expected):
+        """Test head of variable array"""
+        projection_netcdf = getattr(projection_payload, result_file)
+        npt.assert_allclose(
+            projection_netcdf[self.target_variable].values[:3],
+            expected,
+            atol=self.atol,
+            rtol=self.rtol,
+        )
+
+    @pytest.mark.parametrize(
+        "result_file,expected",
+        [
+            ("base_ds", np.array([[-64722.914062, -1333610.750000, -710821.375000]]).T),
+            ("histclim_ds", np.array([[-239786.265625, -595084.437500, -292917.750000]]).T),
         ],
     )
     def test_tail(self, projection_payload, result_file, expected):
