@@ -4,6 +4,7 @@ import xarray as xr
 from netCDF4 import Dataset
 from impactlab_tools.utils import files
 from openest.generate import fast_dataset
+from helpers import memory
 import helpers.header as headre
 from climate import netcdfs
 from datastore import irregions
@@ -178,6 +179,7 @@ class DailyWeatherBundle(WeatherBundle):
                 self.saved_baseline_values = fast_dataset.concat(allds, dim='time')
             else:
                 self.saved_baseline_values = xr.concat(allds, dim='time') # slower but more reliable
+            print(memory.getsize(self.saved_baseline_values))
 
         # Yield the entire collection of values for each region
         if only_region is not None:
