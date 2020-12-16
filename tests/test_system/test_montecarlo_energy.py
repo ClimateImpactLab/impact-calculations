@@ -180,7 +180,7 @@ RUN_CONFIGS = {
 
 
 @pytest.fixture(scope="module")
-def projection_payload():
+def projection_payload(static_mvn):
     """Run the projection in tmpdir, get McResults namedtuple from output, clean output on exit
     """
     # Read output files from projection into named tuple of xr.Datasets and dicts.
