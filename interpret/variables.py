@@ -159,6 +159,87 @@ def post_process_within_season(ds, dataarr, name, config):
 
     return dataarr
 
+##### Univariate versions
+
+def interpret_univariate_transform(name, config):
+    """Parse variable name to generate a univariate transformation
+
+    Parameters
+    ----------
+    name : str
+        Name to interpret. Assumes the name has no units designated with
+        brackets or parenthesis.
+    config : dict
+        Configuration dictionary.
+
+    Returns
+    -------
+    (function, variable or None) or (None, None)
+        Returns (None, None) if a univariate interpretation is ambiguous; variable may be None or str
+    """
+
+    # If can cast name into float (no ValueError), simply use as float value.
+    with suppress(ValueError):
+        use_scalar = float(name)
+        return (lambda xxs: np.ones(xxs.shape) * use_scalar, None)
+
+    # Otherwise interpret variable names and possible implied transformations.
+    if ' ** ' in name:
+        chunks = name.split(' ** ', 1)
+        internal_left, variable_left = interpret_univariate_transform(chunks[0], config)
+        internal_right, variable_right = interpret_univariate_transform(chunks[1], config)
+
+        return validate_binary_univariate(internal_left, variable_left, internal_right, variable_right,
+                                          lambda xxs, yys: xxs * yys)
+
+    if ' - ' in name:
+        chunks = name.split(' - ', 1)
+        internal_left, variable_left = interpret_univariate_transform(chunks[0], config)
+        internal_right, variable_right = interpret_univariate_transform(chunks[1], config)
+
+        return validate_binary_univariate(internal_left, variable_left, internal_right, variable_right,
+                                          lambda xxs, yys: xxs - yys)
+
+    if ' * ' in name:
+        chunks = name.split(' * ', 1)
+        internal_left, variable_left = interpret_univariate_transform(chunks[0], config)
+        internal_right, variable_right = interpret_univariate_transform(chunks[1], config)
+
+        return validate_binary_univariate(internal_left, variable_left, internal_right, variable_right,
+                                          lambda xxs, yys: xxs * yys)
+
+    if '.' in name:
+        chunks = re_dotsplit.split(name)
+        if len(chunks) > 1:
+            variable = chunks[0]
+            internal = lambda xxs: xxs
+            for chunk in chunks[1:]:
+                internal, variable = interpret_wrap_univariate_transform(chunk, internal, variable)
+            return internal, variable
+
+    return lambda xxs: xxs, name
+
+
+def validate_binary_univariate(internal_left, variable_left, internal_right, variable_right, combine):
+        if internal_left is None or internal_right is None:
+            return None, None
+        if variable_left is not None and variable_right is not None and variable_left != variable_right:
+            return None, None
+
+        variable = variable_left if variable_left is not None else variable_right
+
+        return lambda xxs: combine(internal_left(xxs), internal_right(xxs)), variable
+
+
+def interpret_wrap_univariate_transform(transform, internal, variable):
+    if transform[:4] == 'bin(':
+        return internal, variable + transform
+
+    assert False, "Unknown transform" + transform
+
+
+##### Helper functions
+
 def read_range(text):
     items = [x.strip() for x in text.split(',')]
     indices = []

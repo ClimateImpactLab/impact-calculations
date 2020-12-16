@@ -220,9 +220,22 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
             transform_descriptions.append(match.group(1))
             indepunits.append(match.group(2))
 
+        # Only infer a univariate response if 1 variable
+        if len(ds_transforms) == 1:
+            # Reuse match.group(1), still set to our single variable
+            univariate_transform, _ = variables.interpret_univariate_transform(match.group(1), specconf)
+            if univariate_transform is None: # Cannot handle transform
+                univariate_index = None
+            else:
+                univariate_index = 0
+        else:
+            univariate_index = univariate_transform = None
+
         curr_curvegen = curvegen_arbitrary.SumCoefficientsCurveGenerator(list(ds_transforms.keys()), ds_transforms,
                                                                          transform_descriptions, indepunits, depenunit,
-                                                                         csvv, betalimits=betalimits)
+                                                                         csvv, betalimits=betalimits,
+                                                                         univariate_index=univariate_index,
+                                                                         univariate_transform=univariate_transform)
         weathernames = [] # Use curve directly
     elif specconf['functionalform'] == 'sum-by-time':
         if specconf['subspec']['functionalform'] in ['polynomial', 'coefficients']:
