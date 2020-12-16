@@ -16,6 +16,7 @@ reduces to a dot-product.
 import numpy as np
 from openest.generate import formatting, diagnostic, selfdocumented
 from openest.generate.smart_curve import TransformCoefficientsCurve, SumByTimeCoefficientsCurve
+from openest.models import curve as curve_module
 from . import curvegen, csvvfile
 
 class LinearCSVVCurveGenerator(curvegen.CSVVCurveGenerator):
@@ -115,15 +116,15 @@ class SumCoefficientsCurveGenerator(LinearCSVVCurveGenerator):
             for ii in range(len(self.prednames)):
                 diagnostic.record(region, covariates.get('year', 2000), self.diagprefix + self.prednames[ii], mycoeffs[ii])
 
-        if self.univariate_index:
+        if self.univariate_index is not None:
             if self.univariate_transform:
-                univariate_curve = CurveCurve([-np.inf, np.inf], lambda x: mycoeffs[self.univariate_index] * self.univariate_transform(x))
+                univariate_curve = curve_module.CurveCurve([-np.inf, np.inf], lambda x: mycoeffs[self.univariate_index] * self.univariate_transform(x))
             else:
-                univariate_curve = CurveCurve([-np.inf, np.inf], lambda x: mycoeffs[self.univariate_index] * x)
+                univariate_curve = curve_module.CurveCurve([-np.inf, np.inf], lambda x: mycoeffs[self.univariate_index] * x)
         else:
             univariate_curve = None
             
-        return TransformCoefficientsCurve(mycoeffs, [self.ds_transforms[predname] for predname in self.prednames], self.transform_descriptions, self.prednames if recorddiag and diagnostic.is_recording() else None, univariate_curve=self.univariate_curve)
+        return TransformCoefficientsCurve(mycoeffs, [self.ds_transforms[predname] for predname in self.prednames], self.transform_descriptions, self.prednames if recorddiag and diagnostic.is_recording() else None, univariate_curve=univariate_curve)
 
     def get_lincom_terms_simple_each(self, predname, covarname, predictors, covariates=None):
         if covariates is None:
