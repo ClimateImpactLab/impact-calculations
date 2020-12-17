@@ -262,8 +262,8 @@ class TestRebased:
     """
 
     target_variable = "rebased"
-    atol = 1e-3
-    rtol = 0
+    atol = 0
+    rtol = 1e-7
 
     @pytest.mark.parametrize(
         "result_file", [("base_ds"), ("noadapt_ds"), ("incadapt_ds"), ("histclim_ds"),]
@@ -276,10 +276,10 @@ class TestRebased:
     @pytest.mark.parametrize(
         "result_file,expected",
         [
-            ("base_ds", np.array([[182.65338, 139.14749, 433.79944]]).T),
-            ("noadapt_ds", np.array([[182.65338, 139.14749, 433.79944]]).T),
-            ("incadapt_ds", np.array([[182.65338, 139.14749, 433.79944]]).T),
-            ("histclim_ds", np.array([[465.45935, 318.4206, 318.4206]]).T),
+            ("base_ds", np.array([[423.7772, -1107.7778, -1281.3613]]).T),
+            ("noadapt_ds", np.array([[423.7772, -1107.7778, -1281.3613]]).T),
+            ("incadapt_ds", np.array([[423.7772, -1107.7778, -1281.3613]]).T),
+            ("histclim_ds", np.array([[1589.32, -899.1854, -899.1854]]).T),
         ],
     )
     def test_head(self, projection_payload, result_file, expected):
@@ -295,10 +295,10 @@ class TestRebased:
     @pytest.mark.parametrize(
         "result_file,expected",
         [
-            ("base_ds", np.array([[4314.9644, 3825.0522, 3327.6165]]).T),
-            ("noadapt_ds", np.array([[2124.3157, 1955.8206, 1604.8887]]).T),
-            ("incadapt_ds", np.array([[4833.5845, 4283.1055, 3880.456]]).T),
-            ("histclim_ds", np.array([[710.44824, 1375.0709, 801.07025]]).T),
+            ("base_ds", np.array([[-323332.72, -340289.84, -310093.56]]).T),
+            ("noadapt_ds", np.array([[4506.751, 3234.8323, 4155.759]]).T),
+            ("incadapt_ds", np.array([[-317618.66, -335153.22, -303467.62]]).T),
+            ("histclim_ds", np.array([[-187549.72, -216940.34, -193108.7]]).T),
         ],
     )
     def test_tail(self, projection_payload, result_file, expected):
