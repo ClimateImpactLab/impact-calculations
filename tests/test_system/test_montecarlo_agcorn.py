@@ -208,8 +208,8 @@ class TestRebased:
     """
 
     target_variable = "rebased"
-    atol = 1
-    rtol = 0
+    atol = 0
+    rtol = 1e-7
 
     @pytest.mark.parametrize(
         "result_file", [("base_ds"), ("noadapt_ds"), ("incadapt_ds"), ("histclim_ds"),]
