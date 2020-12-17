@@ -32,7 +32,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     
         # Determine minimum value of curve between 10C and 25C
         baselinecurves, baselinemins = constraints.get_curve_minima(weatherbundle.regions, curr_curvegen, covariator, config.get('clip-mintemp', 10), config.get('clip-maxtemp', 25),
-                                                                    lambda region, curve: minpoly.findpolymin([0] + curve.coeffs, config.get('clip-mintemp', 10), config.get('clip-maxtemp', 25)))
+                                                                    lambda curve: minpoly.findpolymin([0] + curve.coeffs, config.get('clip-mintemp', 10), config.get('clip-maxtemp', 25)))
 
         fillins = np.arange(-40, 50, 1.)
 
