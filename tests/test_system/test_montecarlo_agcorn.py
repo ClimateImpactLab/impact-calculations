@@ -244,7 +244,7 @@ class TestRebased:
             ("base_ds", np.array([[-43783.42, 93305.3, -31518.95]]).T),
             ("noadapt_ds", np.array([[-49961.56, 78332.21, -40562.645]]).T),
             ("incadapt_ds", np.array([[-49961.16, 78333.27, -40562.316]]).T),
-            ("histclim_ds", np.array([[-51168.805, -28128.193, 38980.457]]).T),
+            ("histclim_ds", np.array([[-51168.804688, 28128.193359, 38980.457031]]).T),
         ],
     )
     def test_tail(self, projection_payload, result_file, expected):
