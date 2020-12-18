@@ -29,23 +29,97 @@ import pdb
 
 non_leap_year = 2010
 
-def get_seasonal_index(region, culture_periods, timerate):
-    """Parse growing season lengths in `culture_periods` and return ds indices.
+def get_suffix_triangle():
+
+    """ allocates a growing season month to a subseason. It uses a predefined 'suffix-triangle', which
+    properties are defined in the adaptation.curvegen.SeasonalTriangleCurveGenerator class.
+
+    Returns
+    -------
+    a list-of-list ('suffix-triangle')
     """
-    if timerate == 'day':
-        plant = datetime.date(non_leap_year, culture_periods[region][0],1).timetuple().tm_yday
-        if culture_periods[region][1] <= 12: 
-            harvest_date = datetime.date(non_leap_year, culture_periods[region][1],1) + relativedelta(day=31)
-            harvest = harvest_date.timetuple().tm_yday
-        else:
-            harvest_date = datetime.date(non_leap_year, culture_periods[region][1]-12,1) + relativedelta(day=31)
-            harvest = harvest_date.timetuple().tm_yday + 365
-    elif timerate == 'month':
-        plant, harvest = culture_periods[region]
-    return int(plant - 1), int(harvest) 
+
+    suffix_triangle = [ ['summer'], #1
+    ['summer', 'summer'], #2 
+    ['summer', 'summer', 'summer'], #3
+    ['summer', 'summer', 'summer', 'summer'], #4
+    ['summer', 'summer', 'summer', 'summer', 'summer'], #5
+    ['fall', 'summer', 'summer', 'summer', 'summer', 'summer'], #6
+    ['fall', 'fall', 'summer', 'summer', 'summer', 'summer', 'summer'], #7
+    ['fall', 'fall', 'winter', 'summer', 'summer', 'summer', 'summer', 'summer'], #8
+    ['fall', 'fall', 'winter', 'winter', 'summer', 'summer', 'summer', 'summer', 'summer'], #9
+    ['fall', 'fall', 'winter', 'winter', 'winter', 'summer', 'summer', 'summer', 'summer', 'summer'], #10
+    ['fall', 'fall', 'winter', 'winter', 'winter', 'winter', 'summer', 'summer', 'summer', 'summer', 'summer'], #11
+    ['fall', 'fall', 'winter', 'winter', 'winter', 'winter', 'winter', 'summer', 'summer', 'summer', 'summer', 'summer'] #12
+    ]
+
+    return suffix_triangle
+
+def get_seasonal_index(region, culture_periods, subseason=None):
+
+    """retrieves start and end of the growing season, or a seasonal subset within the growing season for a given region.
+    Handles monthly time rate only. To preserve consistency with the projection system (adaptation.SeasonalWeatherCovariator), 
+    a given growing season (as described in the growing season file by planting and harvesting date) is extended by one unit 
+    in its beginning. E.g. months 1,2,3,4,5 growing season becomes months 0,1,2,3,4,5 growing season.
+
+    Parameters
+    ----------
+    region : str
+    culture_periods : 
+    subseason : None or str (the name of the season from which to build a growing season subset). 
+
+    Returns
+    -------
+    Either a tuple, that is itslef either the start and end month of the growing season, 
+    or the start and end of a seasonal subset of that growing season. A unit is subtracted from the start date (see above). If the remaining
+    list is a singleton, the tuple returned has two identical elements (the given month).
+    Either None, if the subseason requested does not exist in that region as per the 'suffix-triangle' definition.
+    """
+
+    # if timerate == 'day':
+    #     plant = datetime.date(non_leap_year, culture_periods[region][0],1).timetuple().tm_yday
+    #     if culture_periods[region][1] <= 12: 
+    #         harvest_date = datetime.date(non_leap_year, culture_periods[region][1],1) + relativedelta(day=31)
+    #         harvest = harvest_date.timetuple().tm_yday
+    #     else:
+    #         harvest_date = datetime.date(non_leap_year, culture_periods[region][1]-12,1) + relativedelta(day=31)
+    #         harvest = harvest_date.timetuple().tm_yday + 365
+
+    plant, harvest = culture_periods[region] 
+    span = range(plant-1, harvest+1) #get the full range from start to end included, and extend the start
+
+    if subseason!=None:
+        fullseasonlength = len(span)
+        suffix_triangle = get_suffix_triangle()
+        subseason_indexes = [i for i,x in enumerate(suffix_triangle[fullseasonlength-1]) if x==subseason] #obtain position of subseason in growing season months
+        if len(subseason_indexes)==0: 
+            return None
+        else: 
+            span = [span[i] for i in subseason_indexes]
+
+    if len(span)==1:
+        return span[0], span[0]
+    else:
+        return span[0], span[len(span)-1]
 
 
 def get_monthbin_index(region, culture_periods, clim_var, monthbin):
+
+    """Allocates growing seasons to months-of-season precip bins. 
+
+    Parameters
+    ----------
+    region : str
+    culture_periods : 
+    clim_var : 
+    monthbin : 
+
+    Returns
+    -------
+    
+    
+    """
+
     """Allocates growing seasons to months-of-season precip bins.
     """
     plant, harvest = culture_periods[region]
