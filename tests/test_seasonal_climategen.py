@@ -19,6 +19,7 @@ def test_get_seasonal_index():
 	"""
 
 	culture_periods = irvalues.get_file_cached('social/baselines/agriculture/world-combo-201710-growing-seasons-rice-1stseason.csv', irvalues.load_culture_months)
+	print(type(culture_periods))
 	assert seasonal_climategen.get_seasonal_index('ZWE.8.43', culture_periods) == (10, 5+12) #rolling years entire growing season
 	assert seasonal_climategen.get_seasonal_index('FRA.83.63', culture_periods) == (4, 10) #single year entire growing season
 	assert seasonal_climategen.get_seasonal_index('FRA.83.63', culture_periods, 'summer') == (6, 10) #just the summer

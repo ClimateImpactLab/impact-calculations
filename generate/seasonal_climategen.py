@@ -65,15 +65,16 @@ def get_seasonal_index(region, culture_periods, subseason=None):
     Parameters
     ----------
     region : str
-    culture_periods : 
+    culture_periods : dict : a [region] dictionary with start and end month of growing season for each region.
     subseason : None or str (the name of the season from which to build a growing season subset). 
 
     Returns
     -------
-    Either a tuple, that is itslef either the start and end month of the growing season, 
+    Either : 
+        - a tuple, that is itslef either the start and end month of the growing season, 
     or the start and end of a seasonal subset of that growing season. A unit is subtracted from the start date (see above). If the remaining
     list is a singleton, the tuple returned has two identical elements (the given month).
-    Either None, if the subseason requested does not exist in that region as per the 'suffix-triangle' definition.
+        - or None, if the subseason requested does not exist in that region as per the 'suffix-triangle' definition.
     """
 
     # if timerate == 'day':
@@ -93,7 +94,7 @@ def get_seasonal_index(region, culture_periods, subseason=None):
         suffix_triangle = get_suffix_triangle()
         subseason_indexes = [i for i,x in enumerate(suffix_triangle[fullseasonlength-1]) if x==subseason] #obtain position of subseason in growing season months
         if len(subseason_indexes)==0: 
-            return None
+            return (None,None)
         else: 
             span = [span[i] for i in subseason_indexes]
 
@@ -110,7 +111,7 @@ def get_monthbin_index(region, culture_periods, clim_var, monthbin):
     Parameters
     ----------
     region : str
-    culture_periods : 
+    culture_periods : dict[region]
     clim_var : 
     monthbin : 
 
@@ -120,8 +121,6 @@ def get_monthbin_index(region, culture_periods, clim_var, monthbin):
     
     """
 
-    """Allocates growing seasons to months-of-season precip bins.
-    """
     plant, harvest = culture_periods[region]
     bindex = int(clim_var[-1]) - 1
     allmonths = [*range(plant, harvest+1)]
@@ -149,9 +148,27 @@ def calculate_edd(ds, gdd_cutoff, kdd_cutoff):
 
 def get_seasonal(crop, var, climate_model, rcp):
 
+    """Collapses weather data to obtain seasonal calculations.
+
+    Parameters
+    ----------
+    crop : str
+        crop name
+    culture_periods : dict[region]
+    clim_var : str
+        one of ['seasonaledd', 'seasonalpr', 'seasonaltasmax', 'seasonaltasmin', 'monthbinpr']
+    climate_model : str
+    rcp : str 
+    
+    """
     only_missing = False
     gdd_cutoff, kdd_cutoff, monthbin = None, None, None
     time_rate='month'
+
+    if crop.find('wheat-winter')!=-1:
+        subseason=crop.replace('wheat-winter-', '')
+    else:
+        subseason=None
 
     print('Processing arguments')
 
@@ -161,7 +178,11 @@ def get_seasonal(crop, var, climate_model, rcp):
         'soy':'world-combo-201710-growing-seasons-soy',
         'cassava':'world-combo-202004-growing-seasons-cassava',
         'sorghum':'world-combo-202004-growing-seasons-sorghum',
-        'cotton':'world-combo-202004-growing-seasons-cotton'
+        'cotton':'world-combo-202004-growing-seasons-cotton',
+        'wheat-spring':'world-combo-202004-growing-seasons-wheat-spring',
+        'wheat-winter-fall':'world-combo-202004-growing-seasons-wheat-winter',
+        'wheat-winter-winter':'world-combo-202004-growing-seasons-wheat-winter',
+        'wheat-winter-summer':'world-combo-202004-growing-seasons-wheat-winter'
     }
 
     bins = {
@@ -170,7 +191,11 @@ def get_seasonal(crop, var, climate_model, rcp):
         'soy':[1, 1, 2, 24-1-1-2],
         'cassava':[24],
         'sorghum':[1,2,24-1-2],
-        'cotton':[24]
+        'cotton':[24],
+        'wheat-spring':[24],
+        'wheat-winter-fall':[24],
+        'wheat-winter-winter':[24],
+        'wheat-winter-summer':[24],
     }
 
     eddkinks = {
@@ -179,7 +204,11 @@ def get_seasonal(crop, var, climate_model, rcp):
         'soy':[8,31],
         'cassava':[10,29],
         'sorghum':[15,31],
-        'cotton':[10,29]
+        'cotton':[10,29],
+        'wheat-spring':[1,11],
+        'wheat-winter-fall':[0,5],
+        'wheat-winter-winter':[1,17],
+        'wheat-winter-summer':[1,11]
     }
 
     if var == 'seasonaltasmax':
@@ -310,12 +339,16 @@ def get_seasonal(crop, var, climate_model, rcp):
                         if monthbin:
                             plantii, harvestii = get_monthbin_index(region, culture_periods, config['covariates'][kk], monthbin)
                         else:
-                            plantii, harvestii = get_seasonal_index(region, culture_periods, config['timerate'])
+                            plantii, harvestii = get_seasonal_index(region, culture_periods, subseason)
                         cv = clim_var[kk].split('_')[0]
 
                         # Perform within-year collapse and update long-run averager.
-                        annual_calcs = lambda ds: func(ds[cv].values[plantii:harvestii])
-                        yearval = annual_calcs(subds)
+                        if plantii==None and harvestii==None:
+                            yearval=0
+                        else:
+                            annual_calcs = lambda ds: func(ds[cv].values[plantii:harvestii])
+                            yearval = annual_calcs(subds)
+
                         annualdata[yy, ii, kk] = yearval
                         # Need this to preserve consistency with projection system.
                         if year!=2014 and year!=2015:
@@ -329,4 +362,6 @@ def get_seasonal(crop, var, climate_model, rcp):
 
         rootgrp.close()
 
-        return "done"
+
+
+get_seasonal(crop='wheat-winter-winter', var='seasonaledd', climate_model='CCSM4', rcp='rcp85')
