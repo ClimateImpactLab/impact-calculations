@@ -58,7 +58,7 @@ def get_suffix_triangle():
 def get_seasonal_index(region, culture_periods, subseason=None):
 
     """retrieves start and end of the growing season, or a seasonal subset within the growing season for a given region.
-    Handles monthly time rate only. To preserve consistency with the projection system (adaptation.SeasonalWeatherCovariator), 
+    Handles monthly time rate only. To preserve consistency with the projection system (adaptation.covariates.SeasonalWeatherCovariator), 
     a given growing season (as described in the growing season file by planting and harvesting date) is extended by one unit 
     in its beginning. E.g. months 1,2,3,4,5 growing season becomes months 0,1,2,3,4,5 growing season.
 
@@ -280,6 +280,7 @@ def get_seasonal(crop, var, climate_model, rcp):
     for clim_scenario, clim_model, weatherbundle in get_bundle_iterator(config):
 
         targetdir = os.path.join(outputdir, clim_scenario, clim_model)
+        targetdir = '/home/etenezakis/tests'
 
         if only_missing and os.path.exists(os.path.join(targetdir, filename)):
             print("File exists. Exiting...")
@@ -364,4 +365,4 @@ def get_seasonal(crop, var, climate_model, rcp):
 
 
 
-get_seasonal(crop='wheat-winter-winter', var='seasonaledd', climate_model='CCSM4', rcp='rcp85')
+#get_seasonal(crop='rice', var='seasonaledd', climate_model='CCSM4', rcp='rcp85')
