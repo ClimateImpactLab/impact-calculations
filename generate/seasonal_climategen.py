@@ -173,7 +173,7 @@ def calculate_edd(ds, gdd_cutoff, kdd_cutoff):
     return out
 
 
-def get_seasonal(crop, var, climate_model, rcp):
+def get_seasonal(crop, var, climate_model, rcp, targetdir=None):
 
     """Collapses weather data to obtain seasonal calculations.
 
@@ -305,9 +305,9 @@ def get_seasonal(crop, var, climate_model, rcp):
 
     for clim_scenario, clim_model, weatherbundle in get_bundle_iterator(config):
 
-        targetdir = os.path.join(outputdir, clim_scenario, clim_model)
-        targetdir = '/home/etenezakis/tests'
-
+        if targetdir==None:
+            targetdir = os.path.join(outputdir, clim_scenario, clim_model)
+            
         if only_missing and os.path.exists(os.path.join(targetdir, filename)):
             print("File exists. Exiting...")
             continue
@@ -392,7 +392,3 @@ def get_seasonal(crop, var, climate_model, rcp):
         averaged[:, :, :] = averageddata
 
         rootgrp.close()
-
-
-
-#get_seasonal(crop='wheat-winter-fall', var='seasonaledd', climate_model='CCSM4', rcp='rcp85')
