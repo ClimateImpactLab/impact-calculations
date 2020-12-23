@@ -101,7 +101,14 @@ def test_get_monthbin_index():
 		print('failing as expected')
 		pass
 
+def test_is_longrun_climate():
+
+	assert not seasonal_climategen.is_longrun_climate('seasonaledd')==True
+	assert not seasonal_climategen.is_longrun_climate('seasonaltasmax')==False
+
 
 if __name__ == '__main__':
+
 	test_get_seasonal_index()
 	test_get_monthbin_index()
+	test_is_longrun_climate()
