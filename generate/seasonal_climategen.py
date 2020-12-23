@@ -52,7 +52,7 @@ def get_subseasonal_index(subseason, suffix_triangle, growing_season_length):
     """
     Returns
     -------
-    A list with indexes where a subseason appears in a suffix_triangle, given a growing season length.
+    A list with the indexes of the elements of `suffix_triangle`[`growing_season_length`] that match `subseason`.
     If the subseason doesn't fall in the growing season, the returned list is empty. 
     """
 
@@ -64,7 +64,7 @@ def get_seasonal_index(region, culture_periods, subseason=None, suffix_triangle=
     the start and end of a subseason of that growing season for a given region. It can return 'usable' indexes -- see the description
     of `transform_index`, 
 
-    This function handles monthly time rate only. 
+    This function assumes the time rate used to generate culture_periods is 'month'. 
 
     Parameters
     ----------
@@ -111,7 +111,7 @@ def get_seasonal_index(region, culture_periods, subseason=None, suffix_triangle=
 
 def get_monthbin_index(region, culture_periods, clim_var, monthbin, subseason=None, suffix_triangle=None):
 
-    """Allocates months of a growing season of a region to a given precipitation bin. Can also allocate months of a subseason of the growing season 
+    """Allocates the months of a region's growing season to a given precipitation bin. Can also allocate months of a subseason of the growing season 
     if there is no actual binning (only one singe bin). 
 
         Parameters
@@ -183,7 +183,7 @@ def get_seasonal(crop, var, climate_model, rcp, targetdir=None):
     Parameters
     ----------
     crop : str
-        crop name
+        'crop' name. One of ['maize', 'rice', 'soy', 'cassava','sorghum','cotton', 'wheat-spring','wheat-winter-fall','wheat-winter-winter', 'wheat-winter-summer']
     culture_periods : dict[region]
     clim_var : str
         one of ['seasonaledd', 'seasonalpr', 'seasonaltasmax', 'seasonaltasmin', 'monthbinpr']
@@ -239,6 +239,9 @@ def get_seasonal(crop, var, climate_model, rcp, targetdir=None):
         'wheat-winter-winter':[1,17],
         'wheat-winter-summer':[1,11]
     }
+
+    assert crop in ['maize', 'rice', 'soy', 'cassava','sorghum','cotton', 'wheat-spring','wheat-winter-fall','wheat-winter-winter', 'wheat-winter-summer'], print('unknown crop')
+    assert var in ['seasonaltasmax', 'seasonalpr', 'seasonaltasmin', 'monthbinpr', 'seasonaledd'], print('unknown variable')
 
     if var == 'seasonaltasmax':
         # Relevant climate variables.
