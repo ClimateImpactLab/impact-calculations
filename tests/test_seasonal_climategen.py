@@ -90,7 +90,7 @@ def test_get_monthbin_index():
 	clim_var='somename_4'
 	assert seasonal_climategen.get_monthbin_index('FRA.83.63', culture_periods, clim_var, [1,1,2,24-1-1-2])==(9-1, 10-1+1)
 	try:
-		seasonal_climategen.get_monthbin_index('FRA.83.63', culture_periods, clim_var, [25])
+		seasonal_climategen.get_monthbin_index('FRA.83.63', culture_periods, clim_var, [20, 30, 40, 20])
 	except:
 		print('failing as expected')
 		pass
