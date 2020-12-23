@@ -1,16 +1,5 @@
 #!/usr/bin/env python3
-"""Generates long-run growing-season averages of climate variables.
-
-Config parameters are mostly consistent with the impact-calculations arguments.
-Outputs netCDF `filename` to `/shares/gcp/outputs/temps/{RCP}/{GCM}`
-
-`get_seasonal_index` and `get_monthbin_index` are helper functions for defining
-the relevant months within a year. `calculate_edd` transforms the edd dataset
-into gdds and kdds.
-
-first argument : filename 
-second argument : climate model
-third argument : rcp
+"""Functions to generate annual and moving averages seasonal monthly climate variables.
 """
 
 import sys, os
@@ -31,7 +20,7 @@ non_leap_year = 2010
 
 def get_suffix_triangle():
 
-    """ allocates a growing season month to a subseason. 
+    """ data structure that allocates a growing season month to a subseason. 
 
     Returns
     -------
@@ -59,20 +48,18 @@ def get_subseasonal_index(subseason, suffix_triangle, growing_season_length):
     """
     Returns
     -------
-    a list with subseason indexes. If the subseason doesn't fall in the growing season, the list is empty. 
+    A list with indexes where a subseason appears in a suffix_triangle, given a growing season length.
+    If the subseason doesn't fall in the growing season, the returned list is empty. 
     """
 
     return [i for i,x in enumerate(suffix_triangle[growing_season_length-1]) if x==subseason]
 
-def get_seasonal_index(region, culture_periods, subseason=None, suffix_triangle=None):
+def get_seasonal_index(region, culture_periods, subseason=None, suffix_triangle=None, transform_index=True):
 
-    """retrieves "usable" integers indicating indexes of the start and end of the growing season, or indexes of
-    the start and end of a subseason of that growing season for a given region. 'Usable', means this function assumes a particular 
-    usage of these integers, with two constraints : 
-        - they will be used as indexes of a list, therefore can start at 0. 
-        - they will be used in a function akin to range(start, stop), which gives the span of start:stop, stop being excluded. 
+    """retrieves integers indicating  the start and end of the growing season, or
+    the start and end of a subseason of that growing season for a given region. It can return 'usable' indexes -- see the description
+    of `transform_index`, 
 
-    As a consequence, with a start month and an end month, this will return start-1 and stop-1+1.
     This function handles monthly time rate only. 
 
     Parameters
@@ -82,62 +69,84 @@ def get_seasonal_index(region, culture_periods, subseason=None, suffix_triangle=
     subseason : None or str (the name of the season from which to build a growing season subset). 
     suffix_triangle : None or (required) list-of-list-of-strings if subseason!=None. Allocates growing season months to subseasons. It uses a predefined 'suffix-triangle', which
     properties are defined in the adaptation.curvegen.SeasonalTriangleCurveGenerator class.
+    transform_index: if True, subtract one to first returned value and subtract and add one to second returned value. Details : 
+       useful if returned values are passed as start and and of a range of indexes to subset monthly weather data, which implies: 
+        - start and end are used as indexes of a list - therefore both must be shifted by minus one. 
+        - in addition, they are used in range(start, stop), which gives the span of start:stop, stop being excluded. Hence should add one to the returned value.
 
     Returns
     -------
     A tuple, that is either :
-        - (first_month -1), (last_month -1 + 1), where first_month and last_month are the first and last month of the growing season or 
-        of the subseason of the growing season if subseason=None and the subseason exist in the growing season per the `suffix_triangle` definition.
-        - None,None if subseason!=None and the subseason does not exist per the subseasons definition 
+        - first_month, last_month if transform_index=False
+        - (first_month-1), (last_month -1 + 1) if transform_index=True. 
+            where first_month and last_month are the first and last month of the growing season or 
+            of the subseason of the growing season if subseason=None and the subseason exist in the growing season per the `suffix_triangle` definition.
+        - None,None if subseason!=None and the subseason does not exist per the subseasons definition.
     """
-
-    # if timerate == 'day':
-    #     plant = datetime.date(non_leap_year, culture_periods[region][0],1).timetuple().tm_yday
-    #     if culture_periods[region][1] <= 12: 
-    #         harvest_date = datetime.date(non_leap_year, culture_periods[region][1],1) + relativedelta(day=31)
-    #         harvest = harvest_date.timetuple().tm_yday
-    #     else:
-    #         harvest_date = datetime.date(non_leap_year, culture_periods[region][1]-12,1) + relativedelta(day=31)
-    #         harvest = harvest_date.timetuple().tm_yday + 365
-
-    if subseason!=None:
-        assert suffix_triangle!=None, "if you pass a subseason, you need to pass a suffix_triangle"
 
     plant, harvest = culture_periods[region] 
     span = range(plant, harvest+1) #full range from start to end included.
 
     if subseason!=None:
         growing_season_length = len(span)
+        assert suffix_triangle!=None, "if you pass a subseason, you need to pass a suffix_triangle"
         subseason_indexes = get_subseasonal_index(subseason, suffix_triangle, growing_season_length)
         if len(subseason_indexes)==0:
             return (None, None)
         span = [span[i] for i in subseason_indexes]
 
+    plant_index = span[0]
+    harvest_index = span[len(span)-1] #for clarity of what's happening. 
 
-    plant_index = span[0]-1
-    harvest_index = span[len(span)-1]-1+1 #for clarity of what's happening. 
-    #subtracting one because will be used as an index, and adding one because will be used in a range(start,stop) call that excludes stop by default. 
+    if transform_index:
+        plant_index = plant_index-1
+        harvest_index = harvest_index-1+1
+
     return plant_index, harvest_index
 
 
-def get_monthbin_index(region, culture_periods, clim_var, monthbin):
+def get_monthbin_index(region, culture_periods, clim_var, monthbin, subseason=None, suffix_triangle=None):
 
-    """Allocates growing seasons to months-of-season precip bins. 
+    """Allocates months of a growing season of a region to a given precipitation bin. Can also allocate months of a subseason of the growing season 
+    if there is no actual binning (only one singe bin). 
 
-    Parameters
-    ----------
-    region : str
-    culture_periods : dict[region]
-    clim_var : 
-    monthbin : 
+        Parameters
+        ----------
+        region : str
+        culture_periods : dict[region]
+        clim_var : str
+            identifies a precipitation bin. 
+            it requires that the last character of the str is the bin number (hence coercible to an integer).
+            it requires that this last character is inferior or equal to the number of elements of monthbin.
+        monthbin : list of int. 
+            the number of elements of the list is interpreted as the number of precipitation bins.
+            it requires that the sum of the elements should be equal to 24 (2 rolling years are used). 
+        subseason : see get_seasonal_index().
+            if !=None, requires suffix_triangle!=None & len(montbin)==1. 
+        suffix_triangle : see get_seasonal_index()
+            if !=None, requires subseason!=None
 
-    Returns
-    -------
-    
+
+        Returns
+        -------
+        tuple of int.
+            the tuple contains two elements, the index to catch the first month of the precipitation bin in the weather data, and the index to catch the last. 
+            values are compatible with the indexing that will be performed, see get_seasonal_index(). 
     
     """
+    try:
+        int(clim_var[-1])
+    except ValueError:
+        print("Error : the last character of clim_var can't be coerced into an integer")
+    assert int(clim_var[-1])<=len(monthbin), print("Error : the last character of clim_var, which is supposed to identify a bin, is greater than the number of bins.")
+    assert sum(monthbin)==24, print("Error : the sum of the monthbin list should be equal to 24 (will use it with two rolling years)")
 
-    plant, harvest = culture_periods[region]
+    if subseason!=None or suffix_triangle!=None:
+        assert subseason!=None and suffix_triangle!=None, print("you need to pass subseason and suffix_triangle together")
+        assert len(monthbin)==1, print("if you pass a subseason, you can't request a binning. I can't handle that.")
+    
+    plant, harvest = get_seasonal_index(region, culture_periods, subseason, suffix_triangle, transform_index=False)
+
     bindex = int(clim_var[-1]) - 1
     allmonths = [*range(plant, harvest+1)]
     mlist = []
@@ -145,10 +154,11 @@ def get_monthbin_index(region, culture_periods, clim_var, monthbin):
         mlist.append(allmonths[0:x])
         del allmonths[:x]
     if mlist[bindex]:
-        return int(mlist[bindex][0]-1), int(mlist[bindex][-1])
+        out = int(mlist[bindex][0]-1), int(mlist[bindex][-1])
     else:
-        return 0, 0
+        out = 0, 0
 
+    return out
 
 def calculate_edd(ds, gdd_cutoff, kdd_cutoff):
     """Calculate gdd and kdd from edd dataset.
@@ -175,7 +185,6 @@ def get_seasonal(crop, var, climate_model, rcp):
         one of ['seasonaledd', 'seasonalpr', 'seasonaltasmax', 'seasonaltasmin', 'monthbinpr']
     climate_model : str
     rcp : str 
-    
     """
     only_missing = False
     gdd_cutoff, kdd_cutoff, monthbin = None, None, None
@@ -346,7 +355,7 @@ def get_seasonal(crop, var, climate_model, rcp):
             
             print("Push", year)
             regions = np.array(ds.coords["region"])
-            if gdd_cutoff and kdd_cutoff:
+            if gdd_cutoff!=None and kdd_cutoff!=None:
                 ds = calculate_edd(ds, gdd_cutoff, kdd_cutoff)
             ii = 0
             for region, subds in fast_dataset.region_groupby(ds, year, regions, {regions[ii]: ii for ii in range(len(regions))}):
@@ -356,7 +365,11 @@ def get_seasonal(crop, var, climate_model, rcp):
                         if monthbin:
                             plantii, harvestii = get_monthbin_index(region, culture_periods, config['covariates'][kk], monthbin)
                         else:
-                            plantii, harvestii = get_seasonal_index(region, culture_periods, subseason)
+                            if subseason==None:
+                                plantii, harvestii = get_seasonal_index(region, culture_periods)
+                            else: 
+                                plantii, harvestii = get_seasonal_index(region, culture_periods, subseason, get_suffix_triangle())
+
                         cv = clim_var[kk].split('_')[0]
 
                         # Perform within-year collapse and update long-run averager.
@@ -381,4 +394,4 @@ def get_seasonal(crop, var, climate_model, rcp):
 
 
 
-#get_seasonal(crop='rice', var='seasonaledd', climate_model='CCSM4', rcp='rcp85')
+#get_seasonal(crop='wheat-winter-fall', var='seasonaledd', climate_model='CCSM4', rcp='rcp85')
