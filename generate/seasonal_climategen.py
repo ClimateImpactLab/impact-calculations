@@ -19,6 +19,9 @@ import pdb
 
 non_leap_year = 2010
 
+def is_longrun_climate(var):
+    return var in ['seasonaltasmax','seasonalpr']
+
 def get_suffix_triangle():
 
     """ data structure that allocates a growing season month to a subseason. 
@@ -191,7 +194,7 @@ def get_seasonal(crop, var, climate_model, rcp, targetdir=None):
     gdd_cutoff, kdd_cutoff, monthbin = None, None, None
     time_rate='month'
 
-    if crop.find('wheat-winter')!=-1:
+    if crop.find('wheat-winter')!=-1 and not is_longrun_climate(var):
         subseason=crop.replace('wheat-winter-', '')
     else:
         subseason=None
