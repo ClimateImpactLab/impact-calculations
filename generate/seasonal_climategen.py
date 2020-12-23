@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Functions to generate annual and moving averages seasonal monthly climate variables.
+"""Functions to generate annual and moving averages seasonal monthly climate variables. 
+Follows the projection system methods and parameters.
 """
 
 import sys, os
