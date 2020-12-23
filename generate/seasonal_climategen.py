@@ -140,7 +140,7 @@ def get_monthbin_index(region, culture_periods, clim_var, monthbin, subseason=No
     except ValueError:
         print("Error : the last character of clim_var can't be coerced into an integer")
     assert int(clim_var[-1])<=len(monthbin), print("Error : the last character of clim_var, which is supposed to identify a bin, is greater than the number of bins.")
-    assert sum(monthbin)==24, print("Error : the sum of the monthbin list should be equal to 24 (will use it with two rolling years)")
+    assert sum(monthbin)==24, print("Error : the sum of the monthbin list should be equal to 24")
 
     if subseason!=None or suffix_triangle!=None:
         assert subseason!=None and suffix_triangle!=None, print("you need to pass subseason and suffix_triangle together")
