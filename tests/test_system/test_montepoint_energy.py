@@ -1,4 +1,11 @@
-"""System smoke tests for one iteration Monte Carlo run for the energy sector.
+"""System smoke tests for one iteration of a pseudo-Monte Carlo run for the energy sector.
+
+These tests are "pseudo-Monte Carlo" because we mask out the random number 
+generator (RNG) when drawing from a multivariate-normal (MVN) distribution, 
+roughly simulating a Monte Carlo draw. We need to do this because we cannot 
+get stable MVN draws by simply seeding the RNG. The actual MVN draw is 
+numerically like a "point-estimate" projection run posing as a Monte Carlo
+run.
 
 These will likely fail if run as installed package as we unfortunately make
 strong assumptions about directory structure. These are also smoke tests,
