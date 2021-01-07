@@ -286,10 +286,8 @@ def get_seasonal(crop, var, climate_model, rcp, targetdir=None):
     seasonal_filepath = "social/baselines/agriculture/" + seasons[crop] + '.csv' 
     filename = crop + '_' + var + '.nc4'
 
-    if time_rate == 'day':
-        climates = ['tasmax', 'tasmin','pr']
-    else: 
-        climates = ['tasmax', 'tasmin','edd', 'pr', 'pr-poly-2 = pr-monthsum-poly-2']
+
+    climates = ['tasmax', 'tasmin','edd', 'pr', 'pr-poly-2 = pr-monthsum-poly-2', 'pr-poly-3 = pr-monthsum-poly-3', 'pr-poly-4 = pr-monthsum-poly-4']
 
     config = {
         'climate': climates,
@@ -401,6 +399,3 @@ def get_seasonal(crop, var, climate_model, rcp, targetdir=None):
         averaged[:, :, :] = averageddata
 
         rootgrp.close()
-
-
-
