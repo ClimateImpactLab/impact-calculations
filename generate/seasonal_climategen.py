@@ -272,7 +272,10 @@ def get_seasonal(crop, var, climate_model, rcp, targetdir=None):
         covars = ['seasonal' + c for c in clim_var] 
 
     if var == 'monthbinpr':
-        clim_var = ['pr', 'pr-poly-2']
+        if crop.find('wheat')!=-1:
+            clim_var = ['pr', 'pr-poly-2', 'pr-poly-3', 'pr-poly-4']
+        else:
+            clim_var = ['pr', 'pr-poly-2']
         func = np.sum
         # Months of growing-season bins with extended final bin.
         monthbin = bins[crop] 
@@ -398,3 +401,6 @@ def get_seasonal(crop, var, climate_model, rcp, targetdir=None):
         averaged[:, :, :] = averageddata
 
         rootgrp.close()
+
+
+
