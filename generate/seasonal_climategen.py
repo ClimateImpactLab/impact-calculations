@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Functions to generate annual and moving averages seasonal monthly climate variables. 
+"""Functions to generate annual and moving averages of seasonal monthly climate variables. 
 Follows the projection system methods and parameters.
 """
 
@@ -24,11 +24,11 @@ def is_longrun_climate(var):
 
 def get_suffix_triangle():
 
-    """ data structure that allocates a growing season month to a subseason. 
+    """ data structure that allocates a growing season month to a subseason of that growing season. 
 
     Returns
     -------
-    a list-of-list ('suffix-triangle')
+    a list-of-list
     """
 
     suffix_triangle = [ ['summer'], #1
@@ -52,16 +52,16 @@ def get_subseasonal_index(subseason, suffix_triangle, growing_season_length):
     """
     Returns
     -------
-    A list with the indexes of the elements of `suffix_triangle`[`growing_season_length`] that match `subseason`.
-    If the subseason doesn't fall in the growing season, the returned list is empty. 
+    A list containing the indexes of the elements of `suffix_triangle`[`growing_season_length`-1] that are equal to `subseason`.
+    If there are no matches, the returned list is empty. 
     """
 
     return [i for i,x in enumerate(suffix_triangle[growing_season_length-1]) if x==subseason]
 
 def get_seasonal_index(region, culture_periods, subseason=None, suffix_triangle=None, transform_index=True):
 
-    """retrieves integers indicating  the start and end of the growing season, or
-    the start and end of a subseason of that growing season for a given region. It can return 'usable' indexes -- see the description
+    """retrieves integers indicating, for a given region, the start and end of the growing season, or
+    the start and end of a subseason of that growing season. It can return 'usable' indexes -- for what this means, see the description
     of `transform_index`, 
 
     This function assumes the time rate used to generate culture_periods is 'month'. 
@@ -71,12 +71,12 @@ def get_seasonal_index(region, culture_periods, subseason=None, suffix_triangle=
     region : str
     culture_periods : dict : a [region] dictionary with start and end month of growing season for each region.
     subseason : None or str (the name of the season from which to build a growing season subset). 
-    suffix_triangle : None or (required) list-of-list-of-strings if subseason!=None. Allocates growing season months to subseasons. It uses a predefined 'suffix-triangle', which
+    suffix_triangle : None or required to be list-of-list-of-strings if subseason!=None. Allocates growing season months to subseasons. It uses a predefined 'suffix-triangle', which
     properties are defined in the adaptation.curvegen.SeasonalTriangleCurveGenerator class.
-    transform_index: if True, subtract one to first returned value and subtract and add one to second returned value. Details : 
-       useful if returned values are passed as start and and of a range of indexes to subset monthly weather data, which implies: 
+    transform_index: if True, subtract one to the first returned value of this function, and subtract and add one to the second returned value. Details : 
+       This is useful if the returned values will be used to subset data, in particular, passed as start and end of a range of indexes to subset monthly weather data, which implies: 
         - start and end are used as indexes of a list - therefore both must be shifted by minus one. 
-        - in addition, they are used in range(start, stop), which gives the span of start:stop, stop being excluded. Hence should add one to the returned value.
+        - in addition, they are used in range(start, stop), which gives the span of start:stop, stop being excluded. Hence, we should also add one to the returned value.
 
     Returns
     -------
@@ -111,8 +111,8 @@ def get_seasonal_index(region, culture_periods, subseason=None, suffix_triangle=
 
 def get_monthbin_index(region, culture_periods, clim_var, monthbin, subseason=None, suffix_triangle=None):
 
-    """Allocates the months of a region's growing season to a given precipitation bin. Can also allocate months of a subseason of the growing season 
-    if there is no actual binning (only one singe bin). 
+    """Allocates the months of a region's growing season to a given precipitation bin. It can also allocate months of a subseason of the growing season, 
+    only in the case where the bin is unique (which will mean that there is no 'binning', since the entire growing season must fall in the unique bin).
 
         Parameters
         ----------
@@ -120,11 +120,11 @@ def get_monthbin_index(region, culture_periods, clim_var, monthbin, subseason=No
         culture_periods : dict[region]
         clim_var : str
             identifies a precipitation bin. 
-            it requires that the last character of the str is the bin number (hence coercible to an integer).
-            it requires that this last character is inferior or equal to the number of elements of monthbin.
+            requires that the last character of the str is the bin number (hence coercible to an integer).
+            requires that this last character is inferior or equal to the number of elements of monthbin.
         monthbin : list of int. 
             the number of elements of the list is interpreted as the number of precipitation bins.
-            it requires that the sum of the elements should be equal to 24 (2 rolling years are used). 
+            requires that the sum of the elements should be equal to 24 (2 rolling years are used). 
         subseason : see get_seasonal_index().
             if !=None, requires suffix_triangle!=None & len(montbin)==1. 
         suffix_triangle : see get_seasonal_index()
@@ -183,12 +183,12 @@ def get_seasonal(crop, var, climate_model, rcp, targetdir=None):
     Parameters
     ----------
     crop : str
-        'crop' name. One of ['maize', 'rice', 'soy', 'cassava','sorghum','cotton', 'wheat-spring','wheat-winter-fall','wheat-winter-winter', 'wheat-winter-summer']
-    culture_periods : dict[region]
-    clim_var : str
+        one of ['maize', 'rice', 'soy', 'cassava','sorghum','cotton', 'wheat-spring','wheat-winter-fall','wheat-winter-winter', 'wheat-winter-summer']
+    var : str
         one of ['seasonaledd', 'seasonalpr', 'seasonaltasmax', 'seasonaltasmin', 'monthbinpr']
     climate_model : str
     rcp : str 
+        one of ['rcp45', 'rcp85']
     """
     only_missing = False
     gdd_cutoff, kdd_cutoff, monthbin = None, None, None
