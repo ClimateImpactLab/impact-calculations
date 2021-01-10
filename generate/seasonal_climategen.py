@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
-"""Functions to generate annual and moving averages of seasonal monthly climate variables. 
+"""Set of functions to generate annual and moving averages of seasonal monthly climate variables. 
 Follows the projection system methods and parameters.
+Usage : 
+    - command line : python -m generate.seasonal_climategen path_to_config_yml
+    - from python, calling main(config), with config a dictionary.
+    for completeness of config, see docstring of main(). 
 """
 
 import sys, os
@@ -18,31 +22,6 @@ non_leap_year = 2010
 
 def is_longrun_climate(var):
     return var in ['seasonaltasmax','seasonalpr']
-
-def get_suffix_triangle():
-
-    """ data structure that allocates a growing season month to a subseason of that growing season. 
-
-    Returns
-    -------
-    a list-of-list
-    """
-
-    suffix_triangle = [ ['summer'], #1
-    ['summer', 'summer'], #2 
-    ['summer', 'summer', 'summer'], #3
-    ['summer', 'summer', 'summer', 'summer'], #4
-    ['summer', 'summer', 'summer', 'summer', 'summer'], #5
-    ['fall', 'summer', 'summer', 'summer', 'summer', 'summer'], #6
-    ['fall', 'fall', 'summer', 'summer', 'summer', 'summer', 'summer'], #7
-    ['fall', 'fall', 'winter', 'summer', 'summer', 'summer', 'summer', 'summer'], #8
-    ['fall', 'fall', 'winter', 'winter', 'summer', 'summer', 'summer', 'summer', 'summer'], #9
-    ['fall', 'fall', 'winter', 'winter', 'winter', 'summer', 'summer', 'summer', 'summer', 'summer'], #10
-    ['fall', 'fall', 'winter', 'winter', 'winter', 'winter', 'summer', 'summer', 'summer', 'summer', 'summer'], #11
-    ['fall', 'fall', 'winter', 'winter', 'winter', 'winter', 'winter', 'summer', 'summer', 'summer', 'summer', 'summer'] #12
-    ]
-
-    return suffix_triangle
 
 def get_subseasonal_index(subseason, suffix_triangle, growing_season_length):
 
@@ -104,7 +83,6 @@ def get_seasonal_index(region, culture_periods, subseason=None, suffix_triangle=
         harvest_index = harvest_index-1+1
 
     return plant_index, harvest_index
-
 
 def get_monthbin_index(region, culture_periods, clim_var, monthbin, subseason=None, suffix_triangle=None):
 
@@ -172,29 +150,50 @@ def calculate_edd(ds, gdd_cutoff, kdd_cutoff):
         {'time': ds.time, 'region': ds.region})
     return out
 
+def main(config):
 
-def get_seasonal(crop, var, climate_model, rcp, targetdir=None):
-
-    """Collapses weather data to obtain seasonal calculations.
+    """main function, collapses weather data to obtain seasonal calculations.
 
     Parameters
     ----------
-    crop : str
-        one of ['maize', 'rice', 'soy', 'cassava','sorghum','cotton', 'wheat-spring','wheat-winter-fall','wheat-winter-winter', 'wheat-winter-summer']
-    var : str
-        one of ['seasonaledd', 'seasonalpr', 'seasonaltasmax', 'seasonaltasmin', 'monthbinpr']
-    climate_model : str
-    rcp : str 
-        one of ['rcp45', 'rcp85']
+    config : dict
+        configurations dictionary. 
+        required keys : 
+            - outputdir : str
+                where the netcdf with calculations is saved
+            - crop : str
+            - var : str
+                climate variable to calculate seasonal values
+            - climate_model : str
+            - rcp : str
+        optional keys : 
+            - subseason : str 
+            - (required if subseason in config) suffix_triangle : list of list 
+
     """
+
+    assert all(x in config for x in ['outputdir','crop', 'var', 'climate_model', 'rcp']), 'incomplete configurations file'
+
+    crop = config.get('crop')
+    var = config.get('var')
+    climate_model = config.get('climate_model')
+    rcp = config.get('rcp')
+    outputdir = config.get('outputdir')
+
+    assert crop in ['maize', 'rice', 'soy', 'cassava','sorghum','cotton', 'wheat-spring','wheat-winter-fall','wheat-winter-winter', 'wheat-winter-summer'], print('unknown crop')
+    assert var in ['seasonaltasmax', 'seasonalpr', 'seasonaltasmin', 'monthbinpr', 'seasonaledd'], print('unknown variable')
+
     only_missing = False
     gdd_cutoff, kdd_cutoff, monthbin = None, None, None
     time_rate='month'
 
-    if crop.find('wheat-winter')!=-1 and not is_longrun_climate(var):
-        subseason=crop.replace('wheat-winter-', '')
+    if 'subseason' in config:
+        assert 'suffix-triangle' in config, 'subseasonal calculations require a suffix-triangle in the configurations'
+        subseason = config.get('subseason')
+        suffix_triangle = config.get('suffix-triangle')
     else:
-        subseason=None
+        subseason = None 
+        suffix_triangle = None
 
     print('Processing arguments')
 
@@ -237,8 +236,6 @@ def get_seasonal(crop, var, climate_model, rcp, targetdir=None):
         'wheat-winter-summer':[1,11]
     }
 
-    assert crop in ['maize', 'rice', 'soy', 'cassava','sorghum','cotton', 'wheat-spring','wheat-winter-fall','wheat-winter-winter', 'wheat-winter-summer'], print('unknown crop')
-    assert var in ['seasonaltasmax', 'seasonalpr', 'seasonaltasmin', 'monthbinpr', 'seasonaledd'], print('unknown variable')
 
     if var == 'seasonaltasmax':
         # Relevant climate variables.
@@ -300,7 +297,6 @@ def get_seasonal(crop, var, climate_model, rcp, targetdir=None):
         print('the config file syntax is wrong')
         exit()
 
-    outputdir = '/shares/gcp/outputs/temps'
     culture_periods = irvalues.get_file_cached(config['within-season'], irvalues.load_culture_months)
     standard_running_mean_init = averages.BartlettAverager
     numtempyears = 30
@@ -309,19 +305,18 @@ def get_seasonal(crop, var, climate_model, rcp, targetdir=None):
 
     for clim_scenario, clim_model, weatherbundle in get_bundle_iterator(config):
 
-        if targetdir==None:
-            targetdir = os.path.join(outputdir, clim_scenario, clim_model)
+        outputdir = os.path.join(outputdir, clim_scenario, clim_model)
             
-        if only_missing and os.path.exists(os.path.join(targetdir, filename)):
+        if only_missing and os.path.exists(os.path.join(outputdir, filename)):
             print("File exists. Exiting...")
             continue
             
-        print("Generating " + filename + " in " + targetdir)
-        if not os.path.exists(targetdir):
-            os.makedirs(targetdir, 0o775)
+        print("Generating " + filename + " in " + outputdir)
+        if not os.path.exists(outputdir):
+            os.makedirs(outputdir, 0o775)
 
         # Initiate netcdf and dimensions, variables.
-        rootgrp = Dataset(os.path.join(targetdir, filename), 'w', format='NETCDF4')
+        rootgrp = Dataset(os.path.join(outputdir, filename), 'w', format='NETCDF4')
         rootgrp.description = "Growing season and 30-year Bartlett average climate variables."
         rootgrp.author = "Emile Tenezakis"
 
@@ -370,10 +365,7 @@ def get_seasonal(crop, var, climate_model, rcp, targetdir=None):
                         if monthbin:
                             plantii, harvestii = get_monthbin_index(region, culture_periods, config['covariates'][kk], monthbin)
                         else:
-                            if subseason==None:
-                                plantii, harvestii = get_seasonal_index(region, culture_periods)
-                            else: 
-                                plantii, harvestii = get_seasonal_index(region, culture_periods, subseason, get_suffix_triangle())
+                            plantii, harvestii = get_seasonal_index(region, culture_periods, subseason, suffix_triangle)
 
                         cv = clim_var[kk].split('_')[0]
 
@@ -396,3 +388,9 @@ def get_seasonal(crop, var, climate_model, rcp, targetdir=None):
         averaged[:, :, :] = averageddata
 
         rootgrp.close()
+
+if __name__ == '__main__':
+    import yaml
+    with open(str(sys.argv[1]), 'r') as file:
+        run_config = yaml.load(file)
+    main(run_config)
