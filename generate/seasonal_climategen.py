@@ -34,11 +34,11 @@ def get_subseasonal_index(subseason, suffix_triangle, growing_season_length):
 
     return [i for i,x in enumerate(suffix_triangle[growing_season_length-1]) if x==subseason]
 
-def get_seasonal_index(region, culture_periods, subseason=None, suffix_triangle=None, transform_index=True):
+def get_seasonal_index(region, culture_periods, subseason=None, suffix_triangle=None, zero_index=True):
 
     """retrieves integers indicating, for a given region, the start and end of the growing season, or
     the start and end of a subseason of that growing season. It can return 'usable' indexes -- for what this means, see the description
-    of `transform_index`, 
+    of `zero_index`, 
 
     This function assumes the time rate used to generate culture_periods is 'month'. 
 
@@ -49,7 +49,7 @@ def get_seasonal_index(region, culture_periods, subseason=None, suffix_triangle=
     subseason : None or str (the name of the season from which to build a growing season subset). 
     suffix_triangle : None or required to be list-of-list-of-strings if subseason!=None. Allocates growing season months to subseasons. It uses a predefined 'suffix-triangle', which
     properties are defined in the adaptation.curvegen.SeasonalTriangleCurveGenerator class.
-    transform_index: if True, subtract one to the first returned value of this function, and subtract and add one to the second returned value. Details : 
+    zero_index: if True, subtract one to the first returned value of this function, and subtract and add one to the second returned value. Details : 
        This is useful if the returned values will be used to subset data, in particular, passed as start and end of a range of indexes to subset monthly weather data, which implies: 
         - start and end are used as indexes of a list - therefore both must be shifted by minus one. 
         - in addition, they are used in range(start, stop), which gives the span of start:stop, stop being excluded. Hence, we should also add one to the returned value.
@@ -57,8 +57,8 @@ def get_seasonal_index(region, culture_periods, subseason=None, suffix_triangle=
     Returns
     -------
     A tuple, that is either :
-        - first_month, last_month if transform_index=False
-        - (first_month-1), (last_month -1 + 1) if transform_index=True. 
+        - first_month, last_month if zero_index=False
+        - (first_month-1), (last_month -1 + 1) if zero_index=True. 
             where first_month and last_month are the first and last month of the growing season or 
             of the subseason of the growing season if subseason=None and the subseason exist in the growing season per the `suffix_triangle` definition.
         - None,None if subseason!=None and the subseason does not exist per the subseasons definition.
@@ -78,7 +78,7 @@ def get_seasonal_index(region, culture_periods, subseason=None, suffix_triangle=
     plant_index = span[0]
     harvest_index = span[len(span)-1] #for clarity of what's happening. 
 
-    if transform_index:
+    if zero_index:
         plant_index = plant_index-1
         harvest_index = harvest_index-1+1
 
@@ -124,7 +124,7 @@ def get_monthbin_index(region, culture_periods, clim_var, monthbin, subseason=No
         assert subseason!=None and suffix_triangle!=None, print("you need to pass subseason and suffix_triangle together")
         assert len(monthbin)==1, print("if you pass a subseason, you can't request a binning. I can't handle that.")
     
-    plant, harvest = get_seasonal_index(region, culture_periods, subseason, suffix_triangle, transform_index=False)
+    plant, harvest = get_seasonal_index(region, culture_periods, subseason, suffix_triangle, zero_index=False)
 
     bindex = int(clim_var[-1]) - 1
     allmonths = [*range(plant, harvest+1)]

@@ -8,9 +8,9 @@ def test_get_seasonal_index():
 	"""
 	testing strategy : splitting input
 
-	- - crop:rice
+	- crop:rice
 		- region:'ZWE.8.43',plant_month:11, harvest_month:5
-		- region:'ZWE.8.43',plant_month:11, harvest_month:5, transform_index:False
+		- region:'ZWE.8.43',plant_month:11, harvest_month:5, zero_index:False
 		- region:'FRA.83.63', plant_month:5, harvest_month:10
 		- region:'FRA.83.63', plant_month:5, harvest_month:10, subseason:'summer'
 		- region:'FRA.83.63', plant_month:5, harvest_month:10, subseason:'winter'
@@ -27,7 +27,7 @@ def test_get_seasonal_index():
 
 	culture_periods = irvalues.get_file_cached('social/baselines/agriculture/world-combo-201710-growing-seasons-rice-1stseason.csv', irvalues.load_culture_months)
 	assert seasonal_climategen.get_seasonal_index('ZWE.8.43', culture_periods) == (11-1, (5+12)-1+1) #rolling years entire growing season
-	assert seasonal_climategen.get_seasonal_index('ZWE.8.43', culture_periods, transform_index=False) == (11, (5+12)) #rolling years entire growing season
+	assert seasonal_climategen.get_seasonal_index('ZWE.8.43', culture_periods, zero_index=False) == (11, (5+12)) #rolling years entire growing season
 	assert seasonal_climategen.get_seasonal_index('FRA.83.63', culture_periods) == (5-1, 10-1+1) #single year entire growing season
 	assert seasonal_climategen.get_seasonal_index('FRA.83.63', culture_periods, 'summer', seasonal_climategen.get_suffix_triangle()) == (6-1, 10+1-1) #just the summer
 	assert seasonal_climategen.get_seasonal_index('FRA.83.63', culture_periods, 'fall', seasonal_climategen.get_suffix_triangle()) == (5-1, 5+1-1) #just the fall
