@@ -13,9 +13,6 @@ from impactcommon.math import averages
 from datastore import irvalues
 from dateutil.relativedelta import relativedelta
 from interpret.container import get_bundle_iterator
-import multiprocessing
-from itertools import product
-import pdb 
 
 non_leap_year = 2010
 
