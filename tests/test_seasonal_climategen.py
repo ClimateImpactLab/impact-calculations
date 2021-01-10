@@ -3,6 +3,25 @@ from datastore import irvalues
 
 non_leap_year = 2010
 
+
+def get_test_suffix_triangle():
+
+    suffix_triangle = [ ['summer'], #1
+    ['summer', 'summer'], #2 
+    ['summer', 'summer', 'summer'], #3
+    ['summer', 'summer', 'summer', 'summer'], #4
+    ['summer', 'summer', 'summer', 'summer', 'summer'], #5
+    ['fall', 'summer', 'summer', 'summer', 'summer', 'summer'], #6
+    ['fall', 'fall', 'summer', 'summer', 'summer', 'summer', 'summer'], #7
+    ['fall', 'fall', 'winter', 'summer', 'summer', 'summer', 'summer', 'summer'], #8
+    ['fall', 'fall', 'winter', 'winter', 'summer', 'summer', 'summer', 'summer', 'summer'], #9
+    ['fall', 'fall', 'winter', 'winter', 'winter', 'summer', 'summer', 'summer', 'summer', 'summer'], #10
+    ['fall', 'fall', 'winter', 'winter', 'winter', 'winter', 'summer', 'summer', 'summer', 'summer', 'summer'], #11
+    ['fall', 'fall', 'winter', 'winter', 'winter', 'winter', 'winter', 'summer', 'summer', 'summer', 'summer', 'summer'] #12
+    ]
+
+    return suffix_triangle
+
 def test_get_seasonal_index():
 
 	"""
@@ -29,19 +48,19 @@ def test_get_seasonal_index():
 	assert seasonal_climategen.get_seasonal_index('ZWE.8.43', culture_periods) == (11-1, (5+12)-1+1) #rolling years entire growing season
 	assert seasonal_climategen.get_seasonal_index('ZWE.8.43', culture_periods, zero_index=False) == (11, (5+12)) #rolling years entire growing season
 	assert seasonal_climategen.get_seasonal_index('FRA.83.63', culture_periods) == (5-1, 10-1+1) #single year entire growing season
-	assert seasonal_climategen.get_seasonal_index('FRA.83.63', culture_periods, 'summer', seasonal_climategen.get_suffix_triangle()) == (6-1, 10+1-1) #just the summer
-	assert seasonal_climategen.get_seasonal_index('FRA.83.63', culture_periods, 'fall', seasonal_climategen.get_suffix_triangle()) == (5-1, 5+1-1) #just the fall
-	assert seasonal_climategen.get_seasonal_index('FRA.83.63', culture_periods, 'winter', seasonal_climategen.get_suffix_triangle()) == (None, None) #just the winter that 'doesn't exist'
-	assert seasonal_climategen.get_seasonal_index('FRA.73.82', culture_periods, 'fall', seasonal_climategen.get_suffix_triangle()) == (2-1,3+1-1) #just fall, another example
-	assert seasonal_climategen.get_seasonal_index('FRA.73.82', culture_periods, 'winter', seasonal_climategen.get_suffix_triangle()) == (4-1,4+1-1) #just winter, yet another example
-	assert seasonal_climategen.get_seasonal_index('ASM.Ra9b78739fcd43737', culture_periods, 'summer', seasonal_climategen.get_suffix_triangle()) == (2-1,6+1-1) #boundary case (starts at first month)
-	assert seasonal_climategen.get_seasonal_index('ASM.Ra9b78739fcd43737', culture_periods, 'fall', seasonal_climategen.get_suffix_triangle()) == (1-1,1+1-1) #idem
+	assert seasonal_climategen.get_seasonal_index('FRA.83.63', culture_periods, 'summer', get_test_suffix_triangle()) == (6-1, 10+1-1) #just the summer
+	assert seasonal_climategen.get_seasonal_index('FRA.83.63', culture_periods, 'fall', get_test_suffix_triangle()) == (5-1, 5+1-1) #just the fall
+	assert seasonal_climategen.get_seasonal_index('FRA.83.63', culture_periods, 'winter', get_test_suffix_triangle()) == (None, None) #just the winter that 'doesn't exist'
+	assert seasonal_climategen.get_seasonal_index('FRA.73.82', culture_periods, 'fall', get_test_suffix_triangle()) == (2-1,3+1-1) #just fall, another example
+	assert seasonal_climategen.get_seasonal_index('FRA.73.82', culture_periods, 'winter', get_test_suffix_triangle()) == (4-1,4+1-1) #just winter, yet another example
+	assert seasonal_climategen.get_seasonal_index('ASM.Ra9b78739fcd43737', culture_periods, 'summer', get_test_suffix_triangle()) == (2-1,6+1-1) #boundary case (starts at first month)
+	assert seasonal_climategen.get_seasonal_index('ASM.Ra9b78739fcd43737', culture_periods, 'fall', get_test_suffix_triangle()) == (1-1,1+1-1) #idem
 
 
 	culture_periods = irvalues.get_file_cached('social/baselines/agriculture/world-combo-202004-growing-seasons-wheat-winter.csv', irvalues.load_culture_months)
-	assert seasonal_climategen.get_seasonal_index('GRC.13.R0cbc533353135881', culture_periods, 'summer', seasonal_climategen.get_suffix_triangle()) == ((2+12)-1, (6+12)-1+1) #rolling year + just the 'summer'
-	assert seasonal_climategen.get_seasonal_index('GRC.13.R0cbc533353135881', culture_periods, 'fall', seasonal_climategen.get_suffix_triangle()) == (11-1, 12-1+1) #just the fall
-	assert seasonal_climategen.get_seasonal_index('FRA.41.57', culture_periods, 'winter', seasonal_climategen.get_suffix_triangle()) == (12-1, (3+12)-1+1) #just the winter that 'doesn't exist'
+	assert seasonal_climategen.get_seasonal_index('GRC.13.R0cbc533353135881', culture_periods, 'summer', get_test_suffix_triangle()) == ((2+12)-1, (6+12)-1+1) #rolling year + just the 'summer'
+	assert seasonal_climategen.get_seasonal_index('GRC.13.R0cbc533353135881', culture_periods, 'fall', get_test_suffix_triangle()) == (11-1, 12-1+1) #just the fall
+	assert seasonal_climategen.get_seasonal_index('FRA.41.57', culture_periods, 'winter', get_test_suffix_triangle()) == (12-1, (3+12)-1+1) #just the winter that 'doesn't exist'
 
 
 def test_get_monthbin_index():
@@ -67,8 +86,8 @@ def test_get_monthbin_index():
 	culture_periods = irvalues.get_file_cached('social/baselines/agriculture/world-combo-202004-growing-seasons-wheat-winter.csv', irvalues.load_culture_months)
 	clim_var='somename_1'
 	assert seasonal_climategen.get_monthbin_index('FRA.41.57', culture_periods, clim_var, [24])==(10-1,12+8-1+1)
-	assert seasonal_climategen.get_monthbin_index('FRA.41.57', culture_periods, clim_var, [24], subseason='fall', suffix_triangle=seasonal_climategen.get_suffix_triangle())==(10-1,11-1+1)
-	assert seasonal_climategen.get_monthbin_index('FRA.41.57', culture_periods, clim_var, [24], subseason='winter', suffix_triangle=seasonal_climategen.get_suffix_triangle())==(12-1, (3+12)-1+1)
+	assert seasonal_climategen.get_monthbin_index('FRA.41.57', culture_periods, clim_var, [24], subseason='fall', suffix_triangle=get_test_suffix_triangle())==(10-1,11-1+1)
+	assert seasonal_climategen.get_monthbin_index('FRA.41.57', culture_periods, clim_var, [24], subseason='winter', suffix_triangle=get_test_suffix_triangle())==(12-1, (3+12)-1+1)
 	assert seasonal_climategen.get_monthbin_index('FRA.41.57', culture_periods, clim_var, [1, 24-1])==(10-1,10-1+1)
 	assert seasonal_climategen.get_monthbin_index('FRA.41.57', culture_periods, clim_var, [3,4,24-3-4])==(10-1,12-1+1)
 	clim_var='somename_2'
