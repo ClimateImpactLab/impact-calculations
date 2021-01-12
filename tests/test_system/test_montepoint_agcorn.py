@@ -1,4 +1,11 @@
-"""System smoke tests for one iteration Monte Carlo run for Agriculture (corn).
+"""System smoke tests for one iteration of a pseudo-Monte Carlo run for Agriculture (corn).
+
+These tests are "pseudo-Monte Carlo" because we mask out the random number 
+generator (RNG) when drawing from a multivariate-normal (MVN) distribution, 
+roughly simulating a Monte Carlo draw. We need to do this because we cannot 
+get stable MVN draws by simply seeding the RNG. The actual MVN draw is 
+numerically like a "point-estimate" projection run posing as a Monte Carlo
+run.
 
 These will likely fail if run as installed package as we unfortunately make
 strong assumptions about directory structure. These are also smoke tests,
@@ -120,7 +127,7 @@ RUN_CONFIGS = {
 
 
 @pytest.fixture(scope="module")
-def projection_payload():
+def projection_payload(static_mvn):
     """Run the projection in tmpdir, get McResults namedtuple from output, clean output on exit
     """
     # Read output files from projection into named tuple of xr.Datasets and dicts.
@@ -208,8 +215,8 @@ class TestRebased:
     """
 
     target_variable = "rebased"
-    atol = 1
-    rtol = 0
+    atol = 0
+    rtol = 1e-7
 
     @pytest.mark.parametrize(
         "result_file", [("base_ds"), ("noadapt_ds"), ("incadapt_ds"), ("histclim_ds"),]
@@ -222,10 +229,10 @@ class TestRebased:
     @pytest.mark.parametrize(
         "result_file,expected",
         [
-            ("base_ds", np.array([[16763353.0, 13856688.0, 12565748.0]]).T),
-            ("noadapt_ds", np.array([[16763353.0, 13856688.0, 12565748.0]]).T),
-            ("incadapt_ds", np.array([[16763353.0, 13856688.0, 12565748.0]]).T),
-            ("histclim_ds", np.array([[-2035501.0, 2715450.0, 2715450.0]]).T),
+            ("base_ds", np.array([[-80987.25, -60430.58, -12399.255]]).T),
+            ("noadapt_ds", np.array([[-80987.25, -60430.58, -12399.255]]).T),
+            ("incadapt_ds", np.array([[-80987.25, -60430.58, -12399.255]]).T),
+            ("histclim_ds", np.array([[-54825.156, 815.6095, 815.6095]]).T),
         ],
     )
     def test_head(self, projection_payload, result_file, expected):
@@ -241,10 +248,10 @@ class TestRebased:
     @pytest.mark.parametrize(
         "result_file,expected",
         [
-            ("base_ds", np.array([[16553001.0, -22093280.0, -3109495.8]]).T),
-            ("noadapt_ds", np.array([[16719406.0, -19189916.0, -822137.2]]).T),
-            ("incadapt_ds", np.array([[16719406.0, -19189874.0, -822115.2]]).T),
-            ("histclim_ds", np.array([[2393200.0, -6320445.0, 1069611.9]]).T),
+            ("base_ds", np.array([[-43783.42, 93305.3, -31518.95]]).T),
+            ("noadapt_ds", np.array([[-49961.56, 78332.21, -40562.645]]).T),
+            ("incadapt_ds", np.array([[-49961.16, 78333.27, -40562.316]]).T),
+            ("histclim_ds", np.array([[-51168.804688, 28128.193359, 38980.457031]]).T),
         ],
     )
     def test_tail(self, projection_payload, result_file, expected):
