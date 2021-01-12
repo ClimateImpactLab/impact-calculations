@@ -1102,16 +1102,13 @@ class SplineCovariator(TranslateCovariator):
     ----------
     covariator : Covariator 
         Source for variable to be splined.
-    covarname : str
-        The covariate reported by `covariator`.
     suffix : str
         Added to the covariate name when reporting splines.
     leftlimits : list-like of numeric
         The values for l_k as defined above.
     """
-    def __init__(self, covariator, covarname, suffix, leftlimits):
+    def __init__(self, covariator, suffix, leftlimits):
         super(SplineCovariator, self).__init__(covariator, {})
-        self.covarname = covarname
         self.suffix = suffix
         self.leftlimits = leftlimits
 
@@ -1127,13 +1124,14 @@ class SplineCovariator(TranslateCovariator):
         result : dict
         """
         result = {}
-        for ii in range(len(self.leftlimits)):
-            if covariates[self.covarname] - self.leftlimits[ii] < 0:
-                result[self.covarname + self.suffix + str(ii+1)] = 0
-                result[self.covarname + 'indic' + str(ii+1)] = 0
-            else:
-                result[self.covarname + self.suffix + str(ii+1)] = covariates[self.covarname] - self.leftlimits[ii]
-                result[self.covarname + 'indic' + str(ii+1)] = 1
+        for covarname in covariates:
+            for ii in range(len(self.leftlimits)):
+                if covariates[covarname] - self.leftlimits[ii] < 0:
+                    result[covarname + self.suffix + str(ii+1)] = 0
+                    result[covarname + 'indic' + str(ii+1)] = 0
+                else:
+                    result[covarname + self.suffix + str(ii+1)] = covariates[covarname] - self.leftlimits[ii]
+                    result[covarname + 'indic' + str(ii+1)] = 1
         return result
                 
 class CountryAggregatedCovariator(Covariator):
