@@ -194,6 +194,7 @@ def main(config):
         assert 'suffix-triangle' in config, 'subseasonal calculations require a suffix-triangle in the configurations'
         subseason = config.get('subseason')
         suffix_triangle = config.get('suffix-triangle')
+        print('doing subseason ' + subseason)
     else:
         subseason = None 
         suffix_triangle = None
