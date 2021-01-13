@@ -126,6 +126,9 @@ def get_monthbin_index(region, culture_periods, clim_var, monthbin, subseason=No
     
     plant, harvest = get_seasonal_index(region, culture_periods, subseason, suffix_triangle, zero_index=False)
 
+    if plant==None and harvest==None:
+        return (None, None)
+
     bindex = int(clim_var[-1]) - 1
     allmonths = [*range(plant, harvest+1)]
     mlist = []
@@ -363,7 +366,7 @@ def main(config):
                     for kk in range(len(config['covariates'])):
                         # Get indices for (1) month of season bin or (2) full growing season.
                         if monthbin:
-                            plantii, harvestii = get_monthbin_index(region, culture_periods, config['covariates'][kk], monthbin)
+                            plantii, harvestii = get_monthbin_index(region, culture_periods, config['covariates'][kk], monthbin, subseason, suffix_triangle)
                         else:
                             plantii, harvestii = get_seasonal_index(region, culture_periods, subseason, suffix_triangle)
 
