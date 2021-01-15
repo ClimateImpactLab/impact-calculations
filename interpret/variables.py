@@ -181,7 +181,7 @@ def interpret_univariate_transform(name, config):
     # If can cast name into float (no ValueError), simply use as float value.
     with suppress(ValueError):
         use_scalar = float(name)
-        return (lambda xxs: np.ones(xxs.shape) * use_scalar, None)
+        return lambda xxs: np.ones(xxs.shape) * use_scalar, None
 
     # Otherwise interpret variable names and possible implied transformations.
     if ' ** ' in name:
