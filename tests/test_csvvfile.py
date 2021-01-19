@@ -12,6 +12,6 @@ def test_collapse_bang():
 
     npt.assert_allclose(
         d["gamma"],
-        np.array([1.9038086281574356, 0.745770823978362]),
+        np.array([1.9395389120660098, -0.1718425020891492]),
     )
     assert d["gammavcv"] is None
