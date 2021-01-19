@@ -357,10 +357,10 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
         else:
             # Randomly choose years with replacement
             rng = np.random.default_rng(seed)
-            choices = list(range(int(self.pastyear_start), int(self.pastyear_end) + 1))
             self.pastyears = rng.choice(
-                choices,
-                int(self.futureyear_end - self.pastyear_start + 1),
+                a=list(range(int(self.pastyear_start), int(self.pastyear_end) + 1)),
+                size=int(self.futureyear_end - self.pastyear_start + 1),
+                replace=True,
             )
 
         self.load_readermeta(onereader)
