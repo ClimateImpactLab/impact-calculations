@@ -106,8 +106,8 @@ def collapse_bang(data, seed):
     else:
         rng = np.random.default_rng(seed)
         data['gamma'] = multivariate_normal.rvs(
-            data['gamma'],
-            data['gammavcv'],
+            mean=data['gamma'],
+            cov=data['gammavcv'],
             random_state=rng,
         )
         data['gammavcv'] = None # this will cause errors if used again
