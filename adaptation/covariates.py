@@ -1156,7 +1156,7 @@ class ClipCovariator(TranslateCovariator):
 
     """
     def __init__(self, covariator, cliplow, cliphigh):
-        super(SplineCovariator, self).__init__(covariator, {})
+        super(ClipCovariator, self).__init__(covariator, {})
         self.cliplow = cliplow
         self.cliphigh = cliphigh
 
