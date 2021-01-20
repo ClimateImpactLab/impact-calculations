@@ -1135,7 +1135,50 @@ class SplineCovariator(TranslateCovariator):
                 result[self.covarname + self.suffix + str(ii+1)] = covariates[self.covarname] - self.leftlimits[ii]
                 result[self.covarname + 'indic' + str(ii+1)] = 1
         return result
-                
+
+class ClipCovariator(TranslateCovariator):
+    """Clip covariate values at a high and low value.
+
+    `covariator` should be a Covariator, returning dictionaries containing `covarname`.
+
+    The resulting covariate dictionary will contain this covarname,
+    but with values clipped to be between the high and low bounds.
+        
+    Parameters
+    ----------
+    covariator : Covariator 
+        Source for variable to be splined.
+    covarname : str
+        The covariate reported by `covariator`.
+    cliplow : float
+        clip values to be max(cliplow, baseline)
+    cliphigh : float
+        clip values to be min(cliphigh, baseline)
+
+    """
+    def __init__(self, covariator, covarname, cliplow, cliphigh):
+        super(SplineCovariator, self).__init__(covariator, {})
+        self.covarname = covarname
+        self.cliplow = cliplow
+        self.cliphigh = cliphigh
+
+    def translate(self, covariates):
+        """
+        Parameters
+        ----------
+        covariates : dict
+
+        Returns
+        -------
+        result : dict
+        """
+        if covariates[self.covarname] < self.cliplow:
+            covariates[self.covarname] = self.cliplow
+        elif covariates[self.covarname] > self.cliphigh:
+            covariates[self.covarname] = self.cliphigh
+
+        return covariates
+
 class CountryAggregatedCovariator(Covariator):
     """Spatially average the covariates across all regions within a country.
 
