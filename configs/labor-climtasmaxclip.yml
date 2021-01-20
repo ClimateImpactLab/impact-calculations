@@ -1,0 +1,84 @@
+mode: writecalcs
+
+outputdir: /shares/gcp/outputs/labor/impacts-woodwork/main_model_flat_edges_single
+do_historical: true
+do_farmers: true
+singledir: uninteracted_splines_27_37_39_by_risk_empshare_noFE_YearlyAverageDay
+climcovar:
+    class: mean
+    length: 30
+econcovar:
+   class: mean
+   length: 30
+timerate: day
+climate: [ tasmax, tasmax_rcspline, tas  ]
+models:
+  - csvvs: ./configs/labor-climtasmaxclip.csvv
+    covariates: 
+        - loggdppc
+        - climtasclip: [0.64, 29.01]
+        - (climtas^2)clip: [0.4096, 841.5801]
+        - (climtas^3)clip: [0.262144, 24414.238701]
+        - (climtas^4)clip: [0.16777216, 708257.06471601]
+    knots: [ 27, 37, 39 ]
+    description: labor productivity
+    specifications:
+        minlost_lo:
+            csvv-subset: [0, 2]  # Which columns in CSVV? (0-indexing!)
+            csvv-reunit:
+                - variable: outcome
+                  new-unit: minutes worked by individual
+            description: low-risk labor productivity
+            indepunit: C
+            depenunit: minutes worked by individual  
+            description: low-risk labor productivity
+            functionalform: cubicspline
+            prefix: tasmax_rcspline
+            variable: tasmax
+        minlost_hi:
+            csvv-subset: [2, 4]
+            csvv-reunit:
+                - variable: outcome
+                  new-unit: minutes worked by individual
+            indepunit: C
+            depenunit: minutes worked by individual
+            description: high-risk labor productivity
+            functionalform: cubicspline
+            prefix: tasmax_rcspline
+            variable: tasmax
+        riskshare_hi:
+            csvv-subset: [4, 10]
+            csvv-reunit:
+                - variable: outcome
+                  new-unit: unitless
+            indepunit: C
+            depenunit: unitless
+            description: share of high-risk labor
+            functionalform: coefficients
+            variables:
+                - 1 [scalar]
+    calculation:
+        - FractionSum:
+            - YearlyAverageDay:
+                model: minlost_hi
+            - Clip:
+                - YearlyAverageDay:  # YearlySumDaily triggers RecursionError starting at openest/generate/daily.py", line 308
+                    model: riskshare_hi
+                - 0.046444122  # Historical clip min value
+                - 0.99408281   # Historical clip max value
+            - YearlyAverageDay:
+                model: minlost_lo
+        - AuxillaryResult:
+            - YearlyAverageDay:
+                model: minlost_hi
+            - highriskimpacts
+        - AuxillaryResult:
+            - YearlyAverageDay:
+                model: minlost_lo
+            - lowriskimpacts
+        - Rebase
+        - KeepOnly:
+            - rebased
+            - clip
+            - highriskimpacts
+            - lowriskimpacts

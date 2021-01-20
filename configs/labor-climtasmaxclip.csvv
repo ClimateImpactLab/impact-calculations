@@ -1,0 +1,39 @@
+---
+oneline: Labor uninteracted regression restricted cubic spline term (3 knots), located at 27_37_39. Empshare with noFE
+version: LABOR-UNINTERACTED-RCSPLINE-3KNOTS-COMBINED-EMPSHARE-Knots-27_37_39-noFE
+description: Generated from labor uninteracted regression with restricted cubic spline, 3 knots.The first 2 gammas are for the low-risk sector. The next 2 for the high-risk sector.The remaining gammas are from the employment shares projection, with noFE
+dependencies: uninteracted_reg_by_risk_risk_adj_sample_wgt.csvv and labor_empshare_noFE.csvv
+csvv-version: girdin-2017-01-10
+variables:
+  tasmax: daily maximum temperature [C]
+  tasmax_rcspline1: restricted cubic spline term of daily max temperature [C^3]
+  climtasmax: long run average daily maximum temperature [C]
+  outcome: labor productivity [minutes worked by individual]
+  loggdppc: 15-year moving average of log GDP per capita [log USD2000]
+  climtas: poly 1 daily mean temperature, population weighted to aggregate to IR level, then averaged for 15 years [C]
+  climtas^2: poly 2 daily mean temperature, population weighted to aggregate to IR level, then averaged for 15 years [C^2]
+  climtas^3: poly 3 daily mean temperature, population weighted to aggregate to IR level, then averaged for 15 years [C^3]
+  climtas^4: poly 4 daily mean temperature, population weighted to aggregate to IR level, then averaged for 15 years [C^4]
+  outcome: share of high-risk labor [unitless]
+...
+observations
+6600408
+prednames
+tasmax, tasmax_rcspline1, tasmax, tasmax_rcspline1, 1, 1, 1, 1, 1, 1
+covarnames
+1, 1, 1, 1, 1, loggdppc, climtas, climtas^2, climtas^3, climtas^4
+gamma
+0.0499968692364216, -0.0030990557122301, 0.726375435490015, -0.0186751538193722, 2.3722374409202, -0.178702997711924, -0.0081779717139058, -0.0015973225364699, 5.86088469882e-05, -1.7980748713e-07
+gammavcv
+0.0819070932463607, -0.0005300212712299, -0.0005501298406163, 1.37095839116e-05, 0, 0, 0, 0, 0, 0
+-0.0005300212712299, 1.26415533199e-05, -8.02135702971e-07, -1.9212496857e-06, 0, 0, 0, 0, 0, 0
+-0.0005501298406159, -8.02135702971e-07, 0.50201239982258, -0.00241290620494, 0, 0, 0, 0, 0, 0
+1.37095839114e-05, -1.921249686e-06, -0.0024129062049402, 4.55119674331e-05, 0, 0, 0, 0, 0, 0
+0, 0, 0, 0, 0.0029405685923991, -0.000220380170075, -7.17025238379e-05, -4.11105663394e-06, 3.85485812392e-07, -7.04491120456e-09
+0, 0, 0, 0, -0.000220380170075, 2.13832163782e-05, -1.19511958789e-07, 1.56103163481e-07, -3.30521568977e-09, -1.81857128856e-12
+0, 0, 0, 0, -7.17025238379e-05, -1.19511958789e-07, 1.61383516685e-05, -2.86789136882e-07, -3.95537419734e-08, 1.15697975977e-09
+0, 0, 0, 0, -4.11105663394e-06, 1.56103163481e-07, -2.86789136882e-07, 6.79124966197e-08, -2.88749812505e-09, 3.36323541298e-11
+0, 0, 0, 0, 3.85485812392e-07, -3.30521568977e-09, -3.95537419734e-08, -2.88749812505e-09, 3.36026541223e-10, -7.07157122672e-12
+0, 0, 0, 0, -7.04491120456e-09, -1.81857128856e-12, 1.15697975977e-09, 3.36323541298e-11, -7.07157122672e-12, 1.68388715229e-13
+residvcv
+4174.0441200652
