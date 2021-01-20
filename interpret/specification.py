@@ -77,6 +77,10 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config=None, quiet
     elif '^' in covar:
         chunks = covar.split('^', 1)
         return covariates.PowerCovariator(get_covariator(chunks[0].strip(), args, weatherbundle, economicmodel, config=config, quiet=quiet), float(chunks[1]))
+    elif covar[-4:] == 'clip':
+        # Clip covariate to be between two bounds
+        assert len(args) == 2
+        return covariates.ClipCovariator(get_covariator(covar[:-4], None, weatherbundle, economicmodel, config=config, quiet=quiet), covar[:-4], args[0], args[1])
     elif covar[-6:] == 'spline':
         # Produces spline term covariates, named [name]spline1, [name]spline2, etc.
         return covariates.SplineCovariator(get_covariator(covar[:-6], None, weatherbundle, economicmodel, config=config, quiet=quiet), covar[:-6], 'spline', args)
