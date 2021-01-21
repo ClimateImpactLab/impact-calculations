@@ -285,10 +285,10 @@ class TestResponse:
     @pytest.mark.parametrize(
         "result_file,expected",
         [
-            ("base_ds", np.array([[0.553748, 0.600050, 0.614162]]).T),
-            ("noadapt_ds", np.array([[0.553748, 0.600050, 0.614162]]).T),
-            ("incadapt_ds", np.array([[0.553748, 0.600050, 0.614162]]).T),
-            ("histclim_ds", np.array([[0.587755, 0.631167, 0.631167]]).T),
+            ("base_ds", np.array([[-0.000479, 0.001290, 0.001650]]).T),
+            ("noadapt_ds", np.array([[-0.000479, 0.001290, 0.001650]]).T),
+            ("incadapt_ds", np.array([[-0.000479, 0.001290, 0.001650]]).T),
+            ("histclim_ds", np.array([[-0.000474, 0.001504, -0.000392]]).T),
         ],
     )
     def test_head(self, projection_payload, result_file, expected):
@@ -304,10 +304,10 @@ class TestResponse:
     @pytest.mark.parametrize(
         "result_file,expected",
         [
-            ("base_ds", np.array([[-0.133272, 0.308531, 0.097674]]).T),
-            ("noadapt_ds", np.array([[-0.799397, 0.166109, -0.328904]]).T),
-            ("incadapt_ds", np.array([[-0.789274, 0.264811, -0.278646]]).T),
-            ("histclim_ds", np.array([[0.689890, 0.759562, 0.668043]]).T),
+            ("base_ds", np.array([[-0.044573, -0.016608, -0.030793]]).T),
+            ("noadapt_ds", np.array([[-0.041029, -0.015506, -0.027704]]).T),
+            ("incadapt_ds", np.array([[-0.041042, -0.015511, -0.027713]]).T),
+            ("histclim_ds", np.array([[0.000246, 0.001474, 0.001260]]).T),
         ],
     )
     def test_tail(self, projection_payload, result_file, expected):
@@ -340,10 +340,10 @@ class TestResponse2:
     @pytest.mark.parametrize(
         "result_file,expected",
         [
-            ("base_ds", np.array([[-1753726.750000, -4660392.500000, -5951332.000000]]).T),
-            ("noadapt_ds", np.array([[-1753726.750000, -4660392.500000, -5951332.000000]]).T),
-            ("incadapt_ds", np.array([[-1753726.750000, -4660392.500000, -5951332.000000]]).T),
-            ("histclim_ds", np.array([[-10273791.000000, -5522839.000000, -5522839.000000]]).T),
+            ("base_ds", np.array([[35549.101562, 56105.773438, 104137.093750]]).T),
+            ("noadapt_ds", np.array([[35549.101562, 56105.773438, 104137.093750]]).T),
+            ("incadapt_ds", np.array([[35549.101562, 56105.773438, 104137.093750]]).T),
+            ("histclim_ds", np.array([[35143.507812, 126664.015625, 45711.242188]]).T),
         ],
     )
     def test_head(self, projection_payload, result_file, expected):
@@ -359,10 +359,10 @@ class TestResponse2:
     @pytest.mark.parametrize(
         "result_file,expected",
         [
-            ("base_ds", np.array([[-1964078.500000, -40610360.000000, -21626576.000000]]).T),
-            ("noadapt_ds", np.array([[-1797673.250000, -37706996.000000, -19339216.000000]]).T),
-            ("incadapt_ds", np.array([[-1797672.375000, -37706956.000000, -19339194.000000]]).T),
-            ("histclim_ds", np.array([[-5845090.000000, -14558735.000000, -7168678.000000]]).T),
+            ("base_ds", np.array([[72752.976562, 209841.671875, 85017.429688]]).T),
+            ("noadapt_ds", np.array([[66574.828125, 194868.578125, 75973.734375]]).T),
+            ("incadapt_ds", np.array([[66575.234375, 194869.640625, 75974.062500]]).T),
+            ("histclim_ds", np.array([[50099.980469, 92622.648438, 111440.593750]]).T),
         ],
     )
     def test_tail(self, projection_payload, result_file, expected):
@@ -395,8 +395,8 @@ class TestDdseasonalpr:
     @pytest.mark.parametrize(
         "result_file,expected",
         [
-            ("base_ds", np.array([[-18458.062500, -49050.210938, -62637.726562]]).T),
-            ("histclim_ds", np.array([[-114823.539062, -61724.328125, -61724.328125]]).T),
+            ("base_ds", np.array([[381.588989, 600.228821, 1116.934204]]).T),
+            ("histclim_ds", np.array([[374.481415, 1349.177002, 486.706604]]).T),
         ],
     )
     def test_head(self, projection_payload, result_file, expected):
@@ -412,8 +412,8 @@ class TestDdseasonalpr:
     @pytest.mark.parametrize(
         "result_file,expected",
         [
-            ("base_ds", np.array([[-22936.699219, -482788.218750, -247396.328125]]).T),
-            ("histclim_ds", np.array([[-62181.828125, -157876.531250, -76794.304688]]).T),
+            ("base_ds", np.array([[868.864319, 2551.123291, 991.761536]]).T),
+            ("histclim_ds", np.array([[584.754822, 1096.474976, 1306.258057]]).T),
         ],
     )
     def test_tail(self, projection_payload, result_file, expected):
@@ -446,8 +446,8 @@ class TestDdseasonaltasmax:
     @pytest.mark.parametrize(
         "result_file,expected",
         [
-            ("base_ds", np.array([[-70058.070312, -186171.593750, -237743.250000]]).T),
-            ("histclim_ds", np.array([[-416495.187500, -223890.703125, -223890.703125]]).T),
+            ("base_ds", np.array([[1439.603882, 2260.348389, 4211.435547]]).T),
+            ("histclim_ds", np.array([[1450.193848, 5220.333496, 1884.740845]]).T),
         ],
     )
     def test_head(self, projection_payload, result_file, expected):
@@ -463,8 +463,8 @@ class TestDdseasonaltasmax:
     @pytest.mark.parametrize(
         "result_file,expected",
         [
-            ("base_ds", np.array([[-64722.914062, -1333610.750000, -710821.375000]]).T),
-            ("histclim_ds", np.array([[-239786.265625, -595084.437500, -292917.750000]]).T),
+            ("base_ds", np.array([[2425.036133, 6968.686035, 2823.600342]]).T),
+            ("histclim_ds", np.array([[2074.002686, 3815.721436, 4606.115723]]).T),
         ],
     )
     def test_tail(self, projection_payload, result_file, expected):
