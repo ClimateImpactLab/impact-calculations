@@ -98,10 +98,10 @@ def generate(targetdir, basename, weatherbundle, calculation, description, calcu
     columndata = prepare_ncdf_data(weatherbundle, calculation, my_regions, push_callback=push_callback, diagnosefile=diagnosefile, deltamethod_vcv=deltamethod_vcv)
 
     if parallel_weather.is_parallel(weatherbundle):
-        weatherbundle.master.lock.acquire()
+        weatherbundle.driver.lock.acquire()
     write_ncdf(targetdir, basename, columndata, weatherbundle, calculation, description, calculation_dependencies, my_regions, subset=subset, deltamethod_vcv=deltamethod_vcv)
     if parallel_weather.is_parallel(weatherbundle):
-        weatherbundle.master.lock.release()
+        weatherbundle.driver.lock.release()
 
 def prepare_ncdf_data(weatherbundle, calculation, my_regions, push_callback=None, diagnosefile=False, deltamethod_vcv=False):
     """Compute impact projection

@@ -1,21 +1,21 @@
 """Configuration-based calculation processing under multithreading.
 
-Under multithreading, a master thread prepares shared data for each
+Under multithreading, a driver thread prepares shared data for each
 timestep, consisting of weather data and (after 2015) covariate
-data. Slave threads perform their work with wrapped objects providing
+data. Worker threads perform their work with wrapped objects providing
 read-only access to this shared data.
 
-The master thread does not decide on the order of operations. Instead,
-it waits for slave threads to request various actions. All slave
+The driver thread does not decide on the order of operations. Instead,
+it waits for worker threads to request various actions. All worker
 threads proceed in lockstep, so that if one is going to request an
-action, all will. At that point, the master is given time to perform
+action, all will. At that point, the driver is given time to perform
 the action first immediately, and then it will continue to perform it
-in future timesteps, while the slaves are working on the last
+in future timesteps, while the workers are working on the last
 timestep's values.
 
 This allows all processing logic in effectset to be performed at the
-slave level. That is, the code below this point is unchanged and run
-by slaves, and the code does not need special conditions for parallel
+worker level. That is, the code below this point is unchanged and run
+by workers, and the code does not need special conditions for parallel
 processing.
 """
 
@@ -29,17 +29,17 @@ from impactlab_tools.utils import paralog
 preload = container.preload
 get_bundle_iterator = container.get_bundle_iterator
 
-class WeatherCovariatorLockstepParallelMaster(multithread.FoldedActionsLockstepParallelMaster):
-    """The master thread controller.
+class WeatherCovariatorLockstepParallelDriver(multithread.FoldedActionsLockstepParallelDriver):
+    """The driver thread controller.
 
     Contains shared sources of data (weatherbundle, economicmodel),
     maintains shared data production (through weatheriter and
-    farm_curvegen), and defines actions available to the slaves. These
-    actions are called when a wrapped slave object (like
-    SlaveParallelWeatherBundle) needs shared data.
+    farm_curvegen), and defines actions available to the workers. These
+    actions are called when a wrapped worker object (like
+    WorkerParallelWeatherBundle) needs shared data.
     """
     def __init__(self, weatherbundle, economicmodel, config, mcdraws, seed, regions=None):
-        super(WeatherCovariatorLockstepParallelMaster, self).__init__(mcdraws)
+        super(WeatherCovariatorLockstepParallelDriver, self).__init__(mcdraws)
         self.weatherbundle = weatherbundle
         self.economicmodel = economicmodel
         self.config = config
@@ -56,8 +56,8 @@ class WeatherCovariatorLockstepParallelMaster(multithread.FoldedActionsLockstepP
         self.farm_curvegen = None
         self.covariator = None
 
-        # Has any slave found work to do?
-        self.any_slave_working = False
+        # Has any worker found work to do?
+        self.any_worker_working = False
         
     def setup_yearbundles(self, *request_args, **request_kwargs):
         """Start producing yearly weather data. Called by a `request_action`."""
@@ -76,8 +76,8 @@ class WeatherCovariatorLockstepParallelMaster(multithread.FoldedActionsLockstepP
     def instant_create_covariator(self, specconf):
         """Create a covariator using the shared weatherbundle and economic model.
 
-        Called by an `instant_action` call. Returns master thread's
-        covariator; needs to be wrapped in a SlaveParallelCovariator.
+        Called by an `instant_action` call. Returns driver thread's
+        covariator; needs to be wrapped in a WorkerParallelCovariator.
         """
         return specification.create_covariator(specconf, self.weatherbundle, self.economicmodel, config=self.config)
 
@@ -107,9 +107,9 @@ class WeatherCovariatorLockstepParallelMaster(multithread.FoldedActionsLockstepP
         return dict(covars_update_year=outputs['year'], curr_covars=curr_covars, curr_years=curr_years)
 
 def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callback=None, suffix='', profile=False, diagnosefile=False):
-    """Split the processing to the slaves."""
+    """Split the processing to the workers."""
     assert config['cores'] > 1, "More than one core needed."
-    assert pvals is None, "Slaves must create their own pvals."
+    assert pvals is None, "Workers must create their own pvals."
     assert push_callback is None and suffix == '' and not profile and not diagnosefile, "Cannot use diagnostic options."
 
     if config['mode'] == 'testparallelpe':
@@ -121,10 +121,10 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
     
     print("Setting up parallel processing...")
     my_regions = configs.get_regions(weatherbundle.regions, config.get('filter-region', None))
-    master = WeatherCovariatorLockstepParallelMaster(weatherbundle, economicmodel, config, config['cores'] - 1, seed, my_regions)
-    master.loop(slave_produce, targetdir, config)
+    driver = WeatherCovariatorLockstepParallelDriver(weatherbundle, economicmodel, config, config['cores'] - 1, seed, my_regions)
+    driver.loop(worker_produce, targetdir, config)
 
-def slave_produce(proc, master, masterdir, config):
+def worker_produce(proc, driver, driverdir, config):
     """
     Find a single batch and produce data into it.
     """
@@ -137,31 +137,31 @@ def slave_produce(proc, master, masterdir, config):
     
     for batch in configs.get_batch_iter(config):
         # Construct a pvals and targetdir
-        if 'mcmaster' in masterdir:
-            targetdir = masterdir.replace('mcmaster', 'batch' + str(batch))
+        if 'mcdriver' in driverdir:
+            targetdir = driverdir.replace('mcdriver', 'batch' + str(batch))
             pvals = pvalses.get_montecarlo_pvals(config)
-            pvals['histclim'].set_seed('yearorder', master.seed)
-        elif 'pemaster' in masterdir:
-            targetdir = masterdir.replace('pemaster', 'batch' + str(batch))
+            pvals['histclim'].set_seed('yearorder', driver.seed)
+        elif 'pedriver' in driverdir:
+            targetdir = driverdir.replace('pedriver', 'batch' + str(batch))
             pvals = pvalses.ConstantPvals(.5)
         else:
-            raise ValueError("Master directory not named as expected: " + masterdir)
+            raise ValueError("Driver directory not named as expected: " + driverdir)
         
         # Claim the directory
-        with master.lock:
+        with driver.lock:
             if not configs.claim_targetdir(configs.global_statman, targetdir, False, config):
                 continue
-            master.any_slave_working = True  # report that we are working
+            driver.any_worker_working = True  # report that we are working
         produced_one = True
 
         # Wrap weatherbundle
-        weatherbundle = parallel_weather.SlaveParallelWeatherBundle(master, local)
-        economicmodel = parallel_econmodel.SlaveParallelSSPEconomicModel(master, local)
+        weatherbundle = parallel_weather.WorkerParallelWeatherBundle(driver, local)
+        economicmodel = parallel_econmodel.WorkerParallelSSPEconomicModel(driver, local)
 
         container.produce(targetdir, weatherbundle, economicmodel, pvals, config)
 
         # Make historical
-        master.instant_action('make_historical')
+        driver.instant_action('make_historical')
         pvals.lock()
 
         container.produce(targetdir, weatherbundle, economicmodel, pvals, config, suffix='-histclim')
@@ -169,17 +169,17 @@ def slave_produce(proc, master, masterdir, config):
         pvalses.make_pval_file(targetdir, pvals)
         configs.global_statman.release(targetdir, "Generated")
         os.system("chmod g+rw " + os.path.join(targetdir, "*"))
-        master.end_slave()
+        driver.end_worker()
         break
 
     # We could not find a batch
     if not produced_one:
-        master.lockstep_pause()
-        # Has any slave succeeded in finding work?
-        with master.lock:
-            any_slave_working = master.any_slave_working
-        if any_slave_working:
-            # We need to keep pausing until other slaves are done
+        driver.lockstep_pause()
+        # Has any worker succeeded in finding work?
+        with driver.lock:
+            any_worker_working = driver.any_worker_working
+        if any_worker_working:
+            # We need to keep pausing until other workers are done
             while True:
                 try:
                     self.lockstep_pause()
@@ -187,4 +187,4 @@ def slave_produce(proc, master, masterdir, config):
                     break
     else:
         # Nothing to wait for, nothing to do
-        master.end_slave()
+        driver.end_worker()

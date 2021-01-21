@@ -67,10 +67,10 @@ def main(config, config_name=None):
                 pvals = pvalses.get_montecarlo_pvals(config)
                 yield 'batch' + str(batch), pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
 
-    def iterate_parallel_maker(masterbatch):
+    def iterate_parallel_maker(driverbatch):
         def iterate_parallel():
             for clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in loadmodels.random_order(mod.get_bundle_iterator(config), config):
-                yield masterbatch, None, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
+                yield driverbatch, None, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
         return iterate_parallel
 
     def iterate_nosideeffects():
@@ -177,7 +177,7 @@ def main(config, config_name=None):
     mode_iterators = {'median': iterate_median, 'montecarlo': iterate_montecarlo, 'lincom': iterate_single, 'single': iterate_single,
                       'writesplines': iterate_single, 'writepolys': iterate_single, 'writecalcs': iterate_single,
                       'profile': iterate_nosideeffects, 'diagnostic': iterate_nosideeffects,
-                      'parallelmc': iterate_parallel_maker('mcmaster'), 'testparallelpe': iterate_parallel_maker('pemaster')}
+                      'parallelmc': iterate_parallel_maker('mcdriver'), 'testparallelpe': iterate_parallel_maker('pedriver')}
 
     assert 'mode' in config, "Configuration does not contain 'mode'."
     assert config['mode'] in list(mode_iterators.keys())
@@ -281,7 +281,7 @@ def main(config, config_name=None):
 
         # Also produce historical climate results
         if config['mode'] not in ['writesplines', 'writepolys', 'writecalcs', 'diagnostic',
-                                  'parallelmc', 'testparallelpe'] or config.get('do_historical', False):  # Slaves have to produce themselves
+                                  'parallelmc', 'testparallelpe'] or config.get('do_historical', False):  # Workers have to produce themselves
             # Generate historical baseline
             print("Historical")
             historybundle = weather.HistoricalWeatherBundle.make_historical(weatherbundle, None if config['mode'] == 'median' else pvals['histclim'].get_seed('yearorder'))

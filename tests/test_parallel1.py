@@ -2,12 +2,12 @@ import time
 import numpy as np
 from generate import multithread
 
-slave_sleep = .01
+worker_sleep = .01
 processed = {}
 
-class MyTestLockstepParallelMaster(multithread.LockstepParallelMaster):
+class MyTestLockstepParallelDriver(multithread.LockstepParallelDriver):
     def __init__(self, mcdraws, preptime):
-        super(MyTestLockstepParallelMaster, self).__init__(mcdraws)
+        super(MyTestLockstepParallelDriver, self).__init__(mcdraws)
         self.preptime = preptime
         self.timestep = 0
         
@@ -16,52 +16,52 @@ class MyTestLockstepParallelMaster(multithread.LockstepParallelMaster):
         time.sleep(truetime)
         self.timestep += 1
         if self.timestep == 10:
-            print("Master: END")
+            print("Driver: END")
             return None
 
-        print("Master: " + str(self.timestep))
+        print("Driver: " + str(self.timestep))
         return self.timestep
 
-# Uses slave_sleep, fills in processed = {proc: [...]}
-def slave_process(proc, master):
-    print("Slave: START")
+# Uses worker_sleep, fills in processed = {proc: [...]}
+def worker_process(proc, driver):
+    print("Worker: START")
     
     while True:
-        outputs = master.outputs
+        outputs = driver.outputs
         if outputs is None:
             break
 
-        truetime = np.random.normal(slave_sleep, slave_sleep) ** 2
+        truetime = np.random.normal(worker_sleep, worker_sleep) ** 2
         time.sleep(truetime)
-        print("Slave: " + str(outputs))
+        print("Worker: " + str(outputs))
         processed[proc].append(outputs)
-        master.lockstep_pause()
+        driver.lockstep_pause()
 
-    print("Slave: END")
+    print("Worker: END")
 
 def test_lockstep():
-    global slave_sleep, processed
+    global worker_sleep, processed
     
-    ## Test with slave < master
-    slave_sleep = .05
+    ## Test with worker < driver
+    worker_sleep = .05
     processed = {}
     for proc in range(5):
         processed[proc] = []
 
-    master = MyTestLockstepParallelMaster(5, .1)
-    master.loop(slave_process)
+    driver = MyTestLockstepParallelDriver(5, .1)
+    driver.loop(worker_process)
 
     for proc in range(5):
         np.testing.assert_equal(processed[proc], np.arange(1, 10))
 
-    # Test with slave > master
-    slave_sleep = .2
+    # Test with worker > driver
+    worker_sleep = .2
     processed = {}
     for proc in range(5):
         processed[proc] = []
 
-    master = MyTestLockstepParallelMaster(5, .1)
-    master.loop(slave_process)
+    driver = MyTestLockstepParallelDriver(5, .1)
+    driver.loop(worker_process)
 
     for proc in range(5):
         np.testing.assert_equal(processed[proc], np.arange(1, 10))
