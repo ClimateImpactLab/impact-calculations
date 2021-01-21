@@ -1,14 +1,14 @@
 """
-SSPEconomicModel object used by slaves during parallel processing runs.
+SSPEconomicModel object used by workers during parallel processing runs.
 """
 
 def is_parallel(economicmodel):
-    return isinstance(economicmodel, SlaveParallelSSPEconomicModel)
+    return isinstance(economicmodel, WorkerParallelSSPEconomicModel)
 
-class SlaveParallelSSPEconomicModel(object):
+class WorkerParallelSSPEconomicModel(object):
     """Thread-safe SSPEconomicModel-mimic. As normally used, always raises errors."""
-    def __init__(self, master, local, saved_baselines=None):
-        self.master = master
+    def __init__(self, driver, local, saved_baselines=None):
+        self.driver = driver
         self.local = local
         if saved_baselines is None:
             saved_baselines = {}
@@ -34,4 +34,4 @@ class SlaveParallelSSPEconomicModel(object):
         raise NotImplementedError
 
     def __getattr__(self, name):
-        return getattr(self.master.economicmodel, name)
+        return getattr(self.driver.economicmodel, name)

@@ -9,9 +9,9 @@ covars = [weathersum[19]] * 20 + list(weathersum[20:])
 assert len(covars) == len(weather)
 results_true = weather * covars
 
-class MyTestFoldedActionsLockstepParallelMaster(multithread.FoldedActionsLockstepParallelMaster):
+class MyTestFoldedActionsLockstepParallelDriver(multithread.FoldedActionsLockstepParallelDriver):
     def __init__(self, mcdraws):
-        super(MyTestFoldedActionsLockstepParallelMaster, self).__init__(mcdraws)
+        super(MyTestFoldedActionsLockstepParallelDriver, self).__init__(mcdraws)
         self.covarval = 0
         self.weatheriter = None
 
@@ -34,48 +34,48 @@ class MyTestFoldedActionsLockstepParallelMaster(multithread.FoldedActionsLockste
         self.covarval += outputs['weather']
         return {'covar': self.covarval}
 
-def weatherbundle(master, local, count=len(weather)):
+def weatherbundle(driver, local, count=len(weather)):
     while True:
-        outputs = master.request_action(local, 'iterate_weather', count)
+        outputs = driver.request_action(local, 'iterate_weather', count)
         if 'weather' not in outputs:
             break
         yield outputs['weather']
 
-def updatecovar(master, local, baseline, weather):
-    outputs = master.request_action(local, 'calc_covar', baseline)
+def updatecovar(driver, local, baseline, weather):
+    outputs = driver.request_action(local, 'calc_covar', baseline)
     return outputs['covar']
         
-def slave_process(proc, master):
+def worker_process(proc, driver):
     # Create the thread local data
     local = threading.local()
     
     # Calculate baseline covar
     baseline = 0
-    for weather in weatherbundle(master, local, 20):
+    for weather in weatherbundle(driver, local, 20):
         baseline += weather
-        master.end_timestep(local)
+        driver.end_timestep(local)
 
     print("MIDP" + str(proc))
         
     # Calculate results
     year = 0
     results = []
-    for weather in weatherbundle(master, local):
+    for weather in weatherbundle(driver, local):
         year += 1
         if year > 20:
-            covar = updatecovar(master, local, baseline, weather)
+            covar = updatecovar(driver, local, baseline, weather)
             results.append(weather * covar)
         else:
             results.append(weather * baseline)
-        master.end_timestep(local)
+        driver.end_timestep(local)
 
     np.testing.assert_equal(results, results_true)
-    master.end_slave()
+    driver.end_worker()
     print("DONE" + str(proc))
 
 def test_folded():
-    master = MyTestFoldedActionsLockstepParallelMaster(5)
-    master.loop(slave_process)
+    driver = MyTestFoldedActionsLockstepParallelDriver(5)
+    driver.loop(worker_process)
 
 if __name__ == '__main__':
     test_folded()

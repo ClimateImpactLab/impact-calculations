@@ -1,11 +1,11 @@
 import copy, threading
 
-class LockstepParallelMaster(object):
-    """Facilitates a parallel programming structure with master and slave threads.
+class LockstepParallelDriver(object):
+    """Facilitates a parallel programming structure with driver and worker threads.
 
     The processing occurs on a timestep clock. For each timestep,
-    the master thread prepares the data for the next timestep, while
-    the slaves process that data. Barriers are used to synchronize all
+    the driver thread prepares the data for the next timestep, while
+    the workers process that data. Barriers are used to synchronize all
     threads at the end of each timestep.
     """
     def __init__(self, mcdraws):
@@ -58,23 +58,23 @@ class LockstepParallelMaster(object):
         self.barrier.wait()
         
     
-class FoldedActionsLockstepParallelMaster(LockstepParallelMaster):
-    """Lockstep system where slave processes can request actions to be added to a sequence.
+class FoldedActionsLockstepParallelDriver(LockstepParallelDriver):
+    """Lockstep system where worker processes can request actions to be added to a sequence.
 
     Actions will be known processes producing shared output. However,
     this parallel system can be used when the order and details of
-    those possible actions is unknown a priori. Instead, slaves
+    those possible actions is unknown a priori. Instead, workers
     perform their work, and when they run into a needed action, it
     will be "folded into" the list of actions to be performed each
     timestep.
 
-    Actions by the slaves can be arbitrarily ordered, but must be
-    idential across all slaves. The actions are assumed to depend on
+    Actions by the workers can be arbitrarily ordered, but must be
+    idential across all workers. The actions are assumed to depend on
     each other sequentailly, so that if one completes, all those after
     it are removed from the request list.
 
     Actions can only be requested to be added subsequent to all
-    previously requested actions. This is because the master
+    previously requested actions. This is because the driver
     preparations cannot be interrupted once it has been begun, and
     such a break in sequence would be assumed to break action
     dependency.
@@ -82,7 +82,7 @@ class FoldedActionsLockstepParallelMaster(LockstepParallelMaster):
     When an action completes, it should return None. The action_list
     will then be shortened on the next intermission. However, the fact
     that the action has ended still needs to be acknowledge by each
-    slave. This is done with a thread-local flag, including which
+    worker. This is done with a thread-local flag, including which
     timestep it was acknowledge on in case an identical action is
     added after the acknowledgement.
 
@@ -92,22 +92,22 @@ class FoldedActionsLockstepParallelMaster(LockstepParallelMaster):
       *args, **kwargs: other arguments
     And returns the new dict ouf prepared data.
 
-    Typical example in the projection system: Slaves go
+    Typical example in the projection system: Workers go
       READ-READ-...-READ-COVAR-READ-COVAR-READ-COVAR-...
 
     Thread action in case where two new actions are added.
-    Master: pn  [a1[    ]a2[  ]up]
-    Slave1: .ra [  ].ra [  ]..[  ]
-    Slave2: ..ra[  ]..ra[  ]..[  ]
+    Driver:  pn  [a1[    ]a2[  ]up]
+    Worker1: .ra [  ].ra [  ]..[  ]
+    Worker2: ..ra[  ]..ra[  ]..[  ]
 
     "Instant" actions are also supported, where a common action is
-    called for by all slave threads. The slave threads are stopped
-    until the master thread finishes and can perform the action. The
+    called for by all worker threads. The worker threads are stopped
+    until the driver thread finishes and can perform the action. The
     result is saved in `instant_result`.
 
     """
     def __init__(self, mcdraws):
-        super(FoldedActionsLockstepParallelMaster, self).__init__(mcdraws)
+        super(FoldedActionsLockstepParallelDriver, self).__init__(mcdraws)
         self.lock = threading.Lock() # for accessing action_list
 
         # Updated with lock or at intermission
@@ -121,7 +121,7 @@ class FoldedActionsLockstepParallelMaster(LockstepParallelMaster):
         self.ending_action = None
         self.ending_clock = 0
         
-        # Master-only
+        # Driver-only
         self.clock = 0
         self.drop_after_index = None
 
@@ -152,7 +152,7 @@ class FoldedActionsLockstepParallelMaster(LockstepParallelMaster):
             self.action_list = self.action_list[:self.drop_after_index]
             self.drop_after_index = None
             
-        super(FoldedActionsLockstepParallelMaster, self)._intermission_threadsafe(next_outputs)
+        super(FoldedActionsLockstepParallelDriver, self)._intermission_threadsafe(next_outputs)
         
     def _prepare_next(self):
         with self.lock:
@@ -176,7 +176,7 @@ class FoldedActionsLockstepParallelMaster(LockstepParallelMaster):
     def instant_action(self, action, *args, **kwargs):
         with self.lock:
             if self.new_action:
-                assert self.new_action == (action, args, kwargs), "Slaves are requesting different instant actions."
+                assert self.new_action == (action, args, kwargs), "Workers are requesting different instant actions."
             else:
                 self.new_action = (action, args, kwargs)
                 self.is_new_action_instant = True
@@ -197,7 +197,7 @@ class FoldedActionsLockstepParallelMaster(LockstepParallelMaster):
             assert local.action_index == len(self.action_list), "Actions cannot be added mid-sequence."
             with self.lock:
                 if self.new_action:
-                    assert self.new_action == (action, args, kwargs), "Slaves are requesting different master actions."
+                    assert self.new_action == (action, args, kwargs), "Workers are requesting different driver actions."
                 else:
                     self.new_action = (action, args, kwargs)
                     self.is_new_action_instant = False
@@ -210,11 +210,11 @@ class FoldedActionsLockstepParallelMaster(LockstepParallelMaster):
         self.lockstep_pause()
         local.action_index = 0
 
-    def end_slave(self):
+    def end_worker(self):
         with self.lock:
             self.complete = True
         try:
-            # Abort barrier, because extra barriers can be put up by master if don't finish first
+            # Abort barrier, because extra barriers can be put up by driver if don't finish first
             self.lockstep_pause()
             self.barrier.abort()
         except threading.BrokenBarrierError:
