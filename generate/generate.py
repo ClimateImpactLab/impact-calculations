@@ -188,14 +188,14 @@ def main(config, config_name=None):
 
     if not config.get('module'):
         # Specification and run config already together.
-        if config.get('cores', 1) == 1:
+        if config.get('threads', 1) == 1:
             mod = importlib.import_module("interpret.container")
         else:
             mod = importlib.import_module("interpret.parallel_container")
         shortmodule = str(config_name)
     elif config['module'][-4:] == '.yml':
         # Specification config in another yaml file.
-        if config.get('cores', 1) == 1:
+        if config.get('threads', 1) == 1:
             mod = importlib.import_module("interpret.container")
         else:
             mod = importlib.import_module("interpret.parallel_container")
