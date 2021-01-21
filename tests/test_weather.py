@@ -93,7 +93,7 @@ def test_shuffled(temp2year, weatherbundle_simple):
     historybundle = weather.HistoricalWeatherBundle.make_historical(
         weatherbundle_simple, 1)
     years = get_yearorder(temp2year, historybundle)
-    npt.assert_approx_equal(np.mean(np.abs(np.diff(years))), 8.485714285714286)
+    npt.assert_approx_equal(np.mean(np.abs(np.diff(years))), 9.028571428571428)
     npt.assert_array_less(years, 2006)
 
 
@@ -226,7 +226,7 @@ class TestHistoricalWeatherBundle:
     @pytest.mark.parametrize(
         "seed,expected",
         [
-            (123, np.array([1002, 1001, 1002, 1002])),
+            (123, np.array([1000, 1002, 1001, 1000])),
             (None, np.array([1000, 1001, 1002, 1001])),
         ],
         ids=("seeded", "unseeded")
@@ -299,7 +299,7 @@ class TestHistoricalWeatherBundle:
     @pytest.mark.parametrize(
         "seed,expected",
         [
-            (123, np.array([1994, 1983, 1983, 1987, 1998, 2000, 1991, 2003, 1982, 1981])),
+            (123, np.array([1981, 1998, 1995, 1982, 2003, 1986, 1987, 1985, 1989, 1985])),
             (None, np.arange(1981, 1991)),
         ],
         ids=("seeded", "unseeded")
@@ -334,7 +334,7 @@ class TestHistoricalRollingYearTransformer:
     @pytest.mark.parametrize(
         "seed,expected",
         [
-            (123, np.array([1002, 1001, 1002, 1002, 1000])),
+            (123, np.array([1000, 1002, 1001, 1000, 1002])),
             (None, np.array([1000, 1001, 1002, 1001, 1000])),
         ],
         ids=("seeded", "unseeded")
@@ -397,10 +397,10 @@ class TestHistoricalRollingYearTransformer:
 
         # assert out_values == [0, 1, 2, 1]
         npt.assert_allclose(
-            np.array([[[2.0], [1.0]],
-                      [[1.0], [2.0]],
-                      [[2.0], [2.0]],
-                      [[2.0], [0.0]]]),
+            np.array([[[0.0], [2.0]],
+                      [[2.0], [1.0]],
+                      [[1.0], [0.0]],
+                      [[0.0], [2.0]]]),
             np.array(out_values),
         )
 
