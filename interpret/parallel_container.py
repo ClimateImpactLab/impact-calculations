@@ -108,7 +108,7 @@ class WeatherCovariatorLockstepParallelDriver(multithread.FoldedActionsLockstepP
 
 def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callback=None, suffix='', profile=False, diagnosefile=False):
     """Split the processing to the workers."""
-    assert config['cores'] > 1, "More than one core needed."
+    assert config['threads'] > 1, "More than one thread needed."
     assert pvals is None, "Workers must create their own pvals."
     assert push_callback is None and suffix == '' and not profile and not diagnosefile, "Cannot use diagnostic options."
 
@@ -121,7 +121,7 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
     
     print("Setting up parallel processing...")
     my_regions = configs.get_regions(weatherbundle.regions, config.get('filter-region', None))
-    driver = WeatherCovariatorLockstepParallelDriver(weatherbundle, economicmodel, config, config['cores'] - 1, seed, my_regions)
+    driver = WeatherCovariatorLockstepParallelDriver(weatherbundle, economicmodel, config, config['threads'] - 1, seed, my_regions)
     driver.loop(worker_produce, targetdir, config)
 
 def worker_produce(proc, driver, driverdir, config):
