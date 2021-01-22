@@ -10,7 +10,7 @@ from openest.generate import fast_dataset
 from interpret import configs
 from datastore import population
 from .reader import *
-from .dailyreader import DailyWeatherReader, YearlyBinnedWeatherReader, MonthlyBinnedWeatherReader, MonthlyDimensionedWeatherReader
+from .dailyreader import DailyWeatherReader, YearlyBinnedWeatherReader, MonthlyBinnedWeatherReader, MonthlyDimensionedWeatherReader, GDDKDDReader
 from .yearlyreader import YearlyWeatherReader, YearlyDayLikeWeatherReader
 from . import pattern_matching
 
@@ -18,6 +18,11 @@ RE_FLOATING = r"[-+]?[0-9]*\.?[0-9]*"
 re_dotsplit = re.compile("\.(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)")
 
 def standard_variable(name, mytimerate, **config):
+    if config.get('fakeweather', False):
+        realconfig = configs.deepcopy(config)
+        realconfig['fakeweather'] = False
+        return discover_fakerepeat(standard_variable(name, mytimerate, **realconfig))
+
     if '/' in name:
         if os.path.exists(files.configpath(name)):
             return discover_versioned(files.configpath(name), os.path.basename(name), **config)
@@ -78,7 +83,7 @@ def standard_variable(name, mytimerate, **config):
         chunks = name.split('==')
         name = chunks[0]
         version = chunks[1]
-
+        
     if 'grid-weight' in config:
         timerate_translate = dict(day='daily', month='monthly', year='annual')
         path = files.sharedpath(os.path.join("climate/BCSD/hierid", config['grid-weight'], timerate_translate[mytimerate], name))
@@ -326,11 +331,13 @@ def discover_binned(basedir, timerate, template, regionvar, ncvar, **config):
         futuretemplate = os.path.join(futuredir, get_template(scenario, model))
 
         if timerate == 'year':
-            pastreader = YearlyBinnedWeatherReader(pasttemplate, 1981, regionvar, ncvar)
+            pastreader = YearlyBinnedWeatherReader(pasttemplate, config.get('startyear', 1981), regionvar, ncvar)
             futurereader = YearlyBinnedWeatherReader(futuretemplate, 2006, regionvar, ncvar)
         elif timerate == 'month':
-            pastreader = MonthlyBinnedWeatherReader(pasttemplate, 1981, regionvar, ncvar)
+            pastreader = MonthlyBinnedWeatherReader(pasttemplate, config.get('startyear', 1981), regionvar, ncvar)
             futurereader = MonthlyBinnedWeatherReader(futuretemplate, 2006, regionvar, ncvar)
+        else:
+            raise ValueError("timerate must be year or month in `discover_binned`.")
 
         yield scenario, model, pastreader, futurereader
 
@@ -345,7 +352,7 @@ def discover_variable(basedir, variable, withyear=True, **config):
             if not os.path.exists(futuretemplate % 2006):
                 continue
 
-            pastreader = DailyWeatherReader(pasttemplate, 1981, 'SHAPENUM', variable)
+            pastreader = DailyWeatherReader(pasttemplate, config.get('startyear', 1981), 'SHAPENUM', variable)
             futurereader = DailyWeatherReader(futuretemplate, 2006, 'SHAPENUM', variable)
 
             yield scenario, model, pastreader, futurereader
@@ -369,8 +376,8 @@ def discover_derived_variable(basedir, variable, suffix, withyear=True, **config
             pasttemplate = os.path.join(pastdir, variable + '_' + suffix, variable + '_day_aggregated_historical_r1i1p1_' + model + '_%d.nc')
             futuretemplate = os.path.join(futuredir, variable + '_' + suffix, variable + '_day_aggregated_' + scenario + '_r1i1p1_' + model + '_%d.nc')
 
-            if os.path.exists(pasttemplate % (1981)) and os.path.exists(futuretemplate % (2006)):
-                pastreader = DailyWeatherReader(pasttemplate, 1981, 'SHAPENUM', variable)
+            if os.path.exists(pasttemplate % (config.get('startyear', 1981))) and os.path.exists(futuretemplate % (2006)):
+                pastreader = DailyWeatherReader(pasttemplate, config.get('startyear', 1981), 'SHAPENUM', variable)
                 futurereader = DailyWeatherReader(futuretemplate, 2006, 'SHAPENUM', variable)
 
                 yield scenario, model, pastreader, futurereader
@@ -413,7 +420,7 @@ def discover_yearly_variables(basedir, vardir, *variables, **kwargs):
     """
 
     for scenario, model, pastpath, filepath in discover_yearly(basedir, vardir, rcp_only=kwargs.get('rcp_only')):
-        yield scenario, model, YearlyWeatherReader(pastpath, variable), YearlyWeatherReader(filepath, variable)
+        yield scenario, model, YearlyWeatherReader(pastpath, *variables, **kwargs), YearlyWeatherReader(filepath, *variables, **kwargs)
 
 def discover_yearly_corresponding(basedir, scenario, vardir, model, variable):
     for filename in os.listdir(os.path.join(basedir, scenario, vardir)):
@@ -473,10 +480,10 @@ def discover_versioned(basedir, variable, version=None, reorder=True, **config):
             continue
 
         if reorder:
-            pastreader = RegionReorderWeatherReader(DailyWeatherReader(pasttemplate, 1981, 'hierid', variable))
+            pastreader = RegionReorderWeatherReader(DailyWeatherReader(pasttemplate, config.get('startyear', 1981), 'hierid', variable))
             futurereader = RegionReorderWeatherReader(DailyWeatherReader(futuretemplate, 2006, 'hierid', variable))
         else:
-            pastreader = DailyWeatherReader(pasttemplate, 1981, 'hierid', variable)
+            pastreader = DailyWeatherReader(pasttemplate, config.get('startyear', 1981), 'hierid', variable)
             futurereader = DailyWeatherReader(futuretemplate, 2006, 'hierid', variable)
 
         yield scenario, model, pastreader, futurereader
@@ -492,10 +499,10 @@ def discover_versioned_iterated(basedir, prefix, count, version=None, reorder=Tr
             continue
 
         if reorder:
-            pastreader = RegionReorderWeatherReader(DailyWeatherReader(pasttemplate, 1981, 'hierid', *variables))
+            pastreader = RegionReorderWeatherReader(DailyWeatherReader(pasttemplate, config.get('startyear', 1981), 'hierid', *variables))
             futurereader = RegionReorderWeatherReader(DailyWeatherReader(futuretemplate, 2006, 'hierid', *variables))
         else:
-            pastreader = DailyWeatherReader(pasttemplate, 1981, 'hierid', *variables)
+            pastreader = DailyWeatherReader(pasttemplate, config.get('startyear', 1981), 'hierid', *variables)
             futurereader = DailyWeatherReader(futuretemplate, 2006, 'hierid', *variables)
 
         yield scenario, model, pastreader, futurereader
@@ -504,7 +511,7 @@ def discover_versioned_binned(basedir, variable, dim, version=None, reorder=True
     post_process = lambda x: RegionReorderWeatherReader(x) if reorder else lambda x: x
 
     for scenario, model, pasttemplate, futuretemplate in discover_versioned_models(basedir, version, **config):
-        pastreader = MonthlyDimensionedWeatherReader(pasttemplate, 1981, 'hierid', variable, dim)
+        pastreader = MonthlyDimensionedWeatherReader(pasttemplate, config.get('startyear', 1981), 'hierid', variable, dim)
         futurereader = MonthlyDimensionedWeatherReader(futuretemplate, 2006, 'hierid', variable, dim)
 
         yield scenario, model, post_process(pastreader), post_process(futurereader)
@@ -512,10 +519,10 @@ def discover_versioned_binned(basedir, variable, dim, version=None, reorder=True
 def discover_versioned_yearly(basedir, variable, version=None, reorder=True, **config):
     for scenario, model, pasttemplate, futuretemplate in discover_versioned_models(basedir, version, **config):
         if reorder:
-            pastreader = RegionReorderWeatherReader(YearlyDayLikeWeatherReader(pasttemplate, 1981, 'hierid', variable))
+            pastreader = RegionReorderWeatherReader(YearlyDayLikeWeatherReader(pasttemplate, config.get('startyear', 1981), 'hierid', variable))
             futurereader = RegionReorderWeatherReader(YearlyDayLikeWeatherReader(futuretemplate, 2006, 'hierid', variable))
         else:
-            pastreader = YearlyDayLikeWeatherReader(pasttemplate, 1981, 'hierid', variable)
+            pastreader = YearlyDayLikeWeatherReader(pasttemplate, config.get('startyear', 1981), 'hierid', variable)
             futurereader = YearlyDayLikeWeatherReader(futuretemplate, 2006, 'hierid', variable)
 
         yield scenario, model, pastreader, futurereader
@@ -678,3 +685,7 @@ def data_vars_time_conversion_year(name, ds, varset, accumfunc):
         return vardef
 
     return np.array([ds['time.year'][0]])
+
+def discover_fakerepeat(iterator):
+    for scenario, model, pastreader, futurereader in iterator:
+        yield scenario, model, FakeRepeaterReader(pastreader), FakeRepeaterReader(futurereader)

@@ -77,6 +77,8 @@ climmodel = args[3]
 # Filepath for impacts
 impactspath <- args[4] # paste0("outputs/", sector, "/", impactsfolder, "/median-clipped/rcp", rcp, "/", climmodel, "/high/SSP4/moratlity_cubic_splines_2factors_", climdata, "_031617.nc4")
 
+suffix <- args[5] # "-costs"
+
 # Averaging method
 #avgmethod = args[5]
 avgmethod = 'bartlett'
@@ -219,7 +221,7 @@ varcosts_ub <- ncvar_def(name = "costs_ub", units="deaths/100000", dim=list(dimr
 vars <- list(varregion, varyear, varcosts_lb, varcosts_ub)
 
 # Filepath for cost output
-outpath <- gsub(".nc4", "-costs.nc4", impactspath)
+outpath <- gsub(".nc4", paste0(suffix, ".nc4"), impactspath)
 
 cost_nc <- nc_create(outpath, vars)
 

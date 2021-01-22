@@ -101,7 +101,7 @@ def interpret_halfweight(weighting):
             factor = interpret_halfweight(parts[ii])
             combiner = lambda x, y: x * y
             if parts[ii-1] == '/':
-                combiner = lambda x, y: x / y
+                combiner = lambda x, y: np.array(x, dtype=float) / np.array(y, dtype=float)
             halfweight = spacetime.SpaceTimeProductBipartiteData(halfweight.year0, halfweight.year1, halfweight.regions, halfweight, factor, combiner=combiner)
         return halfweight
 
@@ -109,9 +109,9 @@ def interpret_halfweight(weighting):
     if match:
         return spacetime.SpaceTimeConstantData(float(match.group(1)))
     if weighting == 'population':
-        return population.SpaceTimeBipartiteData(1981, 2100, None)
+        return population.SpaceTimeBipartiteData(1950, 2100, None)
     if weighting in ['agecohorts'] + agecohorts.columns:
-        return agecohorts.SpaceTimeBipartiteData(1981, 2100, None)
+        return agecohorts.SpaceTimeBipartiteData(1950, 2100, None)
     if weighting == 'income':
         return spacetime.SpaceTimeBipartiteFromProviderData(gdppc.GDPpcProvider, 2000, 2100, None)
     if weighting == 'area':
@@ -154,7 +154,7 @@ if __name__ == '__main__':
     
     weighting = sys.argv[1]
     halfweight = interpret_halfweight(weighting)
-    stweight = halfweight.load(1981, 2100, sys.argv[2] if len(sys.argv) > 2 else None, sys.argv[3] if len(sys.argv) > 3 else None)
+    stweight = halfweight.load(1950, 2100, sys.argv[2] if len(sys.argv) > 2 else None, sys.argv[3] if len(sys.argv) > 3 else None)
 
     writer = csv.writer(sys.stdout)
     writer.writerow(['region', 'year', 'weight'])
@@ -163,5 +163,5 @@ if __name__ == '__main__':
         if isinstance(weights, float):
             writer.writerow([region, "all", weights])
         else:
-            for year in range(1981, 2101):
-                writer.writerow([region, year, weights[year - 1981]])
+            for year in range(1950, 2101):
+                writer.writerow([region, year, weights[year - 1950]])

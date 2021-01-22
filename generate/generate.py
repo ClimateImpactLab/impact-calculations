@@ -13,9 +13,6 @@ from openest.generate import diagnostic
 from impactlab_tools.utils import files, paralog
 import cProfile, pstats, io, metacsv
 
-# Top-level configuration (for debugging)
-do_single = False
-
 def main(config, config_name=None):
     """Main generate func, given run config dict and run ID str for logging
 
@@ -44,6 +41,7 @@ def main(config, config_name=None):
     # Collect the configuration
     claim_timeout = config.get('timeout', 12) * 60*60
     singledir = config.get('singledir', 'single')
+    do_single = config.get('do_single', False)
 
     do_single = config.get('do-single', False)
 
@@ -64,7 +62,9 @@ def main(config, config_name=None):
         mc_batch_iter = configs.get_batch_iter(config)
         for batch in mc_batch_iter:
             for clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in loadmodels.random_order(mod.get_bundle_iterator(config), config):
-                pvals = pvalses.get_montecarlo_pvals(config)
+                # Use "pvals" seeds from config, if available.
+                relative_location = ['batch' + str(batch), clim_scenario, clim_model, econ_scenario, econ_model]
+                pvals = pvalses.get_montecarlo_pvals(config, relative_location)
                 yield 'batch' + str(batch), pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
 
     def iterate_parallel_maker(driverbatch):
@@ -195,10 +195,16 @@ def main(config, config_name=None):
         shortmodule = str(config_name)
     elif config['module'][-4:] == '.yml':
         # Specification config in another yaml file.
+        import warnings
+        warnings.warn(
+            "Pointing 'module:' to YAML files is deprecated, please use 'module:' with Python modules",
+            FutureWarning,
+        )
         if config.get('threads', 1) == 1:
             mod = importlib.import_module("interpret.container")
         else:
             mod = importlib.import_module("interpret.parallel_container")
+
         with open(config['module'], 'r') as fp:
             config.update(yaml.load(fp))
         shortmodule = os.path.basename(config['module'])[:-4]
@@ -246,13 +252,13 @@ def main(config, config_name=None):
         print(targetdir)
 
         # Load the pvals data, if available
-        if pvals is not None:
-            if pvalses.has_pval_file(targetdir):
-                oldpvals = pvalses.read_pval_file(targetdir)
-                if oldpvals is not None:
-                    pvals = oldpvals
-            else:
-                pvalses.make_pval_file(targetdir, pvals)
+        if pvalses.has_pval_file(targetdir):
+            relative_location = [batchdir, clim_scenario, clim_model, econ_model, econ_scenario]
+            oldpvals = pvalses.read_pval_file(targetdir, relative_location)
+            if oldpvals is not None:
+                pvals = oldpvals
+        else:
+            pvalses.make_pval_file(targetdir, pvals)
 
         # Produce the results!
 
@@ -280,8 +286,9 @@ def main(config, config_name=None):
             mod.produce(targetdir, weatherbundle, economicmodel, pvals, config)
 
         # Also produce historical climate results
-        if config['mode'] not in ['writesplines', 'writepolys', 'writecalcs', 'diagnostic',
-                                  'parallelmc', 'testparallelpe'] or config.get('do_historical', False):  # Workers have to produce themselves
+        is_diagnostic = config['mode'] in ['writesplines', 'writepolys', 'writecalcs', 'diagnostic', 'parallelmc', 'testparallelpe']  # Workers have to produce themselves
+        if ((is_diagnostic and config.get('do_historical', False)) or # default no histclim
+            (not is_diagnostic and config.get('do_historical', True))): # default do histclim
             # Generate historical baseline
             print("Historical")
             historybundle = weather.HistoricalWeatherBundle.make_historical(weatherbundle, None if config['mode'] == 'median' else pvals['histclim'].get_seed('yearorder'))
@@ -309,7 +316,10 @@ if __name__ == '__main__':
     import sys
     from pathlib import Path
 
-    config_name = Path(sys.argv[1]).stem
+    config_path = Path(sys.argv[1])
+    config_name = config_path.stem
     run_config = configs.standardize(files.get_allargv_config())
+    # Interpret "import" in configs here while we have file path info.
+    file_configs = configs.merge_import_config(run_config, config_path.parent)
 
     main(run_config, config_name)

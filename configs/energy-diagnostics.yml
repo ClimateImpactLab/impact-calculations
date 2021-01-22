@@ -1,5 +1,0 @@
-module: impacts/energy/allmodels.yml
-mode: writepolys
-outputdir: /shares/gcp/outputs/energy/impacts-rover
-do_farmers: false
-deltamethod: yes
