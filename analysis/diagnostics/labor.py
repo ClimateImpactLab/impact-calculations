@@ -1,79 +1,144 @@
-import os, sys
+"""
+This script checks projection output against calculated values.
+
+This is intended to be run as::
+
+    python <path_to_script> <path_to_directory_of_projection_output>
+
+
+Key global variables, set at the head of this script will need to be
+set and updated.
+"""
+
+import os
+
+import numpy as np
+
 import lib
 
-dir = sys.argv[1]
 
-weathertemplate = "/shares/gcp/climate/BCSD/hierid/popwt/daily/tasmax/{0}/CCSM4/{1}/1.0.nc4"
-csvvmodel = "labor_global_interaction_2factor_BEST_Poly3_15Aug"
-model = "labor_global_interaction_2factor_BEST_Poly3_15Aug"
-futureyear = 2050
-region = 'USA.14.608' #'IND.33.542.2153'
-onlyreg = True #False
-
-lib.show_header("The Covariates File (allpreds):")
-preds = lib.get_excerpt(os.path.join(dir, "labor-allpreds.csv"), 3, region, [2000, futureyear-1, futureyear])
-
-lib.show_header("The Predictors File (allcalcs):")
-calcs = lib.get_excerpt(os.path.join(dir, "labor-allcalcs-%s.csv" % model), 2, region, list(range(2000, 2011)) + [futureyear-1, futureyear], hasmodel=False)
-
-lib.show_header("Weather:")
-weather = lib.get_weather(weathertemplate, [1981] + list(range(2001, 2011)) + [futureyear-1, futureyear], region, variable='tasmax')
-
-lib.show_header("CSVV:")
-csvv = lib.get_csvv("/shares/gcp/social/parameters/labor/csvvs/%s.csvv" % csvvmodel)
-
-lib.show_header("Outputs:")
-outputs = lib.get_outputs(os.path.join(dir, model + '.nc4'), [1981, futureyear-1, futureyear], region)
-
-for year in [2000, futureyear]:
-    lib.show_header("Calc of lt27-tasmax coeff in %s (%.12g reported):" % (year, lib.excind(calcs, year, 'lt27-tasmax')))
-    lib.show_coefficient(csvv, preds, year, 'tasmax', {'hotdd_30*(tasmax - 27)*I_{T >= 27}': None, 'colddd_10*(27 - tasmax)*I_{T < 27}': 'colddd_10'})
-
-    lib.show_header("Calc of gt27-tasmax coeff in %s (%.12g reported):" % (year, lib.excind(calcs, year, 'gt27-tasmax')))
-    lib.show_coefficient(csvv, preds, year, 'tasmax', {'hotdd_30*(tasmax - 27)*I_{T >= 27}': 'hotdd_30', 'colddd_10*(27 - tasmax)*I_{T < 27}': None})
-
-lib.show_header("Un-rebased value in 1981 (%.12g reported):" % outputs[1981]['sum'])
-coeff = ['tasmax', 'tasmax2', 'tasmax3']
-gt27_covars = ['hotdd_30*(tasmax - 27)*I_{T >= 27}', 'hotdd_30*(tasmax2 - 27^2)*I_{T >= 27}', 'hotdd_30*(tasmax3 - 27^3)*I_{T >= 27}']
-lt27_covars = ['colddd_10*(27 - tasmax)*I_{T < 27}', 'colddd_10*(27^2 - tasmax2)*I_{T < 27}', 'colddd_10*(27^3 - tasmax3)*I_{T < 27}']
-var = ['t1', 't2', 't3']
-
-line_weather = "weather_%d = [%s]" % (1981, ','.join(["%.12g" % weday for weday in weather[1981]]))
-
-lines = []    
-lines.append("f_lt27(t1, t2, t3) = " + ' + '.join(["%.12g * %s - %f * 27^%d * %f" % (lib.excind(calcs, 2000, 'lt27-' + coeff[ii]), var[ii], lib.get_gamma(csvv, coeff[ii], lt27_covars[ii]), ii+1, lib.excind(preds, 2000, 'colddd_10')) for ii in range(3)]))
-lines.append("f_gt27(t1, t2, t3) = " + ' + '.join(["%.12g * %s - %f * 27^%d * %f" % (lib.excind(calcs, 2000, 'gt27-' + coeff[ii]), var[ii], lib.get_gamma(csvv, coeff[ii], gt27_covars[ii]), ii+1, lib.excind(preds, 2000, 'hotdd_30')) for ii in range(3)]))
-lines.append("f_both(t1, t2, t3) = f_lt27(t1, t2, t3) .* (t1 .< 27) + f_gt27(t1, t2, t3) .* (t1 .>= 27)")
-lines.append("f(t1, t2, t3) = sum((t1 .>= 0) .* (f_both(t1, t2, t3) - f_both(27, 27^2, 27^3)) + (t1 .< 0) .* %f) / 365" % lib.get_gamma(csvv, 'belowzero', '1'))
-
-line_result = "f(weather_%d, weather_%d.^2, weather_%d.^3)" % (1981, 1981, 1981)
-lib.show_julia([line_weather] + lines + [line_result], clipto=200)
+CLIMATE_VARIABLES = ['tasmax', 'tasmax-poly-2', 'tasmax-poly-3', 'tasmax-poly-4']
+WEATHERTEMPLATE = "/shares/gcp/climate/BCSD/hierid/popwt/daily/{variable}/{rcp}/CCSM4/{year}/1.0.nc4"
+CSVVMODEL = "labor_test"
+MODEL_LOWRISK = "labor_test-risklow"
+MODEL_HIGHRISK = "labor_test-riskhigh"
+FUTUREYEAR = 2050
+REGION = 'USA.14.608'  # 'IND.33.542.2153'
+POLYORDER = 4
 
 
-lib.show_header("Calc of baseline (%.12g reported):" % lib.excind(calcs, 2000, 'baseline'))
+def cal_proj(tasmax, gammas, belowzero):
+    """Quickly calc impact projection
 
-lines_weather = []
-for year in range(2001, 2011):
-    lines_weather.append("weather_%d = [%s]" % (year, ','.join(["%.12g" % weday for weday in weather[year]])))
+    Applies a polynomial to some climate variables.
+    """
+    # if tas > 0: dot product, otherwise: belowzero;
+    out = np.where(tasmax[0] > 0, np.dot(gammas, tasmax), belowzero)
+    return out
 
-lines = []
-lines.append("f_lt27(t1, t2, t3) = " + ' + '.join(["%.12g * %s - %f * 27^%d * %f" % (lib.excind(calcs, 2000, 'lt27-' + coeff[ii]), var[ii], lib.get_gamma(csvv, coeff[ii], lt27_covars[ii]), ii+1, lib.excind(preds, 2000, 'colddd_10')) for ii in range(3)]))
-lines.append("f_gt27(t1, t2, t3) = " + ' + '.join(["%.12g * %s - %f * 27^%d * %f" % (lib.excind(calcs, 2000, 'gt27-' + coeff[ii]), var[ii], lib.get_gamma(csvv, coeff[ii], gt27_covars[ii]), ii+1, lib.excind(preds, 2000, 'hotdd_30')) for ii in range(3)]))
-lines.append("f_both(t1, t2, t3) = f_lt27(t1, t2, t3) .* (t1 .< 27) + f_gt27(t1, t2, t3) .* (t1 .>= 27)")
-lines.append("f(t1, t2, t3) = sum((t1 .>= 0) .* (f_both(t1, t2, t3) - f_both(27, 27^2, 27^3)) + (t1 .< 0) .* %f) / 365" % lib.get_gamma(csvv, 'belowzero', '1'))
 
-line_base = '(' + ' + '.join(["f(weather_%d, weather_%d.^2, weather_%d.^3)" % (year, year, year) for year in range(2001, 2011)]) + ') / 10'
-lib.show_julia(lines_weather + lines + [line_base], clipto=200)
+def main(projout_dir):
+    """Run proj calcs from scratch, print comparison with output
 
-lib.show_header("Calc. of result (%.12g reported)" % (outputs[futureyear]['rebased']))
+    Parameters
+    ----------
+    projout_dir : str
+        Full path to projection diagnostic output directory.
+    """
+    lib.show_header("The Predictors File lowrisk (allcalcs):")
+    calcs_lowrisk = lib.get_excerpt(os.path.join(projout_dir, "labor-allcalcs-%s.csv" % MODEL_LOWRISK),
+                                    2, REGION,
+                                    list(range(2000, 2011)) + [FUTUREYEAR - 1, FUTUREYEAR],
+                                    hasmodel=False)
 
-line_weather = "weather_%d = [%s]" % (futureyear, ','.join(["%.12g" % weday for weday in weather[futureyear]]))
+    lib.show_header("The Predictors File highrisk (allcalcs):")
+    calcs_highrisk = lib.get_excerpt(os.path.join(projout_dir, "labor-allcalcs-%s.csv" % MODEL_HIGHRISK),
+                                     2, REGION,
+                                     list(range(2000, 2011)) + [FUTUREYEAR - 1, FUTUREYEAR],
+                                     hasmodel=False)
 
-lines = []    
-lines.append("f_lt27(t1, t2, t3) = " + ' + '.join(["%.12g * %s - %f * 27^%d * %f" % (lib.excind(calcs, futureyear-1, 'lt27-' + coeff[ii]), var[ii], lib.get_gamma(csvv, coeff[ii], lt27_covars[ii]), ii+1, lib.excind(preds, futureyear-1, 'colddd_10')) for ii in range(3)]))
-lines.append("f_gt27(t1, t2, t3) = " + ' + '.join(["%.12g * %s - %f * 27^%d * %f" % (lib.excind(calcs, futureyear-1, 'gt27-' + coeff[ii]), var[ii], lib.get_gamma(csvv, coeff[ii], gt27_covars[ii]), ii+1, lib.excind(preds, futureyear-1, 'hotdd_30')) for ii in range(3)]))
-lines.append("f_both(t1, t2, t3) = f_lt27(t1, t2, t3) .* (t1 .< 27) + f_gt27(t1, t2, t3) .* (t1 .>= 27)")
-lines.append("f(t1, t2, t3) = sum((t1 .>= 0) .* (f_both(t1, t2, t3) - f_both(27, 27^2, 27^3)) + (t1 .< 0) .* %f) / 365" % lib.get_gamma(csvv, 'belowzero', '1'))
+    lib.show_header("Weather:")
+    weathers = {}
+    for v in CLIMATE_VARIABLES:
+        lib.show_header(' %s:' % v)
+        weathers[v] = lib.get_weather(WEATHERTEMPLATE,
+                                      [1981] + list(range(2001, 2011)) + [FUTUREYEAR - 1, FUTUREYEAR],
+                                      REGION, variable=v)
 
-line_result = "f(weather_%d, weather_%d.^2, weather_%d.^3) - %.12g" % (futureyear, futureyear, futureyear, lib.excind(calcs, futureyear, 'baseline'))
-lib.show_julia([line_weather] + lines + [line_result], clipto=200)
+    lib.show_header("CSVV:")
+    csvv = lib.get_csvv("/shares/gcp/social/parameters/labor/csvv_oct2019/%s.csvv" % CSVVMODEL)
+
+    lib.show_header("Outputs, lowrisk:")
+    outputs_lowrisk = lib.get_outputs(os.path.join(projout_dir, MODEL_LOWRISK + '.nc4'),
+                                      [1981, FUTUREYEAR - 1, FUTUREYEAR],
+                                      REGION)
+
+    lib.show_header("Outputs, highrisk:")
+    outputs_highrisk = lib.get_outputs(os.path.join(projout_dir, MODEL_HIGHRISK + '.nc4'),
+                                       [1981, FUTUREYEAR - 1, FUTUREYEAR],
+                                       REGION)
+
+    # Some variables we need to calc the projections below.
+    gammas_lowrisk = np.stack([csvv['gamma'][i] for i in range(POLYORDER)])
+    belowzero_lowrisk = csvv['gamma'][POLYORDER]
+    grp_offset = POLYORDER + 1  # Because gammas are stacked on one-another.
+    belowzero_highrisk = csvv['gamma'][POLYORDER + grp_offset]
+    gammas_highrisk = np.stack([csvv['gamma'][i + grp_offset] for i in range(POLYORDER)])
+
+    # Output depending on calculated projections.
+    lib.show_header("Un-rebased, lowrisk value in 1981 (%.12g reported)" % outputs_lowrisk[1981]['sum'])
+    tasmaxs = np.stack([weathers[p][1981] for p in CLIMATE_VARIABLES])
+    ybar = np.mean(cal_proj(tasmax=tasmaxs,
+                            gammas=gammas_lowrisk,
+                            belowzero=belowzero_lowrisk))
+    print('\t Calculated: %.12g' % ybar)
+    lib.show_header("Un-rebased, highrisk value in 1981 (%.12g reported)" % outputs_highrisk[1981]['sum'])
+    ybar = np.mean(cal_proj(tasmax=tasmaxs,
+                            gammas=gammas_highrisk,
+                            belowzero=belowzero_highrisk))
+    print('\t Calculated: %.12g' % ybar)
+
+    # Calc baseline by hand
+    lib.show_header("Baseline, lowrisk (%.12g reported):" % lib.excind(calcs_lowrisk, 2000, 'baseline'))
+    # Project for baseline range and then take population mean.
+    basevals = []
+    for x in range(2001, 2011):
+        basevals.append(
+            cal_proj(tasmax=np.stack([weathers[p][x] for p in CLIMATE_VARIABLES]),
+                     gammas=gammas_lowrisk,
+                     belowzero=belowzero_lowrisk)
+        )
+    basevals_bar_lowrisk = np.mean(np.array(basevals))
+    print('\t Calculated: %.12g' % basevals_bar_lowrisk)
+    lib.show_header("Baseline, highrisk (%.12g reported):" % lib.excind(calcs_highrisk, 2000, 'baseline'))
+    # Project for baseline range and then take population mean.
+    basevals = []
+    for x in range(2001, 2011):
+        basevals.append(
+            cal_proj(tasmax=np.stack([weathers[p][x] for p in CLIMATE_VARIABLES]),
+                     gammas=gammas_highrisk,
+                     belowzero=belowzero_highrisk)
+        )
+    basevals_bar_highrisk = np.mean(np.array(basevals))
+    print('\t Calculated: %.12g' % basevals_bar_highrisk)
+
+    # Calc rebased future value
+    lib.show_header("Rebased, lowrisk future result (%.12g reported)" % (outputs_lowrisk[FUTUREYEAR]['rebased']))
+    tasmaxs = np.stack([weathers[p][FUTUREYEAR] for p in CLIMATE_VARIABLES])
+    ybar_future = cal_proj(tasmax=tasmaxs,
+                           gammas=gammas_lowrisk,
+                           belowzero=belowzero_lowrisk)
+    yrebase = np.mean(ybar_future) - basevals_bar_lowrisk
+    print('\t Calculated: %.12g' % yrebase)
+    lib.show_header("Rebased, highrisk future result (%.12g reported)" % (outputs_highrisk[FUTUREYEAR]['rebased']))
+    ybar_future = cal_proj(tasmax=tasmaxs,
+                           gammas=gammas_highrisk,
+                           belowzero=belowzero_highrisk)
+    yrebase = np.mean(ybar_future) - basevals_bar_highrisk
+    print('\t Calculated: %.12g' % yrebase)
+
+
+if __name__ == '__main__':
+    import sys
+
+    main(projout_dir=sys.argv[1])
