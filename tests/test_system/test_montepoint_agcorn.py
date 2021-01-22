@@ -232,7 +232,7 @@ class TestRebased:
             ("base_ds", np.array([[-80987.25, -60430.58, -12399.255]]).T),
             ("noadapt_ds", np.array([[-80987.25, -60430.58, -12399.255]]).T),
             ("incadapt_ds", np.array([[-80987.25, -60430.58, -12399.255]]).T),
-            ("histclim_ds", np.array([[-54825.156, 815.6095, 815.6095]]).T),
+            ("histclim_ds", np.array([[-58008.15, 33512.36, -47440.41]]).T),
         ],
     )
     def test_head(self, projection_payload, result_file, expected):
@@ -251,7 +251,7 @@ class TestRebased:
             ("base_ds", np.array([[-43783.42, 93305.3, -31518.95]]).T),
             ("noadapt_ds", np.array([[-49961.56, 78332.21, -40562.645]]).T),
             ("incadapt_ds", np.array([[-49961.16, 78333.27, -40562.316]]).T),
-            ("histclim_ds", np.array([[-51168.804688, 28128.193359, 38980.457031]]).T),
+            ("histclim_ds", np.array([[-43051.676, -529.0065, 18288.943]]).T),
         ],
     )
     def test_tail(self, projection_payload, result_file, expected):
