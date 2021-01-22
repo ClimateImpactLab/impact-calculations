@@ -252,13 +252,14 @@ def main(config, config_name=None):
         print(targetdir)
 
         # Load the pvals data, if available
-        if pvalses.has_pval_file(targetdir):
-            relative_location = [batchdir, clim_scenario, clim_model, econ_model, econ_scenario]
-            oldpvals = pvalses.read_pval_file(targetdir, relative_location)
-            if oldpvals is not None:
-                pvals = oldpvals
-        else:
-            pvalses.make_pval_file(targetdir, pvals)
+        if pvals is not None:
+            if pvalses.has_pval_file(targetdir):
+                relative_location = [batchdir, clim_scenario, clim_model, econ_model, econ_scenario]
+                oldpvals = pvalses.read_pval_file(targetdir, relative_location)
+                if oldpvals is not None:
+                    pvals = oldpvals
+            else:
+                pvalses.make_pval_file(targetdir, pvals)
 
         # Produce the results!
 
