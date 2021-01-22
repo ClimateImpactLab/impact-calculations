@@ -45,8 +45,6 @@ def merge_import_config(config, fpath):
 
     return {**import_config, **config}
 
->>>>>>> master
-
 def standardize(config):
     newconfig = copy.copy(config)
 
