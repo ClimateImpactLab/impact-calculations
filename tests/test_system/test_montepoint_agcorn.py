@@ -25,8 +25,6 @@ from utils import tmpdir_projection
 
 
 pytestmark = pytest.mark.imperics_shareddir
-np.set_printoptions(precision=1e-8, floatmode="fixed")
-
 
 RUN_BASENAME = "corn_global_t-tbar_pbar_lnincbr_ir_tp_binp-tbar_pbar_lnincbr_ir_tp_fe-A1TT_A0Y_clus-A1_A0Y_TINV-191220"
 RUN_CONFIGS = {
@@ -285,10 +283,10 @@ class TestResponse:
     @pytest.mark.parametrize(
         "result_file,expected",
         [
-            ("base_ds", np.array([[-0.000479, 0.001290, 0.001650]]).T),
-            ("noadapt_ds", np.array([[-0.000479, 0.001290, 0.001650]]).T),
-            ("incadapt_ds", np.array([[-0.000479, 0.001290, 0.001650]]).T),
-            ("histclim_ds", np.array([[-0.000474, 0.001504, -0.000392]]).T),
+            ("base_ds", np.array([[-4.789829e-4, 1.289884e-3, 1.649605e-3]]).T),
+            ("noadapt_ds", np.array([[-4.789829e-4, 1.289884e-3, 1.649605e-3]]).T),
+            ("incadapt_ds", np.array([[-4.789829e-4, 1.289884e-3, 1.649605e-3]]).T),
+            ("histclim_ds", np.array([[-0.0004739001742564142, 0.0015039884019643068, -0.0003924719349015504]]).T),
         ],
     )
     def test_head(self, projection_payload, result_file, expected):
@@ -304,10 +302,10 @@ class TestResponse:
     @pytest.mark.parametrize(
         "result_file,expected",
         [
-            ("base_ds", np.array([[-0.044573, -0.016608, -0.030793]]).T),
+            ("base_ds", np.array([[-4.457325e-2, -1.660825e-2, -3.079309e-2]]).T),
             ("noadapt_ds", np.array([[-0.041029, -0.015506, -0.027704]]).T),
             ("incadapt_ds", np.array([[-0.041042, -0.015511, -0.027713]]).T),
-            ("histclim_ds", np.array([[0.000246, 0.001474, 0.001260]]).T),
+            ("histclim_ds", np.array([[0.0002463048149365932, 0.001474292599596083, 0.001260366290807724]]).T),
         ],
     )
     def test_tail(self, projection_payload, result_file, expected):
