@@ -91,11 +91,11 @@ def test_get_monthbin_index():
 	assert seasonal_climategen.get_monthbin_index('FRA.41.57', culture_periods, clim_var, [1, 24-1])==(10-1,10-1+1)
 	assert seasonal_climategen.get_monthbin_index('FRA.41.57', culture_periods, clim_var, [3,4,24-3-4])==(10-1,12-1+1)
 	clim_var='somename_2'
-	try:
-		seasonal_climategen.get_monthbin_index('FRA.41.57', culture_periods, clim_var, [24])
-	except:
-		print('failing as expected')
-		pass
+	# try:
+	# 	seasonal_climategen.get_monthbin_index('FRA.41.57', culture_periods, clim_var, [24])
+	# except:
+	# 	print('failing as expected')
+	# 	pass
 	assert seasonal_climategen.get_monthbin_index('FRA.41.57', culture_periods, clim_var, [1, 24-1])==(11-1,12+8-1+1)
 	assert seasonal_climategen.get_monthbin_index('FRA.41.57', culture_periods, clim_var, [3,4,24-3-4])==(12+1-1,12+4-1+1)
 
@@ -108,17 +108,17 @@ def test_get_monthbin_index():
 	assert seasonal_climategen.get_monthbin_index('FRA.83.63', culture_periods, clim_var, [1,1,2,24-1-1-2])==(5-1,5+1-1)
 	clim_var='somename_4'
 	assert seasonal_climategen.get_monthbin_index('FRA.83.63', culture_periods, clim_var, [1,1,2,24-1-1-2])==(9-1, 10-1+1)
-	try:
-		seasonal_climategen.get_monthbin_index('FRA.83.63', culture_periods, clim_var, [20, 30, 40, 20])
-	except:
-		print('failing as expected')
-		pass
-	clim_var='somebadname'
-	try:
-		seasonal_climategen.get_monthbin_index('FRA.83.63', culture_periods, clim_var, [24])
-	except:	
-		print('failing as expected')
-		pass
+	# try:
+	# 	seasonal_climategen.get_monthbin_index('FRA.83.63', culture_periods, clim_var, [20, 30, 40, 20])
+	# except:
+	# 	print('failing as expected')
+	# 	pass
+	# clim_var='somebadname'
+	# try:
+	# 	seasonal_climategen.get_monthbin_index('FRA.83.63', culture_periods, clim_var, [24])
+	# except:	
+	# 	print('failing as expected')
+	# 	pass
 
 def test_is_longrun_climate():
 
