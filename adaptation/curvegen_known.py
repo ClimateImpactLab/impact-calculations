@@ -360,7 +360,10 @@ class SumByTimePolynomialCurveGenerator(curvegen.SumByTimeMixin, SmartCSVVCurveG
         self.fill_suffixes_marginals(self.csvv, self.polycurvegen.prednames, self.coeffsuffixes)
         
     def get_smartcurve(self, yy):
-        return SumByTimePolynomialCurve(np.array(yy), self.polycurvegen.weathernames, self.polycurvegen.allow_raising)
+        yy = np.array(yy)
+        if len(yy.shape) == 1: # Only 1 month; expand
+            yy = np.expand_dims(yy, axis=1)
+        return SumByTimePolynomialCurve(yy, self.polycurvegen.weathernames, self.polycurvegen.allow_raising)
 
     def format_call(self, lang, *args):
         assert self.weathernames is None, "Weathernames in sum-by-time not implemented yet."
