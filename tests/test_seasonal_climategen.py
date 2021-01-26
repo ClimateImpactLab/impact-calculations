@@ -100,7 +100,7 @@ def test_get_monthbin_index():
 	assert seasonal_climategen.get_monthbin_index('FRA.83.63', culture_periods, clim_var, [1,1,2,24-1-1-2])==(9-1, 10-1+1)
 
 @pytest.mark.imperics_shareddir
-@pytest.mark.xfail()
+@pytest.mark.xfail(raises=AssertionError)
 def test_get_monthbin_index_fail_badvarstructure():
 
 	"""
@@ -112,7 +112,7 @@ def test_get_monthbin_index_fail_badvarstructure():
 	seasonal_climategen.get_monthbin_index('FRA.41.57', culture_periods, clim_var, [24])
 	
 @pytest.mark.imperics_shareddir
-@pytest.mark.xfail()
+@pytest.mark.xfail(raises=AssertionError)
 def test_get_monthbin_index_fail_toolongtime():
 
 	"""
@@ -125,13 +125,14 @@ def test_get_monthbin_index_fail_toolongtime():
 
 
 @pytest.mark.imperics_shareddir
-@pytest.mark.xfail()
+@pytest.mark.xfail(raises=ValueError)
 def test_get_monthbin_index_fail_badvarname():
 
 	"""
-	should fail because the var name doesn't indicate a bin 
+	should fail with a value error because the var name's last letter doesn't indicate a bin, and the code tries to coerce an alphabetic character to an integer.  
 	"""
 
+	culture_periods = irvalues.get_file_cached('social/baselines/agriculture/world-combo-201710-growing-seasons-rice-1stseason.csv', irvalues.load_culture_months)
 	clim_var='somebadname'
 	seasonal_climategen.get_monthbin_index('FRA.83.63', culture_periods, clim_var, [24])
 
