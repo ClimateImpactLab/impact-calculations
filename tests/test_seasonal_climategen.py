@@ -1,8 +1,7 @@
 from generate import seasonal_climategen
 from datastore import irvalues
-
+import pytest
 non_leap_year = 2010
-
 
 def get_test_suffix_triangle():
 
@@ -22,6 +21,7 @@ def get_test_suffix_triangle():
 
     return suffix_triangle
 
+@pytest.mark.imperics_shareddir
 def test_get_seasonal_index():
 
 	"""
@@ -62,7 +62,7 @@ def test_get_seasonal_index():
 	assert seasonal_climategen.get_seasonal_index('GRC.13.R0cbc533353135881', culture_periods, 'fall', get_test_suffix_triangle()) == (11-1, 12-1+1) #just the fall
 	assert seasonal_climategen.get_seasonal_index('FRA.41.57', culture_periods, 'winter', get_test_suffix_triangle()) == (12-1, (3+12)-1+1) #just the winter that 'doesn't exist'
 
-
+@pytest.mark.imperics_shareddir
 def test_get_monthbin_index():
 
 	"""
@@ -91,43 +91,52 @@ def test_get_monthbin_index():
 	assert seasonal_climategen.get_monthbin_index('FRA.41.57', culture_periods, clim_var, [1, 24-1])==(10-1,10-1+1)
 	assert seasonal_climategen.get_monthbin_index('FRA.41.57', culture_periods, clim_var, [3,4,24-3-4])==(10-1,12-1+1)
 	clim_var='somename_2'
-	try:
-		seasonal_climategen.get_monthbin_index('FRA.41.57', culture_periods, clim_var, [24])
-	except:
-		print('failing as expected')
-		pass
 	assert seasonal_climategen.get_monthbin_index('FRA.41.57', culture_periods, clim_var, [1, 24-1])==(11-1,12+8-1+1)
 	assert seasonal_climategen.get_monthbin_index('FRA.41.57', culture_periods, clim_var, [3,4,24-3-4])==(12+1-1,12+4-1+1)
-
-
-
-
-
 	culture_periods = irvalues.get_file_cached('social/baselines/agriculture/world-combo-201710-growing-seasons-rice-1stseason.csv', irvalues.load_culture_months)
 	clim_var='somename_1'
 	assert seasonal_climategen.get_monthbin_index('FRA.83.63', culture_periods, clim_var, [1,1,2,24-1-1-2])==(5-1,5+1-1)
 	clim_var='somename_4'
 	assert seasonal_climategen.get_monthbin_index('FRA.83.63', culture_periods, clim_var, [1,1,2,24-1-1-2])==(9-1, 10-1+1)
-	try:
-		seasonal_climategen.get_monthbin_index('FRA.83.63', culture_periods, clim_var, [20, 30, 40, 20])
-	except:
-		print('failing as expected')
-		pass
-	clim_var='somebadname'
-	try:
-		seasonal_climategen.get_monthbin_index('FRA.83.63', culture_periods, clim_var, [24])
-	except:	
-		print('failing as expected')
-		pass
 
+@pytest.mark.imperics_shareddir
+@pytest.mark.xfail()
+def test_get_monthbin_index_fail_badvarstructure():
+
+	"""
+	should fail because variable name indicates second bin and there's only one in the vector
+	"""
+
+	culture_periods = irvalues.get_file_cached('social/baselines/agriculture/world-combo-202004-growing-seasons-wheat-winter.csv', irvalues.load_culture_months)
+	clim_var='somename_2'
+	seasonal_climategen.get_monthbin_index('FRA.41.57', culture_periods, clim_var, [24])
+	
+@pytest.mark.imperics_shareddir
+@pytest.mark.xfail()
+def test_get_monthbin_index_fail_toolongtime():
+
+	"""
+	should fail because vector sum is above 24
+	"""
+
+	culture_periods = irvalues.get_file_cached('social/baselines/agriculture/world-combo-201710-growing-seasons-rice-1stseason.csv', irvalues.load_culture_months)
+	clim_var='somename_4'
+	seasonal_climategen.get_monthbin_index('FRA.83.63', culture_periods, clim_var, [20, 30, 40, 20])
+
+
+@pytest.mark.imperics_shareddir
+@pytest.mark.xfail()
+def test_get_monthbin_index_fail_badvarname():
+
+	"""
+	should fail because the var name doesn't indicate a bin 
+	"""
+
+	clim_var='somebadname'
+	seasonal_climategen.get_monthbin_index('FRA.83.63', culture_periods, clim_var, [24])
+
+@pytest.mark.imperics_shareddir
 def test_is_longrun_climate():
 
 	assert not seasonal_climategen.is_longrun_climate('seasonaledd')==True
 	assert not seasonal_climategen.is_longrun_climate('seasonaltasmax')==False
-
-
-if __name__ == '__main__':
-
-	test_get_seasonal_index()
-	test_get_monthbin_index()
-	test_is_longrun_climate()
