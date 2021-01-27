@@ -153,34 +153,21 @@ def calculate_edd(ds, gdd_cutoff, kdd_cutoff):
         {'time': ds.time, 'region': ds.region})
     return out
 
-def main(config):
+def generate_seasonal(var, climate_model, rcp, config):
 
-    """main function, collapses weather data to obtain seasonal calculations.
+    """calculates seasonal values of a variable for a given rcp and gcm.
 
     Parameters
     ----------
+    - var : str
+        climate variable to calculate seasonal values
+    - climate_model : str
+    - rcp : str
     config : dict
-        configurations dictionary. 
-        required keys : 
-            - outputdir : str
-                where the netcdf with calculations is saved
-            - crop : str
-            - var : str
-                climate variable to calculate seasonal values
-            - climate_model : str
-            - rcp : str
-        optional keys : 
-            - subseason : str 
-            - (required if subseason in config) suffix_triangle : list of list 
-
+        see main()
     """
 
-    assert all(x in config for x in ['outputdir','crop', 'var', 'climate_model', 'rcp']), 'incomplete configurations file'
-
     crop = config.get('crop')
-    var = config.get('var')
-    climate_model = config.get('climate_model')
-    rcp = config.get('rcp')
     outputdir = config.get('outputdir')
 
     assert crop in ['maize', 'rice', 'soy', 'cassava','sorghum','cotton', 'wheat-spring','wheat-winter-fall','wheat-winter-winter', 'wheat-winter-summer'], print('unknown crop')
@@ -392,6 +379,46 @@ def main(config):
         averaged[:, :, :] = averageddata
 
         rootgrp.close()
+
+def main(config):
+
+    """main function, iterates over scenarios.
+
+    Parameters
+    ----------
+    config : dict
+        configurations dictionary. 
+        required keys : 
+            - outputdir : str
+                where the netcdf with calculations is saved
+            - crop : str
+            - var : list of str
+                climate variables to calculate seasonal values
+        optional keys : 
+            - climate_model : list of str
+                if not passed, will do all models.
+            - rcp : list of str 
+                if not passed, will do all rcps. 
+            - subseason : str 
+            - (required if subseason in config) suffix_triangle : list of list 
+
+    """
+
+    assert all(x in config for x in ['outputdir','crop', 'var']), 'incomplete configurations file'
+    
+    outputdir = config.get('outputdir')
+    crop = config.get('crop')
+    var = config.get('var')
+    climate_model = config.get('climate_model', None)
+    rcp = config.get('rcp', None)
+
+    if climate_model is None:
+        climate_model = ['CCSM4']
+    if rcp is None:
+        rcp = ['rcp45', 'rcp85']
+
+    #iterating now     
+
 
 if __name__ == '__main__':
     import yaml
