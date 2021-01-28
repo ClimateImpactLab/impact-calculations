@@ -17,6 +17,8 @@ from impactcommon.math import averages
 from datastore import irvalues
 from dateutil.relativedelta import relativedelta
 from interpret.container import get_bundle_iterator
+import multiprocessing
+from itertools import product
 
 non_leap_year = 2010
 
@@ -192,7 +194,7 @@ def generate_seasonal(var, climate_model, rcp, config):
         'maize':'world-combo-201710-growing-seasons-corn-1stseason',
         'rice':'world-combo-201710-growing-seasons-rice-1stseason',
         'soy':'world-combo-201710-growing-seasons-soy',
-        'cassava':'world-combo-202004-growing-seasons-cassava',
+        'cassava':'explicit_rolling_years/world-combo-202004-growing-seasons-cassava',
         'sorghum':'world-combo-202004-growing-seasons-sorghum',
         'cotton':'world-combo-202004-growing-seasons-cotton',
         'wheat-spring':'world-combo-202004-growing-seasons-wheat-spring',
@@ -395,6 +397,8 @@ def main(config):
             - var : list of str
                 climate variables to calculate seasonal values
         optional keys : 
+            - processes : int
+                number of cpus to use. 1 if not passed. 
             - climate_model : list of str
                 if not passed, will do all models.
             - rcp : list of str 
@@ -404,8 +408,9 @@ def main(config):
 
     """
 
-    assert all(x in config for x in ['outputdir','crop', 'var']), 'incomplete configurations file'
+    assert all(x in config for x in ['outputdir','crop', 'var', 'processes']), 'incomplete configurations file : should include at least outputdir, crop, var, processes'
     
+    nprocesses = config.get('processes', 1)
     outputdir = config.get('outputdir')
     crop = config.get('crop')
     var = config.get('var')
@@ -413,11 +418,12 @@ def main(config):
     rcp = config.get('rcp', None)
 
     if climate_model is None:
-        climate_model = ['CCSM4']
+        climate_model = list(set(next(os.walk('/shares/gcp/outputs/temps/rcp85'))[1])|set(next(os.walk('/shares/gcp/outputs/temps/rcp45'))[1]))
     if rcp is None:
         rcp = ['rcp45', 'rcp85']
 
-    #iterating now     
+    with multiprocessing.Pool(processes=nprocesses) as pool:
+        pool.starmap(generate_seasonal, product(var, climate_model, rcp, [config]))
 
 
 if __name__ == '__main__':
