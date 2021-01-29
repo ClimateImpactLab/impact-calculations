@@ -197,10 +197,10 @@ def generate_seasonal(var, climate_model, rcp, config):
         'cassava':'explicit_rolling_years/world-combo-202004-growing-seasons-cassava',
         'sorghum':'world-combo-202004-growing-seasons-sorghum',
         'cotton':'world-combo-202004-growing-seasons-cotton',
-        'wheat-spring':'world-combo-202004-growing-seasons-wheat-spring',
-        'wheat-winter-fall':'world-combo-202004-growing-seasons-wheat-winter',
-        'wheat-winter-winter':'world-combo-202004-growing-seasons-wheat-winter',
-        'wheat-winter-summer':'world-combo-202004-growing-seasons-wheat-winter'
+        'wheat-spring':'explicit_rolling_years/world-combo-202004-growing-seasons-wheat-spring',
+        'wheat-winter-fall':'explicit_rolling_years/world-combo-202004-growing-seasons-wheat-winter',
+        'wheat-winter-winter':'explicit_rolling_years/world-combo-202004-growing-seasons-wheat-winter',
+        'wheat-winter-summer':'explicit_rolling_years/world-combo-202004-growing-seasons-wheat-winter'
     }
 
     bins = {
