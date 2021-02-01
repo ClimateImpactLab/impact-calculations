@@ -35,6 +35,7 @@ def single(bundle_iterator):
 
             return clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
 
+@profile
 def random_order(bundle_iterator, config=None):
     if config is None:
         config = {}

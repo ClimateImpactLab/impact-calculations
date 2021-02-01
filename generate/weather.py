@@ -160,6 +160,7 @@ class DailyWeatherBundle(WeatherBundle):
     def baseline_values(self, maxyear, do_mean=True, quiet=False, only_region=None):
         """Yield the list of all weather values up to `maxyear` for each region."""
 
+        print("BASELINE_VALUES")
         if not hasattr(self, 'saved_baseline_values'):
             # Construct an empty dataset to append to
             allds = []
