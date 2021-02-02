@@ -19,6 +19,7 @@ from dateutil.relativedelta import relativedelta
 from interpret.container import get_bundle_iterator
 import multiprocessing
 from itertools import product
+import warnings
 
 non_leap_year = 2010
 
@@ -285,10 +286,9 @@ def generate_seasonal(var, climate_model, rcp, config):
         'rolling-years': 2,
         'timerate': time_rate,
         'within-season': seasonal_filepath }
-    
+
     if list(get_bundle_iterator(config))==[]:
-        print('the config file syntax is wrong')
-        exit()
+        warnings.warn("the config file syntax is wrong, or there isn't any data for this model, so the iterator is empty.")
 
     culture_periods = irvalues.get_file_cached(config['within-season'], irvalues.load_culture_months)
     standard_running_mean_init = averages.BartlettAverager
