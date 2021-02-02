@@ -966,7 +966,7 @@ def populate_constantcovariator_by_hierid(covar_name, parent_hierids, hi_df=None
     target_regions = list(parent_hierids)
 
     if hi_df is None:
-        hi_df = read_csv(files.sharedpath('/shares/gcp/regions/hierarchy.csv'),
+        hi_df = read_csv(files.sharedpath('regions/hierarchy.csv'),
                         skiprows=31, index_col='region-key')
 
     # 1.0 if in hierid(s), otherwise *always* 0.0, even if bad key.
