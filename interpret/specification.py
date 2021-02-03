@@ -11,6 +11,7 @@ precipitation.
 import re
 from adaptation import csvvfile, curvegen, curvegen_known, curvegen_arbitrary, covariates, constraints
 from datastore import irvalues
+from generate.weather import DailyWeatherBundle
 from openest.generate import smart_curve
 from openest.curves import ushape_numeric
 from openest.curves.smart_linextrap import LinearExtrapolationCurve
@@ -108,6 +109,9 @@ def create_covariator(specconf, weatherbundle, economicmodel, config=None, quiet
     if config is None:
         config = {}
     if 'covariates' in specconf:
+        assert isinstance(weatherbundle, DailyWeatherBundle)
+        weatherbundle.cache_baseline_values_begin()
+        
         covariators = []
         for covar in specconf['covariates']:
             fullconfig = configs.merge(config, specconf)
@@ -117,6 +121,8 @@ def create_covariator(specconf, weatherbundle, economicmodel, config=None, quiet
             covariator = covariators[0]
         else:
             covariator = covariates.CombinedCovariator(covariators)
+
+        weatherbundle.cache_baseline_values_done()
     else:
         covariator = None
 
