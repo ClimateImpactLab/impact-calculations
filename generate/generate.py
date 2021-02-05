@@ -2,7 +2,7 @@
 Manages rcps and econ and climate models, and generate.effectset.simultaneous_application handles the regions and years.
 """
 
-import os, itertools, importlib, shutil, csv, time, yaml, tempfile
+import os, importlib, shutil, csv, time, yaml, tempfile
 from collections import OrderedDict
 import numpy as np
 from . import loadmodels
@@ -26,6 +26,8 @@ def main(config, config_name=None):
         `config_name` is given and "config_name" is also in `config` then uses
         `config_name` arg and a warning is printed.
     """
+    global do_single
+    
     print("Initializing...")
 
     if config_name is None:
@@ -41,8 +43,11 @@ def main(config, config_name=None):
     singledir = config.get('singledir', 'single')
     do_single = config.get('do_single', False)
 
+    do_single = config.get('do-single', False)
+
     # Create the object for claiming directories
     statman = paralog.StatusManager('generate', "generate.generate " + str(config_name), 'logs', claim_timeout)
+    configs.global_statman = statman
 
     targetdir = None # The current targetdir
 
@@ -54,28 +59,21 @@ def main(config, config_name=None):
             yield 'median', pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
 
     def iterate_montecarlo():
-        # How many monte carlo iterations do we do?
-        mc_n = config.get('mc-n', config.get('mc_n'))
-        if mc_n is None:
-            mc_batch_iter = itertools.count()
-        else:
-            mc_batch_iter = list(range(int(mc_n)))
-
-        # If `only-batch-number` is in run config, overrides `mc_n`.
-        only_batch_number = config.get('only-batch-number')
-        if only_batch_number is not None:
-            mc_batch_iter = [int(only_batch_number)]
-
+        mc_batch_iter = configs.get_batch_iter(config)
         for batch in mc_batch_iter:
             for clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in loadmodels.random_order(mod.get_bundle_iterator(config), config):
                 # Use "pvals" seeds from config, if available.
                 relative_location = ['batch' + str(batch), clim_scenario, clim_model, econ_scenario, econ_model]
-                if 'pvals' in list(config.keys()):
-                    pvals = pvalses.load_pvals(config['pvals'], relative_location)
-                else:
-                    # Old default.
-                    pvals = pvalses.OnDemandRandomPvals(relative_location)
+                pvals = pvalses.get_montecarlo_pvals(config, relative_location)
                 yield 'batch' + str(batch), pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
+
+    def iterate_parallel_maker(driverbatch):
+        def iterate_parallel():
+            for clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in loadmodels.random_order(mod.get_bundle_iterator(config), config):
+                relative_location = [driverbatch, clim_scenario, clim_model, econ_scenario, econ_model]
+                pvals = pvalses.PlaceholderPvals(config, relative_location)
+                yield driverbatch, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
+        return iterate_parallel
 
     def iterate_nosideeffects():
         clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel = loadmodels.single(mod.get_bundle_iterator(config))
@@ -178,7 +176,10 @@ def main(config, config_name=None):
 
     # Select the iterator based on the mode
 
-    mode_iterators = {'median': iterate_median, 'montecarlo': iterate_montecarlo, 'lincom': iterate_single, 'single': iterate_single, 'writesplines': iterate_single, 'writepolys': iterate_single, 'writecalcs': iterate_single, 'profile': iterate_nosideeffects, 'diagnostic': iterate_nosideeffects}
+    mode_iterators = {'median': iterate_median, 'montecarlo': iterate_montecarlo, 'lincom': iterate_single, 'single': iterate_single,
+                      'writesplines': iterate_single, 'writepolys': iterate_single, 'writecalcs': iterate_single,
+                      'profile': iterate_nosideeffects, 'diagnostic': iterate_nosideeffects,
+                      'parallelmc': iterate_parallel_maker('mcdriver'), 'testparallelpe': iterate_parallel_maker('pedriver')}
 
     assert 'mode' in config, "Configuration does not contain 'mode'."
     assert config['mode'] in list(mode_iterators.keys())
@@ -189,18 +190,23 @@ def main(config, config_name=None):
 
     if not config.get('module'):
         # Specification and run config already together.
-        mod = importlib.import_module("interpret.container")
+        if config.get('threads', 1) == 1:
+            mod = importlib.import_module("interpret.container")
+        else:
+            mod = importlib.import_module("interpret.parallel_container")
         shortmodule = str(config_name)
     elif config['module'][-4:] == '.yml':
         # Specification config in another yaml file.
-
         import warnings
         warnings.warn(
             "Pointing 'module:' to YAML files is deprecated, please use 'module:' with Python modules",
             FutureWarning,
         )
+        if config.get('threads', 1) == 1:
+            mod = importlib.import_module("interpret.container")
+        else:
+            mod = importlib.import_module("interpret.parallel_container")
 
-        mod = importlib.import_module("interpret.container")
         with open(config['module'], 'r') as fp:
             config.update(yaml.load(fp))
         shortmodule = os.path.basename(config['module'])[:-4]
@@ -242,26 +248,20 @@ def main(config, config_name=None):
             pr.enable()
 
         # Claim the directory
-        if statman.is_claimed(targetdir) and mode_iterators[config['mode']] == iterate_single:
-            try:
-                paralog.StatusManager.kill_active(targetdir, 'generate') # if do_fillin and crashed, could still exist
-            except Exception as ex:
-                print("Got exception but passing anyways:")
-                print(ex)
-                pass
-        elif not statman.claim(targetdir) and 'targetdir' not in config:
+        if not configs.claim_targetdir(statman, targetdir, mode_iterators[config['mode']] == iterate_single, config):
             continue
 
         print(targetdir)
 
         # Load the pvals data, if available
-        if pvalses.has_pval_file(targetdir):
-            relative_location = [batchdir, clim_scenario, clim_model, econ_model, econ_scenario]
-            oldpvals = pvalses.read_pval_file(targetdir, relative_location)
-            if oldpvals is not None:
-                pvals = oldpvals
-        else:
-            pvalses.make_pval_file(targetdir, pvals)
+        if not isinstance(pvals, pvalses.PlaceholderPvals):
+            if pvalses.has_pval_file(targetdir):
+                relative_location = [batchdir, clim_scenario, clim_model, econ_model, econ_scenario]
+                oldpvals = pvalses.read_pval_file(targetdir, relative_location)
+                if oldpvals is not None:
+                    pvals = oldpvals
+            else:
+                pvalses.make_pval_file(targetdir, pvals)
 
         # Produce the results!
 
@@ -289,8 +289,7 @@ def main(config, config_name=None):
             mod.produce(targetdir, weatherbundle, economicmodel, pvals, config)
 
         # Also produce historical climate results
-
-        is_diagnostic = config['mode'] in ['writesplines', 'writepolys', 'writecalcs', 'diagnostic']
+        is_diagnostic = config['mode'] in ['writesplines', 'writepolys', 'writecalcs', 'diagnostic', 'parallelmc', 'testparallelpe']  # Workers have to produce themselves
         if ((is_diagnostic and config.get('do_historical', False)) or # default no histclim
             (not is_diagnostic and config.get('do_historical', True))): # default do histclim
             # Generate historical baseline
@@ -302,7 +301,8 @@ def main(config, config_name=None):
 
         # Clean up
 
-        pvalses.make_pval_file(targetdir, pvals)
+        if not isinstance(pvals, pvalses.PlaceholderPvals):
+            pvalses.make_pval_file(targetdir, pvals)
 
         statman.release(targetdir, "Generated")
 
