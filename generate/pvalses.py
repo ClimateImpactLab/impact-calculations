@@ -179,6 +179,25 @@ class OnDemandRandomDictionary(PvalsDictionary):
         fullname = "seed-%s" % name
         self.values[fullname] = seed
 
+## Placeholder Pvals, not able to be used (used by parallel)
+
+class PlaceholderPvals(Pvals):
+    def __init__(self, config, relative_location):
+        self.config = config
+        self.relative_location = relative_location
+
+    def get_montecarlo_pvals(self):
+        return get_montecarlo_pvals(self.config, self.relative_location)
+        
+    def lock(self):
+        raise AttributeError("PlaceholderPvals does not support standard methods")
+
+    def __getitem__(self, name):
+        raise AttributeError("PlaceholderPvals does not support standard methods")
+
+    def __iter__(self):
+        raise AttributeError("PlaceholderPvals does not support standard methods")
+        
 ## Helper functions
 
 def get_pval_file(targetdir):

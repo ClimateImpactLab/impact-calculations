@@ -70,7 +70,9 @@ def main(config, config_name=None):
     def iterate_parallel_maker(driverbatch):
         def iterate_parallel():
             for clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel in loadmodels.random_order(mod.get_bundle_iterator(config), config):
-                yield driverbatch, None, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
+                relative_location = [driverbatch, clim_scenario, clim_model, econ_scenario, econ_model]
+                pvals = pvalses.PlaceholderPvals(config, relative_location)
+                yield driverbatch, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
         return iterate_parallel
 
     def iterate_nosideeffects():
@@ -252,7 +254,7 @@ def main(config, config_name=None):
         print(targetdir)
 
         # Load the pvals data, if available
-        if pvals is not None:
+        if not isinstance(pvals, pvalses.PlaceholderPvals):
             if pvalses.has_pval_file(targetdir):
                 relative_location = [batchdir, clim_scenario, clim_model, econ_model, econ_scenario]
                 oldpvals = pvalses.read_pval_file(targetdir, relative_location)
@@ -299,7 +301,7 @@ def main(config, config_name=None):
 
         # Clean up
 
-        if pvals is not None:
+        if not isinstance(pvals, pvalses.PlaceholderPvals):
             pvalses.make_pval_file(targetdir, pvals)
 
         statman.release(targetdir, "Generated")
