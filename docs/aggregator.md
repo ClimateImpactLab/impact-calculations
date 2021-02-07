@@ -57,6 +57,13 @@ Optional:
    `-aggregated`, to distinguish multiple weighting schemes.
  - `timeout`: The number of hours to allow the process to work, before
    considering a directory abandoned (default: 24).
+ - `check-variable`: The aggregation code attempts to validate output
+   files before attempting to aggregate them. The checks are defined
+   in `generate.checks.check_result_100years`. These checks currently
+   include checking the size of the result-- at least 100 years, where
+   the standard length is 120, and the number of regions, defaulted to
+   24378 but overrideable with the `region-count` configuration
+   option-- and that an arbitrary year of values all look valid.
 
 Filtering Targets (also Optional):
 
