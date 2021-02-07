@@ -12,6 +12,7 @@ import re
 from adaptation import csvvfile, curvegen, curvegen_known, curvegen_arbitrary, covariates, constraints, parallel_covariates, parallel_econmodel
 from generate import parallel_weather
 from datastore import irvalues
+from generate.weather import DailyWeatherBundle
 from openest.generate import smart_curve
 from openest.curves import ushape_numeric
 from openest.curves.smart_linextrap import LinearExtrapolationCurve
@@ -111,15 +112,17 @@ def create_covariator(specconf, weatherbundle, economicmodel, config=None, quiet
     if parallel_weather.is_parallel(weatherbundle) and parallel_econmodel.is_parallel(economicmodel):
         return parallel_covariates.create_covariator(specconf, weatherbundle, economicmodel, farmer)
     if 'covariates' in specconf:
-        covariators = []
-        for covar in specconf['covariates']:
-            fullconfig = configs.merge(config, specconf)
-            covariators.append(get_covariator(covar, None, weatherbundle, economicmodel, config=fullconfig, quiet=quiet))
+        assert isinstance(weatherbundle, DailyWeatherBundle)
+        with weatherbundle.caching_baseline_values():
+            covariators = []
+            for covar in specconf['covariates']:
+                fullconfig = configs.merge(config, specconf)
+                covariators.append(get_covariator(covar, None, weatherbundle, economicmodel, config=fullconfig, quiet=quiet))
             
-        if len(covariators) == 1:
-            covariator = covariators[0]
-        else:
-            covariator = covariates.CombinedCovariator(covariators)
+            if len(covariators) == 1:
+                covariator = covariators[0]
+            else:
+                covariator = covariates.CombinedCovariator(covariators)
     else:
         covariator = None
 
