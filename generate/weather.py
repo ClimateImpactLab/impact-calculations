@@ -1,4 +1,5 @@
 import os, re, csv, traceback
+from contextlib import contextmanager
 import numpy as np
 import xarray as xr
 from netCDF4 import Dataset
@@ -128,16 +129,26 @@ class DailyWeatherBundle(WeatherBundle):
         self._caching_baseline_values = False # boolean: should we use the cache?
         self._saved_baseline_values = None # None or the (non-None) cached values
 
-    def cache_baseline_values_begin(self):
+    @contextmanager
+    def caching_baseline_values(self):
+        """Context manager to store/release baseline values when creating ``Covariators``
+
+        Activates storage when entering a `with` block. Deactivates and
+        clears storage when leaving the `with` block. "Entering"
+        and "exiting" the storage helps reduce memory footprint.
+        """
+
         # Enforce good behaviour-- otherwise, we might be in a complex situation where unintended cache killing is possible
         assert self._caching_baseline_values is	False and self._saved_baseline_values is None
         self._caching_baseline_values = True
 
-    def cache_baseline_values_done(self):
-        # Enforce good behaviour-- otherwise, we might be in a complex situation where unintended cache killing is possible
-        assert self._caching_baseline_values is True
-        self._caching_baseline_values = False
-        self._saved_baseline_values = None
+        try:
+            yield
+        finally: 
+            # Enforce good behaviour-- otherwise, we might be in a complex situation where unintended cache killing is possible
+            assert self._caching_baseline_values is True
+            self._caching_baseline_values = False
+            self._saved_baseline_values = None
         
     def yearbundles(self, maxyear=np.inf, variable_ofinterest=None):
         """Yields a tuple of (year, xarray Dataset) for each year up to `maxyear`.
