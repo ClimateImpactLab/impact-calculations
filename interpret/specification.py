@@ -110,19 +110,16 @@ def create_covariator(specconf, weatherbundle, economicmodel, config=None, quiet
         config = {}
     if 'covariates' in specconf:
         assert isinstance(weatherbundle, DailyWeatherBundle)
-        weatherbundle.cache_baseline_values_begin()
-        
-        covariators = []
-        for covar in specconf['covariates']:
-            fullconfig = configs.merge(config, specconf)
-            covariators.append(get_covariator(covar, None, weatherbundle, economicmodel, config=fullconfig, quiet=quiet))
+        with weatherbundle.caching_baseline_values():
+            covariators = []
+            for covar in specconf['covariates']:
+                fullconfig = configs.merge(config, specconf)
+                covariators.append(get_covariator(covar, None, weatherbundle, economicmodel, config=fullconfig, quiet=quiet))
             
-        if len(covariators) == 1:
-            covariator = covariators[0]
-        else:
-            covariator = covariates.CombinedCovariator(covariators)
-
-        weatherbundle.cache_baseline_values_done()
+            if len(covariators) == 1:
+                covariator = covariators[0]
+            else:
+                covariator = covariates.CombinedCovariator(covariators)
     else:
         covariator = None
 
