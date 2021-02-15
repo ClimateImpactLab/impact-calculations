@@ -57,7 +57,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer="full",
         csvvfile.collapse_bang(csvv, qvals.get_seed("csvv"))
 
     covariator = specification.create_covariator(
-        specconf, weatherbundle, economicmodel, config, quiet=config.get("quiet", False)
+        specconf, weatherbundle, economicmodel, config, quiet=config.get("quiet", False), farmer=farmer
     )
 
     models = {}

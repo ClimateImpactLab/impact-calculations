@@ -8,6 +8,7 @@ import pytest
 import click
 from click.testing import CliRunner
 import cli
+import cli.core
 
 
 @pytest.fixture
@@ -23,7 +24,7 @@ def ggmain_stub(mocker):
     """Mocks/stubs of ggmain, prints input for debugging
     """
     mocker.patch.object(
-        cli, "ggmain", new=lambda *a: click.echo(a),
+        cli.core, "ggmain", new=lambda *a: click.echo(a),
     )
 
 

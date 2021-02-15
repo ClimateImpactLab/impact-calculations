@@ -9,8 +9,10 @@ precipitation.
 """
 
 import re
-from adaptation import csvvfile, curvegen, curvegen_known, curvegen_arbitrary, covariates, constraints
+from adaptation import csvvfile, curvegen, curvegen_known, curvegen_arbitrary, covariates, constraints, parallel_covariates, parallel_econmodel
+from generate import parallel_weather
 from datastore import irvalues
+from generate.weather import DailyWeatherBundle
 from openest.generate import smart_curve
 from openest.curves import ushape_numeric
 from openest.curves.smart_linextrap import LinearExtrapolationCurve
@@ -89,7 +91,7 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config=None, quiet
     else:
         user_failure("Covariate %s is unknown." % covar)
 
-def create_covariator(specconf, weatherbundle, economicmodel, config=None, quiet=False):
+def create_covariator(specconf, weatherbundle, economicmodel, config=None, quiet=False, farmer=None):
     """Interprets the entire covariates dictionary in the configuration file.
 
     Parameters
@@ -107,16 +109,20 @@ def create_covariator(specconf, weatherbundle, economicmodel, config=None, quiet
     """
     if config is None:
         config = {}
+    if parallel_weather.is_parallel(weatherbundle) and parallel_econmodel.is_parallel(economicmodel):
+        return parallel_covariates.create_covariator(specconf, weatherbundle, economicmodel, farmer)
     if 'covariates' in specconf:
-        covariators = []
-        for covar in specconf['covariates']:
-            fullconfig = configs.merge(config, specconf)
-            covariators.append(get_covariator(covar, None, weatherbundle, economicmodel, config=fullconfig, quiet=quiet))
+        assert isinstance(weatherbundle, DailyWeatherBundle)
+        with weatherbundle.caching_baseline_values():
+            covariators = []
+            for covar in specconf['covariates']:
+                fullconfig = configs.merge(config, specconf)
+                covariators.append(get_covariator(covar, None, weatherbundle, economicmodel, config=fullconfig, quiet=quiet))
             
-        if len(covariators) == 1:
-            covariator = covariators[0]
-        else:
-            covariator = covariates.CombinedCovariator(covariators)
+            if len(covariators) == 1:
+                covariator = covariators[0]
+            else:
+                covariator = covariates.CombinedCovariator(covariators)
     else:
         covariator = None
 
@@ -220,9 +226,22 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
             transform_descriptions.append(match.group(1))
             indepunits.append(match.group(2))
 
+        # Only infer a univariate response if 1 variable
+        if len(ds_transforms) == 1:
+            # Reuse match.group(1), still set to our single variable
+            univariate_transform, _ = variables.interpret_univariate_transform(match.group(1), specconf)
+            if univariate_transform is None: # Cannot handle transform
+                univariate_index = None
+            else:
+                univariate_index = 0
+        else:
+            univariate_index = univariate_transform = None
+
         curr_curvegen = curvegen_arbitrary.SumCoefficientsCurveGenerator(list(ds_transforms.keys()), ds_transforms,
                                                                          transform_descriptions, indepunits, depenunit,
-                                                                         csvv, betalimits=betalimits)
+                                                                         csvv, betalimits=betalimits,
+                                                                         univariate_index=univariate_index,
+                                                                         univariate_transform=univariate_transform)
         weathernames = [] # Use curve directly
     elif specconf['functionalform'] == 'sum-by-time':
         if specconf['subspec']['functionalform'] in ['polynomial', 'coefficients']:
@@ -360,7 +379,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
                 margins = {indepvars[ii]: exargs['margins'][ii] for ii in range(len(indepvars))}
 
             assert 'bounds' in exargs
-            if 'bounds' in exargs and isinstance(exargs['bounds'], tuple) or (isinstance(exargs['bounds'], list) and len(exargs['bounds']) == 2 and isinstance(exargs['bounds'][0], float)):
+            if 'bounds' in exargs and isinstance(exargs['bounds'], tuple) or (isinstance(exargs['bounds'], list) and len(exargs['bounds']) == 2 and (isinstance(exargs['bounds'][0], float) or isinstance(exargs['bounds'][0], int))):
                 bounds = [(exargs['bounds'][0],), (exargs['bounds'][1],)]
             else:
                 bounds = exargs['bounds']
@@ -420,7 +439,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     
     depenunit = specconf['depenunit']
     
-    covariator = create_covariator(specconf, weatherbundle, economicmodel, config)
+    covariator = create_covariator(specconf, weatherbundle, economicmodel, config, farmer=farmer)
     final_curvegen = create_curvegen(csvv, covariator, weatherbundle.regions, farmer=farmer, specconf=specconf)
 
     extras = dict(output_unit=depenunit, units=depenunit, curve_description=specconf['description'], errorvar=csvvfile.get_errorvar(csvv))

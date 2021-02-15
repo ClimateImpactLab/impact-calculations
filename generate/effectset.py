@@ -5,7 +5,8 @@ from netCDF4 import Dataset
 import helpers.header as headre
 from openest.generate import retrieve, diagnostic, fast_dataset
 from adaptation import curvegen
-from . import server, nc4writer
+from interpret import configs
+from . import server, nc4writer, parallel_weather
 
 
 def simultaneous_application(weatherbundle, calculation, regions=None, push_callback=None):
@@ -60,7 +61,7 @@ def simultaneous_application(weatherbundle, calculation, regions=None, push_call
             if push_callback is not None:
                 push_callback(region, year, applications[region])
                 diagnostic.finish(region, year, group='input')
-
+                
     for region in applications:
         for yearresult in applications[region].done():
             yield (region, yearresult[0], yearresult[1:])
@@ -68,6 +69,19 @@ def simultaneous_application(weatherbundle, calculation, regions=None, push_call
     calculation.cleanup()
 
 def generate(targetdir, basename, weatherbundle, calculation, description, calculation_dependencies, config, filter_region=None, push_callback=None, subset=None, diagnosefile=False, deltamethod_vcv=False):
+    """Compute impact projection and write to a file
+
+    See the subprocesses prepare_ncdf_data and write_ncdf for most
+    parameter definitions. The only additional parameter handled by
+    this function is `filter_region`; it also works differently for
+    the 'profile' or 'diagnostic' modes.
+
+    Parameters
+    ----------
+    filter_region : str or None, optional
+        One or more regions to perform calculations for. If None, uses all
+        regions available in ``weatherbundle.regions``.
+    """
     if 'mode' in config and config['mode'] == 'profile':
         return small_print(weatherbundle, calculation, regions=10000)
 
@@ -80,13 +94,77 @@ def generate(targetdir, basename, weatherbundle, calculation, description, calcu
     if deltamethod_vcv is not False:
         calculation.enable_deltamethod()
 
-    return write_ncdf(targetdir, basename, weatherbundle, calculation, description, calculation_dependencies, filter_region=filter_region, push_callback=push_callback, subset=subset, diagnosefile=diagnosefile, deltamethod_vcv=deltamethod_vcv)
+    my_regions = configs.get_regions(weatherbundle.regions, filter_region)
+    columndata = prepare_ncdf_data(weatherbundle, calculation, my_regions, push_callback=push_callback, diagnosefile=diagnosefile, deltamethod_vcv=deltamethod_vcv)
 
-def write_ncdf(targetdir, basename, weatherbundle, calculation, description, calculation_dependencies, filter_region=None, push_callback=None, subset=None, diagnosefile=False, deltamethod_vcv=False):
-    """Compute and write impact projection to NetCDF file
+    if parallel_weather.is_parallel(weatherbundle):
+        weatherbundle.driver.lock.acquire()
+    write_ncdf(targetdir, basename, columndata, weatherbundle, calculation, description, calculation_dependencies, my_regions, subset=subset, deltamethod_vcv=deltamethod_vcv)
+    if parallel_weather.is_parallel(weatherbundle):
+        weatherbundle.driver.lock.release()
+
+def prepare_ncdf_data(weatherbundle, calculation, my_regions, push_callback=None, diagnosefile=False, deltamethod_vcv=False):
+    """Compute impact projection
+
+    Organizes data returned by `simultaneous_calculation` into a
+    matrix to be written to a NetCDF file.  It may also write a
+    diagnostic file, if specified.
+
+    Parameters
+    ----------
+    weatherbundle : generate.weather.DailyWeatherBundle
+        Populated weather data to compute projection over.
+    calculation : openest.generate.functions.SpanInstabase
+        Projection calculations to apply to `weatherbundle`.
+    my_regions : sequence of str
+        Region names to be computed.
+    push_callback : Callable or None, optional
+        Passed to ``generate.effectset.simultaneous_application``.
+    diagnosefile : str or bool, optional
+        Path to file for writing projection run diagnostic CSV file. If
+        ``False``, no diagnostics are output.
+    deltamethod_vcv : ndarray or bool, optional
+        2D variance-covariance float array if the projection is to run with the
+        delta method. If ``False``, the delta method is not used.
+
+    """
+    yeardata = weatherbundle.get_years()
+    columndata = [] # [matrix(year x region)]
+    for ii in range(len(calculation.unitses)):
+        columndata.append(np.zeros((len(yeardata), len(my_regions))) * np.nan)
+
+        if deltamethod_vcv is not False:
+            columndata.append(np.zeros((deltamethod_vcv.shape[0], len(yeardata), len(my_regions))) * np.nan)
+
+    if diagnosefile:
+        diagnostic.begin(diagnosefile, finishset=set(['input', 'output']))
+
+    region_indices = {region: my_regions.index(region) for region in my_regions}
+
+    for region, year, results in simultaneous_application(weatherbundle, calculation, regions=my_regions, push_callback=push_callback):
+        for col in range(len(results)):
+            if deltamethod_vcv is not False:
+                variance = 0
+                for ii in range(len(results[col])):
+                    for jj in range(len(results[col])):
+                        variance += deltamethod_vcv[ii, jj] * results[col][ii] * results[col][jj]
+                columndata[2 * col][year - yeardata[0], region_indices[region]] = variance
+                columndata[2 * col + 1][:, year - yeardata[0], region_indices[region]] = results[col]
+            else:
+                columndata[col][year - yeardata[0], region_indices[region]] = results[col]
+        if diagnosefile:
+            diagnostic.finish(region, year, group='output')
+
+    if diagnosefile:
+        diagnostic.close()
+
+    return columndata
+        
+def write_ncdf(targetdir, basename, columndata, weatherbundle, calculation, description, calculation_dependencies, my_regions, subset=None, deltamethod_vcv=False):
+    """Write impact projection to NetCDF file
 
     No values are returned. This function writes projected values to a NetCDF
-    file. It may also write a diagnostic file, if specified.
+    file.
 
     Parameters
     ----------
@@ -101,34 +179,13 @@ def write_ncdf(targetdir, basename, weatherbundle, calculation, description, cal
     description : str
         Description of projection for output file metadata.
     calculation_dependencies : Iterable of str
-    filter_region : str or None, optional
-        One or more regions to perform calculations for. If None, uses all
-        regions available in ``weatherbundle.regions``.
-    push_callback : Callable or None, optional
-        Passed to ``generate.effectset.simultaneous_application``.
     subset : str or None, optional
         Regional subsetting used to make region variable in output NetCDF file.
         Passed to ``nc4writer.make_regions_variable``.
-    diagnosefile : str or bool, optional
-        Path to file for writing projection run diagnostic CSV file. If
-        ``False``, no diagnostics are output.
     deltamethod_vcv : ndarray or bool, optional
         2D variance-covariance float array if the projection is to run with the
         delta method. If ``False``, the delta method is not used.
     """
-    if filter_region is None:
-        my_regions = weatherbundle.regions
-    else:
-        my_regions = []
-        for ii in range(len(weatherbundle.regions)):
-            if isinstance(filter_region, str):
-                if filter_region in weatherbundle.regions[ii]:
-                    my_regions.append(weatherbundle.regions[ii])
-            else:
-                if filter_region(weatherbundle.regions[ii]):
-                    my_regions.append(weatherbundle.regions[ii])
-        assert my_regions != [], "No regions remain after filter."
-
     try:
         rootgrp = Dataset(os.path.join(targetdir, basename + '.nc4'), 'w', format='NETCDF4')
     except Exception as ex:
@@ -154,8 +211,6 @@ def write_ncdf(targetdir, basename, weatherbundle, calculation, description, cal
 
     infos = calculation.column_info()
     columns = []
-    # Store all in columndata, for faster feeding in
-    columndata = [] # [matrix(year x region)]
     usednames = [] # In order of infos
     for ii in range(len(calculation.unitses)):
         myname = infos[ii]['name']
@@ -169,47 +224,24 @@ def write_ncdf(targetdir, basename, weatherbundle, calculation, description, cal
         column.source = infos[ii]['description']
 
         columns.append(column)
-        columndata.append(np.zeros((len(yeardata), len(my_regions))) * np.nan)
 
         if deltamethod_vcv is not False:
             column = rootgrp.createVariable(myname + '_bcde', 'f4', ('coefficient', 'year', 'region'))
             column.long_title = infos[ii]['title'] + " by coefficient deltamethod evaluation"
 
             columns.append(column)
-            columndata.append(np.zeros((deltamethod_vcv.shape[0], len(yeardata), len(my_regions))) * np.nan)
 
     nc4writer.make_str_variable(rootgrp, 'operation', 'orderofoperations', list(reversed(usednames)),
                                 "Order of the operations applied to the input weather data.")
 
     years[:] = yeardata
 
-    if diagnosefile:
-        diagnostic.begin(diagnosefile, finishset=set(['input', 'output']))
-
-    region_indices = {region: my_regions.index(region) for region in my_regions}
-
-    for region, year, results in simultaneous_application(weatherbundle, calculation, regions=my_regions, push_callback=push_callback):
-        for col in range(len(results)):
-            if deltamethod_vcv is not False:
-                variance = 0
-                for ii in range(len(results[col])):
-                    for jj in range(len(results[col])):
-                        variance += deltamethod_vcv[ii, jj] * results[col][ii] * results[col][jj]
-                columndata[2 * col][year - yeardata[0], region_indices[region]] = variance
-                columndata[2 * col + 1][:, year - yeardata[0], region_indices[region]] = results[col]
-            else:
-                columndata[col][year - yeardata[0], region_indices[region]] = results[col]
-        if diagnosefile:
-            diagnostic.finish(region, year, group='output')
-
-    if diagnosefile:
-        diagnostic.close()
-
-    for col in range(len(results)):
-        if deltamethod_vcv is not False:
+    if deltamethod_vcv is not False:
+        for col in range(len(columndata) / 2):
             columns[2 * col][:, :] = columndata[2 * col]
             columns[2 * col + 1][:, :, :] = columndata[2 * col + 1]
-        else:
+    else:
+        for col in range(len(columndata)):
             columns[col][:, :] = columndata[col]
 
     rootgrp.close()
