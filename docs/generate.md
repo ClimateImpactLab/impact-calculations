@@ -17,6 +17,9 @@ included in the generate configuration file.
    considering a directory abandoned (default: 12).
  - `mc-n`: Desired number of Monte Carlo iterations ("batches") when 
     `mode: montecarlo`. Ignored if `only-batch-number` is set.
+ - `threads`: Used under multithreading mode. Must be greater than 1,
+   since one thread is used to prepare shared data for 1 or more
+   worker threads. `mode` must be `parallelmc` or `testparallelpe`.
  - `import`: Import and merge another configuration file. Give an optional
    absolute or relative path from the current configuration file to another
    YAML configuration file. This imported configuration will be shallow-merged

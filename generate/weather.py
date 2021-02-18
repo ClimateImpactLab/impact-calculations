@@ -1,4 +1,5 @@
 import os, re, csv, traceback
+from contextlib import contextmanager
 import numpy as np
 import xarray as xr
 from netCDF4 import Dataset
@@ -123,6 +124,32 @@ class ReaderWeatherBundle(WeatherBundle):
         return self.reader.get_dimension()
 
 class DailyWeatherBundle(WeatherBundle):
+    def __init__(self, scenario, model, hierarchy='hierarchy.csv', transformer=WeatherTransformer()):
+        super().__init__(scenario, model, hierarchy, transformer)
+        self._caching_baseline_values = False # boolean: should we use the cache?
+        self._saved_baseline_values = None # None or the (non-None) cached values
+
+    @contextmanager
+    def caching_baseline_values(self):
+        """Context manager to store/release baseline values when creating ``Covariators``
+
+        Activates storage when entering a `with` block. Deactivates and
+        clears storage when leaving the `with` block. "Entering"
+        and "exiting" the storage helps reduce memory footprint.
+        """
+
+        # Enforce good behaviour-- otherwise, we might be in a complex situation where unintended cache killing is possible
+        assert self._caching_baseline_values is	False and self._saved_baseline_values is None
+        self._caching_baseline_values = True
+
+        try:
+            yield
+        finally: 
+            # Enforce good behaviour-- otherwise, we might be in a complex situation where unintended cache killing is possible
+            assert self._caching_baseline_values is True
+            self._caching_baseline_values = False
+            self._saved_baseline_values = None
+        
     def yearbundles(self, maxyear=np.inf, variable_ofinterest=None):
         """Yields a tuple of (year, xarray Dataset) for each year up to `maxyear`.
         Each yield should should produce all and only data for a single year.
@@ -159,7 +186,9 @@ class DailyWeatherBundle(WeatherBundle):
     def baseline_values(self, maxyear, do_mean=True, quiet=False, only_region=None):
         """Yield the list of all weather values up to `maxyear` for each region."""
 
-        if not hasattr(self, 'saved_baseline_values'):
+        if self._caching_baseline_values and self._saved_baseline_values is not None:
+            values = self._saved_baseline_values
+        else:
             # Construct an empty dataset to append to
             allds = []
 
@@ -175,16 +204,19 @@ class DailyWeatherBundle(WeatherBundle):
                     allds.append(ds)
 
             if isinstance(allds[0], fast_dataset.FastDataset):
-                self.saved_baseline_values = fast_dataset.concat(allds, dim='time')
+                values = fast_dataset.concat(allds, dim='time')
             else:
-                self.saved_baseline_values = xr.concat(allds, dim='time') # slower but more reliable
+                values = xr.concat(allds, dim='time') # slower but more reliable
+
+        if self._caching_baseline_values and self._saved_baseline_values is None:
+            self._saved_baseline_values = values
 
         # Yield the entire collection of values for each region
         if only_region is not None:
-            yield only_region, self.saved_baseline_values.sel(region=only_region)
+            yield only_region, values.sel(region=only_region)
         else:
             for ii in range(len(self.regions)):
-                yield self.regions[ii], self.saved_baseline_values.sel(region=self.regions[ii])
+                yield self.regions[ii], values.sel(region=self.regions[ii])
 
 class SingleWeatherBundle(ReaderWeatherBundle, DailyWeatherBundle):
     def is_historical(self):
@@ -356,9 +388,12 @@ class HistoricalWeatherBundle(DailyWeatherBundle):
                     dt = 1
         else:
             # Randomly choose years with replacement
-            np.random.seed(seed)
-            choices = list(range(int(self.pastyear_start), int(self.pastyear_end) + 1))
-            self.pastyears = np.random.choice(choices, int(self.futureyear_end - self.pastyear_start + 1))
+            rng = np.random.default_rng(seed)
+            self.pastyears = rng.choice(
+                a=list(range(int(self.pastyear_start), int(self.pastyear_end) + 1)),
+                size=int(self.futureyear_end - self.pastyear_start + 1),
+                replace=True,
+            )
 
         self.load_readermeta(onereader)
         self.load_regions(onereader)

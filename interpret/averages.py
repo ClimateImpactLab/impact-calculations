@@ -17,4 +17,3 @@ def interpret(config, default, values):
     avgcls = config.get('class', default['class'])
     assert avgcls in lookup
     return lookup[avgcls](values, config.get('length', default['length']))
-
