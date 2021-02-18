@@ -1,10 +1,58 @@
-import yaml, copy, itertools
+import yaml, copy, itertools, importlib, os
 from pathlib import Path
 from impactlab_tools.utils.files import get_file_config
 
 global_statman = None
 
+def get_config_module(config, config_name):
+    """Interpret the `module` entry in a config. Currently also handles `module` as `import`.
+
+    This modifies `config` if the deprecated `module` option pointing
+    to an importalbe config is used.
+
+    Parameters
+    ----------
+    config : dict
+	Projection run configuration, with or without an "module" key
+
+    Returns
+    -------
+    module
+        The module used to handle projections.
+    str
+        A name associated with the configuration.
+    """
+    if not config.get('module'):
+        # Specification and run config already together.
+        if config.get('threads', 1) == 1:
+            mod = importlib.import_module("interpret.container")
+        else:
+            mod = importlib.import_module("interpret.parallel_container")
+        shortmodule = str(config_name)
+    elif config['module'][-4:] == '.yml':
+        # Specification config in another yaml file.
+        import warnings
+        warnings.warn(
+            "Pointing 'module:' to YAML files is deprecated, please use 'module:' with Python modules",
+            FutureWarning,
+        )
+        if config.get('threads', 1) == 1:
+            mod = importlib.import_module("interpret.container")
+        else:
+            mod = importlib.import_module("interpret.parallel_container")
+
+        with open(config['module'], 'r') as fp:
+            config.update(yaml.load(fp))
+        shortmodule = os.path.basename(config['module'])[:-4]
+    else:
+        # Specification config uses old module/script system, module needs to be imported.
+        mod = importlib.import_module("impacts." + config['module'] + ".allmodels")
+        shortmodule = config['module']
+
+    return mod, shortmodule
+
 def merge_import_config(config, fpath):
+
     """Parse "import" in `config` dict and merge
 
     Values in 'config' override values from any imported dict.
