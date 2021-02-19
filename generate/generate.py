@@ -199,7 +199,7 @@ def main(config, config_name=None):
         # Specification config in another yaml file.
         import warnings
         warnings.warn(
-            "Pointing 'module:' to YAML files is deprecated, please use 'module:' with Python modules",
+            "Pointing 'module:' to YAML files is deprecated, please use 'module:' with Python modules and 'import:' with YAML",
             FutureWarning,
         )
         if config.get('threads', 1) == 1:
