@@ -19,7 +19,8 @@ build:
   stage: build
   script:
   - docker pull $CI_REGISTRY_IMAGE:latest || true
-  - docker build --cache-from $CI_REGISTRY_IMAGE:latest --tag $CONTAINER_TEST_IMAGE .
+  - docker build --tag $CONTAINER_TEST_IMAGE .
+  - docker run $CONTAINER_TEST_IMAGE /bin/bash -c 'conda list -n risingverse'
   - docker push $CONTAINER_TEST_IMAGE
 
 test-cli:
