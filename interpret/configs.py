@@ -139,3 +139,11 @@ def get_regions(allregions, filter_region):
         assert my_regions != [], "No regions remain after filter."
 
     return my_regions
+
+def get_interpret_container(config):
+    if config.get('threads', 2) == 1:
+        return importlib.import_module("interpret.container")
+    elif config.get('threads', 2) == 2:
+        return importlib.import_module("interpret.twothread_container")
+    else:
+        return importlib.import_module("interpret.parallel_container")
