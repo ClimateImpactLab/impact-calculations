@@ -128,7 +128,7 @@ def create_covariator(specconf, weatherbundle, economicmodel, config=None, quiet
 
     return covariator
         
-def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, getcsvvcurve=False):
+def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, getcsvvcurve=False, diag_infix=""):
     """Create a CurveGenerator instance from specifications
 
     Parameters
@@ -196,7 +196,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
             weathernames = [variables.interpret_ds_transform(name, specconf) for name in weathernames]
 
         curr_curvegen = curvegen_known.PolynomialCurveGenerator([indepunit] + ['%s^%d' % (indepunit, pow) for pow in range(2, order+1)],
-                                                                depenunit, coeffvar, order, csvv, predinfix=predinfix,
+                                                                depenunit, coeffvar, order, csvv, diagprefix='coeff-' + diag_infix, predinfix=predinfix,
                                                                 weathernames=weathernames, betalimits=betalimits, allow_raising=specconf.get('allow-raising', False))
         minfinder = lambda mintemp, maxtemp, sign: lambda curve: minpoly.findpolymin([0] + [sign * cc for cc in curve.coeffs], mintemp, maxtemp)
 
@@ -207,7 +207,8 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
         variable_name = specconf['variable']
 
         curr_curvegen = curvegen_known.CubicSplineCurveGenerator([indepunit] + ['%s^3' % indepunit] * (len(knots) - 2),
-                                                                 depenunit, prefix, knots, variable_name, csvv, betalimits=betalimits)
+                                                                 depenunit, prefix, knots, variable_name, csvv, diagprefix='coeff-' + diag_infix,
+                                                                 betalimits=betalimits)
         minfinder = lambda mintemp, maxtemp, sign: lambda curve: minspline.findsplinemin(knots, sign * np.asarray(curve.coeffs), mintemp, maxtemp)
         weathernames = curr_curvegen.weathernames[:]
     elif specconf['functionalform'] == 'coefficients':
@@ -239,7 +240,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
 
         curr_curvegen = curvegen_arbitrary.SumCoefficientsCurveGenerator(list(ds_transforms.keys()), ds_transforms,
                                                                          transform_descriptions, indepunits, depenunit,
-                                                                         csvv, betalimits=betalimits,
+                                                                         csvv, diagprefix='coeff-' + diag_infix, betalimits=betalimits,
                                                                          univariate_index=univariate_index,
                                                                          univariate_transform=univariate_transform)
         weathernames = [] # Use curve directly
@@ -255,7 +256,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
                 raise ValueError("Error: Curve-generator resulted in a " + str(csvvcurvegen.__class__))
             
             if 'suffixes' in specconf:
-                curr_curvegen = sumbytime_constructor(csvv, csvvcurvegen, specconf['suffixes'])
+                curr_curvegen = sumbytime_constructor(csvv, csvvcurvegen, specconf['suffixes'], diagprefix='coeff-' + diag_infix)
             elif 'suffix-triangle' in specconf:
                 assert 'within-season' in specconf
                 suffix_triangle = specconf['suffix-triangle']
@@ -263,7 +264,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
                     assert isinstance(suffix_triangle, list) and len(suffix_triangle[rr]) == rr + 1
 
                 culture_map = irvalues.get_file_cached(specconf['within-season'], irvalues.load_culture_months)
-                get_curvegen = lambda suffixes: sumbytime_constructor(csvv, csvvcurvegen, suffixes)
+                get_curvegen = lambda suffixes: sumbytime_constructor(csvv, csvvcurvegen, suffixes, diagprefix='coeff-' + diag_infix)
                 
                 curr_curvegen = curvegen.SeasonTriangleCurveGenerator(culture_map, get_curvegen=get_curvegen, suffix_triangle=suffix_triangle)
             else:

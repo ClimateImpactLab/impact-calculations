@@ -145,8 +145,11 @@ if not config.get('deltamethod', False):
         if variable == '':
             continue
         for year in [2001, futureyear]:
-            lib.show_header("Calculation of %s coefficient in %d (%f reported)" % (variable, year, lib.excind(calcs, year-1, 'coeff-' + variable)))
-            lib.show_coefficient(csvv, calcs, year, variable, betalimits=betalimits.get(variable, None))
+            try:
+                lib.show_header("Calculation of %s coefficient in %d (%f reported)" % (variable, year, lib.excind(calcs, year-1, 'coeff-' + variable)))
+                lib.show_coefficient(csvv, calcs, year, variable, betalimits=betalimits.get(variable, None))
+            except:
+                print("Missing coefficient %s" % ('coeff-' + variable))
 
 pvals = pvalses.ConstantPvals(.5)
 calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvvobj, module, weatherbundle, economicmodel, pvals[basename], specconf=specconf, config=configs.merge(config, {'quiet': True}), standard=False)

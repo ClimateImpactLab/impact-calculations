@@ -188,7 +188,7 @@ class BetaLimitsDerivativeSumCoefficientsCurveGenerator(SumCoefficientsCurveGene
         return [coeffs[predname] for predname in self.prednames]
 
 class SumByTimeCoefficientsCurveGenerator(curvegen.SumByTimeMixin, LinearCSVVCurveGenerator):
-    def __init__(self, csvv, coeffcurvegen, coeffsuffixes):
+    def __init__(self, csvv, coeffcurvegen, coeffsuffixes, diagprefix='coeff-'):
         super().__init__(coeffcurvegen.prednames, coeffcurvegen.indepunits, coeffcurvegen.depenunit, csvv, betalimits=coeffcurvegen.betalimits)
 
         assert isinstance(coeffcurvegen, SumCoefficientsCurveGenerator)
@@ -198,7 +198,7 @@ class SumByTimeCoefficientsCurveGenerator(curvegen.SumByTimeMixin, LinearCSVVCur
         # We'll be handling these
         self.ds_transforms = coeffcurvegen.ds_transforms
         self.transform_descriptions = coeffcurvegen.transform_descriptions
-        self.diagprefix = coeffcurvegen.diagprefix
+        self.diagprefix = diagprefix
 
         self.fill_suffixes_marginals(self.csvv, self.coeffcurvegen.prednames, self.coeffsuffixes)
 
