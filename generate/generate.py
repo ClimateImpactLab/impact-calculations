@@ -299,4 +299,4 @@ if __name__ == '__main__':
     # Interpret "import" in configs here while we have file path info.
     file_configs = configs.merge_import_config(run_config, config_path.parent)
 
-    main(run_config, config_name)
+    main(file_configs, config_name)

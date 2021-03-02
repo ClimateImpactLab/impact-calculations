@@ -435,7 +435,7 @@ class MeanWeatherCovariator(Covariator):
         self.variable = variable
 
         if not quiet:
-            print("Collecting baseline information...")
+            print("Collecting baseline information: Mean of " + variable)
         self.dsvar = variable # Save this to be consistent
             
         temp_predictors = {}
@@ -760,7 +760,7 @@ class MeanBinsCovariator(Covariator):
         self.numtempyears = config.get('length', standard_climate_config['length'])
 
         if not quiet:
-            print("Collecting baseline information...")
+            print("Collecting baseline information: Bins")
         temp_predictors = {} # {region: [rm-bin-1, ...]}
         for region, binyears in weatherbundle.baseline_values(maxbaseline, quiet=quiet, only_region=config.get('filter-region')): # baseline through maxbaseline
             usedbinyears = []
