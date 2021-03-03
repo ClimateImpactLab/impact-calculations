@@ -261,7 +261,7 @@ def generate_seasonal(var, climate_model, rcp, config):
 
     if var == 'monthbinpr':
         if crop.find('wheat')!=-1:
-            clim_var = ['pr-clip500', 'pr-poly-2-clip500', 'pr-poly-3-clip500', 'pr-poly-4-clip500']
+            clim_var = ['pr', 'pr-poly-2', 'pr-poly-3', 'pr-poly-4']
         else:
             clim_var = ['pr', 'pr-poly-2']
         func = np.sum
