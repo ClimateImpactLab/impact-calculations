@@ -261,7 +261,7 @@ def generate_seasonal(var, climate_model, rcp, config):
 
     if var == 'monthbinpr':
         if crop.find('wheat')!=-1:
-            clim_var = ['pr', 'pr-poly-2', 'pr-poly-3', 'pr-poly-4']
+            clim_var = ['pr-clip500', 'pr-poly-2-clip500', 'pr-poly-3-clip500', 'pr-poly-4-clip500']
         else:
             clim_var = ['pr', 'pr-poly-2']
         func = np.sum
@@ -275,7 +275,10 @@ def generate_seasonal(var, climate_model, rcp, config):
     filename = crop + '_' + var + '.nc4'
 
 
-    climates = ['tasmax', 'tasmin','edd', 'pr', 'pr-poly-2 = pr-monthsum-poly-2', 'pr-poly-3 = pr-monthsum-poly-3', 'pr-poly-4 = pr-monthsum-poly-4']
+    if crop.find('wheat')!=-1:
+        climates = ['tasmax', 'tasmin','edd', 'pr=pr-clip500', 'pr-poly-2 = pr-monthsum-poly-2-clip500', 'pr-poly-3 = pr-monthsum-poly-3-clip500', 'pr-poly-4 = pr-monthsum-poly-4-clip500']
+    else:
+        climates = ['tasmax', 'tasmin','edd', 'pr', 'pr-poly-2 = pr-monthsum-poly-2', 'pr-poly-3 = pr-monthsum-poly-3', 'pr-poly-4 = pr-monthsum-poly-4']
 
     config = {
         'climate': climates,
