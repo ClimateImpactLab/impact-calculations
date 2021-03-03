@@ -192,12 +192,12 @@ def generate_seasonal(var, climate_model, rcp, config):
     print('Processing arguments')
 
     seasons = {
-        'maize':'world-combo-201710-growing-seasons-corn-1stseason',
-        'rice':'world-combo-201710-growing-seasons-rice-1stseason',
-        'soy':'world-combo-201710-growing-seasons-soy',
+        'maize':'explicit_rolling_years/world-combo-201710-growing-seasons-corn-1stseason',
+        'rice':'explicit_rolling_years/world-combo-201710-growing-seasons-rice-1stseason',
+        'soy':'explicit_rolling_years/world-combo-201710-growing-seasons-soy',
         'cassava':'explicit_rolling_years/world-combo-202004-growing-seasons-cassava',
-        'sorghum':'world-combo-202004-growing-seasons-sorghum',
-        'cotton':'world-combo-202004-growing-seasons-cotton',
+        'sorghum':'explicit_rolling_years/world-combo-202004-growing-seasons-sorghum',
+        'cotton':'explicit_rolling_years/world-combo-202004-growing-seasons-cotton',
         'wheat-spring':'explicit_rolling_years/world-combo-202004-growing-seasons-wheat-spring',
         'wheat-winter-fall':'explicit_rolling_years/world-combo-202004-growing-seasons-wheat-winter',
         'wheat-winter-winter':'explicit_rolling_years/world-combo-202004-growing-seasons-wheat-winter',
