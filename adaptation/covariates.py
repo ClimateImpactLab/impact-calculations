@@ -435,7 +435,7 @@ class MeanWeatherCovariator(Covariator):
         self.variable = variable
 
         if not quiet:
-            print("Collecting baseline information...")
+            print("Collecting baseline information: Mean of " + variable)
         self.dsvar = variable # Save this to be consistent
             
         temp_predictors = {}
@@ -760,7 +760,7 @@ class MeanBinsCovariator(Covariator):
         self.numtempyears = config.get('length', standard_climate_config['length'])
 
         if not quiet:
-            print("Collecting baseline information...")
+            print("Collecting baseline information: Bins")
         temp_predictors = {} # {region: [rm-bin-1, ...]}
         for region, binyears in weatherbundle.baseline_values(maxbaseline, quiet=quiet, only_region=config.get('filter-region')): # baseline through maxbaseline
             usedbinyears = []
@@ -966,7 +966,7 @@ def populate_constantcovariator_by_hierid(covar_name, parent_hierids, hi_df=None
     target_regions = list(parent_hierids)
 
     if hi_df is None:
-        hi_df = read_csv(files.sharedpath('/shares/gcp/regions/hierarchy.csv'),
+        hi_df = read_csv(files.sharedpath('regions/hierarchy.csv'),
                         skiprows=31, index_col='region-key')
 
     # 1.0 if in hierid(s), otherwise *always* 0.0, even if bad key.

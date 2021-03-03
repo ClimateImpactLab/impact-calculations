@@ -52,6 +52,13 @@ def interpret(config, relative_location):
     if isinstance(config['pvals'], dict):
         return load_pvals(config['pvals'], relative_location)
 
+def get_montecarlo_pvals(config, relative_location):
+    # Use "pvals" seeds from config, if available.
+    if 'pvals' in list(config.keys()):
+        return load_pvals(config['pvals'], relative_location)
+    else:
+        return OnDemandRandomPvals(relative_location)
+
 ## Abstract base classes
     
 class Pvals:
@@ -167,6 +174,30 @@ class OnDemandRandomDictionary(PvalsDictionary):
         self.values[fullname] = seed
         return seed
 
+    def set_seed(self, name, seed):
+        assert not self.locked
+        fullname = "seed-%s" % name
+        self.values[fullname] = seed
+
+## Placeholder Pvals, not able to be used (used by parallel)
+
+class PlaceholderPvals(Pvals):
+    def __init__(self, config, relative_location):
+        self.config = config
+        self.relative_location = relative_location
+
+    def get_montecarlo_pvals(self):
+        return get_montecarlo_pvals(self.config, self.relative_location)
+        
+    def lock(self):
+        raise AttributeError("PlaceholderPvals does not support standard methods")
+
+    def __getitem__(self, name):
+        raise AttributeError("PlaceholderPvals does not support standard methods")
+
+    def __iter__(self):
+        raise AttributeError("PlaceholderPvals does not support standard methods")
+        
 ## Helper functions
 
 def get_pval_file(targetdir):
