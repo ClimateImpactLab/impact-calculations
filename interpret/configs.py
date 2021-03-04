@@ -1,4 +1,4 @@
-import yaml, copy, itertools
+import yaml, copy, itertools, importlib
 from pathlib import Path
 from impactlab_tools.utils.files import get_file_config
 
