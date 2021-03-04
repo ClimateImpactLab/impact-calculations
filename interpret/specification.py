@@ -51,6 +51,8 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config=None, quiet
     config : dict, optional
     quiet : bool
     env : dict of name => Covariator, optional
+        This is an environment containing Covariator objects. Subclauses of `covar` may set variables within this environment.
+        Typically, environments are not shared across config-file-level `covar` entries.
 
     Returns
     -------
@@ -101,7 +103,8 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config=None, quiet
         return covariates.PowerCovariator(get_covariator(chunks[0].strip(), args, weatherbundle, economicmodel, config=config, quiet=quiet, env=env), float(chunks[1]))
     elif covar[-4:] == 'clip':
         # Clip covariate to be between two bounds
-        assert len(args) == 2
+        if len(args) != 2:
+            raise ValueError(f"clipping args must be len 2, got {args}")
         return covariates.ClipCovariator(get_covariator(covar[:-4], None, weatherbundle, economicmodel, config=config, quiet=quiet, env=env), args[0], args[1])
     elif covar[-6:] == 'spline':
         # Produces spline term covariates, named [name]spline1, [name]spline2, etc.
