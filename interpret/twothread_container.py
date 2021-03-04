@@ -20,18 +20,20 @@ processing.
 
 """
 
-from . import container, parallel_container
+import threading
+from . import container, parallel_container, configs
+from generate import parallel_weather
+from adaptation import parallel_econmodel
 
 preload = container.preload
 get_bundle_iterator = container.get_bundle_iterator
 
 def produce(targetdir, weatherbundle, economicmodel, pvals, config, **kwargs):
     """Split the processing to the workers."""
-    assert config['threads'] == 2, "Exactly two threads needed."
+    assert config.get('threads', 2) == 2, "Exactly two threads needed."
 
-    print("Setting up parallel processing...")
     my_regions = configs.get_regions(weatherbundle.regions, config.get('filter-region', None))
-    driver = parallel_container.WeatherCovariatorLockstepParallelDriver(weatherbundle, economicmodel, config, config['threads'] - 1, seed, my_regions)
+    driver = parallel_container.WeatherCovariatorLockstepParallelDriver(weatherbundle, economicmodel, config, 1, None, my_regions)
     driver.loop(worker_produce, targetdir, config, pvals, **kwargs)
 
 def worker_produce(proc, driver, targetdir, config, pvals, **kwargs):

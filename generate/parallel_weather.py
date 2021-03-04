@@ -23,6 +23,9 @@ class WorkerParallelWeatherBundle(weather.WeatherBundle):
             yield outputs['year'], outputs['ds']
             self.driver.end_timestep(self.local)
 
+    def is_historical(self):
+        return self.driver.weatherbundle.is_historical()
+
     def __getattr__(self, name):
         return getattr(self.driver.weatherbundle, name)
     

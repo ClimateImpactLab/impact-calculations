@@ -1,5 +1,7 @@
 import copy, threading
 
+DEFAULT_VERBOSITY = 0
+
 class LockstepParallelDriver(object):
     """Facilitates a parallel programming structure with driver and worker threads.
 
@@ -7,19 +9,27 @@ class LockstepParallelDriver(object):
     the driver thread prepares the data for the next timestep, while
     the workers process that data. Barriers are used to synchronize all
     threads at the end of each timestep.
+
+    Parameters
+    ----------
+    nthreads : int
+        Number of worker threads to create
+    verbosity : int
+        Level of verbosity, with 0 (silent), 1 (progress), 2+ (debugging)
     """
-    def __init__(self, nthreads):
+    def __init__(self, nthreads, verbosity=DEFAULT_VERBOSITY):
         self.nthreads = nthreads
+        self.verbosity = verbosity
         self.barrier = threading.Barrier(nthreads + 1, timeout=threading.TIMEOUT_MAX)
 
         # Read-only, except update during intermission
         self.outputs = None
 
-    def loop(self, start, *args):
+    def loop(self, start, *args, **kwargs):
         self.outputs = self._prepare_next()
         # Start all threads
         for proc in range(self.nthreads):
-            thread = threading.Thread(None, start, args=tuple([proc, self] + list(args)))
+            thread = threading.Thread(None, start, args=tuple([proc, self] + list(args)), kwargs=kwargs)
             thread.start()
             
         # Initiate lockstep process
@@ -32,7 +42,8 @@ class LockstepParallelDriver(object):
             try:
                 self.barrier.wait()
                 self._intermission_threadsafe(next_outputs)
-                print("----- LOCKSTEP -----")
+                if self.verbosity > 0:
+                    print("----- LOCKSTEP -----")
                 self.barrier.wait()
             except threading.BrokenBarrierError:
                 # This happens if aborted while in prepare_next
@@ -62,16 +73,16 @@ class SharingLockstepParallelDriver(LockstepParallelDriver):
 
     This is used to sandbox worker threads, so that exceptions can be reported up to the driver.
     """
-    def __init__(self, nthreads):
-        super().__init__(nthreads)
+    def __init__(self, nthreads, verbosity=DEFAULT_VERBOSITY):
+        super().__init__(nthreads, verbosity=verbosity)
         self.lock = threading.Lock() # for accessing driver-level attributes
         self.worker_exception = None
         self.workers_failed = 0
 
-    def loop(self, start, *args):
+    def loop(self, start, *args, **kwargs):
         self.worker_exception = None
         self.workers_failed = 0
-        super().loop(_worker_sandbox, start, *args)
+        super().loop(SharingLockstepParallelDriver._worker_sandbox, start, *args, **kwargs)
 
     def _intermission_threadsafe(self, next_outputs):
         # Check if all threads have failed
@@ -82,19 +93,20 @@ class SharingLockstepParallelDriver(LockstepParallelDriver):
         super()._intermission_threadsafe(next_outputs)
 
     @staticmethod
-    def _worker_sandbox(start, *args):
+    def _worker_sandbox(proc, driver, start, *args, **kwargs):
         try:
-            start(*args)
+            start(proc, driver, *args, **kwargs)
         except Exception as ex:
             # Catch all exceptions and report to Driver
-            with self.lock:
+            with driver.lock:
                 # Only capture first worker exception
-                if self.worker_exception is None:
-                    self.worker_exception = ex
-                self.workers_failed += 1
+                if driver.worker_exception is None:
+                    driver.worker_exception = ex
+                driver.workers_failed += 1
             # Allow driver to check this
-            self.barrier.wait()
+            driver.barrier.wait()
 
+        driver.end_worker()
                 
 class FoldedActionsLockstepParallelDriver(SharingLockstepParallelDriver):
     """Lockstep system where worker processes can request actions to be added to a sequence.
@@ -144,8 +156,8 @@ class FoldedActionsLockstepParallelDriver(SharingLockstepParallelDriver):
     result is saved in `instant_result`.
 
     """
-    def __init__(self, nthreads):
-        super().__init__(nthreads)
+    def __init__(self, nthreads, verbosity=DEFAULT_VERBOSITY):
+        super().__init__(nthreads, verbosity=verbosity)
 
         # Updated with lock or at intermission
         self.action_list = [] # list of (name, args, kwargs)
@@ -217,7 +229,8 @@ class FoldedActionsLockstepParallelDriver(SharingLockstepParallelDriver):
             else:
                 self.new_action = (action, args, kwargs)
                 self.is_new_action_instant = True
-                print("Instant " + str(self.new_action))
+                if self.verbosity > 1:
+                    print("Instant " + str(self.new_action))
         self.lockstep_pause() # enter intermission and perform action
         return self.instant_result
         
@@ -238,7 +251,8 @@ class FoldedActionsLockstepParallelDriver(SharingLockstepParallelDriver):
                 else:
                     self.new_action = (action, args, kwargs)
                     self.is_new_action_instant = False
-                    print("Request " + str(self.new_action))
+                    if self.verbosity > 1:
+                        print("Request " + str(self.new_action))
             self.lockstep_pause() # enter intermission and perform action
             local.action_index += 1
         return self.outputs
