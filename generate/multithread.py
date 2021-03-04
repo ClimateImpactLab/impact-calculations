@@ -8,9 +8,9 @@ class LockstepParallelDriver(object):
     the workers process that data. Barriers are used to synchronize all
     threads at the end of each timestep.
     """
-    def __init__(self, mcdraws):
-        self.mcdraws = mcdraws
-        self.barrier = threading.Barrier(mcdraws + 1, timeout=threading.TIMEOUT_MAX)
+    def __init__(self, nthreads):
+        self.nthreads = nthreads
+        self.barrier = threading.Barrier(nthreads + 1, timeout=threading.TIMEOUT_MAX)
 
         # Read-only, except update during intermission
         self.outputs = None
@@ -18,7 +18,7 @@ class LockstepParallelDriver(object):
     def loop(self, start, *args):
         self.outputs = self._prepare_next()
         # Start all threads
-        for proc in range(self.mcdraws):
+        for proc in range(self.nthreads):
             thread = threading.Thread(None, start, args=tuple([proc, self] + list(args)))
             thread.start()
             
@@ -56,9 +56,47 @@ class LockstepParallelDriver(object):
     def lockstep_pause(self):
         self.barrier.wait()
         self.barrier.wait()
+
+class SharingLockstepParallelDriver(LockstepParallelDriver):
+    """Lockstep system that introduces a Driver-level lock.
+
+    This is used to sandbox worker threads, so that exceptions can be reported up to the driver.
+    """
+    def __init__(self, nthreads):
+        super().__init__(nthreads)
+        self.lock = threading.Lock() # for accessing driver-level attributes
+        self.worker_exception = None
+        self.workers_failed = 0
+
+    def loop(self, start, *args):
+        self.worker_exception = None
+        self.workers_failed = 0
+        super().loop(_worker_sandbox, start, *args)
+
+    def _intermission_threadsafe(self, next_outputs):
+        # Check if all threads have failed
+        if self.workers_failed == self.nthreads:
+            print("All threads have failed.")
+            raise self.worker_exception
         
-    
-class FoldedActionsLockstepParallelDriver(LockstepParallelDriver):
+        super()._intermission_threadsafe(next_outputs)
+
+    @staticmethod
+    def _worker_sandbox(start, *args):
+        try:
+            start(*args)
+        except Exception as ex:
+            # Catch all exceptions and report to Driver
+            with self.lock:
+                # Only capture first worker exception
+                if self.worker_exception is None:
+                    self.worker_exception = ex
+                self.workers_failed += 1
+            # Allow driver to check this
+            self.barrier.wait()
+
+                
+class FoldedActionsLockstepParallelDriver(SharingLockstepParallelDriver):
     """Lockstep system where worker processes can request actions to be added to a sequence.
 
     Actions will be known processes producing shared output. However,
@@ -106,9 +144,8 @@ class FoldedActionsLockstepParallelDriver(LockstepParallelDriver):
     result is saved in `instant_result`.
 
     """
-    def __init__(self, mcdraws):
-        super(FoldedActionsLockstepParallelDriver, self).__init__(mcdraws)
-        self.lock = threading.Lock() # for accessing action_list
+    def __init__(self, nthreads):
+        super().__init__(nthreads)
 
         # Updated with lock or at intermission
         self.action_list = [] # list of (name, args, kwargs)
@@ -152,7 +189,7 @@ class FoldedActionsLockstepParallelDriver(LockstepParallelDriver):
             self.action_list = self.action_list[:self.drop_after_index]
             self.drop_after_index = None
             
-        super(FoldedActionsLockstepParallelDriver, self)._intermission_threadsafe(next_outputs)
+        super()._intermission_threadsafe(next_outputs)
         
     def _prepare_next(self):
         with self.lock:
