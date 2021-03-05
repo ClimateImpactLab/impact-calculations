@@ -616,10 +616,10 @@ if __name__ == '__main__':
                 # Catch any kind of failure
                 try:
                     # Generate levels (e.g., total deaths)
-                    if halfweight_levels:
-                        outfilename = fullfile(filename, levels_suffix, config)
-                        if not missing_only or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable=variable, regioncount=regioncount) or not os.path.exists(os.path.join(targetdir, outfilename)):
-                            make_levels(targetdir, filename, outfilename, halfweight_levels, weight_args_levels, config=config)
+                    # if halfweight_levels:
+                    #     outfilename = fullfile(filename, levels_suffix, config)
+                    #     if not missing_only or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable=variable, regioncount=regioncount) or not os.path.exists(os.path.join(targetdir, outfilename)):
+                    #         make_levels(targetdir, filename, outfilename, halfweight_levels, weight_args_levels, config=config)
 
                     # Aggregate impacts
                     if halfweight_aggregate:
