@@ -78,9 +78,10 @@ if __name__ == "__main__":
 
     import yaml
     with open(str(sys.argv[1]), 'r') as file:
-        run_config = yaml.load(file)
+        config = yaml.load(file)
+        assert 'outputdir' in config
 
-    assert all(x in config for x in ['outputdir','targetdirs', 'weighting', 'only_variables','basename','processes']), 'incomplete configurations file'
+    assert all(x in config for x in ['outputdir','targetdirs', 'weighting', 'only-variables','basename','processes']), 'incomplete configurations file'
 
     outputdir = config.get('outputdir')
     targetdirs= ReadTargets(config.get('targetdirs'))
@@ -89,5 +90,5 @@ if __name__ == "__main__":
     basename= config.get('basename')
     processes= int(config.get('processes'))
 
-    with Parallel(n_jobs=nprocesses) as parallelize:
-        parallelize(delayed(DoAggregate)(outputdir, target, weighting, only_variables, basename) for target in targets) 
+    with Parallel(n_jobs=processes) as parallelize:
+        parallelize(delayed(DoAggregate)(outputdir, target, weighting, only_variables, basename) for target in targetdirs) 
