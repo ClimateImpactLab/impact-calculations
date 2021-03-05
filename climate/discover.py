@@ -290,7 +290,7 @@ def discover_models(basedir, **config):
     # Collect the entire complement of models
     models = os.listdir(os.path.join(basedir, 'historical'))
 
-    for scenario in os.listdir(basedir):
+    for scenario in sorted(os.listdir(basedir)):
         if scenario[0:3] != 'rcp':
             continue
 
@@ -396,7 +396,7 @@ def discover_yearly(basedir, vardir, rcp_only=None):
     baseline points to directory with 'rcp*'
     """
 
-    for scenario in os.listdir(basedir):
+    for scenario in sorted(os.listdir(basedir)):
         if scenario[0:3] != 'rcp':
             continue
         if rcp_only is not None and scenario != rcp_only:
@@ -528,7 +528,7 @@ def discover_versioned_yearly(basedir, variable, version=None, reorder=True, **c
         yield scenario, model, pastreader, futurereader
 
 def discover_covariate(basedir, filename, variable):
-    for scenario in os.listdir(basedir):
+    for scenario in sorted(os.listdir(basedir)):
         if scenario[0:3] != 'rcp':
             continue
 

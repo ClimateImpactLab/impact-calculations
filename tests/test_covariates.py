@@ -43,7 +43,7 @@ class TestCovariates(unittest.TestCase):
         testcovar = covariates.GlobalExogenousCovariator(
             2015, "val", 0, np.arange(1, 100)
         )
-        splinecovar = covariates.SplineCovariator(testcovar, "val", "spline", [5, 10])
+        splinecovar = covariates.SplineCovariator(testcovar, "spline", [5, 10])
 
         for year in range(2010, 2030):
             covars = splinecovar.offer_update("Nowhere", year, None)
