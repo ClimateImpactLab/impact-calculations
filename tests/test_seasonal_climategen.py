@@ -94,38 +94,35 @@ def test_get_monthbin_index():
     assert seasonal_climategen.get_monthbin_index('FRA.83.63', culture_periods, clim_var, [1,1,2,24-1-1-2])==(9-1, 10-1+1)
 
 @pytest.mark.imperics_shareddir
-@pytest.mark.xfail(raises=AssertionError)
 def test_get_monthbin_index_fail_badvarstructure():
     """
     should fail because variable name indicates second bin and there's only one in the vector
     """
-
-    culture_periods = irvalues.get_file_cached('social/baselines/agriculture/world-combo-202004-growing-seasons-wheat-winter.csv', irvalues.load_culture_months)
-    clim_var='somename_2'
-    seasonal_climategen.get_monthbin_index('FRA.41.57', culture_periods, clim_var, [24])
+    with pytest.raises(AssertionError):
+        culture_periods = irvalues.get_file_cached('social/baselines/agriculture/world-combo-202004-growing-seasons-wheat-winter.csv', irvalues.load_culture_months)
+        clim_var='somename_2'
+        seasonal_climategen.get_monthbin_index('FRA.41.57', culture_periods, clim_var, [24])
 
 @pytest.mark.imperics_shareddir
-@pytest.mark.xfail(raises=AssertionError)
 def test_get_monthbin_index_fail_toolongtime():
     """
     should fail because vector sum is above 24
     """
-
-    culture_periods = irvalues.get_file_cached('social/baselines/agriculture/world-combo-201710-growing-seasons-rice-1stseason.csv', irvalues.load_culture_months)
-    clim_var='somename_4'
-    seasonal_climategen.get_monthbin_index('FRA.83.63', culture_periods, clim_var, [20, 30, 40, 20])
+    with pytest.raises(AssertionError):
+        culture_periods = irvalues.get_file_cached('social/baselines/agriculture/world-combo-201710-growing-seasons-rice-1stseason.csv', irvalues.load_culture_months)
+        clim_var='somename_4'
+        seasonal_climategen.get_monthbin_index('FRA.83.63', culture_periods, clim_var, [20, 30, 40, 20])
 
 
 @pytest.mark.imperics_shareddir
-@pytest.mark.xfail(raises=ValueError)
 def test_get_monthbin_index_fail_badvarname():
     """
     should fail with a value error because the var name's last letter doesn't indicate a bin, and the code tries to coerce an alphabetic character to an integer.
     """
-
-    culture_periods = irvalues.get_file_cached('social/baselines/agriculture/world-combo-201710-growing-seasons-rice-1stseason.csv', irvalues.load_culture_months)
-    clim_var='somebadname'
-    seasonal_climategen.get_monthbin_index('FRA.83.63', culture_periods, clim_var, [24])
+    with pytest.raises(ValueError):
+        culture_periods = irvalues.get_file_cached('social/baselines/agriculture/world-combo-201710-growing-seasons-rice-1stseason.csv', irvalues.load_culture_months)
+        clim_var='somebadname'
+        seasonal_climategen.get_monthbin_index('FRA.83.63', culture_periods, clim_var, [24])
 
 @pytest.mark.imperics_shareddir
 def test_is_longrun_climate():
