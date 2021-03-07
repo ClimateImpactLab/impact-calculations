@@ -40,7 +40,7 @@ def ParseVariables(variables):
     return Parser
 
 
-def DoAggregate(outputdir, targetdir, weighting, only_variables, basename):
+def DoAggregate(outputdir, targetdir, weighting, only_variables, basename, check_variable='rebased'):
 
     """Sends a command line python execution of the aggregation code. 
     """
@@ -49,7 +49,8 @@ def DoAggregate(outputdir, targetdir, weighting, only_variables, basename):
               ' --targetdir=' + targetdir + 
               ' --weighting=' + weighting + 
               ' --only-variables=' + only_variables +
-              ' --basename=' + basename)
+              ' --basename=' + basename +
+              ' --check-variable=' + check_variable)
     
 
 def ReadTargets(file):
@@ -81,7 +82,7 @@ if __name__ == "__main__":
         config = yaml.load(file)
         assert 'outputdir' in config
 
-    assert all(x in config for x in ['outputdir','targetdirs', 'weighting', 'only-variables','basename','processes']), 'incomplete configurations file'
+    assert all(x in config for x in ['outputdir','targetdirs', 'weighting', 'only-variables','basename','processes', 'check-variable']), 'incomplete configurations file'
 
     outputdir = config.get('outputdir')
     targetdirs= ReadTargets(config.get('targetdirs'))
@@ -89,6 +90,7 @@ if __name__ == "__main__":
     only_variables= ParseVariables(config.get('only-variables'))
     basename= config.get('basename')
     processes= int(config.get('processes'))
+    check_variable=config.get('check-variable')
 
     with Parallel(n_jobs=processes) as parallelize:
-        parallelize(delayed(DoAggregate)(outputdir, target, weighting, only_variables, basename) for target in targetdirs) 
+        parallelize(delayed(DoAggregate)(outputdir, target, weighting, only_variables, basename, check_variable) for target in targetdirs) 
