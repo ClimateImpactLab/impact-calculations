@@ -57,9 +57,9 @@ class EconomicCovariator(Covariator):
         if self.slowgrowth:
             # Equivalent to baseline * exp(growth * time / 2)
             if region in self.baseline_loggdppc:
-                loggdppc = (loggdppc + self.baseline_loggdppc[region]) / 2
+                loggdppc = (loggdppc + self.baseline_loggdppc[region]) * 2
             else:
-                loggdppc = (loggdppc + self.baseline_loggdppc['mean']) / 2
+                loggdppc = (loggdppc + self.baseline_loggdppc['mean']) * 2
                 
         return dict(loggdppc=loggdppc, popop=density)
 
@@ -118,9 +118,9 @@ class MeanWeatherCovariator(Covariator):
         #assert region in self.temp_predictors, "Missing " + region
         if self.slowadapt:
             if self.varindex is None:
-                return {self.weatherbundle.get_dimension()[0]: (self.temp_predictors[region].get() + self.baseline_predictors[region]) / 2}
+                return {self.weatherbundle.get_dimension()[0]: (self.temp_predictors[region].get() + self.baseline_predictors[region]) * 2}
             else:
-                return {self.weatherbundle.get_dimension()[self.varindex]: (self.temp_predictors[region].get() + self.baseline_predictors[region]) / 2}
+                return {self.weatherbundle.get_dimension()[self.varindex]: (self.temp_predictors[region].get() + self.baseline_predictors[region]) * 2}
         else:
             if self.varindex is None:
                 return {self.weatherbundle.get_dimension()[0]: self.temp_predictors[region].get()}
@@ -144,9 +144,9 @@ class MeanWeatherCovariator(Covariator):
 
         if self.slowadapt:
             if self.varindex is None:
-                return {self.weatherbundle.get_dimension()[0]: (self.temp_predictors[region].get() + self.baseline_predictors[region]) / 2}
+                return {self.weatherbundle.get_dimension()[0]: (self.temp_predictors[region].get() + self.baseline_predictors[region]) * 2}
             else:
-                return {self.weatherbundle.get_dimension()[self.varindex]: (self.temp_predictors[region].get() + self.baseline_predictors[region]) / 2}
+                return {self.weatherbundle.get_dimension()[self.varindex]: (self.temp_predictors[region].get() + self.baseline_predictors[region]) * 2}
         else:
             if self.varindex is None:
                 return {self.weatherbundle.get_dimension()[0]: self.temp_predictors[region].get()}
