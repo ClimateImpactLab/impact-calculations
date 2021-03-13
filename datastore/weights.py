@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from impactlab_tools.utils import files
 from impactcommon.exogenous_economy import gdppc
-from . import population, agecohorts, spacetime, irregions
+from . import population, agecohorts, spacetime, irregions, population_jo2016
 
 ## Regular expressions to interpret configuration options
 RE_FLOATING = r"[-+]?[0-9]*\.?[0-9]*" # matches floating point numbers, like 3.14
@@ -109,6 +109,8 @@ def interpret_halfweight(weighting):
     if match:
         return spacetime.SpaceTimeConstantData(float(match.group(1)))
     if weighting == 'population':
+        return population.SpaceTimeBipartiteData(1950, 2100, None)
+    if weighting == 'population_jo2016':
         return population.SpaceTimeBipartiteData(1950, 2100, None)
     if weighting in ['agecohorts'] + agecohorts.columns:
         return agecohorts.SpaceTimeBipartiteData(1950, 2100, None)
