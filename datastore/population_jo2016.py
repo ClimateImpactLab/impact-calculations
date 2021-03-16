@@ -1,7 +1,16 @@
+"""Provider of population data from the Jones & O'Neill (2016).
+
+This data has been pre-aggregated to the IR-level, using the climate aggregation code.
+
+It is available at the decadal level, and held constant between
+decadal observations for simplicity and consistency with the normal SSP population.
+"""
+
 import numpy as np
 import pandas as pd
+from impactlab_tools.utils import files
 import scipy.interpolate
-import spacetime
+from . import spacetime
 
 class SpaceTimeBipartiteData(spacetime.SpaceTimeBipartiteData):
     def __init__(self, year0, year1, regions):
@@ -11,12 +20,13 @@ class SpaceTimeBipartiteData(spacetime.SpaceTimeBipartiteData):
         self.df = df.set_index('hierid')
 
         if regions is None:
-            regions = df.index.unique()
+            regions = self.df.index.unique()
 
         super(SpaceTimeBipartiteData, self).__init__(year0, year1, regions)
 
     def load(self, year0, year1, model, scenario):
-        popout = np.ones((year1 - year0 + 1, len(regions))) * np.nan
+        # Ignore the model and scenario
+        popout = np.ones((year1 - year0 + 1, len(self.regions))) * np.nan
 
         for ii, region in enumerate(self.regions):
             subdf = self.df.loc[region]
