@@ -111,7 +111,7 @@ def interpret_halfweight(weighting):
     if weighting == 'population':
         return population.SpaceTimeBipartiteData(1950, 2100, None)
     if weighting == 'population_jo2016':
-        return population.SpaceTimeBipartiteData(1950, 2100, None)
+        return population_jo2016.SpaceTimeBipartiteData(1950, 2100, None)
     if weighting in ['agecohorts'] + agecohorts.columns:
         return agecohorts.SpaceTimeBipartiteData(1950, 2100, None)
     if weighting == 'income':
