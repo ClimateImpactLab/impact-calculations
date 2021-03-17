@@ -1,6 +1,7 @@
 import numpy as np
 from datastore import weights
 
+@pytest.mark.imperics_shareddir
 def test_comparison():
     irs = ["USA.14.608", "USA.5.184"]
 
