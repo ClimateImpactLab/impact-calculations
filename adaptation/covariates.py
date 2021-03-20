@@ -201,12 +201,13 @@ class EconomicCovariator(Covariator):
         self.econ_predictors = economicmodel.baseline_prepared(maxbaseline, self.numeconyears, lambda values: averages.interpret(config, standard_economic_config, values))
         self.economicmodel = economicmodel
 
-        if config.get('slowadapt', 'none') in ['income', 'both']:
-            self.slowgrowth = True
+        config_rescale = config.get('scale-covariates-changes', None)
+        if config_rescale is not None and 'income' in config_rescale:
+            self.scale_covariates_change = config_rescale['income']
             self.baseline_loggdppc = {region: self.econ_predictors[region]['loggdppc'].get() for region in self.econ_predictors}
             self.baseline_loggdppc['mean'] = np.mean(list(self.baseline_loggdppc.values()))
         else:
-            self.slowgrowth = False
+            self.scale_covariates_change = 1
 
         self.country_level = bool(country_level)
 
