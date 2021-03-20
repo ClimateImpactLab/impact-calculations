@@ -202,6 +202,13 @@ class EconomicCovariator(Covariator):
         self.economicmodel = economicmodel
 
         config_rescale = config.get('scale-covariates-changes', None)
+
+        if config.get('slowadapt', None) is not None:
+            if config_rescale is not None:
+                print('ERROR : the slowadapt and scale-covariates-changes entries of the config file are redundant. Please select either.')
+            else : 
+                config_rescale = {'income' : 0.5}
+
         if config_rescale is not None and 'income' in config_rescale:
             self.covariates_scalar = config_rescale['income']
             self.baseline_loggdppc = {region: self.econ_predictors[region]['loggdppc'].get() for region in self.econ_predictors}
@@ -452,6 +459,13 @@ class MeanWeatherCovariator(Covariator):
         self.weatherbundle = weatherbundle
 
         config_rescale = config.get('scale-covariates-changes', None)
+
+        if config.get('slowadapt', None) is not None:
+            if config_rescale is not None:
+                print('ERROR : the slowadapt and scale-covariates-changes entries of the config file are redundant. Please select either.')
+            else : 
+                config_rescale = {'climate' : 0.5}
+
         if config_rescale is not None and 'climate' in config_rescale:
             self.covariates_scalar = config_rescale['climate']
             baseline_predictors = {}
