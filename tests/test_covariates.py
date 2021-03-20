@@ -53,6 +53,28 @@ class TestCovariates(unittest.TestCase):
             self.assertEqual(covars["valspline2"], valspline2)
             self.assertEqual(len(covars), 4) # 2 spline terms, 2 indicators
 
+    def get_g(scalar=1, baseline=2050, future=2051):
+        """Helper for test_scale_covariates_change : returns a float, the (potentially scaled) growth rate of an economic covariate between baseline and future"""
+        scalarconfig={"scale-covariate-changes" : {'income' : scalar}}
+        econcovar = covariates.EconomicCovariator(economicmodel=adaptation.SSPEconomicModel('low', 'SSP3', [], {}), maxbaseline=2015, config=scalarconfig)
+        baseline = econcovar.offer_update('USA.14.608', baseline_year)
+        future = econcovar.offer_update('USA.14.608', future_year)
+        g = (future-baseline)/baseline 
+        return g
+
+    def test_scale_covariates_change(self):
+        """Test the scale-covariate-changes option in EconomicCovariator and MeanWeatherCovariator."""
+        testcovar = covariates.GlobalExogenousCovariator(
+            2015, "val", 0, np.arange(1, 100)
+        )
+
+        real_g = get_g()
+        slow_g = get_g(0.5)
+        self.assertEqual(slow_g, real_g*0.5)
+        fast_g = get_g(2)
+        self.assertEqual(fast_g, real_g*2)
+
+
 
 if __name__ == "__main__":
     unittest.main()
