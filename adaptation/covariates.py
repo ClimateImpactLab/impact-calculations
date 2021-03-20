@@ -203,11 +203,11 @@ class EconomicCovariator(Covariator):
 
         config_rescale = config.get('scale-covariates-changes', None)
         if config_rescale is not None and 'income' in config_rescale:
-            self.scale_covariates_change = config_rescale['income']
+            self.covariates_scalar = config_rescale['income']
             self.baseline_loggdppc = {region: self.econ_predictors[region]['loggdppc'].get() for region in self.econ_predictors}
             self.baseline_loggdppc['mean'] = np.mean(list(self.baseline_loggdppc.values()))
         else:
-            self.scale_covariates_change = 1
+            self.covariates_scalar = 1
 
         self.country_level = bool(country_level)
 
@@ -243,12 +243,11 @@ class EconomicCovariator(Covariator):
         else:
             density = econpreds['popop'].get()
 
-        if self.slowgrowth:
-            # Equivalent to baseline * exp(growth * time / 2)
-            if region in self.baseline_loggdppc:
-                loggdppc = (loggdppc + self.baseline_loggdppc[region]) / 2
-            else:
-                loggdppc = (loggdppc + self.baseline_loggdppc['mean']) / 2
+        # Equivalent to baseline * exp(growth * time / 2)
+        if region in self.baseline_loggdppc:
+            loggdppc = self.covariates_scalar*(loggdppc - self.baseline_loggdppc[region]) + self.baseline_loggdppc[region]
+        else:
+            loggdppc = self.covariates_scalar*(loggdppc - self.baseline_loggdppc['mean']) + self.baseline_loggdppc['mean']
                 
         return dict(loggdppc=loggdppc, popop=density)
 
@@ -454,13 +453,13 @@ class MeanWeatherCovariator(Covariator):
 
         config_rescale = config.get('scale-covariates-changes', None)
         if config_rescale is not None and 'climate' in config_rescale:
-            self.scale_covariates_change = config_rescale['climate']
+            self.covariates_scalar = config_rescale['climate']
             baseline_predictors = {}
             for region in temp_predictors:
                 baseline_predictors[region] = temp_predictors[region].get()
             self.baseline_predictors = baseline_predictors
         else:
-            self.scale_covariates_change = 1
+            self.covariates_scalar = 1
 
         self.usedaily = usedaily
 
@@ -473,10 +472,7 @@ class MeanWeatherCovariator(Covariator):
         region : str
         """
         #assert region in self.temp_predictors, "Missing " + region
-        if self.slowadapt:
-            return {self.variable: (self.temp_predictors[region].get() + self.baseline_predictors[region]) / 2}
-        else:
-            return {self.variable: self.temp_predictors[region].get()}
+        return {self.variable: self.covariates_scalar*(self.temp_predictors[region].get() - self.baseline_predictors[region]) + self.baseline_predictors[region]}
 
     def get_update(self, region, year, ds):
         """
@@ -496,10 +492,7 @@ class MeanWeatherCovariator(Covariator):
         if ds is not None and year > self.startupdateyear:
             self.temp_predictors[region].update(np.mean(ds[self.dsvar]._values)) # if only yearly values
 
-        if self.slowadapt:
-            return {self.variable: (self.temp_predictors[region].get() + self.baseline_predictors[region]) / 2, 'year': self.get_yearcovar(region)}
-        else:
-            return {self.variable: self.temp_predictors[region].get(), 'year': self.get_yearcovar(region)}
+        return {self.variable: self.covariates_scalar*(self.temp_predictors[region].get() - self.baseline_predictors[region]) + self.baseline_predictors[region], 'year': self.get_yearcovar(region)}
 
 class SubspanWeatherCovariator(MeanWeatherCovariator):
     """Provides an average climate variable covariate, using only data from a span of days in each year.
