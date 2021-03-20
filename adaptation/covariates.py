@@ -451,14 +451,15 @@ class MeanWeatherCovariator(Covariator):
         self.temp_predictors = temp_predictors
         self.weatherbundle = weatherbundle
 
-        if config.get('slowadapt', 'none') in ['both', 'temperature']:
-            self.slowadapt = True
+        config_rescale = config.get('scale-covariates-changes', None)
+        if config_rescale is not None and 'climate' in config_rescale:
+            self.scale_covariates_change = config_rescale['climate']
             baseline_predictors = {}
             for region in temp_predictors:
                 baseline_predictors[region] = temp_predictors[region].get()
             self.baseline_predictors = baseline_predictors
         else:
-            self.slowadapt = False
+            self.scale_covariates_change = 1
 
         self.usedaily = usedaily
 
