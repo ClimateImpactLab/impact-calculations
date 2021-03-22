@@ -206,6 +206,7 @@ class EconomicCovariator(Covariator):
         if config.get('slowadapt', None) is not None:
             if config_scale_covariate_changes is not None:
                 print('ERROR : the slowadapt and scale-covariate-changes entries of the config file are redundant. Please select either.')
+                exit()
             else : 
                 config_scale_covariate_changes = {'income' : 0.5}
         
