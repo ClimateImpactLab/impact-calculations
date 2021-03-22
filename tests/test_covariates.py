@@ -37,7 +37,7 @@ def test_populate_constantcovariator_by_hierid(hierid_df):
     assert ccovar.get_update("Baa", 1984, "ni!") == {"hierid-foobar": 0.0}
 
 def get_g(scalar=1, baseline_year=2050, future_year=2051):
-    """Helper for test_scale_covariates_change : returns a float, the (potentially scaled) growth rate of an economic covariate between baseline and future"""
+    """Helper for test_scale_covariate_change : returns a float, the (potentially scaled) growth rate of an economic covariate between baseline and future"""
     if scalar==1:
         # testing the classe's ability to understand inexistence of key
         scalar_config={}
@@ -55,7 +55,7 @@ def get_g(scalar=1, baseline_year=2050, future_year=2051):
     return g
 
 
-def test_scale_covariates_change(monkeypatch):
+def test_scale_covariate_change(monkeypatch):
     """Test the scale-covariate-changes option in EconomicCovariator and MeanWeatherCovariator."""
     monkeypatch.setattr(files, 'server_config', {'shareddir': '/shares/gcp'})
     real_g = get_g()
