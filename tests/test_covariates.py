@@ -54,7 +54,7 @@ def get_g(scalar=1, baseline_year=2050, future_year=2051):
     g = (future_covar['loggdppc']-baseline_covar['loggdppc'])/baseline_covar['loggdppc'] #simple growth rate : g = (X_t - X_t-1) / X_t-1
     return g
 
-
+@pytest.mark.imperics_shareddir
 def test_scale_covariate_change(monkeypatch):
     """Test the scale-covariate-changes option in EconomicCovariator and MeanWeatherCovariator.
 
