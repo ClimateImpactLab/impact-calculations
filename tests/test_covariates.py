@@ -51,18 +51,26 @@ def get_g(scalar=1, baseline_year=2050, future_year=2051):
     econ_covar = covariates.EconomicCovariator(economicmodel=econmodel.SSPEconomicModel('low', 'SSP3', [], {}), maxbaseline=2015, config=scalar_config)
     baseline_covar = econ_covar.offer_update('USA.14.608', baseline_year, None)
     future_covar = econ_covar.offer_update('USA.14.608', future_year, None)
-    g = (future_covar['loggdppc']-baseline_covar['loggdppc'])/baseline_covar['loggdppc']
+    g = (future_covar['loggdppc']-baseline_covar['loggdppc'])/baseline_covar['loggdppc'] #simple growth rate : g = (X_t - X_t-1) / X_t-1
     return g
 
 
 def test_scale_covariate_change(monkeypatch):
-    """Test the scale-covariate-changes option in EconomicCovariator and MeanWeatherCovariator."""
+    """Test the scale-covariate-changes option in EconomicCovariator and MeanWeatherCovariator.
+
+    the scale-covariate-changes parameter is a scalar that rescales the 'growth rate' of a covariate between a base year and a future year, and this is performed 
+    in the system by changing the value of the covariate in the future year.
+
+    this test method approach is to retrieve covariate values passing various values to scale-covariate-changes and verify that the 'growth rates' are 
+    appropriately rescaled (or not)"""
+
     monkeypatch.setattr(files, 'server_config', {'shareddir': '/shares/gcp'})
-    real_g = get_g()
+
+    real_g = get_g() # getting some arbitrary growth rate
     
-    # test slowadapt legacy (scalar==0.5)
+    # test slowadapt legacy (scalar==0.5). Expects to obtain a value equal to half real_g. 
     slow_g = get_g('slowadapt')
-    if real_g>0:
+    if real_g>0: # separating out the usual case to the zero growth case. 
         #rounding at first decimal place, can't obtain better. Approximation with the log form ?
         scale = round(slow_g/real_g,1)
         error = "expected slow/real g to be equal to 0.5 but I got" + str(scale)
@@ -71,7 +79,7 @@ def test_scale_covariate_change(monkeypatch):
         error = "real g is equal to 0, expected slow g to be equal to 0 but I got" + str(slow_g)
         assert slow_g==0, error
 
-    # test arbitrary scalar
+    # test arbitrary scalar c. Expects to obtain a value equal to real_g * c.
     fast_g = get_g(2)
     if real_g>0:
         scale = round(fast_g/real_g,1)
