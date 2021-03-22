@@ -201,20 +201,23 @@ class EconomicCovariator(Covariator):
         self.econ_predictors = economicmodel.baseline_prepared(maxbaseline, self.numeconyears, lambda values: averages.interpret(config, standard_economic_config, values))
         self.economicmodel = economicmodel
 
-        config_rescale = config.get('scale-covariates-changes', None)
+        config_scale_covariate_changes = config.get('scale-covariate-changes', None)
 
         if config.get('slowadapt', None) is not None:
-            if config_rescale is not None:
-                print('ERROR : the slowadapt and scale-covariates-changes entries of the config file are redundant. Please select either.')
+            if config_scale_covariate_changes is not None:
+                print('ERROR : the slowadapt and scale-covariate-changes entries of the config file are redundant. Please select either.')
             else : 
-                config_rescale = {'income' : 0.5}
+                config_scale_covariate_changes = {'income' : 0.5}
+        
+        self.baseline_loggdppc = {region: self.econ_predictors[region]['loggdppc'].get() for region in self.econ_predictors}
+        self.baseline_loggdppc['mean'] = np.mean(list(self.baseline_loggdppc.values()))
 
-        if config_rescale is not None and 'income' in config_rescale:
-            self.covariates_scalar = config_rescale['income']
-            self.baseline_loggdppc = {region: self.econ_predictors[region]['loggdppc'].get() for region in self.econ_predictors}
-            self.baseline_loggdppc['mean'] = np.mean(list(self.baseline_loggdppc.values()))
+        if config_scale_covariate_changes is not None and 'income' in config_scale_covariate_changes:
+            self.covariates_scalar = config_scale_covariate_changes['income']
         else:
             self.covariates_scalar = 1
+
+        assert self.covariates_scalar > 0, 'scale-covariate-changes should be a strictly positive float'
 
         self.country_level = bool(country_level)
 
@@ -250,7 +253,8 @@ class EconomicCovariator(Covariator):
         else:
             density = econpreds['popop'].get()
 
-        # Equivalent to baseline * exp(growth * time / 2)
+        # If self.covariates==1, baseline_loggdppc cancels out and loggdppc := loggdppc 
+        # If self.covariates_scalar != 1, this is equivalent to loggdppc := baseline * exp(growth * time / covariates_scalar)
         if region in self.baseline_loggdppc:
             loggdppc = self.covariates_scalar*(loggdppc - self.baseline_loggdppc[region]) + self.baseline_loggdppc[region]
         else:
@@ -458,22 +462,25 @@ class MeanWeatherCovariator(Covariator):
         self.temp_predictors = temp_predictors
         self.weatherbundle = weatherbundle
 
-        config_rescale = config.get('scale-covariates-changes', None)
+        config_scale_covariate_changes = config.get('scale-covariate-changes', None)
 
         if config.get('slowadapt', None) is not None:
-            if config_rescale is not None:
-                print('ERROR : the slowadapt and scale-covariates-changes entries of the config file are redundant. Please select either.')
+            if config_scale_covariate_changes is not None:
+                print('ERROR : the slowadapt and scale-covariate-changes entries of the config file are redundant. Please select either.')
             else : 
-                config_rescale = {'climate' : 0.5}
+                config_scale_covariate_changes = {'climate' : 0.5}
 
-        if config_rescale is not None and 'climate' in config_rescale:
-            self.covariates_scalar = config_rescale['climate']
-            baseline_predictors = {}
-            for region in temp_predictors:
-                baseline_predictors[region] = temp_predictors[region].get()
-            self.baseline_predictors = baseline_predictors
+        baseline_predictors = {}
+        for region in temp_predictors:
+            baseline_predictors[region] = temp_predictors[region].get()
+        self.baseline_predictors = baseline_predictors
+
+        if config_scale_covariate_changes is not None and 'climate' in config_scale_covariate_changes:
+            self.covariates_scalar = config_scale_covariate_changes['climate']
         else:
             self.covariates_scalar = 1
+
+        assert self.covariates_scalar > 0, 'scale-covariate-changes should be a strictly positive float'
 
         self.usedaily = usedaily
 
