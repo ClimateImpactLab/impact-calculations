@@ -36,8 +36,8 @@ def test_populate_constantcovariator_by_hierid(hierid_df):
     assert ccovar.get_update("Ab", 1984, "ni!") == {"hierid-foobar": 1.0}
     assert ccovar.get_update("Baa", 1984, "ni!") == {"hierid-foobar": 0.0}
 
-def get_g(scalar=1, baseline_year=2050, future_year=2051):
-    """Helper for test_scale_covariate_change : returns a float, the (potentially scaled) growth rate of an economic covariate between baseline and future"""
+def get_fractional_change(scalar=1, baseline_year=2050, future_year=2051):
+    """Helper for test_scale_covariate_change : returns a float, the (potentially scaled) fractional change of an economic covariate between baseline and future"""
     if scalar==1:
         # testing the classe's ability to understand inexistence of key
         scalar_config={}
@@ -51,43 +51,43 @@ def get_g(scalar=1, baseline_year=2050, future_year=2051):
     econ_covar = covariates.EconomicCovariator(economicmodel=econmodel.SSPEconomicModel('low', 'SSP3', [], {}), maxbaseline=2015, config=scalar_config)
     baseline_covar = econ_covar.offer_update('USA.14.608', baseline_year, None)
     future_covar = econ_covar.offer_update('USA.14.608', future_year, None)
-    g = (future_covar['loggdppc']-baseline_covar['loggdppc'])/baseline_covar['loggdppc'] #simple growth rate : g = (X_t - X_t-1) / X_t-1
-    return g
+    fractional_change = (future_covar['loggdppc']-baseline_covar['loggdppc'])/baseline_covar['loggdppc'] #simple fractional change : fractional_change = (X_t - X_t-1) / X_t-1
+    return fractional_change
 
 @pytest.mark.imperics_shareddir
 def test_scale_covariate_change(monkeypatch):
     """Test the scale-covariate-changes option in EconomicCovariator and MeanWeatherCovariator.
 
-    the scale-covariate-changes parameter is a scalar that rescales the 'growth rate' of a covariate between a base year and a future year, and this is performed 
+    the scale-covariate-changes parameter is a scalar that rescales the fractional change of a covariate between a base year and a future year, and this is performed 
     in the system by changing the value of the covariate in the future year.
 
-    this test method approach is to retrieve covariate values passing various values to scale-covariate-changes and verify that the 'growth rates' are 
-    appropriately rescaled (or not)"""
+    this test method approach is to retrieve covariate values passing various values to scale-covariate-changes and verify that the fractional change is 
+    appropriately rescaled (or left as is)"""
 
     monkeypatch.setattr(files, 'server_config', {'shareddir': '/shares/gcp'})
 
-    real_g = get_g() # getting some arbitrary growth rate
+    real_change = get_fractional_change() # getting some arbitrary fractional change
     
-    # test slowadapt legacy (scalar==0.5). Expects to obtain a value equal to half real_g. 
-    slow_g = get_g('slowadapt')
-    if real_g>0: # separating out the usual case to the zero growth case. 
+    # test slowadapt legacy (scalar==0.5). Expects to obtain a value equal to half real_change. 
+    slow_change = get_fractional_change('slowadapt')
+    if real_change>0: # separating out the usual case to the zero fractional change case. 
         #rounding at first decimal place, can't obtain better. Approximation with the log form ?
-        scale = round(slow_g/real_g,1)
-        error = "expected slow/real g to be equal to 0.5 but I got" + str(scale)
+        scale = round(slow_change/real_change,1)
+        error = "expected slow/real fractional change to be equal to 0.5 but I got" + str(scale)
         assert scale==0.50, error
     else:
-        error = "real g is equal to 0, expected slow g to be equal to 0 but I got" + str(slow_g)
-        assert slow_g==0, error
+        error = "real fractional change is equal to 0, expected slow one to be equal to 0 but I got" + str(slow_change)
+        assert slow_change==0, error
 
-    # test arbitrary scalar c. Expects to obtain a value equal to real_g * c.
-    fast_g = get_g(2)
-    if real_g>0:
-        scale = round(fast_g/real_g,1)
-        error = "expected fast/real g to be equal to 2 but I got" + str(scale)
+    # test arbitrary scalar c. Expects to obtain a value equal to real_change * c.
+    fast_change = get_fractional_change(2)
+    if real_change>0:
+        scale = round(fast_change/real_change,1)
+        error = "expected fast/real fractional change to be equal to 2 but I got" + str(scale)
         assert scale==2.00, error
     else:
-        error = "real g is equal to 0, expected fast g to be equal to 2 but I got" + str(fast_g)
-        assert fast_g==0, error
+        error = "real fractional change is equal to 0, expected fast one to be equal to 2 but I got" + str(fast_change)
+        assert fast_change==0, error
 
 
 class TestCovariates(unittest.TestCase):
