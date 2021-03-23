@@ -60,6 +60,13 @@ def prepare_argument(name, argument, models, argtype, extras=None):
     if argtype.isa(arguments.calculation):
         subcalc = extras.get('subcalc', None)
         return create_calcstep(list(argument.keys())[0], list(argument.values())[0], models, subcalc, extras=extras)
+
+    if argtype.isa(arguments.input_reduce) and isinstance(argument, str):
+        if argument == '-':
+            return lambda x, y: x - y
+        if argument == '/':
+            return lambda x, y: x / y
+        raise ValueError("Unknown reduction function: " + argument)
     
     return argument
 
