@@ -202,11 +202,10 @@ class EconomicCovariator(Covariator):
         self.economicmodel = economicmodel
 
         config = configs.search_covariatechange(config)
+        self.covariates_scalar = config.get('scale-covariate-changes').get('income', 1)
 
         self.baseline_loggdppc = {region: self.econ_predictors[region]['loggdppc'].get() for region in self.econ_predictors}
         self.baseline_loggdppc['mean'] = np.mean(list(self.baseline_loggdppc.values()))
-
-        self.covariates_scalar = config_scale_covariate_changes.get('income', 1)
 
         self.country_level = bool(country_level)
 
@@ -452,13 +451,12 @@ class MeanWeatherCovariator(Covariator):
         self.weatherbundle = weatherbundle
 
         config = configs.search_covariatechange(config)
+        self.covariates_scalar = config.get('scale-covariate-changes').get('climate', 1)
 
         baseline_predictors = {}
         for region in temp_predictors:
             baseline_predictors[region] = temp_predictors[region].get()
         self.baseline_predictors = baseline_predictors
-
-        self.covariates_scalar = config_scale_covariate_changes.get('climate', 1)
 
         self.usedaily = usedaily
 
