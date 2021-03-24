@@ -148,9 +148,10 @@ def search_covariatechange(config):
     elif 'slowadapt' in config:
         config['scale-covariate-changes'] = {'income' : 0.5, 'climate' : 0.5}
     elif 'scale-covariate-changes' in config:
-        assert isinstance(config.get('scale-covariate-changes'), dict), 'the scale-covariate-changes entry of the config should be a dictionary'
-        for scalar in config.get('scale-covariate-changes'):
-            assert scalar>0, 'scalars in scale-covariate-changes should be strictly positive floats'
+        changes = config.get('scale-covariate-changes')
+        assert isinstance(changes, dict), 'the scale-covariate-changes entry of the config should be a dictionary'
+        for scalar_change in changes:
+            assert changes.get(scalar_change)>0, 'scalars in scale-covariate-changes should be strictly positive floats'
     else:
         config['scale-covariate-changes'] = {}
 
