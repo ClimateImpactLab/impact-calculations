@@ -72,22 +72,17 @@ def test_scale_covariate_change(monkeypatch):
     slow_change = get_fractional_change('slowadapt')
     if real_change>0: # separating out the usual case to the zero fractional change case. 
         #rounding at first decimal place, can't obtain better. Approximation with the log form ?
-        scale = round(slow_change/real_change,1)
-        error = "expected slow/real fractional change to be equal to 0.5 but I got" + str(scale)
-        assert scale==0.50, error
+        np.testing.assert_approx_equal(slow_change/real_change, 0.5, 2)
     else:
-        error = "real fractional change is equal to 0, expected slow one to be equal to 0 but I got" + str(slow_change)
-        assert slow_change==0, error
+        np.testing.assert_approx_equal(slow_change, 0)
 
     # test arbitrary scalar c. Expects to obtain a value equal to real_change * c.
     fast_change = get_fractional_change(2)
     if real_change>0:
-        scale = round(fast_change/real_change,1)
-        error = "expected fast/real fractional change to be equal to 2 but I got" + str(scale)
+        np.testing.assert_approx_equal(fast_change/real_change, 2, 2)
         assert scale==2.00, error
     else:
-        error = "real fractional change is equal to 0, expected fast one to be equal to 2 but I got" + str(fast_change)
-        assert fast_change==0, error
+        np.testing.assert_approx_equal(fast_change, 0)
 
 
 class TestCovariates(unittest.TestCase):
