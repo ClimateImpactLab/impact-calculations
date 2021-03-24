@@ -34,7 +34,7 @@ from impactlab_tools.utils import files
 from .econmodel import *
 from datastore import agecohorts, irvalues, irregions
 from climate.yearlyreader import RandomYearlyAccess
-from interpret import averages
+from interpret import averages, configs
 
 
 ## Class constructor with arguments (initial values, running length)
@@ -201,15 +201,9 @@ class EconomicCovariator(Covariator):
         self.econ_predictors = economicmodel.baseline_prepared(maxbaseline, self.numeconyears, lambda values: averages.interpret(config, standard_economic_config, values))
         self.economicmodel = economicmodel
 
+        config = configs.search_slowadapt(config)
         config_scale_covariate_changes = config.get('scale-covariate-changes', None)
 
-        if config.get('slowadapt', None) is not None:
-            if config_scale_covariate_changes is not None:
-                print('ERROR : the slowadapt and scale-covariate-changes entries of the config file are redundant. Please select either.')
-                exit()
-            else : 
-                config_scale_covariate_changes = {'income' : 0.5}
-        
         self.baseline_loggdppc = {region: self.econ_predictors[region]['loggdppc'].get() for region in self.econ_predictors}
         self.baseline_loggdppc['mean'] = np.mean(list(self.baseline_loggdppc.values()))
 
@@ -463,13 +457,8 @@ class MeanWeatherCovariator(Covariator):
         self.temp_predictors = temp_predictors
         self.weatherbundle = weatherbundle
 
+        config = configs.search_slowadapt(config)
         config_scale_covariate_changes = config.get('scale-covariate-changes', None)
-
-        if config.get('slowadapt', None) is not None:
-            if config_scale_covariate_changes is not None:
-                print('ERROR : the slowadapt and scale-covariate-changes entries of the config file are redundant. Please select either.')
-            else : 
-                config_scale_covariate_changes = {'climate' : 0.5}
 
         baseline_predictors = {}
         for region in temp_predictors:

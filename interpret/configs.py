@@ -139,3 +139,13 @@ def get_regions(allregions, filter_region):
         assert my_regions != [], "No regions remain after filter."
 
     return my_regions
+
+
+def search_slowadapt(config):
+    """ handles the legacy config key 'slowadapt' """ 
+    if 'scale-covariate-changes' in config and 'slowadapt' in config:
+        raise ValueError('the slowadapt and scale-covariate-changes entries of the config file are redundant. Please select either.')
+    elif 'slowadapt' in config:
+        config['scale-covariate-changes'] = {'income' : 0.5, 'climate' : 0.5}
+    return config
+
