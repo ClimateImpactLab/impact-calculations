@@ -141,11 +141,18 @@ def get_regions(allregions, filter_region):
     return my_regions
 
 
-def search_slowadapt(config):
-    """ handles the legacy config key 'slowadapt' """ 
+def search_covariatechange(config):
+    """ handles 'scale-covariate-changes' key and legacy key 'slowadapt' """ 
     if 'scale-covariate-changes' in config and 'slowadapt' in config:
         raise ValueError('the slowadapt and scale-covariate-changes entries of the config file are redundant. Please select either.')
     elif 'slowadapt' in config:
         config['scale-covariate-changes'] = {'income' : 0.5, 'climate' : 0.5}
+    elif 'scale-covariate-changes' in config:
+        assert isinstance(config.get('scale-covariate-changes'), dict), 'the scale-covariate-changes entry of the config should be a dictionary'
+        for scalar in config.get('scale-covariate-changes'):
+            assert scalar>0, 'scalars in scale-covariate-changes should be strictly positive floats'
+    else 'scale-covariate-changes' not in config:
+        config['scale-covariate-changes'] = {}
+
     return config
 

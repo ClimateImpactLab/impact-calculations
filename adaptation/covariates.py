@@ -201,18 +201,12 @@ class EconomicCovariator(Covariator):
         self.econ_predictors = economicmodel.baseline_prepared(maxbaseline, self.numeconyears, lambda values: averages.interpret(config, standard_economic_config, values))
         self.economicmodel = economicmodel
 
-        config = configs.search_slowadapt(config)
-        config_scale_covariate_changes = config.get('scale-covariate-changes', None)
+        config = configs.search_covariatechange(config)
 
         self.baseline_loggdppc = {region: self.econ_predictors[region]['loggdppc'].get() for region in self.econ_predictors}
         self.baseline_loggdppc['mean'] = np.mean(list(self.baseline_loggdppc.values()))
 
-        if config_scale_covariate_changes is not None and 'income' in config_scale_covariate_changes:
-            self.covariates_scalar = config_scale_covariate_changes['income']
-        else:
-            self.covariates_scalar = 1
-
-        assert self.covariates_scalar > 0, 'scale-covariate-changes should be a strictly positive float'
+        self.covariates_scalar = config_scale_covariate_changes.get('income', 1)
 
         self.country_level = bool(country_level)
 
@@ -457,20 +451,14 @@ class MeanWeatherCovariator(Covariator):
         self.temp_predictors = temp_predictors
         self.weatherbundle = weatherbundle
 
-        config = configs.search_slowadapt(config)
-        config_scale_covariate_changes = config.get('scale-covariate-changes', None)
+        config = configs.search_covariatechange(config)
 
         baseline_predictors = {}
         for region in temp_predictors:
             baseline_predictors[region] = temp_predictors[region].get()
         self.baseline_predictors = baseline_predictors
 
-        if config_scale_covariate_changes is not None and 'climate' in config_scale_covariate_changes:
-            self.covariates_scalar = config_scale_covariate_changes['climate']
-        else:
-            self.covariates_scalar = 1
-
-        assert self.covariates_scalar > 0, 'scale-covariate-changes should be a strictly positive float'
+        self.covariates_scalar = config_scale_covariate_changes.get('climate', 1)
 
         self.usedaily = usedaily
 
