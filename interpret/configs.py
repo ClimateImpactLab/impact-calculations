@@ -151,7 +151,7 @@ def search_covariatechange(config):
         assert isinstance(config.get('scale-covariate-changes'), dict), 'the scale-covariate-changes entry of the config should be a dictionary'
         for scalar in config.get('scale-covariate-changes'):
             assert scalar>0, 'scalars in scale-covariate-changes should be strictly positive floats'
-    else 'scale-covariate-changes' not in config:
+    else if 'scale-covariate-changes' not in config:
         config['scale-covariate-changes'] = {}
 
     return config
