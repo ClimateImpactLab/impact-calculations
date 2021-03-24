@@ -80,7 +80,6 @@ def test_scale_covariate_change(monkeypatch):
     fast_change = get_fractional_change(2)
     if real_change>0:
         np.testing.assert_approx_equal(fast_change/real_change, 2, 2)
-        assert scale==2.00, error
     else:
         np.testing.assert_approx_equal(fast_change, 0)
 
