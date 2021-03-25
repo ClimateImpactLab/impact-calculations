@@ -140,10 +140,9 @@ def get_regions(allregions, filter_region):
 
     return my_regions
 
-
 def search_covariatechange(config):
     """ 
-    handles 'scale-covariate-changes' key and legacy key 'slowadapt', including its different possible values ('climate', 'income', 'both')
+    handles the 'scale-covariate-changes' key and the legacy key 'slowadapt'
 
     Parameters
     ----------
@@ -153,8 +152,8 @@ def search_covariatechange(config):
     Returns
     ------- 
     dict
-        returns the 'config' passed in the same state but with a new 'scale-covariate-changes' key pointing to a dict. 
-        'scale-covariate-changes' is either empty, either contains 'income' key, or 'climate' key, or both, and those point to float values.
+        returns the 'config' passed, adding a 'scale-covariate-changes' key if necessary.
+        'scale-covariate-changes' points to a dict that is either empty, either contains 'income' key, or 'climate' key, or both, and those point to float values.
     """ 
     if 'scale-covariate-changes' in config and 'slowadapt' in config:
         raise ValueError('the slowadapt and scale-covariate-changes entries of the config file are redundant. Please select either.')
