@@ -196,13 +196,14 @@ class EconomicCovariator(Covariator):
 
         if config is None:
             config = {}
+
+        config = configs.search_covariatechange(config)
+        self.covariates_scalar = config.get('scale-covariate-changes').get('income', 1)
+
         self.numeconyears = config.get('length', standard_economic_config['length'])
 
         self.econ_predictors = economicmodel.baseline_prepared(maxbaseline, self.numeconyears, lambda values: averages.interpret(config, standard_economic_config, values))
         self.economicmodel = economicmodel
-
-        config = configs.search_covariatechange(config)
-        self.covariates_scalar = config.get('scale-covariate-changes').get('income', 1)
 
         self.baseline_loggdppc = {region: self.econ_predictors[region]['loggdppc'].get() for region in self.econ_predictors}
         self.baseline_loggdppc['mean'] = np.mean(list(self.baseline_loggdppc.values()))
@@ -430,6 +431,9 @@ class MeanWeatherCovariator(Covariator):
 
         if config is None:
             config = {}
+
+        config = configs.search_covariatechange(config)
+        self.covariates_scalar = config.get('scale-covariate-changes').get('climate', 1)
         self.numtempyears = config.get('length', standard_climate_config['length'])
         self.variable = variable
 
@@ -449,9 +453,6 @@ class MeanWeatherCovariator(Covariator):
 
         self.temp_predictors = temp_predictors
         self.weatherbundle = weatherbundle
-
-        config = configs.search_covariatechange(config)
-        self.covariates_scalar = config.get('scale-covariate-changes').get('climate', 1)
 
         baseline_predictors = {}
         for region in temp_predictors:
