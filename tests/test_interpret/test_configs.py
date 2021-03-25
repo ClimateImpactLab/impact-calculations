@@ -83,3 +83,7 @@ class TestConfigCovariateChange(unittest.TestCase):
         self.assertEqual(config.get('scale-covariate-changes').get('income'),0.7)
         self.assertEqual(config.get('scale-covariate-changes').get('climate'),4)
 
+    def test_search_covariatechange_nosideeffect(self):
+
+        config = search_covariatechange({'scale-covariate-changes':{'income':0.7, 'climate':4}, 'stuff':'random'})
+        self.assertTrue('stuff' in config and config.get('stuff')=='random')
