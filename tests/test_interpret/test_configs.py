@@ -58,3 +58,26 @@ class TestMergeImportConfig:
 
         output = merge_import_config(input_dict, fpath=base_path)
         assert expected == output
+
+
+class TestConfigCovariateChange(unittest.TestCase):
+    def test_search_covariatechange_ambiguous(self):
+
+        ambiguous_config = {'slowadapt':'both', 'scale-covariate-changes':{'income':0.5, 'climate':0.5}}
+
+        self.assertRaises(ValueError, search_covariatechange(ambiguous_config))
+
+    def test_search_covariatechange_slowadapt(self)
+
+        config = search_covariatechange({'slowadapt':'income'})
+        self.assertEqual(config.get('scale-covariate-changes').get('income'),0.5)
+        config = search_covariatechange({'slowadapt':'both'})
+        self.assertEqual(config.get('scale-covariate-changes').get('income'),0.5)
+        self.assertEqual(config.get('scale-covariate-changes').get('climate'),0.5)
+
+    def test_search_covariatechange_arbitrary_scalar(self)
+
+        config = search_covariatechange({'scale-covariate-changes':{'income':0.7, 'climate':4}})
+        self.assertEqual(config.get('scale-covariate-changes').get('income'),0.7)
+        self.assertEqual(config.get('scale-covariate-changes').get('climate'),4)
+
