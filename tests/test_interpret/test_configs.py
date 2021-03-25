@@ -71,6 +71,7 @@ class TestConfigCovariateChange(unittest.TestCase):
 
         config = search_covariatechange({'slowadapt':'income'})
         self.assertEqual(config.get('scale-covariate-changes').get('income'),0.5)
+        assert 'climate' not in config
         config = search_covariatechange({'slowadapt':'both'})
         self.assertEqual(config.get('scale-covariate-changes').get('income'),0.5)
         self.assertEqual(config.get('scale-covariate-changes').get('climate'),0.5)

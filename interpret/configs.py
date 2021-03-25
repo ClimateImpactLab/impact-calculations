@@ -142,16 +142,31 @@ def get_regions(allregions, filter_region):
 
 
 def search_covariatechange(config):
-    """ handles 'scale-covariate-changes' key and legacy key 'slowadapt', including its different possible values ('climate', 'income', 'both')""" 
+    """ 
+    handles 'scale-covariate-changes' key and legacy key 'slowadapt', including its different possible values ('climate', 'income', 'both')
+   
+    Returns
+    ------- 
+    dict
+        empty, with 'income' key, or 'climate' key, or both, pointing to an float value.
+    """ 
     if 'scale-covariate-changes' in config and 'slowadapt' in config:
         raise ValueError('the slowadapt and scale-covariate-changes entries of the config file are redundant. Please select either.')
     elif 'slowadapt' in config:
-        config['scale-covariate-changes'] = {'income' : 0.5, 'climate' : 0.5}
+        covar = config.get('slowadapt')
+        if covar=='income':
+            config['scale-covariate-changes'] = {'income' : 0.5}
+        elif covar=='climate':
+            config['scale-covariate-changes'] = {'climate' : 0.5}
+        elif covar=='both':
+            config['scale-covariate-changes'] = {'income' : 0.5, 'climate' : 0.5}
+        else:
+            raise ValueError('the slowadapt entry of the config should be one of "income", "climate", "both"')
     elif 'scale-covariate-changes' in config:
         changes = config.get('scale-covariate-changes')
         assert isinstance(changes, dict), 'the scale-covariate-changes entry of the config should be a dictionary'
         for scalar_change in changes:
-            assert changes.get(scalar_change)>0, 'scalars in scale-covariate-changes should be strictly positive floats'
+            assert changes.get(scalar_change)>0, 'all scalars in scale-covariate-changes should be strictly positive floats'
     else:
         config['scale-covariate-changes'] = {}
 
