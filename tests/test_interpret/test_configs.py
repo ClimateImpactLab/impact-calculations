@@ -1,6 +1,7 @@
+import pytest
+import unittest
 from pathlib import Path
-from interpret.configs import merge_import_config
-
+from interpret.configs import merge_import_config, search_covariatechange 
 
 class TestMergeImportConfig:
     """Collection of tests for merge_import_config
@@ -64,10 +65,10 @@ class TestConfigCovariateChange(unittest.TestCase):
     def test_search_covariatechange_ambiguous(self):
 
         ambiguous_config = {'slowadapt':'both', 'scale-covariate-changes':{'income':0.5, 'climate':0.5}}
+        with pytest.raises(ValueError):
+            search_covariatechange(ambiguous_config)
 
-        self.assertRaises(ValueError, search_covariatechange(ambiguous_config))
-
-    def test_search_covariatechange_slowadapt(self)
+    def test_search_covariatechange_slowadapt(self):
 
         config = search_covariatechange({'slowadapt':'income'})
         self.assertEqual(config.get('scale-covariate-changes').get('income'),0.5)
@@ -76,7 +77,7 @@ class TestConfigCovariateChange(unittest.TestCase):
         self.assertEqual(config.get('scale-covariate-changes').get('income'),0.5)
         self.assertEqual(config.get('scale-covariate-changes').get('climate'),0.5)
 
-    def test_search_covariatechange_arbitrary_scalar(self)
+    def test_search_covariatechange_arbitrary_scalar(self):
 
         config = search_covariatechange({'scale-covariate-changes':{'income':0.7, 'climate':4}})
         self.assertEqual(config.get('scale-covariate-changes').get('income'),0.7)
