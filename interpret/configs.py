@@ -142,7 +142,7 @@ def get_regions(allregions, filter_region):
 
 
 def search_covariatechange(config):
-    """ handles 'scale-covariate-changes' key and legacy key 'slowadapt' """ 
+    """ handles 'scale-covariate-changes' key and legacy key 'slowadapt', including its different possible values ('climate', 'income', 'both')""" 
     if 'scale-covariate-changes' in config and 'slowadapt' in config:
         raise ValueError('the slowadapt and scale-covariate-changes entries of the config file are redundant. Please select either.')
     elif 'slowadapt' in config:
