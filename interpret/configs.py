@@ -140,7 +140,7 @@ def get_regions(allregions, filter_region):
 
     return my_regions
 
-def search_covariatechange(config):
+def get_covariate_rate(config, group):
     """ 
     handles the 'scale-covariate-changes' key and the legacy key 'slowadapt'
 
@@ -148,32 +148,32 @@ def search_covariatechange(config):
     ----------
     config : dict
         projection run configuration
+    group : str
+        one of 'income' or 'climate'
    
     Returns
     ------- 
-    dict
-        returns the 'config' passed, adding a 'scale-covariate-changes' key if necessary.
-        'scale-covariate-changes' points to a dict that is either empty, either contains 'income' key, or 'climate' key, or both, and those point to float values.
+    float
+        the change in rate for the given covariate group, or 1 for no rate change
     """ 
     if 'scale-covariate-changes' in config and 'slowadapt' in config:
         raise ValueError('the slowadapt and scale-covariate-changes entries of the config file are redundant. Please select either.')
     elif 'slowadapt' in config:
         covar = config.get('slowadapt')
-        if covar=='income':
-            config['scale-covariate-changes'] = {'income' : 0.5}
-        elif covar=='climate':
-            config['scale-covariate-changes'] = {'climate' : 0.5}
-        elif covar=='both':
-            config['scale-covariate-changes'] = {'income' : 0.5, 'climate' : 0.5}
-        else:
+        if covar not in ['climate', 'income', 'both']:
             raise ValueError('the slowadapt entry of the config should be one of "income", "climate", "both"')
+        if covar == 'both' or covar == group:
+            return .5
+        else:
+            return 1
     elif 'scale-covariate-changes' in config:
         changes = config.get('scale-covariate-changes')
-        assert isinstance(changes, dict), 'the scale-covariate-changes entry of the config should be a dictionary'
-        for scalar_change in changes:
-            assert changes.get(scalar_change)>0, 'all scalars in scale-covariate-changes should be strictly positive floats'
+        if not isinstance(changes, dict):
+            raise ValueError('the scale-covariate-changes entry of the config should be a dictionary')
+        rate = changes.get(group, 1)
+        if rate < 0:
+            raise ValueError('all scalars in scale-covariate-changes should be strictly positive floats')
+        return rate
     else:
-        config['scale-covariate-changes'] = {}
-
-    return config
+        return 1
 
