@@ -27,6 +27,7 @@ from netCDF4 import Dataset
 from . import nc4writer, agglib, checks
 from datastore import weights
 from impactlab_tools.utils import paralog
+from autodoc import debugging
 
 ### Master Configuration
 ### See docs/aggregator.md for other configuration options
@@ -38,6 +39,7 @@ suffix = "-aggregated"    # aggregated results across higher-level regions
 missing_only = True       # generate only missing output files, or regenerate all?
 
 debug_aggregate = False   # If not false, set to the name of an aggregated region to report. e.g., 'ARE'
+noside_profile_count = False # If not false, generate no files (and claim no directories), but profile time to generate N results
 
 # Command to run to generate adaptation costs files
 costs_command = "Rscript generate/cost_curves.R \"%s\" \"%s\" \"%s\" \"%s\" \"%s\"" # tavgpath rcp gcm impactspath suffix
@@ -144,7 +146,7 @@ def make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, d
         dimreader = Dataset(dimensions_template, 'r', format='NETCDF4')
 
     # Set up the writer object
-    writer = nc4writer.create(targetdir, outfilename)
+    writer = nc4writer.create(targetdir, outfilename, nosideeffects=isinstance(noside_profile_count, int))
 
     # Extract the years and regions
     readeryears = nc4writer.get_years(dimreader, limityears)
@@ -379,7 +381,7 @@ def make_levels(targetdir, filename, outfilename, halfweight, weight_args, dimen
         dimreader = Dataset(dimensions_template, 'r', format='NETCDF4')
 
     # Set up the writer object    
-    writer = nc4writer.create(targetdir, outfilename)
+    writer = nc4writer.create(targetdir, outfilename, nosideeffects=isinstance(noside_profile_count, int))
 
     # Extract the years and regions
     years = nc4writer.make_years_variable(writer)
@@ -493,7 +495,7 @@ def fullfile(filename, suffix, config):
         return fullfile(filename, '-' + str(config['infix']) + suffix, {})
 
     return filename[:-4] + suffix + '.nc4'
-    
+
 if __name__ == '__main__':
     # Prepare environment
     import sys
@@ -501,11 +503,21 @@ if __name__ == '__main__':
     from impactlab_tools.utils import files
     from interpret.configs import merge_import_config
     from datastore import population, agecohorts
-
+    
     config = files.get_allargv_config()
     config_path = Path(sys.argv[1])
     # Interpret "import" in configs here while we have file path info.
     file_configs = merge_import_config(config, config_path.parent)
+
+    aggregations_performed = 0
+    
+    if isinstance(file_configs.get('profile', False), int):
+        import cProfile, pstats, io
+
+        noside_profile_count = file_configs['profile']
+        
+        pr = cProfile.Profile()
+        pr.enable()
 
     regioncount = config.get('region-count', 24378) # used by checks to ensure complete files
 
@@ -513,7 +525,10 @@ if __name__ == '__main__':
     # Allow directories to be re-claimed after this many seconds
     claim_timeout = config.get('timeout', 24) * 60*60
 
-    statman = paralog.StatusManager('aggregate', "generate.aggregate " + sys.argv[1], 'logs', claim_timeout)
+    if isinstance(noside_profile_count, int):
+        statman = debugging.NoClaimStatusManager('aggregate', "generate.aggregate " + sys.argv[1], 'logs', claim_timeout)
+    else:
+        statman = paralog.StatusManager('aggregate', "generate.aggregate " + sys.argv[1], 'logs', claim_timeout)
 
     ### Determine weights
     
@@ -565,6 +580,9 @@ if __name__ == '__main__':
         incomplete = False
         if isinstance(debug_aggregate, str):
             incomplete = True
+
+        # Flag to be set if do any aggregations
+        aggregated = False
 
         # Try to process every NetCDF file in targetdir
         for filename in os.listdir(targetdir):
@@ -659,7 +677,8 @@ if __name__ == '__main__':
 
                                 # Call the adaptation costs system
                                 print(costs_command % (tavgpath, clim_scenario, clim_model, impactspath, fullcostsuffix))
-                                os.system(costs_command % (tavgpath, clim_scenario, clim_model, impactspath, fullcostsuffix))
+                                if not isinstance(noside_profile_count, int):
+                                    os.system(costs_command % (tavgpath, clim_scenario, clim_model, impactspath, fullcostsuffix))
 
                         # Levels of costs
                         outfilename = fullfile(filename, costs_suffix + levels_suffix, config)
@@ -683,6 +702,8 @@ if __name__ == '__main__':
                         if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)):
                             make_costs_aggregate(targetdir, filename[:-4].replace('combined', 'combined-costs') + '.nc4', outfilename, halfweight_aggregate, weight_args_aggregate, halfweight_denom=halfweight_aggregate_denom, weight_args_denom=weight_args_aggregate_denom, config=config)
 
+                    aggregated = True
+                            
                 # On exception, report it and continue
                 except Exception as ex:
                     print("Failed.")
@@ -692,4 +713,20 @@ if __name__ == '__main__':
         # Release the claim on this directory
         statman.release(targetdir, "Incomplete" if incomplete else "Complete")
         # Make sure all produced files are read-writable by the group
-        os.system("chmod g+rw --quiet " + os.path.join(targetdir, "*"))
+        if not isinstance(noside_profile_count, int):
+            os.system("chmod g+rw --quiet " + os.path.join(targetdir, "*"))
+
+        if aggregated:
+            aggregations_performed += 1
+            if isinstance(noside_profile_count, int) and aggregations_performed >= noside_profile_count:
+                break
+
+    if isinstance(noside_profile_count, int):
+        pr.disable()
+
+        s = io.StringIO()
+        sortby = 'cumulative'
+        ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+        ps.print_stats()
+        print(s.getvalue())
+

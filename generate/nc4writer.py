@@ -3,8 +3,9 @@
 import os
 import numpy as np
 from netCDF4 import Dataset
+from autodoc import debugging
 
-def create(targetdir, basename):
+def create(targetdir, basename, nosideeffects=False):
     """Create a blank NetCDF4 file, at `<targetdir>/<basename>.nc4`.
     Deletes any pre-existing file at the same location.
 
@@ -18,10 +19,13 @@ def create(targetdir, basename):
     if basename[-4:] != '.nc4':
         basename += '.nc4'
     
+    if nosideeffects:
+        return debugging.NoWriteDataset(os.path.join(targetdir, basename), 'w', format='NETCDF4')
+        
     # Delete any pre-existing file
     if os.path.exists(os.path.join(targetdir, basename)):
         os.remove(os.path.join(targetdir, basename))
-    
+
     return Dataset(os.path.join(targetdir, basename), 'w', format='NETCDF4')
 
 def create_derivative(targetdir, reader, dstname, description_suffix, extra_dependencies, limityears=None):
