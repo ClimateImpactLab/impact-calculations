@@ -34,7 +34,7 @@ from impactlab_tools.utils import files
 from .econmodel import *
 from datastore import agecohorts, irvalues, irregions
 from climate.yearlyreader import RandomYearlyAccess
-from interpret import averages
+from interpret import averages, configs
 
 
 ## Class constructor with arguments (initial values, running length)
@@ -196,17 +196,16 @@ class EconomicCovariator(Covariator):
 
         if config is None:
             config = {}
+
         self.numeconyears = config.get('length', standard_economic_config['length'])
 
         self.econ_predictors = economicmodel.baseline_prepared(maxbaseline, self.numeconyears, lambda values: averages.interpret(config, standard_economic_config, values))
         self.economicmodel = economicmodel
 
-        if config.get('slowadapt', 'none') in ['income', 'both']:
-            self.slowgrowth = True
+        self.covariates_scalar = configs.get_covariate_rate(config, 'income')
+        if self.covariates_scalar != 1:
             self.baseline_loggdppc = {region: self.econ_predictors[region]['loggdppc'].get() for region in self.econ_predictors}
             self.baseline_loggdppc['mean'] = np.mean(list(self.baseline_loggdppc.values()))
-        else:
-            self.slowgrowth = False
 
         self.country_level = bool(country_level)
 
@@ -242,13 +241,13 @@ class EconomicCovariator(Covariator):
         else:
             density = econpreds['popop'].get()
 
-        if self.slowgrowth:
-            # Equivalent to baseline * exp(growth * time / 2)
+        if self.covariates_scalar != 1:
+            # this is equivalent to loggdppc := baseline * exp(growth * time / covariates_scalar)
             if region in self.baseline_loggdppc:
-                loggdppc = (loggdppc + self.baseline_loggdppc[region]) / 2
+                loggdppc = self.covariates_scalar*(loggdppc - self.baseline_loggdppc[region]) + self.baseline_loggdppc[region]
             else:
-                loggdppc = (loggdppc + self.baseline_loggdppc['mean']) / 2
-                
+                loggdppc = self.covariates_scalar*(loggdppc - self.baseline_loggdppc['mean']) + self.baseline_loggdppc['mean']
+     
         return dict(loggdppc=loggdppc, popop=density)
 
     def get_current(self, region):
@@ -431,6 +430,7 @@ class MeanWeatherCovariator(Covariator):
 
         if config is None:
             config = {}
+
         self.numtempyears = config.get('length', standard_climate_config['length'])
         self.variable = variable
 
@@ -451,14 +451,12 @@ class MeanWeatherCovariator(Covariator):
         self.temp_predictors = temp_predictors
         self.weatherbundle = weatherbundle
 
-        if config.get('slowadapt', 'none') in ['both', 'temperature']:
-            self.slowadapt = True
+        self.covariates_scalar = configs.get_covariate_rate(config, 'climate')
+        if self.covariates_scalar != 1:
             baseline_predictors = {}
             for region in temp_predictors:
                 baseline_predictors[region] = temp_predictors[region].get()
             self.baseline_predictors = baseline_predictors
-        else:
-            self.slowadapt = False
 
         self.usedaily = usedaily
 
@@ -471,10 +469,12 @@ class MeanWeatherCovariator(Covariator):
         region : str
         """
         #assert region in self.temp_predictors, "Missing " + region
-        if self.slowadapt:
-            return {self.variable: (self.temp_predictors[region].get() + self.baseline_predictors[region]) / 2}
-        else:
+
+        if self.covariates_scalar != 1:
+            return {self.variable: self.covariates_scalar*(self.temp_predictors[region].get() - self.baseline_predictors[region]) + self.baseline_predictors[region]}
+        else :
             return {self.variable: self.temp_predictors[region].get()}
+
 
     def get_update(self, region, year, ds):
         """
@@ -494,8 +494,8 @@ class MeanWeatherCovariator(Covariator):
         if ds is not None and year > self.startupdateyear:
             self.temp_predictors[region].update(np.mean(ds[self.dsvar]._values)) # if only yearly values
 
-        if self.slowadapt:
-            return {self.variable: (self.temp_predictors[region].get() + self.baseline_predictors[region]) / 2, 'year': self.get_yearcovar(region)}
+        if self.covariates_scalar != 1:
+            return {self.variable: self.covariates_scalar*(self.temp_predictors[region].get() - self.baseline_predictors[region]) + self.baseline_predictors[region], 'year': self.get_yearcovar(region)}
         else:
             return {self.variable: self.temp_predictors[region].get(), 'year': self.get_yearcovar(region)}
 
