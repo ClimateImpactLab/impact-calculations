@@ -1,3 +1,4 @@
+import os
 from impactlab_tools.utils import paralog
 
 class NoClaimStatusManager:
@@ -14,8 +15,8 @@ class NoClaimStatusManager:
 
         return True
 
-    def is_claimed(self, dirpath):
-        if not os.path.exists(dirpath):
+    def is_claimed(self, dirname):
+        if not os.path.exists(dirname):
             return False
         
         for jobname in [self.jobname] + self.exclusive_jobnames:
@@ -26,7 +27,7 @@ class NoClaimStatusManager:
 
         return False
 
-    def release(dirpath, status):
+    def release(self, dirpath, status):
         pass
 
 class NoWriteDataset:
@@ -36,7 +37,7 @@ class NoWriteDataset:
     def createDimension(self, dimname, size=None):
         pass
 
-    def createVariable(self, varname, datatype, **kwargs):
+    def createVariable(self, varname, datatype, *args, **kwargs):
         return NoWriteVariable(varname, datatype)
 
     def close(self):
@@ -44,8 +45,14 @@ class NoWriteDataset:
 
 class NoWriteVariable:
     def __init__(self, varname, datatype):
-        pass
+        self.values = None
 
     def __setitem__(self, key, value):
-        pass
+        if isinstance(key, slice):
+            self.values = value
     
+    def __iter__(self):
+        return iter(self.values)
+
+    def __len__(self):
+        return len(self.values)
