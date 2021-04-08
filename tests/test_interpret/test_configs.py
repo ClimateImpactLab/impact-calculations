@@ -1,6 +1,7 @@
+import pytest
+import unittest
 from pathlib import Path
-from interpret.configs import merge_import_config
-
+from interpret.configs import merge_import_config, get_covariate_rate
 
 class TestMergeImportConfig:
     """Collection of tests for merge_import_config
@@ -58,3 +59,30 @@ class TestMergeImportConfig:
 
         output = merge_import_config(input_dict, fpath=base_path)
         assert expected == output
+
+
+class TestConfigCovariateChange(unittest.TestCase):
+    def test_get_covariate_rate_ambiguous(self):
+
+        ambiguous_config = {'slowadapt': 'both', 'scale-covariate-changes': {'income': 0.5, 'climate': 0.5}}
+        with pytest.raises(ValueError):
+            get_covariate_rate(ambiguous_config, 'income')
+
+    def test_get_covariate_rate_slowadapt(self):
+
+        self.assertEqual(get_covariate_rate({'slowadapt': 'income'}, 'income'), 0.5)
+        self.assertEqual(get_covariate_rate({'slowadapt': 'income'}, 'climate'), 1)
+        self.assertEqual(get_covariate_rate({'slowadapt': 'both'}, 'income'), 0.5)
+        self.assertEqual(get_covariate_rate({'slowadapt': 'both'}, 'climate'), 0.5)
+
+    def test_get_covariate_rate_arbitrary_scalar(self):
+
+        config = {'scale-covariate-changes': {'income': 0.7, 'climate': 4}}
+        self.assertEqual(get_covariate_rate(config, 'income'), 0.7)
+        self.assertEqual(get_covariate_rate(config, 'climate'), 4)
+
+    def test_get_covariate_rate_nosideeffect(self):
+
+        config = {'scale-covariate-changes': {'income': 0.7, 'climate': 4}, 'stuff': 'random'}
+        rate = get_covariate_rate(config, 'income')
+        self.assertTrue('stuff' in config and config.get('stuff') == 'random')
