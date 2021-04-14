@@ -200,11 +200,6 @@ def make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, d
         dstvalues[:] = np.nan
         if vcv is None:
             srcvalues = variable[:, :]
-
-            # Clean up bad values
-            realvalues = np.isfinite(srcvalues)
-            srcvalues = np.nan_to_num(srcvalues, copy=False, posinf=0, neginf=0)
-            
             # Iterates over aggregated regions
             for ii in range(len(prefixes)):
                 # Setup numerator and demoninator vector across time
@@ -229,14 +224,13 @@ def make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, d
                         numers = numers[:srcvalues.shape[0]]
                         denoms = denoms[:srcvalues.shape[0]]
 
-                    numers += wws * srcvalues[:, original_indices[original]]
-
+                    numers += wws * np.nan_to_num(srcvalues[:, original_indices[original]]) * np.isfinite(srcvalues[:, original_indices[original]])
                     if stweight_denom != weights.HALFWEIGHT_SUMTO1: # wait for sum-to-1
                         if stweight_denom:
                             weights_denom = stweight_denom.get_time(original)
-                            denoms += weights_denom * realvalues[:, original_indices[original]]
+                            denoms += weights_denom * np.isfinite(srcvalues[:, original_indices[original]])
                         else:
-                            denoms += wws * realvalues[:, original_indices[original]]
+                            denoms += wws * np.isfinite(srcvalues[:, original_indices[original]])
 
                 # Fill in result
                 if stweight_denom == weights.HALFWEIGHT_SUMTO1: # wait for sum-to-1
@@ -248,11 +242,6 @@ def make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, d
             coeffvalues = np.zeros((vcv.shape[0], len(years), len(prefixes)))
             # Perform aggregation on BCDE vectors
             srcvalues = reader.variables[key + '_bcde'][:, :, :]
-
-            # Clean up bad values
-            realvalues = np.isfinite(srcvalues)
-            srcvalues = np.nan_to_num(srcvalues, copy=False, posinf=0, neginf=0)
-
             # Iterates over aggregated regions
             for ii in range(len(prefixes)):
                 # Setup numerator and demoninator vector across time
@@ -280,12 +269,12 @@ def make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, d
                     for tt in range(len(years)):
                         if prefixes[ii] == debug_aggregate and tt == len(years) - 1:
                             print(original, wws[tt])
-                            print(srcvalues[:, tt, original_indices[original]] * np.all(realvalues[:, tt, original_indices[original]]))
-                        numers[:, tt] += wws[tt] * srcvalues[:, tt, original_indices[original]] * np.all(realvalues[:, tt, original_indices[original]])
+                            print(np.nan_to_num(srcvalues[:, tt, original_indices[original]]) * np.all(np.isfinite(srcvalues[:, tt, original_indices[original]])))
+                        numers[:, tt] += wws[tt] * np.nan_to_num(srcvalues[:, tt, original_indices[original]]) * np.all(np.isfinite(srcvalues[:, tt, original_indices[original]]))
                         if stweight_denom != weights.HALFWEIGHT_SUMTO1: # wait for sum-to-1
                             if prefixes[ii] == debug_aggregate and tt == len(years) - 1:
-                                print(weights_denom[tt] * np.all(realvalues[:, tt, original_indices[original]]))
-                            denoms[tt] += weights_denom[tt] * np.all(realvalues[:, tt, original_indices[original]])
+                                print(weights_denom[tt] * np.all(np.isfinite(srcvalues[:, tt, original_indices[original]])))
+                            denoms[tt] += weights_denom[tt] * np.all(np.isfinite(srcvalues[:, tt, original_indices[original]]))
 
                 # Fill in result
                 if stweight_denom == weights.HALFWEIGHT_SUMTO1: # wait for sum-to-1
