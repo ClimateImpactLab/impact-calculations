@@ -39,7 +39,7 @@ suffix = "-aggregated"    # aggregated results across higher-level regions
 missing_only = True       # generate only missing output files, or regenerate all?
 
 debug_aggregate = False   # If not false, set to the name of an aggregated region to report. e.g., 'ARE'
-noside_profile_count = False # If not false, generate no files (and claim no directories), but profile time to generate N results
+noside_profile_count = None # If not None, generate no files (and claim no directories), but profile time to generate N results
 
 # Command to run to generate adaptation costs files
 costs_command = "Rscript generate/cost_curves.R \"%s\" \"%s\" \"%s\" \"%s\" \"%s\"" # tavgpath rcp gcm impactspath suffix
@@ -511,7 +511,7 @@ if __name__ == '__main__':
 
     aggregations_performed = 0
     
-    if isinstance(file_configs.get('profile', False), int):
+    if isinstance(file_configs.get('profile', None), int):
         import cProfile, pstats, io
 
         noside_profile_count = file_configs['profile']
