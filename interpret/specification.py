@@ -110,7 +110,8 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config=None, quiet
         # Produces spline term covariates, named [name]spline1, [name]spline2, etc.
         return covariates.SplineCovariator(get_covariator(covar[:-6], None, weatherbundle, economicmodel, config=config, quiet=quiet, env=env), 'spline', args)
     elif covar[:8] == 'seasonal':
-        return covariates.SeasonalWeatherCovariator(weatherbundle, 2015, config['within-season'], covar[8:], config=configs.merge(config, 'climcovar'))
+        seasondefs = config.get('covariate-season', config.get('within-season', None))
+        return covariates.SeasonalWeatherCovariator(weatherbundle, 2015, seasondefs, covar[8:], config=configs.merge(config, 'climcovar'))
     elif covar[:4] == 'clim': # climtas, climcdd-20, etc.
         return covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, covar[4:], config=configs.merge(config, 'climcovar'), usedaily=True, quiet=quiet), {covar: covar[4:]})
     elif covar[:6] == 'hierid':
