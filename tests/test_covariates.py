@@ -64,8 +64,6 @@ def test_scale_covariate_change(monkeypatch):
     this test method approach is to retrieve covariate values passing various values to scale-covariate-changes and verify that the fractional change is 
     appropriately rescaled (or left as is)"""
 
-    monkeypatch.setattr(files, 'server_config', {'shareddir': '/shares/gcp'})
-
     real_change = get_fractional_change() # getting some arbitrary fractional change
     
     # test slowadapt legacy (scalar==0.5). Expects to obtain a value equal to half real_change. 
