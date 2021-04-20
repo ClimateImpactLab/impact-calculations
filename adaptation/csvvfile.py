@@ -10,7 +10,6 @@ Specification.pdf.
 import csv, copy, re
 import numpy as np
 import metacsv
-from scipy.stats import multivariate_normal
 from . import csvvfile_legacy
 
 def read(filename):
@@ -105,10 +104,10 @@ def collapse_bang(data, seed):
         data['gammavcv'] = None
     else:
         rng = np.random.default_rng(seed)
-        data['gamma'] = multivariate_normal.rvs(
+        data['gamma'] = rng.multivariate_normal(
             mean=data['gamma'],
             cov=data['gammavcv'],
-            random_state=rng,
+            method="eigh",
         )
         data['gammavcv'] = None # this will cause errors if used again
 
