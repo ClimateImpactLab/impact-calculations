@@ -122,6 +122,7 @@ def collapse_bang(data, seed, method="svd"):
         data['gamma'] = rng.multivariate_normal(
             mean=data['gamma'],
             cov=data['gammavcv'],
+            check_valid="raise",
             method=method,
         )
         data['gammavcv'] = None  # this will cause errors if used again
