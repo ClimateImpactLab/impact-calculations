@@ -110,7 +110,7 @@ def collapse_bang(data, seed, method="svd"):
     data : MutableMapping
         Information on multivariate draws. Must have numpy.ndarray or ``None``
         mapped to keys "gamma" and "gammavcv". Note that values will be modified in place.
-    seed : None, int, array_like[ints], SeedSequence, BitGenerator, Generator
+    seed : None, int, array_like[ints], SeedSequence
         Value to seed internal random state generator.
     method : {"svd", "eigh", "cholesky"}, optional
         Method of MVN draw. Passed to ``numpy.random.Generator.multivariate_normal``.
@@ -118,7 +118,7 @@ def collapse_bang(data, seed, method="svd"):
     if seed is None:
         data['gammavcv'] = None
     else:
-        rng = np.random.default_rng(seed)
+        rng = np.random.Generator(np.random.PCG64(seed))
         data['gamma'] = rng.multivariate_normal(
             mean=data['gamma'],
             cov=data['gammavcv'],
