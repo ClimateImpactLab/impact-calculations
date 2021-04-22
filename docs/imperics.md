@@ -120,6 +120,10 @@ Basic model configration:
   CSV file.  The columns of file should include `hierid`,
   `plant_date`, `harvest_date`, `plant_month`, `harvest_month`.
 
+* `covariate-season` (optional): Specify a distinct season definition
+  file, following the same format as for `within-season`, for seasonal
+  covariates.
+
 * `extrapolation` (optional): Assumes linear extrapolation outside of
   certain bounds, if given. The following arguments specify the
   extrapolation scheme: 
