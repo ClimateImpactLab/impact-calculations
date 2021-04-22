@@ -98,8 +98,23 @@ def read_girdin(data, fp):
 
     return data
 
-def collapse_bang(data, seed):
-    """collapse_bang draws from the multivariate uncertainty in the parameters of a CSVV, and changes those values accordingly."""
+def collapse_bang(data, seed, method="svd"):
+    """collapse_bang draws from the multivariate uncertainty in the parameters of a CSVV, and changes those values accordingly.
+
+    Note that this function modifies ``data`` values in-place.
+    ``data["gamma"]`` might be updated with with a draw random draw but
+    ``data["gammavcv"]`` is always set to ``None``.
+
+    Parameters
+    ----------
+    data : MutableMapping
+        Information on multivariate draws. Must have numpy.ndarray or ``None``
+        mapped to keys "gamma" and "gammavcv". Note that values will be modified in place.
+    seed : None, int, array_like[ints], SeedSequence, BitGenerator, Generator
+        Value to seed internal random state generator.
+    method : {"svd", "eigh", "cholesky"}, optional
+        Method of MVN draw. Passed to ``numpy.random.Generator.multivariate_normal``.
+    """
     if seed is None:
         data['gammavcv'] = None
     else:
@@ -107,9 +122,9 @@ def collapse_bang(data, seed):
         data['gamma'] = rng.multivariate_normal(
             mean=data['gamma'],
             cov=data['gammavcv'],
-            method="eigh",
+            method=method,
         )
-        data['gammavcv'] = None # this will cause errors if used again
+        data['gammavcv'] = None  # this will cause errors if used again
 
 def binnames(xxlimits, prefix):
     """Construct the string that names a given bin, from its limits.
