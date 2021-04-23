@@ -69,6 +69,9 @@ This section can interpret the following named parameters:
   interpreted by `climate.discover::standard_variable`.
 * `rolling-years` (optional): Number of years to be included in each
   result year's calculation, as a rolling sequence.
+* `mvn-method` (optional): String giving method to use for any 
+  multivariate normal draws from CSVV data. Accepts `svd`, `eigh`, 
+  `cholesky`. Default is `svd`.
 * `models` (required): The list of model configurations.
 
 Basic model configration:
