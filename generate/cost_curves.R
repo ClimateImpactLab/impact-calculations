@@ -38,14 +38,12 @@
 
 rm(list=ls())
 
-library(pracma)
-library(ncdf4)
-library(dplyr)
-library(DataCombine)
-library(zoo)
-library(abind)
-library(rPython)
-source("generate/stochpower.R")
+list.of.packages <- c('pracma','ncdf4','dplyr','DataCombine','zoo','abind')
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages, repos = "http://cran.us.r-project.org")
+devtools::install_github("cran/rPython") # that one is not available directly from cran anymore : https://cran.r-project.org/web/packages/rPython/index.html
+invisible(lapply(c(list.of.packages, 'rPython'), function(x) suppressPackageStartupMessages({library(x, character.only=TRUE)})))
+suppressPackageStartupMessages({source("generate/stochpower.R")})
 
 #####################
 is.local <- F
