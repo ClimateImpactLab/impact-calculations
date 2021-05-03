@@ -666,7 +666,7 @@ if __name__ == '__main__':
                                 if 'infix' in config:
                                     fullcostsuffix = '-' + str(config['infix']) + costs_suffix
                                 else:
-                                    continue # Cannot calculate costs
+                                    fullcostsuffix = costs_suffix
 
                                 # Call the adaptation costs system
                                 print(costs_command % (tavgpath, clim_scenario, clim_model, impactspath, fullcostsuffix))
