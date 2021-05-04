@@ -558,7 +558,7 @@ if __name__ == '__main__':
                 halfweight_aggregate_denom = None
 
     ### Generate aggregate and levels files
-                
+
     # Find all target directories
     for batch, clim_scenario, clim_model, econ_scenario, econ_model, targetdir in agglib.iterresults(config['outputdir'], agglib.make_batchfilter(config), targetdirfilter):
         # Check if we should process this targetdir
@@ -656,7 +656,7 @@ if __name__ == '__main__':
                                 if hasall:
                                     # Combine costs across age-groups
                                     print("Has all component costs")
-                                    get_stweights = [lambda year0, year1: halfweight_levels.load(1950, 2100, econ_model, econ_scenario, 'age0-4', shareonly=True), lambda year0, year1: halfweight_levels.load(1950, 2100, econ_model, econ_scenario, 'age5-64', shareonly=True), lambda year0, year1: halfweight_levels.load(1950, 2100, econ_model, econ_scenario, 'age65+', shareonly=True)]
+                                    get_stweights = [lambda year0, year1: halfweight_levels.load(1980, 2099, econ_model, econ_scenario, 'age0-4', shareonly=True), lambda year0, year1: halfweight_levels.load(1980, 2099, econ_model, econ_scenario, 'age5-64', shareonly=True), lambda year0, year1: halfweight_levels.load(1980, 2099, econ_model, econ_scenario, 'age65+', shareonly=True)]
                                     agglib.combine_results(targetdir, filename[:-4] + costs_suffix, basenames, get_stweights, "Combined costs across age-groups for " + filename.replace('-combined.nc4', ''))
                             else:
                                 # Prepare arguments to adaptation costs system
@@ -679,6 +679,7 @@ if __name__ == '__main__':
 
                         # Aggregate costs
                         outfilename = fullfile(filename, costs_suffix + suffix, config)
+
                         if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)):
                             make_costs_aggregate(targetdir, fullfile(filename, costs_suffix, config), outfilename, halfweight_aggregate, weight_args_aggregate, halfweight_denom=halfweight_aggregate_denom, weight_args_denom=weight_args_aggregate_denom, config=config)
                     elif 'indiamerge' in filename:
@@ -704,3 +705,7 @@ if __name__ == '__main__':
         statman.release(targetdir, "Incomplete" if incomplete else "Complete")
         # Make sure all produced files are read-writable by the group
         os.system("chmod g+rw --quiet " + os.path.join(targetdir, "*"))
+
+
+
+
