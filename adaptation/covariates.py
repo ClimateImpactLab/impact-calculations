@@ -34,7 +34,7 @@ from impactlab_tools.utils import files
 from .econmodel import *
 from datastore import agecohorts, irvalues, irregions
 from climate.yearlyreader import RandomYearlyAccess
-from interpret import averages
+from interpret import averages, configs
 
 
 ## Class constructor with arguments (initial values, running length)
@@ -196,17 +196,16 @@ class EconomicCovariator(Covariator):
 
         if config is None:
             config = {}
+
         self.numeconyears = config.get('length', standard_economic_config['length'])
 
         self.econ_predictors = economicmodel.baseline_prepared(maxbaseline, self.numeconyears, lambda values: averages.interpret(config, standard_economic_config, values))
         self.economicmodel = economicmodel
 
-        if config.get('slowadapt', 'none') in ['income', 'both']:
-            self.slowgrowth = True
+        self.covariates_scalar = configs.get_covariate_rate(config, 'income')
+        if self.covariates_scalar != 1:
             self.baseline_loggdppc = {region: self.econ_predictors[region]['loggdppc'].get() for region in self.econ_predictors}
             self.baseline_loggdppc['mean'] = np.mean(list(self.baseline_loggdppc.values()))
-        else:
-            self.slowgrowth = False
 
         self.country_level = bool(country_level)
 
@@ -242,13 +241,13 @@ class EconomicCovariator(Covariator):
         else:
             density = econpreds['popop'].get()
 
-        if self.slowgrowth:
-            # Equivalent to baseline * exp(growth * time / 2)
+        if self.covariates_scalar != 1:
+            # this is equivalent to loggdppc := baseline * exp(growth * time / covariates_scalar)
             if region in self.baseline_loggdppc:
-                loggdppc = (loggdppc + self.baseline_loggdppc[region]) / 2
+                loggdppc = self.covariates_scalar*(loggdppc - self.baseline_loggdppc[region]) + self.baseline_loggdppc[region]
             else:
-                loggdppc = (loggdppc + self.baseline_loggdppc['mean']) / 2
-                
+                loggdppc = self.covariates_scalar*(loggdppc - self.baseline_loggdppc['mean']) + self.baseline_loggdppc['mean']
+     
         return dict(loggdppc=loggdppc, popop=density)
 
     def get_current(self, region):
@@ -431,11 +430,12 @@ class MeanWeatherCovariator(Covariator):
 
         if config is None:
             config = {}
+
         self.numtempyears = config.get('length', standard_climate_config['length'])
         self.variable = variable
 
         if not quiet:
-            print("Collecting baseline information...")
+            print("Collecting baseline information: Mean of " + variable)
         self.dsvar = variable # Save this to be consistent
             
         temp_predictors = {}
@@ -451,14 +451,12 @@ class MeanWeatherCovariator(Covariator):
         self.temp_predictors = temp_predictors
         self.weatherbundle = weatherbundle
 
-        if config.get('slowadapt', 'none') in ['both', 'temperature']:
-            self.slowadapt = True
+        self.covariates_scalar = configs.get_covariate_rate(config, 'climate')
+        if self.covariates_scalar != 1:
             baseline_predictors = {}
             for region in temp_predictors:
                 baseline_predictors[region] = temp_predictors[region].get()
             self.baseline_predictors = baseline_predictors
-        else:
-            self.slowadapt = False
 
         self.usedaily = usedaily
 
@@ -471,10 +469,12 @@ class MeanWeatherCovariator(Covariator):
         region : str
         """
         #assert region in self.temp_predictors, "Missing " + region
-        if self.slowadapt:
-            return {self.variable: (self.temp_predictors[region].get() + self.baseline_predictors[region]) / 2}
-        else:
+
+        if self.covariates_scalar != 1:
+            return {self.variable: self.covariates_scalar*(self.temp_predictors[region].get() - self.baseline_predictors[region]) + self.baseline_predictors[region]}
+        else :
             return {self.variable: self.temp_predictors[region].get()}
+
 
     def get_update(self, region, year, ds):
         """
@@ -494,8 +494,8 @@ class MeanWeatherCovariator(Covariator):
         if ds is not None and year > self.startupdateyear:
             self.temp_predictors[region].update(np.mean(ds[self.dsvar]._values)) # if only yearly values
 
-        if self.slowadapt:
-            return {self.variable: (self.temp_predictors[region].get() + self.baseline_predictors[region]) / 2, 'year': self.get_yearcovar(region)}
+        if self.covariates_scalar != 1:
+            return {self.variable: self.covariates_scalar*(self.temp_predictors[region].get() - self.baseline_predictors[region]) + self.baseline_predictors[region], 'year': self.get_yearcovar(region)}
         else:
             return {self.variable: self.temp_predictors[region].get(), 'year': self.get_yearcovar(region)}
 
@@ -760,7 +760,7 @@ class MeanBinsCovariator(Covariator):
         self.numtempyears = config.get('length', standard_climate_config['length'])
 
         if not quiet:
-            print("Collecting baseline information...")
+            print("Collecting baseline information: Bins")
         temp_predictors = {} # {region: [rm-bin-1, ...]}
         for region, binyears in weatherbundle.baseline_values(maxbaseline, quiet=quiet, only_region=config.get('filter-region')): # baseline through maxbaseline
             usedbinyears = []
@@ -1093,7 +1093,8 @@ class SplineCovariator(TranslateCovariator):
     """Convert a simple covariator into a series of spline segments.
     Each spline segment is defined as (x - l_k) * (x >= l_k) for some l_k.
 
-    `covariator` should be a Covariator, returning dictionaries containing `covarname`.
+    `covariator` should be a Covariator, returning dictionaries
+    containing the covariate to be turned into a spline.
 
     The resulting spline covariate dictionary will contain keys of
     the form `[covarname][suffix][k]`, for `k` in 1 ... len(leftlimits).
@@ -1102,16 +1103,14 @@ class SplineCovariator(TranslateCovariator):
     ----------
     covariator : Covariator 
         Source for variable to be splined.
-    covarname : str
-        The covariate reported by `covariator`.
     suffix : str
         Added to the covariate name when reporting splines.
     leftlimits : list-like of numeric
         The values for l_k as defined above.
+
     """
-    def __init__(self, covariator, covarname, suffix, leftlimits):
+    def __init__(self, covariator, suffix, leftlimits):
         super(SplineCovariator, self).__init__(covariator, {})
-        self.covarname = covarname
         self.suffix = suffix
         self.leftlimits = leftlimits
 
@@ -1127,15 +1126,58 @@ class SplineCovariator(TranslateCovariator):
         result : dict
         """
         result = {}
-        for ii in range(len(self.leftlimits)):
-            if covariates[self.covarname] - self.leftlimits[ii] < 0:
-                result[self.covarname + self.suffix + str(ii+1)] = 0
-                result[self.covarname + 'indic' + str(ii+1)] = 0
-            else:
-                result[self.covarname + self.suffix + str(ii+1)] = covariates[self.covarname] - self.leftlimits[ii]
-                result[self.covarname + 'indic' + str(ii+1)] = 1
+        for covarname in covariates:
+            for ii in range(len(self.leftlimits)):
+                if covariates[covarname] - self.leftlimits[ii] < 0:
+                    result[covarname + self.suffix + str(ii+1)] = 0
+                    result[covarname + 'indic' + str(ii+1)] = 0
+                else:
+                    result[covarname + self.suffix + str(ii+1)] = covariates[covarname] - self.leftlimits[ii]
+                    result[covarname + 'indic' + str(ii+1)] = 1
         return result
-                
+
+class ClipCovariator(TranslateCovariator):
+    """Clip covariate values at a high and low value.
+
+    `covariator` should be a Covariator, returning dictionaries
+    containing the covariate to be clipped.
+
+    The resulting covariate dictionary will contain this covarname,
+    but with values clipped to be between the high and low bounds.
+        
+    Parameters
+    ----------
+    covariator : Covariator 
+        Source for variable to be splined.
+    cliplow : float
+        clip values to be max(cliplow, baseline)
+    cliphigh : float
+        clip values to be min(cliphigh, baseline)
+
+    """
+    def __init__(self, covariator, cliplow, cliphigh):
+        super(ClipCovariator, self).__init__(covariator, {})
+        self.cliplow = cliplow
+        self.cliphigh = cliphigh
+
+    def translate(self, covariates):
+        """
+        Parameters
+        ----------
+        covariates : dict
+
+        Returns
+        -------
+        result : dict
+        """
+        for covarname in covariates:
+            if covariates[covarname] < self.cliplow:
+                covariates[covarname] = self.cliplow
+            elif covariates[covarname] > self.cliphigh:
+                covariates[covarname] = self.cliphigh
+
+        return covariates
+
 class CountryAggregatedCovariator(Covariator):
     """Spatially average the covariates across all regions within a country.
 

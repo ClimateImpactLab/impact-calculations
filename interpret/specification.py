@@ -36,7 +36,7 @@ def user_assert(check, message):
     if not check:
         user_failure(message)
 
-def get_covariator(covar, args, weatherbundle, economicmodel, config=None, quiet=False):
+def get_covariator(covar, args, weatherbundle, economicmodel, config=None, quiet=False, env=None):
     """Intreprets a single entry in the covariates dictionary.
 
     Parameters
@@ -50,6 +50,9 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config=None, quiet
     economicmodel : adaptation.econmodel.SSPEconomicModel
     config : dict, optional
     quiet : bool
+    env : dict of name => Covariator, optional
+        This is an environment containing Covariator objects. Subclauses of `covar` may set variables within this environment.
+        Typically, environments are not shared across config-file-level `covar` entries.
 
     Returns
     -------
@@ -57,8 +60,12 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config=None, quiet
     """
     if config is None:
         config = {}
+    if env is None:
+        env = {}
     if isinstance(covar, dict):
-        return get_covariator(list(covar.keys())[0], list(covar.values())[0], weatherbundle, economicmodel, config=config, quiet=quiet)
+        return get_covariator(list(covar.keys())[0], list(covar.values())[0], weatherbundle, economicmodel, config=config, quiet=quiet, env=env)
+    elif covar in env:
+        return env[covar]
     elif covar in ['loggdppc', 'logpopop', 'year']:
         return covariates.EconomicCovariator(economicmodel, 2015, config=configs.merge(config, 'econcovar'))
     elif covar in ['loggdppc.country', 'logpopop.country']:
@@ -73,17 +80,38 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config=None, quiet
         return covariates.ShiftedEconomicCovariator(economicmodel, 2015, country_level=True, config=config)
     elif covar == 'ir-share':
         return covariates.ConstantCovariator('ir-share', irvalues.load_irweights("social/baselines/agriculture/world-combo-201710-irrigated-area.csv", 'irrigated_share'))
+    elif '(' in covar:
+        stack = []
+        envstack = [{}]
+        for cc in range(len(covar)):
+            if covar[cc] == '(':
+                stack.append(cc)
+                envstack.append({})
+            elif covar[cc] == ')':
+                c0 = stack.pop()
+                envstack.pop() # drop
+                covariator = get_covariator(covar[c0+1:cc], args, weatherbundle, economicmodel, config=config, quiet=quiet, env=envstack[-1])
+                varname = 'C' + str(len(envstack[-1])) + ('x' * (cc - c0 - 1))
+                covar = covar[:c0] + varname + covar[cc+1:]
+                envstack[-1][varname] = (covariator)
+        return get_covariator(covar, args, weatherbundle, economicmodel, config=config, quiet=quiet, env=envstack[0])
     elif '*' in covar:
-        sources = [get_covariator(x.strip(), args, weatherbundle, economicmodel, config=config, quiet=quiet) for x in covar.split('*', 1)]
+        sources = [get_covariator(x.strip(), args, weatherbundle, economicmodel, config=config, quiet=quiet, env=env) for x in covar.split('*', 1)]
         return covariates.ProductCovariator(sources[0], sources[1])
     elif '^' in covar:
         chunks = covar.split('^', 1)
-        return covariates.PowerCovariator(get_covariator(chunks[0].strip(), args, weatherbundle, economicmodel, config=config, quiet=quiet), float(chunks[1]))
+        return covariates.PowerCovariator(get_covariator(chunks[0].strip(), args, weatherbundle, economicmodel, config=config, quiet=quiet, env=env), float(chunks[1]))
+    elif covar[-4:] == 'clip':
+        # Clip covariate to be between two bounds
+        if len(args) != 2:
+            raise ValueError(f"clipping args must be len 2, got {args}")
+        return covariates.ClipCovariator(get_covariator(covar[:-4], None, weatherbundle, economicmodel, config=config, quiet=quiet, env=env), args[0], args[1])
     elif covar[-6:] == 'spline':
         # Produces spline term covariates, named [name]spline1, [name]spline2, etc.
-        return covariates.SplineCovariator(get_covariator(covar[:-6], None, weatherbundle, economicmodel, config=config, quiet=quiet), covar[:-6], 'spline', args)
+        return covariates.SplineCovariator(get_covariator(covar[:-6], None, weatherbundle, economicmodel, config=config, quiet=quiet, env=env), 'spline', args)
     elif covar[:8] == 'seasonal':
-        return covariates.SeasonalWeatherCovariator(weatherbundle, 2015, config['within-season'], covar[8:], config=configs.merge(config, 'climcovar'))
+        seasondefs = config.get('covariate-season', config.get('within-season', None))
+        return covariates.SeasonalWeatherCovariator(weatherbundle, 2015, seasondefs, covar[8:], config=configs.merge(config, 'climcovar'))
     elif covar[:4] == 'clim': # climtas, climcdd-20, etc.
         return covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, covar[4:], config=configs.merge(config, 'climcovar'), usedaily=True, quiet=quiet), {covar: covar[4:]})
     elif covar[:6] == 'hierid':
@@ -432,10 +460,15 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     user_assert('calculation' in specconf, "Specification configuration missing 'calculation' list.")
     user_assert('description' in specconf, "Specification configuration missing 'description' list.")
 
+
     if config.get('report-variance', False):
         csvv['gamma'] = np.zeros(len(csvv['gamma'])) # So no mistaken results
     else:
-        csvvfile.collapse_bang(csvv, qvals.get_seed('csvv'))
+        csvvfile.collapse_bang(
+            csvv,
+            seed=qvals.get_seed('csvv'),
+            method=config.get("mvn-method", "svd")
+        )
     
     depenunit = specconf['depenunit']
     

@@ -42,7 +42,11 @@ csvvpath = config['csvvpath']
 basename = os.path.basename(csvvpath)[:-5]
 
 csvv = csvvfile.read(files.configpath(csvvpath))
-csvvfile.collapse_bang(csvv, pvals[basename].get_seed('csvv'))
+csvvfile.collapse_bang(
+    csvv,
+    seed=pvals[basename].get_seed('csvv'),
+    method=config.get("mvn-method", "svd")
+)
 
 if 'csvvsubset' in config:
     indices = variables.read_range(config['csvvsubset'])
