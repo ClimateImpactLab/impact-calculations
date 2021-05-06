@@ -28,7 +28,7 @@ def static_mvn(_monkeymodule):
     pinning software dependency versions.
     """
 
-    def mock_collapse_bang(data=None, seed=None):
+    def mock_collapse_bang(data=None, seed=None, method="svd"):
         """Mock/stub adaptation.csvvfile.collapse_bang() to stabilize an MVN
 
         Note this stub has default arguments - unlike the original func. This
