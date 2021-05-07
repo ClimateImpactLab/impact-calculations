@@ -471,7 +471,11 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     depenunit = specconf['depenunit']
     
     covariator = create_covariator(specconf, weatherbundle, economicmodel, config, farmer=farmer)
-    final_curvegen = create_curvegen(csvv, covariator, weatherbundle.regions, farmer=farmer, specconf=specconf)
+
+    # Subset to regions (i.e. hierids) to act on.
+    target_regions = configs.get_regions(weatherbundle.regions, config.get('filter-region'))
+
+    final_curvegen = create_curvegen(csvv, covariator, target_regions, farmer=farmer, specconf=specconf)
 
     extras = dict(output_unit=depenunit, units=depenunit, curve_description=specconf['description'], errorvar=csvvfile.get_errorvar(csvv))
     calculation = calculator.create_postspecification(specconf['calculation'], {'default': final_curvegen}, None, extras=extras)
