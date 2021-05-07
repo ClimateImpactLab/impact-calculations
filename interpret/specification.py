@@ -110,7 +110,8 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config=None, quiet
         # Produces spline term covariates, named [name]spline1, [name]spline2, etc.
         return covariates.SplineCovariator(get_covariator(covar[:-6], None, weatherbundle, economicmodel, config=config, quiet=quiet, env=env), 'spline', args)
     elif covar[:8] == 'seasonal':
-        return covariates.SeasonalWeatherCovariator(weatherbundle, 2015, config['within-season'], covar[8:], config=configs.merge(config, 'climcovar'))
+        seasondefs = config.get('covariate-season', config.get('within-season', None))
+        return covariates.SeasonalWeatherCovariator(weatherbundle, 2015, seasondefs, covar[8:], config=configs.merge(config, 'climcovar'))
     elif covar[:4] == 'clim': # climtas, climcdd-20, etc.
         return covariates.TranslateCovariator(covariates.MeanWeatherCovariator(weatherbundle, 2015, covar[4:], config=configs.merge(config, 'climcovar'), usedaily=True, quiet=quiet), {covar: covar[4:]})
     elif covar[:6] == 'hierid':
@@ -459,10 +460,15 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     user_assert('calculation' in specconf, "Specification configuration missing 'calculation' list.")
     user_assert('description' in specconf, "Specification configuration missing 'description' list.")
 
+
     if config.get('report-variance', False):
         csvv['gamma'] = np.zeros(len(csvv['gamma'])) # So no mistaken results
     else:
-        csvvfile.collapse_bang(csvv, qvals.get_seed('csvv'))
+        csvvfile.collapse_bang(
+            csvv,
+            seed=qvals.get_seed('csvv'),
+            method=config.get("mvn-method", "svd")
+        )
     
     depenunit = specconf['depenunit']
     
