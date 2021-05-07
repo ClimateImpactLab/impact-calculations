@@ -359,18 +359,16 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
         else:
             final_curve = smart_curve.CoefficientsCurve(curve.ccs, weathernames)
 
-        if clipping_cfg:
-            final_curve = smart_curve.ShiftedCurve(final_curve, -curve.univariate(baselineexts[region]))
+        if clipping_cfg or specconf.get('goodmoney', False):
+            final_curve = smart_curve.ShiftedCurve(final_curve, -final_curve.univariate(baselineexts[region]))
 
         if specconf.get('goodmoney', False):
             covars = covariator.get_current(region)
             covars['loggdppc'] = baselineloggdppcs[region]
             noincadapt_unshifted_curve = curr_curvegen.get_curve(region, None, covars, recorddiag=False)
-            if len(weathernames) > 1:
-                coeff_noincadapt_unshifted_curve = smart_curve.CoefficientsCurve(noincadapt_unshifted_curve.ccs, weathernames)
-            else:
-                coeff_noincadapt_unshifted_curve = noincadapt_unshifted_curve
-            noincadapt_curve = smart_curve.ShiftedCurve(coeff_noincadapt_unshifted_curve, -noincadapt_unshifted_curve(baselineexts[region]))
+            if not isinstance(noincadapt_unshifted_curve, smart_curve.SmartCurve):
+                noincadapt_unshifted_curve = smart_curve.CoefficientsCurve(noincadapt_unshifted_curve.ccs, weathernames)
+            noincadapt_curve = smart_curve.ShiftedCurve(noincadapt_unshifted_curve, -noincadapt_unshifted_curve.univariate(baselineexts[region]))
 
             final_curve = smart_curve.MinimumCurve(final_curve, noincadapt_curve)
 
