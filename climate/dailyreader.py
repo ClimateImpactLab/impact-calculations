@@ -115,14 +115,16 @@ class MonthlyDimensionedWeatherReader(YearlySplitWeatherReader):
             yy += 1
 
     def read_year(self, year):
-        ds = xr.open_dataset(self.file_for_year(year))
-        if 'month' in ds.coords:
-            ds.rename({'month': 'time', self.regionvar: 'region'}, inplace=True)
-        else:
-            ds.rename({self.regionvar: 'region'}, inplace=True)
-        ds[self.variable] = ds[self.variable].transpose('time', 'region', self.dim) # Some old code may depend on T x REGIONS x K
-        ds.attrs['year'] = year
-        return ds
+        """Read variable for ``year`` from file"""
+        with xr.open_dataset(self.file_for_year(year), lock=True) as ds:
+            if 'month' in ds.coords:
+                ds.rename({'month': 'time', self.regionvar: 'region'}, inplace=True)
+            else:
+                ds.rename({self.regionvar: 'region'}, inplace=True)
+            ds[self.variable] = ds[self.variable].transpose('time', 'region', self.dim) # Some old code may depend on T x REGIONS x K
+            ds.attrs['year'] = year
+            ds.load()
+            return ds
 
 class MonthlyBinnedWeatherReader(MonthlyDimensionedWeatherReader):
     """Exposes binned weather data, accumulated into months and split into yearly file."""
