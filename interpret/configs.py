@@ -143,13 +143,16 @@ def get_regions(allregions, filter_region):
 def get_interpret_container(config):
     """
     Decide on the main controller, which determines the number of threads.
-    The default number of threads for median and montecarlo mode is 2.
-    The default number of threads for parallelmc and testparallelpe is 3.
-    All other mode by default use the single threaded container.
+
+     - The default number of threads for median and montecarlo mode is
+       currently 1, but expected to become 2.
+     - The default number of threads for parallelmc and testparallelpe
+       is 3.
+     - All other mode by default use the single threaded container.
     """
     mode = config['mode']
     if mode in ['median', 'montecarlo']:
-        threads = config.get('threads', 2)
+        threads = config.get('threads', 1)
     elif mode in ['parallelmc', 'testparallelpe']:
         threads = config.get('threads', 3)
     else:
