@@ -3,6 +3,35 @@
 import os, re
 import numpy as np
 from netCDF4 import Dataset
+from xarray import open_dataset
+
+
+def load_netcdf(filename_or_obj, **kwargs):
+    """Open, load NetCDF file, close file - with thread global thread lock.
+
+    This is a thin wrapper around ``xarray.open_dataset``, behaving like
+    ``xarray.load_dataset`` (in xarray >= 0.12) in that it ensures data is
+    read into memory, returns the data, and then closes the file. This
+    function also ensures the global thread lock is set.
+
+    Parameters
+    ----------
+    filename_or_obj
+    kwargs :
+        Passed to ``xarray.open_dataset``.
+
+    Returns
+    -------
+    xarray.Dataset
+        The freshly loaded Dataset.
+    """
+    if "cache" in kwargs:
+        raise TypeError("cache has no effect in this context")
+    if "lock" in kwargs:
+        raise TypeError("lock has no effect in this context")
+    with open_dataset(filename_or_obj, lock=True, **kwargs) as ds:
+        return ds.load()
+
 
 def get_arbitrary_variables(path):
     variables = {} # result of the function
