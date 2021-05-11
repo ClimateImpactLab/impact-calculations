@@ -102,7 +102,7 @@ class MonthlyDimensionedWeatherReader(YearlySplitWeatherReader):
         years = self.get_years()
         yy = 0
         for filename in self.file_iterator():
-            ds = netcdfs.load_dataset(filename)
+            ds = netcdfs.load_netcdf(filename)
             if 'month' in ds.coords:
                 ds.rename({'month': 'time', self.regionvar: 'region'}, inplace=True)
             else:
