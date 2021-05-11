@@ -1,9 +1,12 @@
 """Helper functions for working with NetCDF files."""
 
 import os, re
+import logging
 import numpy as np
 from netCDF4 import Dataset
 from xarray import open_dataset
+
+logger = logging.getLogger(__name__)
 
 
 def load_netcdf(filename_or_obj, **kwargs):
@@ -25,10 +28,13 @@ def load_netcdf(filename_or_obj, **kwargs):
     xarray.Dataset
         The freshly loaded Dataset.
     """
+    logger.debug(f"Loading {filename_or_obj}")
+
     if "cache" in kwargs:
         raise TypeError("cache has no effect in this context")
     if "lock" in kwargs:
         raise TypeError("lock has no effect in this context")
+
     with open_dataset(filename_or_obj, lock=True, **kwargs) as ds:
         return ds.load()
 
