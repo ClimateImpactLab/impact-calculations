@@ -183,7 +183,7 @@ def worker_produce(proc, driver, driverdir, config, placeholder_pvals):
             # We need to keep pausing until other workers are done
             while True:
                 try:
-                    self.lockstep_pause()
+                    driver.lockstep_pause()
                 except threading.BrokenBarrierError:
                     break
     else:
