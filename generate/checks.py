@@ -19,7 +19,7 @@ def check_result_100years(filepath, variable='rebased', regioncount=24378):
         if np.ma.getmask(values) and values.mask[100, int(regioncount / 2)]:
             return False
 
-        if np.isnan(values[100, int(regioncount / 2)]) or np.all(np.logical_or(values[100, :] == 0, np.logical_or(values[100, :] == 1, np.isnan(values[100, :])))):
+        if np.all(np.logical_or(values[100, :] == 0, np.logical_or(values[100, :] == 1, np.isnan(values[100, :])))):
             return False
 
         return True
