@@ -168,7 +168,7 @@ class OnDemandRandomDictionary(PvalsDictionary):
 
         if self.relative_location is None:
             # Not a cross-sector dictionary
-            seed = np.random.SeedSequence().entropy
+            seed = np.random.SeedSequence().entropy + plus
         else:
             seed = cross_sector_seed(self.relative_location, name, plus)
         self.values[fullname] = seed
