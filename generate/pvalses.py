@@ -8,7 +8,7 @@ resolving the uncertainty forecasts for conflict and anything else
 that is stochastic.
 """
 
-import os, yaml, time, zlib
+import os, yaml, zlib
 import numpy as np
 
 ## These dictionaries (keys in the top-level Pvals object) have common values across sectors
@@ -168,7 +168,7 @@ class OnDemandRandomDictionary(PvalsDictionary):
 
         if self.relative_location is None:
             # Not a cross-sector dictionary
-            seed = int(time.time()) + plus
+            seed = np.random.SeedSequence().entropy
         else:
             seed = cross_sector_seed(self.relative_location, name, plus)
         self.values[fullname] = seed
