@@ -10,7 +10,7 @@ stages:
 variables:
   CONTAINER_TEST_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
   CONTAINER_RELEASE_IMAGE_GITLAB: $CI_REGISTRY_IMAGE:latest
-  CONTAINER_RELEASE_IMAGE_GCR: $GCR_HOST/$GCS_PROJECTID/imperics:latest
+  CONTAINER_RELEASE_IMAGE_GCR: $GCR_HOST/$GCS_PROJECTID/private/imperics:latest
 
 before_script:
 - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
@@ -35,7 +35,7 @@ test-pytest:
   - docker pull $CONTAINER_TEST_IMAGE
   - docker run $CONTAINER_TEST_IMAGE /bin/bash -c 'cd /opt/src/app; pytest -v -m "not imperics_shareddir" /opt/src/app'
 
-release-gitlab:
+release-docker-gitlab:
   stage: release
   script:
   - docker pull $CONTAINER_TEST_IMAGE
@@ -44,7 +44,7 @@ release-gitlab:
   only:
   - master
 
-release-gcr:
+release-docker-google:
   stage: release
   script:
   - docker pull $CONTAINER_TEST_IMAGE

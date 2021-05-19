@@ -54,7 +54,11 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer="full",
     if config.get("report-variance", False):
         csvv["gamma"] = np.zeros(len(csvv["gamma"]))  # So no mistaken results
     else:
-        csvvfile.collapse_bang(csvv, qvals.get_seed("csvv"))
+        csvvfile.collapse_bang(
+            csvv,
+            seed=qvals.get_seed("csvv"),
+            method=config.get("mvn-method", "svd")
+        )
 
     covariator = specification.create_covariator(
         specconf, weatherbundle, economicmodel, config, quiet=config.get("quiet", False), farmer=farmer
