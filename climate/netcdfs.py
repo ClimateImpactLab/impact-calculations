@@ -1,6 +1,6 @@
 """Helper functions for working with NetCDF files."""
 
-import os, re
+import os, re, py
 import logging
 import numpy as np
 from netCDF4 import Dataset
@@ -35,7 +35,10 @@ def load_netcdf(filename_or_obj, **kwargs):
     if "lock" in kwargs:
         raise TypeError("lock has no effect in this context")
 
-    with open_dataset(filename_or_obj, lock=True, **kwargs) as ds:
+    if isinstance(filename_or_obj, py._path.local.LocalPath):
+        filename_or_obj = str(filename_or_obj) # xarray chokes on LocalPath
+
+    with open_dataset(filename_or_obj, **kwargs) as ds:
         return ds.load()
 
 
