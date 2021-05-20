@@ -9,6 +9,7 @@ that is stochastic.
 """
 
 import os, yaml, zlib
+import secrets
 import numpy as np
 
 ## These dictionaries (keys in the top-level Pvals object) have common values across sectors
@@ -168,7 +169,7 @@ class OnDemandRandomDictionary(PvalsDictionary):
 
         if self.relative_location is None:
             # Not a cross-sector dictionary
-            seed = np.random.SeedSequence().entropy + plus
+            seed = secrets.randbits(128) + plus
         else:
             seed = cross_sector_seed(self.relative_location, name, plus)
         self.values[fullname] = seed
