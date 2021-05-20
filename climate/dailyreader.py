@@ -46,11 +46,11 @@ class DailyWeatherReader(YearlySplitWeatherReader):
         try:
             ds = netcdfs.load_netcdf(filename)
             if 'time' in ds.coords:
-                ds.rename({'time': 'yyyyddd', self.regionvar: 'region'}, inplace=True)
+                ds = ds.rename({'time': 'yyyyddd', self.regionvar: 'region'})
                 ds['time'] = (('yyyyddd'), pd.date_range('%d-01-01' % (ds.yyyyddd[0] // 1000), periods=365))
-                ds.swap_dims({'yyyyddd': 'time'}, inplace=True)
+                ds = ds.swap_dims({'yyyyddd': 'time'})
             elif 'month' in ds.coords:
-                ds.rename({'month': 'time', self.regionvar: 'region'}, inplace=True)
+                ds = ds.rename({'month': 'time', self.regionvar: 'region'})
             return ds
         except Exception as ex:
             print(("Failed to prepare %s" % filename))
@@ -104,9 +104,9 @@ class MonthlyDimensionedWeatherReader(YearlySplitWeatherReader):
         for filename in self.file_iterator():
             ds = netcdfs.load_netcdf(filename)
             if 'month' in ds.coords:
-                ds.rename({'month': 'time', self.regionvar: 'region'}, inplace=True)
+                ds = ds.rename({'month': 'time', self.regionvar: 'region'})
             else:
-                ds.rename({self.regionvar: 'region'}, inplace=True)
+                ds = ds.rename({self.regionvar: 'region'})
             ds[self.variable] = ds[self.variable].transpose('time', 'region', self.dim) # Some old code may depend on T x REGIONS x K
             ds.attrs['year'] = years[yy]
             yield ds
@@ -116,9 +116,9 @@ class MonthlyDimensionedWeatherReader(YearlySplitWeatherReader):
         """Read variable for ``year`` from file"""
         ds = netcdfs.load_netcdf(self.file_for_year(year))
         if 'month' in ds.coords:
-            ds.rename({'month': 'time', self.regionvar: 'region'}, inplace=True)
+            ds = ds.rename({'month': 'time', self.regionvar: 'region'})
         else:
-            ds.rename({self.regionvar: 'region'}, inplace=True)
+            ds = ds.rename({self.regionvar: 'region'})
         ds[self.variable] = ds[self.variable].transpose('time', 'region', self.dim) # Some old code may depend on T x REGIONS x K
         ds.attrs['year'] = year
         return ds
