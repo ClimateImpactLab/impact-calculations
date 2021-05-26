@@ -39,9 +39,6 @@ missing_only = True       # generate only missing output files, or regenerate al
 
 debug_aggregate = False   # If not false, set to the name of an aggregated region to report. e.g., 'ARE'
 
-# Command to run to generate adaptation costs files
-costs_command = "Rscript generate/cost_curves.R \"%s\" \"%s\" \"%s\" \"%s\" \"%s\"" # tavgpath rcp gcm impactspath suffix
-
 ## Filters on target directories to aggregate
 
 # batchfilter returns whether the batch directory should be processed
@@ -520,6 +517,10 @@ if __name__ == '__main__':
 
     regioncount = config.get('region-count', 24378) # used by checks to ensure complete files
 
+    costs_script = config.get('costs-script', None)
+    if costs_script is not None:
+        costs_script = files.configpath(costs_script)
+
     # Construct object to claim directories
     # Allow directories to be re-claimed after this many seconds
     claim_timeout = config.get('timeout', 24) * 60*60
@@ -638,60 +639,68 @@ if __name__ == '__main__':
                         if isinstance(debug_aggregate, str) or not missing_only or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable=variable, regioncount=5665) or not os.path.exists(os.path.join(targetdir, outfilename)):
                             make_aggregates(targetdir, filename, outfilename, halfweight_aggregate, weight_args_aggregate, halfweight_denom=halfweight_aggregate_denom, weight_args_denom=weight_args_aggregate_denom, config=config)
 
-                    if '-noadapt' not in filename and '-incadapt' not in filename and 'histclim' not in filename and 'indiamerge' not in filename:
-                        # Generate costs
-                        outfilename = fullfile(filename, costs_suffix, config)
-                        if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)) or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable='costs_lb', regioncount=5665):
-                            if '-combined' in filename:
-                                # Look for age-specific costs
-                                agegroups = ['young', 'older', 'oldest']
-                                basenames = [filename[:-4].replace('-combined', '-' + agegroup + '-costs') for agegroup in agegroups]
-                                hasall = True
-                                for basename in basenames:
-                                    if not os.path.exists(os.path.join(targetdir, basename + '.nc4')):
-                                        print("Missing " + os.path.join(targetdir, basename + '.nc4'))
-                                        hasall = False
-                                        break
+                    if costs_script is not None:
+                        if '-noadapt' not in filename and '-incadapt' not in filename and 'histclim' not in filename and 'indiamerge' not in filename:
+                            # Generate costs
+                            outfilename = fullfile(filename, costs_suffix, config)
+                            if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)) or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable='costs_lb', regioncount=5665):
+                                if '-combined' in filename:
+                                    # Look for age-specific costs
+                                    agegroups = ['young', 'older', 'oldest']
+                                    basenames = [filename[:-4].replace('-combined', '-' + agegroup + '-costs') for agegroup in agegroups]
+                                    hasall = True
+                                    for basename in basenames:
+                                        if not os.path.exists(os.path.join(targetdir, basename + '.nc4')):
+                                            print("Missing " + os.path.join(targetdir, basename + '.nc4'))
+                                            hasall = False
+                                            break
 
-                                if hasall:
-                                    # Combine costs across age-groups
-                                    print("Has all component costs")
-                                    get_stweights = [lambda year0, year1: halfweight_levels.load(year0, year1, econ_model, econ_scenario, 'age0-4', shareonly=True), lambda year0, year1: halfweight_levels.load(year0, year1, econ_model, econ_scenario, 'age5-64', shareonly=True), lambda year0, year1: halfweight_levels.load(year0, year1, econ_model, econ_scenario, 'age65+', shareonly=True)]
-                                    agglib.combine_results(targetdir, filename[:-4] + costs_suffix, basenames, get_stweights, "Combined costs across age-groups for " + filename.replace('-combined.nc4', ''))
-                            else:
-                                # Prepare arguments to adaptation costs system
-                                impactspath = os.path.join(targetdir, filename)
-
-                                if 'infix' in config:
-                                    fullcostsuffix = '-' + str(config['infix']) + costs_suffix
+                                    if hasall:
+                                        # Combine costs across age-groups
+                                        print("Has all component costs")
+                                        get_stweights = [lambda year0, year1: halfweight_levels.load(year0, year1, econ_model, econ_scenario, 'age0-4', shareonly=True), lambda year0, year1: halfweight_levels.load(year0, year1, econ_model, econ_scenario, 'age5-64', shareonly=True), lambda year0, year1: halfweight_levels.load(year0, year1, econ_model, econ_scenario, 'age65+', shareonly=True)]
+                                        agglib.combine_results(targetdir, filename[:-4] + costs_suffix, basenames, get_stweights, "Combined costs across age-groups for " + filename.replace('-combined.nc4', ''))
                                 else:
-                                    continue # Cannot calculate costs
+                                    # Prepare arguments to adaptation costs system
+                                    impactspath = os.path.join(targetdir, filename)
 
-                                # Call the adaptation costs system
-                                print(costs_command % (clim_scenario, clim_model, impactspath, fullcostsuffix))
-                                os.system(costs_command % (clim_scenario, clim_model, impactspath, fullcostsuffix))
+                                    suf = costs_script.split('.')
+                                    if suf=='R':
+                                        call = 'Rscript'
+                                    elif suf=='py':
+                                        call = 'python'
+                                    elif suf=='.sh':
+                                        call = 'bash'
+                                    else: 
+                                        raise ValueError('the cost script must be an R, python or bash script')
 
-                        # Levels of costs
-                        outfilename = fullfile(filename, costs_suffix + levels_suffix, config)
-                        if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)):
-                            make_costs_levels(targetdir, fullfile(filename, costs_suffix, config), outfilename, halfweight_levels, weight_args_levels, config=config)
+                                    costs_command = call + " " + costs_script + " \"%s\" \"%s\" \"%s\" \"%s\"" %  (clim_scenario, clim_model, impactspath, costsuffix) # standardized four arguments : rcp, gcm, impactspath, suffix
 
-                        # Aggregate costs
-                        outfilename = fullfile(filename, costs_suffix + suffix, config)
-                        if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)):
-                            make_costs_aggregate(targetdir, fullfile(filename, costs_suffix, config), outfilename, halfweight_aggregate, weight_args_aggregate, halfweight_denom=halfweight_aggregate_denom, weight_args_denom=weight_args_aggregate_denom, config=config)
-                    elif 'indiamerge' in filename:
-                        # Just aggregate the costs for indiamerge file
+                                    # Call the adaptation costs system
+                                    print(costs_command)
+                                    os.system(costs_command)
 
-                        # Levels of costs
-                        outfilename = filename[:-4].replace('combined', 'combined-costs') + levels_suffix + '.nc4'
-                        if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)):
-                            make_costs_levels(targetdir, filename[:-4].replace('combined', 'combined-costs') + '.nc4', outfilename, halfweight_levels, weight_args_levels, config=config)
+                            # Levels of costs
+                            outfilename = fullfile(filename, costs_suffix + levels_suffix, config)
+                            if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)):
+                                make_costs_levels(targetdir, fullfile(filename, costs_suffix, config), outfilename, halfweight_levels, weight_args_levels, config=config)
 
-                        # Aggregate costs
-                        outfilename = filename[:-4].replace('combined', 'combined-costs') + suffix + '.nc4'
-                        if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)):
-                            make_costs_aggregate(targetdir, filename[:-4].replace('combined', 'combined-costs') + '.nc4', outfilename, halfweight_aggregate, weight_args_aggregate, halfweight_denom=halfweight_aggregate_denom, weight_args_denom=weight_args_aggregate_denom, config=config)
+                            # Aggregate costs
+                            outfilename = fullfile(filename, costs_suffix + suffix, config)
+                            if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)):
+                                make_costs_aggregate(targetdir, fullfile(filename, costs_suffix, config), outfilename, halfweight_aggregate, weight_args_aggregate, halfweight_denom=halfweight_aggregate_denom, weight_args_denom=weight_args_aggregate_denom, config=config)
+                        elif 'indiamerge' in filename:
+                            # Just aggregate the costs for indiamerge file
+
+                            # Levels of costs
+                            outfilename = filename[:-4].replace('combined', 'combined-costs') + levels_suffix + '.nc4'
+                            if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)):
+                                make_costs_levels(targetdir, filename[:-4].replace('combined', 'combined-costs') + '.nc4', outfilename, halfweight_levels, weight_args_levels, config=config)
+
+                            # Aggregate costs
+                            outfilename = filename[:-4].replace('combined', 'combined-costs') + suffix + '.nc4'
+                            if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)):
+                                make_costs_aggregate(targetdir, filename[:-4].replace('combined', 'combined-costs') + '.nc4', outfilename, halfweight_aggregate, weight_args_aggregate, halfweight_denom=halfweight_aggregate_denom, weight_args_denom=weight_args_aggregate_denom, config=config)
 
                 # On exception, report it and continue
                 except Exception as ex:
