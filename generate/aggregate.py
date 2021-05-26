@@ -660,7 +660,6 @@ if __name__ == '__main__':
                                     agglib.combine_results(targetdir, filename[:-4] + costs_suffix, basenames, get_stweights, "Combined costs across age-groups for " + filename.replace('-combined.nc4', ''))
                             else:
                                 # Prepare arguments to adaptation costs system
-                                tavgpath = '/shares/gcp/outputs/temps/%s/%s/climtas.nc4' % (clim_scenario, clim_model)
                                 impactspath = os.path.join(targetdir, filename)
 
                                 if 'infix' in config:
@@ -669,8 +668,8 @@ if __name__ == '__main__':
                                     continue # Cannot calculate costs
 
                                 # Call the adaptation costs system
-                                print(costs_command % (tavgpath, clim_scenario, clim_model, impactspath, fullcostsuffix))
-                                os.system(costs_command % (tavgpath, clim_scenario, clim_model, impactspath, fullcostsuffix))
+                                print(costs_command % (clim_scenario, clim_model, impactspath, fullcostsuffix))
+                                os.system(costs_command % (clim_scenario, clim_model, impactspath, fullcostsuffix))
 
                         # Levels of costs
                         outfilename = fullfile(filename, costs_suffix + levels_suffix, config)
