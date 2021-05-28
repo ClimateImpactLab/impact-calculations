@@ -1,4 +1,3 @@
-
 import os
 from pathlib import Path
 import click
@@ -33,7 +32,6 @@ def aggregate(confpath):
     "-c",
     "--conf",
     nargs=1,
-    default="",
     multiple=True,
     help="Additional KEY=VALUE configuration option.",
 )
