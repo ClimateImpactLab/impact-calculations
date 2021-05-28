@@ -667,16 +667,6 @@ if __name__ == '__main__':
                                     # Prepare arguments to adaptation costs system
                                     impactspath = os.path.join(targetdir, filename)
 
-                                    suf = costs_script.split('.')[1]
-                                    if suf=='R':
-                                        call = 'Rscript'
-                                    elif suf=='py':
-                                        call = 'python'
-                                    elif suf=='.sh':
-                                        call = 'bash'
-                                    else: 
-                                        raise ValueError('the cost script must be an R, python or bash script')
-
                                     costs_command = call + " " + costs_script + " \"%s\" \"%s\" \"%s\" \"%s\"" %  (clim_scenario, clim_model, impactspath, costsuffix) # standardized four arguments : rcp, gcm, impactspath, suffix
 
                                     # Call the adaptation costs system
