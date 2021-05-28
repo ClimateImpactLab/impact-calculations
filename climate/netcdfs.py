@@ -35,8 +35,11 @@ def load_netcdf(filename_or_obj, **kwargs):
     if "lock" in kwargs:
         raise TypeError("lock has no effect in this context")
 
-    if isinstance(filename_or_obj, py._path.local.LocalPath):
-        filename_or_obj = str(filename_or_obj) # xarray chokes on LocalPath
+    try:
+        if isinstance(filename_or_obj, py._path.local.LocalPath):
+            filename_or_obj = str(filename_or_obj) # xarray chokes on LocalPath
+    except KeyError as ex:
+        pass # this seems to happen erratically
 
     with open_dataset(filename_or_obj, **kwargs) as ds:
         return ds.load()
