@@ -667,7 +667,15 @@ if __name__ == '__main__':
                                     # Prepare arguments to adaptation costs system
                                     impactspath = os.path.join(targetdir, filename)
 
-                                    costs_command = call + " " + costs_script + " \"%s\" \"%s\" \"%s\" \"%s\"" %  (clim_scenario, clim_model, impactspath, costsuffix) # standardized four arguments : rcp, gcm, impactspath, suffix
+                                    standard_args = ' '.join([clim_scenario, clim_model, impactspath, costsuffix]) # standardized four arguments : rcp, gcm, impactspath, suffix for the cost file
+                                    
+                                    if 'extra-args' in costs_script:
+                                        extra_args = ' '.join(extra_args)
+                                        command_args = standard_args + extra_args
+                                    else:
+                                        command_args = standard_args
+                                        
+                                    costs_command = command_prefix + command_args
 
                                     # Call the adaptation costs system
                                     print(costs_command)
