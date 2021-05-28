@@ -519,7 +519,10 @@ if __name__ == '__main__':
 
     costs_script = config.get('costs-script', None)
     if costs_script is not None:
-        costs_script = files.configpath(costs_script)
+        if 'command-prefix' in costs_script:
+            command_prefix = costs_script['command-prefix']
+        else:
+            raise ValueError('the `costs-script` entry of the config should at least have a `command-prefix` entry')
 
     # Construct object to claim directories
     # Allow directories to be re-claimed after this many seconds
