@@ -664,7 +664,7 @@ if __name__ == '__main__':
                                     # Prepare arguments to adaptation costs system
                                     impactspath = os.path.join(targetdir, filename)
 
-                                    suf = costs_script.split('.')
+                                    suf = costs_script.split('.')[1]
                                     if suf=='R':
                                         call = 'Rscript'
                                     elif suf=='py':
