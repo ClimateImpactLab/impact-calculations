@@ -359,7 +359,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
         else:
             final_curve = smart_curve.CoefficientsCurve(curve.ccs, weathernames)
 
-        if clipping_cfg or specconf.get('goodmoney', False):
+        if clipping_cfg or specconf.get('goodmoney'):
             final_curve = smart_curve.ShiftedCurve(final_curve, -final_curve.univariate(baselineexts[region]))
 
         if specconf.get('goodmoney', False):
