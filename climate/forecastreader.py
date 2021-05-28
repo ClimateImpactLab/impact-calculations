@@ -40,7 +40,7 @@ class MonthlyForecastReader(WeatherReader):
     def read_iterator(self):
         months, aheads = self.get_start_ahead_times()
 
-        ds = xr.open_dataset(self.filepath, decode_times=False)
+        ds = netcdfs.load_netcdf(self.filepath, decode_times=False)
         for month in months:
             yield ds.sel(S=month, L=1.5)
         
