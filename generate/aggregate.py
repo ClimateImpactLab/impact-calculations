@@ -670,11 +670,11 @@ if __name__ == '__main__':
                                     standard_args = ' '.join([clim_scenario, clim_model, impactspath, costsuffix]) # standardized four arguments : rcp, gcm, impactspath, suffix for the cost file
                                     
                                     if 'extra-args' in costs_script:
-                                        extra_args = ' '.join(extra_args)
+                                        extra_args = ' '.join(str(x) for x in extra_args)
                                         command_args = standard_args + extra_args
                                     else:
                                         command_args = standard_args
-                                        
+
                                     costs_command = command_prefix + command_args
 
                                     # Call the adaptation costs system
