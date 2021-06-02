@@ -532,6 +532,9 @@ if __name__ == '__main__':
         costs_suffix = costs_script.get('costs_suffix', None) # if starts with '-', interpreted as suffix, otherwise as full file name.
         if command_prefix is None or (use_args is None and extra_args is None) or costs_suffix is None:
             raise ValueError('missing info in costs-script dictionary')
+        if use_args is not None and not all(arg in agglib.available_costargs() for arg in use_args):
+            raise ValueError('unknown entries in `use-args` for costs')
+
 
     # Construct object to claim directories
     # Allow directories to be re-claimed after this many seconds
@@ -677,7 +680,7 @@ if __name__ == '__main__':
                                     if 'use-args' in costs_script:
                                         # gather necessary input
                                         # interpret arguments with that input 
-                                        command_args = agglib.interpret_cost_args(costs_script['use-args'], info)
+                                        command_args = agglib.interpret_cost_args(costs_script['use-args'], config['outputdir'], targetdir)
                                     else : 
                                         command_args = ''
 
