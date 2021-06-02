@@ -369,16 +369,16 @@ def interpret_cost_args(use_args, outputdir, targetdir, filename):
     """
     batch, rcp, gcm, iam, ssp = tuple(targetdir.split('/')[-5:])
 
-    available_args = {'clim_scenario' = rcp,
-    'clim_model' = gcm,
-    'impactspath' = os.path.join(targetdir, filename),
-    'batchwd'= os.path.join(outputdir,batch),
-    'ssp_int'=re.sub('\D', '', ssp),
-    'rcp_int'=re.sub('\D', '', rcp),
-    'iam'=iam}
+    available_args = {'clim_scenario' : rcp,
+    'clim_model' : gcm,
+    'impactspath' : os.path.join(targetdir, filename),
+    'batchwd' : os.path.join(outputdir,batch),
+    'ssp_int' : re.sub('\D', '', ssp),
+    'rcp_int' : re.sub('\D', '', rcp),
+    'iam' : iam}
 
     if 'seed-csvv' in use_args:
-        available_args['seed-csvv']=pvalses.read_pval_file(path=os.path.join(outputdir, targetdir,'pvals.yml'), relative_location=)[filename[:-4]]['seed-csvv']
+        available_args['seed-csvv']=pvalses.read_pval_file(path=os.path.join(outputdir, targetdir,'pvals.yml'), relative_location=targetdir)[filename[:-4]]['seed-csvv']
 
     return [available_args[x] for x in use_args]
  
