@@ -517,11 +517,11 @@ if __name__ == '__main__':
     regioncount = config.get('region-count', 24378) # used by checks to ensure complete files
 
     costs_script = config.get('costs-script', None)
+    
     if costs_script is not None:
         command_prefix = costs_script.get('command-prefix', None)
         use_args = costs_script.get('use-args', None)
         extra_args = costs_script.get('extra-args', None)
-
         if command_prefix is None or (use_args is None and extra_args is None):
             raise ValueError('the `costs-script` entry of the config should contain at leat a `command-prefix` entry and either an `extra-args` or an `use-args` entry')
 
