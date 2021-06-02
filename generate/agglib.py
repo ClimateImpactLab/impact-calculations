@@ -350,9 +350,9 @@ def get_farmer_suffix(filename):
 
 
 def available_cost_args():
-    return ['clim_scenario', 'clim_model', 'impactspath']
+    return ['clim_scenario', 'clim_model', 'impactspath', 'batchwd', 'ssp_int','rcp_int','iam','seed-csvv']
 
-def interpret_cost_args(use_args, outputdir, targetdir, filename ):
+def interpret_cost_args(use_args, outputdir, targetdir, filename):
 
     batch, rcp, gcm, iam, ssp = tuple('batch7/rcp45/surrogate_CanESM2_89/high/SSP4'.split('/')[-5:])
 
@@ -364,5 +364,10 @@ def interpret_cost_args(use_args, outputdir, targetdir, filename ):
     'ssp_int'=re.sub('\D', '', ssp),
     'rcp_int'=re.sub('\D', '', rcp),
     'iam'=iam,
-    'seed'=None,}
+    'seed-csvv'=None}
+
+    if not set(available_cost_args())==set(available_args.keys())
+        raise ValueError('should update set of available args')
+
+    return [available_args[x] for x in use_args]
  
