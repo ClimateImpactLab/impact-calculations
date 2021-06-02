@@ -349,5 +349,6 @@ def get_farmer_suffix(filename):
 
 
 def available_costargs():
-    
+    return ['clim_scenario', 'clim_model', 'impactspath', 'costsuffix']
+
 def interpret_costargs(use_args, info):
