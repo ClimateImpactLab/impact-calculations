@@ -522,8 +522,9 @@ if __name__ == '__main__':
         command_prefix = costs_script.get('command-prefix', None)
         use_args = costs_script.get('use-args', None)
         extra_args = costs_script.get('extra-args', None)
-        if command_prefix is None or (use_args is None and extra_args is None):
-            raise ValueError('the `costs-script` entry of the config should contain at leat a `command-prefix` entry and either an `extra-args` or an `use-args` entry')
+        file_name = costs_script.get('file-name', None) # can be the full name or a suffix if starts with '-'
+        if command_prefix is None or (use_args is None and extra_args is None) or file_name is None:
+            raise ValueError('missing info in costs-script dictionary')
 
     # Construct object to claim directories
     # Allow directories to be re-claimed after this many seconds
@@ -717,3 +718,7 @@ if __name__ == '__main__':
         statman.release(targetdir, "Incomplete" if incomplete else "Complete")
         # Make sure all produced files are read-writable by the group
         os.system("chmod g+rw --quiet " + os.path.join(targetdir, "*"))
+
+
+
+
