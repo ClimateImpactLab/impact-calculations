@@ -32,7 +32,6 @@ from impactlab_tools.utils import paralog
 ### See docs/aggregator.md for other configuration options
 
 # Suffixes applied to the output filenames
-costs_suffix = '-costs'   # adaptation costs file
 levels_suffix = '-levels' # scaled results, typically changing rates to levels
 suffix = "-aggregated"    # aggregated results across higher-level regions
 missing_only = True       # generate only missing output files, or regenerate all?
