@@ -350,7 +350,7 @@ def get_farmer_suffix(filename):
     return ''
 
 def available_cost_args():
-    return ['clim_scenario', 'clim_model', 'impactspath', 'batchwd', 'ssp_int','rcp_int','iam','seed-csvv']
+    return ['clim_scenario', 'clim_model', 'impactspath', 'batchwd', 'ssp_num','rcp_num','iam','seed-csvv']
 
 def interpret_cost_args(use_args, outputdir, targetdir, filename):
     """retrieves arguments for a cost script among a known set of arguments using some directory information. 
@@ -373,8 +373,8 @@ def interpret_cost_args(use_args, outputdir, targetdir, filename):
     'clim_model' : gcm,
     'impactspath' : os.path.join(targetdir, filename),
     'batchwd' : os.path.join(outputdir,batch),
-    'ssp_int' : re.sub('\D', '', ssp),
-    'rcp_int' : re.sub('\D', '', rcp),
+    'ssp_num' : re.sub('\D', '', ssp),
+    'rcp_num' : re.sub('\D', '', rcp),
     'iam' : iam}
 
     if 'seed-csvv' in use_args:
