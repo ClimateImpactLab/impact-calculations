@@ -346,3 +346,8 @@ def get_farmer_suffix(filename):
     if parts[-1] in ['incadapt.nc4', 'noadapt.nc4', 'histclim.nc4']:
         return parts[-1][:-4]
     return ''
+
+
+def available_costargs():
+    
+def interpret_costargs(use_args, info):
