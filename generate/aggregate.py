@@ -674,9 +674,6 @@ if __name__ == '__main__':
                                         get_stweights = [lambda year0, year1: halfweight_levels.load(year0, year1, econ_model, econ_scenario, 'age0-4', shareonly=True), lambda year0, year1: halfweight_levels.load(year0, year1, econ_model, econ_scenario, 'age5-64', shareonly=True), lambda year0, year1: halfweight_levels.load(year0, year1, econ_model, econ_scenario, 'age65+', shareonly=True)]
                                         agglib.combine_results(targetdir, filename[:-4] + costs_suffix, basenames, get_stweights, "Combined costs across age-groups for " + filename.replace('-combined.nc4', ''))
                                 else:
-                                    # Prepare arguments to adaptation costs system
-                                    impactspath = os.path.join(targetdir, filename)
-
                                     if 'use-args' in costs_script:
                                         # gather necessary input
                                         # interpret arguments with that input 
