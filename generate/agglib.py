@@ -349,10 +349,10 @@ def get_farmer_suffix(filename):
         return parts[-1][:-4]
     return ''
 
-def available_cost_args():
+def available_cost_use_args():
     return ['clim_scenario', 'clim_model', 'impactspath', 'batchwd', 'ssp_num','rcp_num','iam','seed-csvv']
 
-def interpret_cost_args(use_args, outputdir, targetdir, filename):
+def interpret_cost_use_args(use_args, outputdir, targetdir, filename):
     """retrieves arguments for a cost script among a known set of arguments using some directory information. 
     Availability definition in `available_cost_args()` should be updated as needed. 
 
@@ -382,3 +382,18 @@ def interpret_cost_args(use_args, outputdir, targetdir, filename):
 
     return [available_args[x] for x in use_args]
  
+def interpret_cost_args(costs_script, config, targetdir):
+    ''' concatenates all arguments to be passed to a cost script and preserves order. 
+    '''
+    if 'use-args' in costs_script:
+        # gather necessary input
+        # interpret arguments with that input 
+        command_args = agglib.interpret_cost_args(costs_script['use-args'], config['outputdir'], targetdir)
+    else : 
+        command_args = ''
+
+    if 'extra-args' in costs_script:
+        extra_args = ' '.join(str(x) for x in extra_args)
+        command_args = ' '.join([command_args, extra_args])
+
+    return command_args
