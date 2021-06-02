@@ -646,7 +646,7 @@ if __name__ == '__main__':
 
                     if costs_script is not None:
                         if '-noadapt' not in filename and '-incadapt' not in filename and 'histclim' not in filename and 'indiamerge' not in filename:
-                            # Generate costs
+                            # Tries to generate costs every time it finds a 'fulladapt' file. 
                             outfilename = fullfile(filename, costs_suffix, config)
                             if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)) or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable='costs_lb', regioncount=5665):
                                 if '-combined' in filename:
