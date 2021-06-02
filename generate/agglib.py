@@ -5,6 +5,7 @@ from . import nc4writer
 from helpers import header
 from datastore import irregions
 from impactlab_tools.utils import files
+import re
 
 def iterdir(basedir, dironly=False):
     """Generator giving filename, path for files and dirs within `basedir`.
@@ -348,7 +349,20 @@ def get_farmer_suffix(filename):
     return ''
 
 
-def available_costargs():
-    return ['clim_scenario', 'clim_model', 'impactspath', 'costsuffix']
+def available_cost_args():
+    return ['clim_scenario', 'clim_model', 'impactspath']
 
-def interpret_costargs(use_args, info):
+def interpret_cost_args(use_args, outputdir, targetdir, filename ):
+
+    batch, rcp, gcm, iam, ssp = tuple('batch7/rcp45/surrogate_CanESM2_89/high/SSP4'.split('/')[-5:])
+
+
+    available_args = {'clim_scenario' = rcp,
+    'clim_model' = gcm,
+    'impactspath' = os.path.join(targetdir, filename),
+    'batchwd'= os.path.join(outputdir,batch),
+    'ssp_int'=re.sub('\D', '', ssp),
+    'rcp_int'=re.sub('\D', '', rcp),
+    'iam'=iam,
+    'seed'=None,}
+ 
