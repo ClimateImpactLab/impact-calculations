@@ -519,10 +519,12 @@ if __name__ == '__main__':
 
     costs_script = config.get('costs-script', None)
     if costs_script is not None:
-        if 'command-prefix' in costs_script:
-            command_prefix = costs_script['command-prefix']
-        else:
-            raise ValueError('the `costs-script` entry of the config should at least have a `command-prefix` entry')
+        command_prefix = costs_script.get('command-prefix', None)
+        use_args = costs_script.get('use-args', None)
+        extra_args = costs_script.get('extra-args', None)
+
+        if command_prefix is None or (use_args is None and extra_args is None):
+            raise ValueError('the `costs-script` entry of the config should contain at leat a `command-prefix` entry and either an `extra-args` or an `use-args` entry')
 
     # Construct object to claim directories
     # Allow directories to be re-claimed after this many seconds
@@ -671,10 +673,9 @@ if __name__ == '__main__':
                                         # gather necessary input
                                         # interpret arguments with that input 
                                         command_args = agglib.interpret_cost_args(costs_script['use-args'], info)
-                                    else:
-                                        # legacy use_args 
-                                        command_args = ' '.join([clim_scenario, clim_model, impactspath, costsuffix]) # standardized four arguments : rcp, gcm, impactspath, suffix for the cost file
-                                    
+                                    else : 
+                                        command_args = ''
+
                                     if 'extra-args' in costs_script:
                                         extra_args = ' '.join(str(x) for x in extra_args)
                                         command_args = ' '.join([command_args, extra_args])
