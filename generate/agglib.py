@@ -349,12 +349,24 @@ def get_farmer_suffix(filename):
         return parts[-1][:-4]
     return ''
 
-
 def available_cost_args():
     return ['clim_scenario', 'clim_model', 'impactspath', 'batchwd', 'ssp_int','rcp_int','iam','seed-csvv']
 
 def interpret_cost_args(use_args, outputdir, targetdir, filename):
+    """retrieves arguments for a cost script among a known set of arguments using some directory information. 
+    Availability definition in `available_cost_args()` should be updated as needed. 
 
+    Parameters
+    ----------
+    use_args : list of str
+    outputdir : str
+    targetdir : str
+    filename : str
+
+    Returns 
+    -------
+    a list containing arguments selected by `use_args`. 
+    """
     batch, rcp, gcm, iam, ssp = tuple(targetdir.split('/')[-5:])
 
     available_args = {'clim_scenario' = rcp,
