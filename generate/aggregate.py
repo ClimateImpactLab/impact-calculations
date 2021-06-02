@@ -495,7 +495,14 @@ def make_costs_levels(targetdir, filename, outfilename, halfweight, weight_args,
     make_levels(targetdir, filename, outfilename, halfweight, weight_args, dimensions_template=dimensions_template, metainfo=metainfo, config=config)
 
 def fullfile(filename, suffix, config):
-    """Convenience function, to add config infix as needed to final filename."""
+    """
+    Convenience function to expand a file name with `suffix` and `infix` from `config` if it exists. 
+    if `suffix` doesn't start with '-', it's interpreted as a full file name and entirely replaces `filename`.
+    """
+
+    if '-' not in suffix:
+        return suffix + '.nc4'
+
     if 'infix' in config:
         return fullfile(filename, '-' + str(config['infix']) + suffix, {})
 
@@ -522,8 +529,8 @@ if __name__ == '__main__':
         command_prefix = costs_script.get('command-prefix', None)
         use_args = costs_script.get('use-args', None)
         extra_args = costs_script.get('extra-args', None)
-        file_name = costs_script.get('file-name', None) # can be the full name or a suffix if starts with '-'
-        if command_prefix is None or (use_args is None and extra_args is None) or file_name is None:
+        costs_suffix = costs_script.get('costs_suffix', None) # if starts with '-', interpreted as suffix, otherwise as full file name.
+        if command_prefix is None or (use_args is None and extra_args is None) or costs_suffix is None:
             raise ValueError('missing info in costs-script dictionary')
 
     # Construct object to claim directories
