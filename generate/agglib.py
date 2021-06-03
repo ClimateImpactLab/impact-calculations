@@ -382,7 +382,7 @@ def interpret_cost_use_args(use_args, outputdir, targetdir, filename):
 
     return [available_args[x] for x in use_args]
  
-def interpret_cost_args(costs_script, config={}, targetdir='', filename=''):
+def interpret_cost_args(costs_script, outputdir='', targetdir='', filename=''):
 
     """interprets and collects cost-script arguments, preserving the order defined by the user.  
     Able to pick and understands only 'use-args' and 'extra-args' keys. 
@@ -392,12 +392,12 @@ def interpret_cost_args(costs_script, config={}, targetdir='', filename=''):
     costs_script : dict. Can understand :
         'use-args' key : should be a list of str.
         'extra-args' key : should be a dict. 
-    config : dict
-        must contain 'outputdir' if `costs_script` contains 'use-args' key. 
+    outputdir : str
+        must be given a non empty value if `costs_script` contains 'use-args' key. 
     targetdir : str
-        must be given a non empty value of `costs_script` contains 'use-args' key. 
+        must be given a non empty value if `costs_script` contains 'use-args' key. 
     filename : str
-        must be given a non empty value of `costs_script` contains 'use-args' key. 
+        must be given a non empty value if `costs_script` contains 'use-args' key. 
 
     Returns 
     -------
@@ -409,10 +409,10 @@ def interpret_cost_args(costs_script, config={}, targetdir='', filename=''):
     for argtype in [arg for arg in costs_script if 'args' in arg]:
 
         if argtype=='use-args':
-            if 'outputdir' not in config or targetdir=='' or filename=='':
+            if outputdir=='' or targetdir=='' or filename=='':
                 raise ValueError('if passing `use-args` to be interpreted you need to fill outputdir and targetdir info')
             arglist = arglist + interpret_cost_use_args(use_args=costs_script['use-args'], 
-                                                        outputdir=config['outputdir'], 
+                                                        outputdir=outputdir, 
                                                         targetdir=targetdir,
                                                         filename=filename)
         elif argtype=='extra-args':
