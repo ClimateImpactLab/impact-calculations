@@ -1,6 +1,6 @@
 import pytest
 from generate import agglib
-
+from generate import aggregate
 
 @pytest.mark.imperics_shareddir
 def test_interpret_cost_use_args():
@@ -52,3 +52,9 @@ def test_interpret_cost_args():
 
 	with pytest.raises(ValueError):
 		agglib.interpret_cost_args(costs_script={'random-args':'idk'})
+
+def test_fullfile():
+
+	assert aggregate.fullfile('myname.nc4', '-another-suffix', {'infix':'onesuffix'})=='myname-onesuffix-another-suffix.nc4'
+	assert aggregate.fullfile('myname.nc4', 'newname', {})=='newname.nc4'
+
