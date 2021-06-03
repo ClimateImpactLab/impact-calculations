@@ -382,7 +382,7 @@ def interpret_cost_use_args(use_args, outputdir, targetdir, filename):
 
     return [available_args[x] for x in use_args]
  
-def interpret_cost_args(costs_script, config={}, targetdir=''):
+def interpret_cost_args(costs_script, config={}, targetdir='', filename=''):
 
     """interprets and collects cost-script arguments, preserving the order defined by the user.  
     Able to pick and understands only 'use-args' and 'extra-args' keys. 
@@ -395,7 +395,9 @@ def interpret_cost_args(costs_script, config={}, targetdir=''):
     config : dict
         must contain 'outputdir' if `costs_script` contains 'use-args' key. 
     targetdir : str
-        must be given a proper value of `costs_script` contains 'use-args' key. 
+        must be given a non empty value of `costs_script` contains 'use-args' key. 
+    filename : str
+        must be given a non empty value of `costs_script` contains 'use-args' key. 
 
     Returns 
     -------
@@ -407,11 +409,14 @@ def interpret_cost_args(costs_script, config={}, targetdir=''):
     for argtype in [arg for arg in costs_script if 'args' in arg]:
 
         if argtype=='use-args':
-            if 'outputdir' not in costs_script['use-args'] or targetdir=='':
+            if 'outputdir' not in config or targetdir=='' or filename=='':
                 raise ValueError('if passing `use-args` to be interpreted you need to fill outputdir and targetdir info')
-            arglist = arglist.append(agglib.interpret_cost_args(costs_script['use-args'], config['outputdir'], targetdir))
+            arglist = arglist + interpret_cost_use_args(use_args=costs_script['use-args'], 
+                                                        outputdir=config['outputdir'], 
+                                                        targetdir=targetdir,
+                                                        filename=filename)
         elif argtype=='extra-args':
-            arglist = arglist.append(extra_args)
+            arglist = arglist + list(costs_script['extra-args'])
         else: 
             raise ValueError('unknown argtype for the costs script. Should be either a `use-args` or an `extra-args`')
 
