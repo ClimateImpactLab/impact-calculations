@@ -524,8 +524,7 @@ if __name__ == '__main__':
         use_args = costs_script.get('use-args', None)
         extra_args = costs_script.get('extra-args', None)
         costs_suffix = costs_script.get('costs-suffix', None) # if starts with '-', interpreted as suffix, otherwise as full file name.
-        costs_variable = costs_script.get('costs-variable', None)
-    
+        costs_variable = costs_script.get('check-variable-costs', None)
         if command_prefix is None or (use_args is None and extra_args is None) or costs_suffix is None or costs_variable is None or costs_script.get('description', None) is None :
             raise ValueError('missing info in costs-script dictionary')
         if use_args is not None and not all(arg in agglib.available_cost_use_args() for arg in use_args):
