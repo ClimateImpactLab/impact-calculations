@@ -1,4 +1,10 @@
-outputdir: outputs/mortality/impacts-darwin-u/brc/minpoly30mcs
+outputdir: /shares/gcp/outputs/agriculture/impacts-mealy/testing/mortality-impacts-darwin-single-fastadapt2-iam-low
+targetdir: /shares/gcp/outputs/agriculture/impacts-mealy/testing/mortality-impacts-darwin-single-fastadapt2-iam-low/single/rcp85/CCSM4/low/SSP3
 weighting: agecohorts
-infix: 20190708
-
+basename: Agespec_interaction_response
+costs-script: 
+  command-prefix: 'Rscript /home/etenezakis/CIL_repo/impact-calculations/generate/cost_curves.R'
+  use-args: ['clim_scenario','clim_model','impactspath','costs-suffix','iam']
+  costs-suffix: -costs
+  check-variable-costs: costs_lb
+  description: deaths
