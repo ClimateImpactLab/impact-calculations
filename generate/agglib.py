@@ -378,7 +378,7 @@ def interpret_cost_use_args(use_args, outputdir, targetdir, filename):
     'iam' : iam}
 
     if 'seed-csvv' in use_args:
-        available_args['seed-csvv']=pvalses.read_pval_file(path=os.path.join(outputdir, targetdir), relative_location=targetdir)[filename[:-4]]['seed-csvv']
+        available_args['seed-csvv']=str(pvalses.read_pval_file(path=os.path.join(outputdir, targetdir), relative_location=targetdir)[filename[:-4]]['seed-csvv'])
 
     return [available_args[x] for x in use_args]
  
