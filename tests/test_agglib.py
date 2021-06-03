@@ -18,13 +18,13 @@ def test_interpret_cost_use_args():
 @pytest.mark.imperics_shareddir
 def test_interpret_cost_args():
 
-	templates = {'config':{'outputdir':'outputs/agriculture/impacts-mealy/testing/montecarlo-cassava-261020/montecarlo'}, 
+	templates = {'outputdir':'outputs/agriculture/impacts-mealy/testing/montecarlo-cassava-261020/montecarlo', 
 	'targetdir' : 'batch7/rcp45/surrogate_CanESM2_89/high/SSP3',
 	'filename' : 'cassava-031020.nc4'}
 
 	strd = agglib.interpret_cost_args(costs_script={'extra-args': {'extra-arg1': 'extraarg1', 'extra-arg2': 'extraarg2'},
 	                                  'use-args': ['rcp_num', 'clim_scenario']}, 
-	                                  config=templates['config'], 
+	                                  outputdir=templates['outputdir'], 
 	                                  targetdir=templates['targetdir'],
 	                                  filename=templates['filename'])
 
@@ -34,7 +34,7 @@ def test_interpret_cost_args():
 
 	revert1 = agglib.interpret_cost_args(costs_script={'use-args': ['rcp_num', 'clim_scenario'],
                                   'extra-args': {'extra-arg1': 'extraarg1', 'extra-arg2': 'extraarg2'}}, 
-                                  config=templates['config'], 
+                                  outputdir=templates['outputdir'], 
 	                              targetdir=templates['targetdir'],
 	                              filename=templates['filename'])
 
@@ -43,7 +43,7 @@ def test_interpret_cost_args():
 
 	revert2 = agglib.interpret_cost_args(costs_script={'use-args': ['clim_scenario', 'rcp_num'],
                                   'extra-args': {'extra-arg1': 'extraarg2', 'extra-arg2': 'extraarg1'}}, 
-                                  config=templates['config'], 
+                                  outputdir=templates['outputdir'], 
 	                              targetdir=templates['targetdir'],
 	                              filename=templates['filename'])
 
