@@ -382,32 +382,36 @@ def interpret_cost_use_args(use_args, outputdir, targetdir, filename):
 
     return [available_args[x] for x in use_args]
  
-def interpret_cost_args(costs_script, config, targetdir):
-    ''' 
-    '''
+def interpret_cost_args(costs_script, config={}, targetdir=''):
 
-
-    """interprets and concatenates cost-script arguments, preserving the order defined by the user.  
+    """interprets and collects cost-script arguments, preserving the order defined by the user.  
+    Able to pick and understands only 'use-args' and 'extra-args' keys. 
 
     Parameters
     ----------
-    costs_script : dict
+    costs_script : dict. Can understand :
+        'use-args' key : should be a list of str.
+        'extra-args' key : should be a dict. 
     config : dict
+        must contain 'outputdir' if `costs_script` contains 'use-args' key. 
     targetdir : str
+        must be given a proper value of `costs_script` contains 'use-args' key. 
 
     Returns 
     -------
-    str representing concatenated arguments to be passed to the costs script.
+    list of str containing all the arguments to be concatenated and passed to the costs script.
     """
 
-    argstr = '' # initialize
+    arglist = list() # initialize
 
     for argtype in [arg for arg in costs_script if 'args' in arg]:
 
         if argtype=='use-args':
-            argstr = ' '.join([argstr, agglib.interpret_cost_args(costs_script['use-args'], config['outputdir'], targetdir)])
+            if 'outputdir' not in costs_script['use-args'] or targetdir=='':
+                raise ValueError('if passing `use-args` to be interpreted you need to fill outputdir and targetdir info')
+            arglist = arglist.append(agglib.interpret_cost_args(costs_script['use-args'], config['outputdir'], targetdir))
         elif argtype=='extra-args':
-            argstr = ' '.join([argstr, ' '.join(str(x) for x in extra_args)])
+            arglist = arglist.append(extra_args)
         else: 
             raise ValueError('unknown argtype for the costs script. Should be either a `use-args` or an `extra-args`')
 
