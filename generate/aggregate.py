@@ -27,7 +27,7 @@ from netCDF4 import Dataset
 from . import nc4writer, agglib, checks
 from datastore import weights
 from impactlab_tools.utils import paralog
-
+import pdb 
 ### Master Configuration
 ### See docs/aggregator.md for other configuration options
 
@@ -61,7 +61,7 @@ cached_weights = {}
 
 def get_cached_weight(halfweight, weight_args, years):
     """Return a `SpaceTimeData` object of weights with `get_time`, using
-cached values as possible.
+    cached values as possible.
 
     Parameters
     ----------
@@ -530,7 +530,8 @@ if __name__ == '__main__':
         use_args = costs_script.get('use-args', None)
         extra_args = costs_script.get('extra-args', None)
         costs_suffix = costs_script.get('costs-suffix', None) # if starts with '-', interpreted as suffix, otherwise as full file name.
-        if command_prefix is None or (use_args is None and extra_args is None) or costs_suffix is None:
+        costs_variable = costs_script.get('costs-variable', None)
+        if command_prefix is None or (use_args is None and extra_args is None) or costs_suffix is None or costs_variable is None :
             raise ValueError('missing info in costs-script dictionary')
         if use_args is not None and not all(arg in agglib.available_cost_use_args() for arg in use_args):
             raise ValueError('unknown entries in `use-args` for costs')
@@ -659,7 +660,7 @@ if __name__ == '__main__':
                         if '-noadapt' not in filename and '-incadapt' not in filename and 'histclim' not in filename and 'indiamerge' not in filename:
                             # Tries to generate costs every time it finds a 'fulladapt' file. 
                             outfilename = fullfile(filename, costs_suffix, config)
-                            if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)) or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable='costs_lb', regioncount=5665):
+                            if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)) or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable=costs_variable, regioncount=5665):
                                 if '-combined' in filename:
                                     # Trying to obtain a combined cost file. 
                                     # Look for age-specific costs
@@ -684,9 +685,10 @@ if __name__ == '__main__':
                                     os.system(costs_command)
 
                             # Levels of costs
-                            outfilename = fullfile(filename, costs_suffix + levels_suffix, config)
-                            if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)):
-                                make_costs_levels(targetdir, fullfile(filename, costs_suffix, config), outfilename, halfweight_levels, weight_args_levels, config=config)
+                            if halfweight_levels:
+                                outfilename = fullfile(filename, costs_suffix + levels_suffix, config)
+                                if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)):
+                                    make_costs_levels(targetdir, fullfile(filename, costs_suffix, config), outfilename, halfweight_levels, weight_args_levels, config=config)
 
                             # Aggregate costs
                             outfilename = fullfile(filename, costs_suffix + suffix, config)
