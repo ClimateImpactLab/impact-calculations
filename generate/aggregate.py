@@ -340,7 +340,7 @@ def make_costs_aggregate(targetdir, filename, outfilename, halfweight, weight_ar
     """
     # Setup the metadata
     dimensions_template = "/shares/gcp/outputs/temps/rcp45/CCSM4/climtas.nc4"
-    metainfo = agglib.get_meta_info_costs(config.get('description', None))
+    metainfo = agglib.get_meta_info_costs(config['costs-script'].get('description', None))
 
     # Perform the aggregation
     make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, dimensions_template=dimensions_template, metainfo=metainfo, halfweight_denom=halfweight_denom, weight_args_denom=weight_args_denom, config=config)
@@ -483,7 +483,7 @@ def make_costs_levels(targetdir, filename, outfilename, halfweight, weight_args,
     """
     # Setup the metadata
     dimensions_template = "/shares/gcp/outputs/temps/rcp45/CCSM4/climtas.nc4"
-    metainfo = agglib.get_meta_info_costs(config.get('description', None))
+    metainfo = agglib.get_meta_info_costs(config['costs-script'].get('description', None))
 
     # Perform the levels calculations
     make_levels(targetdir, filename, outfilename, halfweight, weight_args, dimensions_template=dimensions_template, metainfo=metainfo, config=config)
@@ -525,7 +525,8 @@ if __name__ == '__main__':
         extra_args = costs_script.get('extra-args', None)
         costs_suffix = costs_script.get('costs-suffix', None) # if starts with '-', interpreted as suffix, otherwise as full file name.
         costs_variable = costs_script.get('costs-variable', None)
-        if command_prefix is None or (use_args is None and extra_args is None) or costs_suffix is None or costs_variable is None :
+    
+        if command_prefix is None or (use_args is None and extra_args is None) or costs_suffix is None or costs_variable is None or costs_script.get('description', None) is None :
             raise ValueError('missing info in costs-script dictionary')
         if use_args is not None and not all(arg in agglib.available_cost_use_args() for arg in use_args):
             raise ValueError('unknown entries in `use-args` for costs')

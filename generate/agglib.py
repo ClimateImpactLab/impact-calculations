@@ -437,4 +437,4 @@ def get_meta_info_costs(name):
                     dependencies="tmp_and_prcp_costs.R",
                     author="Andy Hultgren")}
 
-    return data[version]
+    return data[name]
