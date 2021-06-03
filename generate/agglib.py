@@ -421,3 +421,17 @@ def interpret_cost_args(costs_script, outputdir='', targetdir='', filename=''):
             raise ValueError('unknown argtype for the costs script. Should be either a `use-args` or an `extra-args`')
 
     return arglist
+
+
+def get_meta_info(version):
+
+    data = {'deaths': dict(description="Upper and lower bounds costs of adaptation calculation.",
+                    version="DEADLY-2016-04-22",
+                    dependencies="TEMPERATURES, ADAPTATION-ALL-AGES",
+                    author="Tamma Carleton"), 
+    'yields': dict(description="costs of yield adaptation to temperature and precipitation long term changes",
+                    version="YIELDS-2021-06-03",
+                    dependencies="tmp_and_prcp_costs.R",
+                    author="Andy Hultgren")}
+
+    return data[version]
