@@ -423,8 +423,11 @@ def interpret_cost_args(costs_script, outputdir='', targetdir='', filename=''):
     return arglist
 
 
-def get_meta_info(version):
+def get_meta_info_costs(name):
 
+
+    if name not in ['deaths', 'yields']:
+        raise ValueError('unknown identifier of meta information for costs netcdfs')
     data = {'deaths': dict(description="Upper and lower bounds costs of adaptation calculation.",
                     version="DEADLY-2016-04-22",
                     dependencies="TEMPERATURES, ADAPTATION-ALL-AGES",
