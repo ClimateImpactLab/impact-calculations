@@ -416,7 +416,7 @@ def interpret_cost_args(costs_script, outputdir='', targetdir='', filename=''):
                                                         targetdir=targetdir,
                                                         filename=filename)
         elif argtype=='extra-args':
-            arglist = arglist + list(costs_script['extra-args'].values())
+            arglist = arglist + [str(x) for x in list(costs_script['extra-args'].values())]
         else: 
             raise ValueError('unknown argtype for the costs script. Should be either a `use-args` or an `extra-args`')
 
