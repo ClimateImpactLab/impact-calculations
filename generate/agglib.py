@@ -350,9 +350,9 @@ def get_farmer_suffix(filename):
     return ''
 
 def available_cost_use_args():
-    return ['clim_scenario', 'clim_model', 'impactspath', 'batchwd', 'ssp_num','rcp_num','iam','seed-csvv']
+    return ['clim_scenario', 'clim_model', 'impactspath', 'batchwd', 'ssp_num','rcp_num','iam','seed-csvv', 'costs-suffix']
 
-def interpret_cost_use_args(use_args, outputdir, targetdir, filename):
+def interpret_cost_use_args(use_args, outputdir, targetdir, filename, costs_suffix):
     """retrieves arguments for a cost script among a known set of arguments using some directory information. 
     Availability definition in `available_cost_args()` should be updated as needed. 
 
@@ -362,6 +362,7 @@ def interpret_cost_use_args(use_args, outputdir, targetdir, filename):
     outputdir : str
     targetdir : str
     filename : str
+    costs-suffix : dict
 
     Returns 
     -------
@@ -375,7 +376,8 @@ def interpret_cost_use_args(use_args, outputdir, targetdir, filename):
     'batchwd' : os.path.join(outputdir,batch),
     'ssp_num' : re.sub('\D', '', ssp),
     'rcp_num' : re.sub('\D', '', rcp),
-    'iam' : iam}
+    'iam' : iam,
+    'costs-suffix' : costs_suffix}
 
     if 'seed-csvv' in use_args:
         available_args['seed-csvv']=str(pvalses.read_pval_file(path=os.path.join(outputdir, targetdir), relative_location=targetdir)[filename[:-4]]['seed-csvv'])
@@ -389,7 +391,7 @@ def interpret_cost_args(costs_script, outputdir='', targetdir='', filename=''):
 
     Parameters
     ----------
-    costs_script : dict. Can understand :
+    costs_script : dict. Should contain 'costs-suffix' and can understand :
         'use-args' key : should be a list of str.
         'extra-args' key : should be a dict. 
     outputdir : str
@@ -412,6 +414,7 @@ def interpret_cost_args(costs_script, outputdir='', targetdir='', filename=''):
             if outputdir=='' or targetdir=='' or filename=='':
                 raise ValueError('if passing `use-args` to be interpreted you need to fill outputdir and targetdir info')
             arglist = arglist + interpret_cost_use_args(use_args=costs_script['use-args'], 
+                                                        costs_suffix=costs_script['costs-suffix'],
                                                         outputdir=outputdir, 
                                                         targetdir=targetdir,
                                                         filename=filename)
