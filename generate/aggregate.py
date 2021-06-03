@@ -500,7 +500,7 @@ def fullfile(filename, suffix, config):
     if `suffix` doesn't start with '-', it's interpreted as a full file name and entirely replaces `filename`.
     """
 
-    if '-' not in suffix:
+    if suffix[0] != '-':
         return suffix + '.nc4'
 
     if 'infix' in config:
@@ -529,10 +529,10 @@ if __name__ == '__main__':
         command_prefix = costs_script.get('command-prefix', None)
         use_args = costs_script.get('use-args', None)
         extra_args = costs_script.get('extra-args', None)
-        costs_suffix = costs_script.get('costs_suffix', None) # if starts with '-', interpreted as suffix, otherwise as full file name.
+        costs_suffix = costs_script.get('costs-suffix', None) # if starts with '-', interpreted as suffix, otherwise as full file name.
         if command_prefix is None or (use_args is None and extra_args is None) or costs_suffix is None:
             raise ValueError('missing info in costs-script dictionary')
-        if use_args is not None and not all(arg in agglib.available_costargs() for arg in use_args):
+        if use_args is not None and not all(arg in agglib.available_cost_use_args() for arg in use_args):
             raise ValueError('unknown entries in `use-args` for costs')
 
 
@@ -574,9 +574,10 @@ if __name__ == '__main__':
                 halfweight_aggregate_denom = None
 
     ### Generate aggregate and levels files
-                
+
     # Find all target directories
     for batch, clim_scenario, clim_model, econ_scenario, econ_model, targetdir in agglib.iterresults(config['outputdir'], agglib.make_batchfilter(config), targetdirfilter):
+
         # Check if we should process this targetdir
         if not agglib.config_targetdirfilter(clim_scenario, clim_model, econ_scenario, econ_model, targetdir, config):
             continue
