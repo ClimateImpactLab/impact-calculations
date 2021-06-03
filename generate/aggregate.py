@@ -657,7 +657,7 @@ if __name__ == '__main__':
                             outfilename = fullfile(filename, costs_suffix, config)
                             if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)) or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable=costs_variable, regioncount=5665):
                                 if '-combined' in filename:
-                                    # Trying to obtain a combined cost file. 
+                                    # Trying to obtain a combined cost file from age files. 
                                     # Look for age-specific costs
                                     agegroups = ['young', 'older', 'oldest']
                                     basenames = [filename[:-4].replace('-combined', '-' + agegroup + '-costs') for agegroup in agegroups]
