@@ -340,10 +340,7 @@ def make_costs_aggregate(targetdir, filename, outfilename, halfweight, weight_ar
     """
     # Setup the metadata
     dimensions_template = "/shares/gcp/outputs/temps/rcp45/CCSM4/climtas.nc4"
-    metainfo = dict(description="Upper and lower bounds costs of adaptation calculation.",
-                    version="DEADLY-2016-04-22",
-                    dependencies="TEMPERATURES, ADAPTATION-ALL-AGES",
-                    author="Tamma Carleton")
+    metainfo = agglib.get_meta_info(config.get('description', None))
 
     # Perform the aggregation
     make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, dimensions_template=dimensions_template, metainfo=metainfo, halfweight_denom=halfweight_denom, weight_args_denom=weight_args_denom, config=config)
@@ -486,10 +483,7 @@ def make_costs_levels(targetdir, filename, outfilename, halfweight, weight_args,
     """
     # Setup the metadata
     dimensions_template = "/shares/gcp/outputs/temps/rcp45/CCSM4/climtas.nc4"
-    metainfo = dict(description="Upper and lower bounds costs of adaptation calculation.",
-                    version="DEADLY-2016-04-22",
-                    dependencies="TEMPERATURES, ADAPTATION-ALL-AGES",
-                    author="Tamma Carleton")
+    metainfo = agglib.get_meta_info(config.get('description', None))
 
     # Perform the levels calculations
     make_levels(targetdir, filename, outfilename, halfweight, weight_args, dimensions_template=dimensions_template, metainfo=metainfo, config=config)
