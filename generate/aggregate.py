@@ -27,7 +27,7 @@ from netCDF4 import Dataset
 from . import nc4writer, agglib, checks
 from datastore import weights
 from impactlab_tools.utils import paralog
-import pdb 
+
 ### Master Configuration
 ### See docs/aggregator.md for other configuration options
 
