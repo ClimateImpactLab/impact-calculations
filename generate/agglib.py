@@ -383,17 +383,32 @@ def interpret_cost_use_args(use_args, outputdir, targetdir, filename):
     return [available_args[x] for x in use_args]
  
 def interpret_cost_args(costs_script, config, targetdir):
-    ''' concatenates all arguments to be passed to a cost script and preserves order. 
+    ''' 
     '''
-    if 'use-args' in costs_script:
-        # gather necessary input
-        # interpret arguments with that input 
-        command_args = agglib.interpret_cost_args(costs_script['use-args'], config['outputdir'], targetdir)
-    else : 
-        command_args = ''
 
-    if 'extra-args' in costs_script:
-        extra_args = ' '.join(str(x) for x in extra_args)
-        command_args = ' '.join([command_args, extra_args])
 
-    return command_args
+    """interprets and concatenates cost-script arguments, preserving the order defined by the user.  
+
+    Parameters
+    ----------
+    costs_script : dict
+    config : dict
+    targetdir : str
+
+    Returns 
+    -------
+    str representing concatenated arguments to be passed to the costs script.
+    """
+
+    argstr = '' # initialize
+
+    for argtype in [arg for arg in costs_script if 'args' in arg]:
+
+        if argtype=='use-args':
+            argstr = ' '.join([argstr, agglib.interpret_cost_args(costs_script['use-args'], config['outputdir'], targetdir)])
+        elif argtype=='extra-args':
+            argstr = ' '.join([argstr, ' '.join(str(x) for x in extra_args)])
+        else: 
+            raise ValueError('unknown argtype for the costs script. Should be either a `use-args` or an `extra-args`')
+
+    return argstr
