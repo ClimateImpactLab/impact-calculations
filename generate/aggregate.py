@@ -520,19 +520,7 @@ if __name__ == '__main__':
     costs_script = config.get('costs-script', None)
     
     if costs_script is not None:
-        command_prefix = costs_script.get('command-prefix', None)
-        ordered_args = costs_script.get('ordered-args', None)
-        if ordered_args is None or (ordered_args.get('use-args', None) is None and ordered_args.get('extra-args', None) is None):
-            raise ValueError('user must pass an `ordered_args` dictionary containing either `extra-args` or `use-args` keys')
-        use_args = costs_script.get('use-args', None)
-        extra_args = costs_script.get('extra-args', None)
-        costs_suffix = costs_script.get('costs-suffix', None) # if starts with '-', interpreted as suffix, otherwise as full file name.
-        costs_variable = costs_script.get('check-variable-costs', None)
-        if command_prefix is None or costs_suffix is None or costs_variable is None or costs_script.get('description', None) is None :
-            raise ValueError('missing info in costs-script dictionary')
-        if use_args is not None and not all(arg in agglib.available_cost_use_args() for arg in use_args):
-            raise ValueError('unknown entries in `use-args` for costs')
-
+        command_prefix, ordered_args, use_args, extra_args, costs_suffix, costs_variable = agglib.interpret_costs_script(costs_script)
 
     # Construct object to claim directories
     # Allow directories to be re-claimed after this many seconds
