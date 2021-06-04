@@ -350,6 +350,7 @@ def get_farmer_suffix(filename):
     return ''
 
 def available_cost_use_args():
+    """ returns a list of str containing known 'use-args' interpretable by interpret_cost_use_args()  """
     return ['clim_scenario', 'clim_model', 'impactspath', 'batchwd', 'ssp_num','rcp_num','iam','seed-csvv', 'costs-suffix']
 
 def interpret_cost_use_args(use_args, outputdir, targetdir, filename, costs_suffix):
