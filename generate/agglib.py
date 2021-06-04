@@ -391,7 +391,7 @@ def interpret_cost_args(costs_script, outputdir='', targetdir='', filename=''):
 
     Parameters
     ----------
-    costs_script : dict. Should contain 'costs-suffix' and can understand :
+    costs_script : dict. Should contain 'costs-suffix' and an 'ordered-args' entry in which it can understand :
         'use-args' key : should be a list of str.
         'extra-args' key : should be a dict. 
     outputdir : str
@@ -408,20 +408,21 @@ def interpret_cost_args(costs_script, outputdir='', targetdir='', filename=''):
 
     arglist = list() # initialize
 
-    for argtype in [arg for arg in costs_script if 'args' in arg]:
+    ordered_args = costs_script.get('ordered-args')
+    for argtype in [arg for arg in ordered_args if 'args' in arg]:
 
         if argtype=='use-args':
             if outputdir=='' or targetdir=='' or filename=='':
                 raise ValueError('if passing `use-args` to be interpreted you need to fill outputdir and targetdir info')
-            arglist = arglist + interpret_cost_use_args(use_args=costs_script['use-args'], 
+            arglist = arglist + interpret_cost_use_args(use_args=ordered_args['use-args'], 
                                                         costs_suffix=costs_script['costs-suffix'],
                                                         outputdir=outputdir, 
                                                         targetdir=targetdir,
                                                         filename=filename)
         elif argtype=='extra-args':
-            arglist = arglist + [str(x) for x in list(costs_script['extra-args'].values())]
+            arglist = arglist + [str(x) for x in list(ordered_args['extra-args'].values())]
         else: 
-            raise ValueError('unknown argtype for the costs script. Should be either a `use-args` or an `extra-args`')
+            raise ValueError('unknown argtype in the costs script `ordered-args`. Should contain either `use-args` or `extra-args` or both')
 
     return arglist
 

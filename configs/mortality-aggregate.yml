@@ -4,7 +4,8 @@ weighting: agecohorts
 basename: Agespec_interaction_response
 costs-script: 
   command-prefix: 'Rscript /home/etenezakis/CIL_repo/impact-calculations/generate/cost_curves.R'
-  use-args: ['clim_scenario','clim_model','impactspath','costs-suffix','iam']
+  ordered-args:
+    use-args: ['clim_scenario','clim_model','impactspath','costs-suffix','iam']
   costs-suffix: -costs
   check-variable-costs: costs_lb
   description: deaths
