@@ -12,13 +12,13 @@ def test_interpret_cost_use_args():
     assert agglib.interpret_cost_use_args(['rcp_num', 'clim_scenario'], 'whatever','/idontknow/rcp85/idk/idk/end','idk', 'somesuf')[0]=='85'
     # check seed reading works 
     assert agglib.interpret_cost_use_args(['seed-csvv'],
-     'outputs/agriculture/impacts-mealy/testing/montecarlo-cassava-261020/montecarlo',
-     'batch7/rcp45/surrogate_CanESM2_89/high/SSP3','cassava-031020.nc4', 'somesuf')[0]==1603562142
+     '/shares/gcp/outputs/agriculture/impacts-mealy/testing/montecarlo-cassava-261020/montecarlo',
+     'batch7/rcp45/surrogate_CanESM2_89/high/SSP3','cassava-031020.nc4', 'somesuf')[0]=='1603562142'
 
 @pytest.mark.imperics_shareddir
 def test_interpret_cost_args():
 
-	templates = {'outputdir':'outputs/agriculture/impacts-mealy/testing/montecarlo-cassava-261020/montecarlo', 
+	templates = {'outputdir':'/shares/gcp/outputs/agriculture/impacts-mealy/testing/montecarlo-cassava-261020/montecarlo', 
 	'targetdir' : 'batch7/rcp45/surrogate_CanESM2_89/high/SSP3',
 	'filename' : 'cassava-031020.nc4'}
 
