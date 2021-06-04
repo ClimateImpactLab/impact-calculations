@@ -11,3 +11,4 @@ costs-script:
   costs-suffix: adaptation_costs
   check-variable-costs: adpt.cost.cuml
   description: yields
+  random-response: False

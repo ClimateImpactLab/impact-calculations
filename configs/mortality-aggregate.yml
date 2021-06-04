@@ -8,3 +8,4 @@ costs-script:
   costs-suffix: -costs
   check-variable-costs: costs_lb
   description: deaths
+  random-response: False
