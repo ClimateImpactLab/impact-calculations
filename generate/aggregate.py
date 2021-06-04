@@ -525,7 +525,8 @@ if __name__ == '__main__':
         extra_args = costs_script.get('extra-args', None)
         costs_suffix = costs_script.get('costs-suffix', None) # if starts with '-', interpreted as suffix, otherwise as full file name.
         costs_variable = costs_script.get('check-variable-costs', None)
-        if command_prefix is None or (use_args is None and extra_args is None) or costs_suffix is None or costs_variable is None or costs_script.get('description', None) is None :
+        random_response = costs_script.get('random-response', None)
+        if (use_args is None and extra_args is None) or not all(x is not None for x in [command_prefix, costs_suffix, costs_variable, costs_script.get('description', None), random_response]):
             raise ValueError('missing info in costs-script dictionary')
         if use_args is not None and not all(arg in agglib.available_cost_use_args() for arg in use_args):
             raise ValueError('unknown entries in `use-args` for costs')
