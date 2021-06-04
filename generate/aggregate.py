@@ -525,12 +525,15 @@ if __name__ == '__main__':
         extra_args = costs_script.get('extra-args', None)
         costs_suffix = costs_script.get('costs-suffix', None) # if starts with '-', interpreted as suffix, otherwise as full file name.
         costs_variable = costs_script.get('check-variable-costs', None)
-        random_response = costs_script.get('random-response', None)
+        random_response = costs_script.get('random-response', None) # This is a 'safety' argument just to increase the user awareness. 
+        print([command_prefix, costs_suffix, costs_variable, costs_script.get('description', None), random_response])
         if (use_args is None and extra_args is None) or not all(x is not None for x in [command_prefix, costs_suffix, costs_variable, costs_script.get('description', None), random_response]):
             raise ValueError('missing info in costs-script dictionary')
         if use_args is not None and not all(arg in agglib.available_cost_use_args() for arg in use_args):
             raise ValueError('unknown entries in `use-args` for costs')
-
+        if use_args is not None:
+            if ('seed-csvv' in use_args and random_response is False) or ('seed-csvv' not in use_args and random_response is True):
+                raise ValueError('the usage of the seed-csvv use-arg should be consistent with the `random_response` config entry')
 
     # Construct object to claim directories
     # Allow directories to be re-claimed after this many seconds
