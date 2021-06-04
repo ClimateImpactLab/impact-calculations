@@ -362,7 +362,7 @@ def interpret_cost_use_args(use_args, outputdir, targetdir, filename, costs_suff
     outputdir : str
     targetdir : str
     filename : str
-    costs-suffix : dict
+    costs_suffix : str
 
     Returns 
     -------
