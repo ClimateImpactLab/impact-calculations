@@ -403,7 +403,7 @@ def interpret_cost_args(costs_script, **targetdir_info):
             'costs-suffix' str 
             'ordered-args' collections.OrderedDict. Known keys :
                 'use-args' list of str.
-                'extra-args' dict
+                'extra-args' list
     **targetdir_info : additional arguments passed on to interpret_cost_use_args()
 
     Returns 
@@ -420,7 +420,7 @@ def interpret_cost_args(costs_script, **targetdir_info):
             arglist = arglist + interpret_cost_use_args(use_args=ordered_args['use-args'], 
                                                         **targetdir_info)
         elif argtype=='extra-args':
-            arglist = arglist + [str(x) for x in list(ordered_args['extra-args'].values())]
+            arglist = arglist + [str(x) for x in ordered_args['extra-args']]
         else: 
             raise ValueError('unknown argtype in the costs script `ordered-args`. Should contain either `use-args` or `extra-args` or both')
 

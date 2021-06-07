@@ -5,11 +5,8 @@ basename: rice-191020
 costs-script: 
   command-prefix: 'Rscript /home/etenezakis/CIL_repo/agriculture/1_code/3_projections/4_run_projections/adaptation_costs/tmp_and_prcp_costs.R'
   ordered-args:
-    extra-args: 
-      crop: rice
-      avgperiod: 13
-      seed-csvv: '""'
-    use-args: ['batchwd','clim_model','rcp_num','ssp_num','iam']
+    extra-args: ['rice', 13, '""']
+    use-args: ['batchwd', 'clim_model', 'rcp_num', 'ssp_num', 'iam']
   costs-suffix: adaptation_costs
   check-variable-costs: adpt.cost.cuml
   description: yields

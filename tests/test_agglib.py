@@ -30,7 +30,7 @@ def test_interpret_cost_args():
 	'econ_scenario':'SSP3',
 	'costs_suffix':'somesuf'}
 
-	strd = agglib.interpret_cost_args(costs_script={'ordered-args': {'extra-args': {'extra-arg1': 'extraarg1', 'extra-arg2': 'extraarg2'},
+	strd = agglib.interpret_cost_args(costs_script={'ordered-args': {'extra-args': ['extraarg1', 'extraarg2'],
 	                                  'use-args': ['rcp_num', 'clim_scenario']}, 'costs-suffix':'somesuf'},
 	                                  **templates)
 
@@ -39,14 +39,14 @@ def test_interpret_cost_args():
 	assert strd[3]=='rcp45'
 
 	revert1 = agglib.interpret_cost_args(costs_script={'ordered-args': collections.OrderedDict({'use-args': ['rcp_num', 'clim_scenario'],
-                                  'extra-args': {'extra-arg1': 'extraarg1', 'extra-arg2': 'extraarg2'}}),'costs-suffix':'somesuf'}, 
+                                  'extra-args': ['extraarg1','extraarg2']}),'costs-suffix':'somesuf'}, 
                                   **templates)
 
 	assert revert1[0]=='45'
 	assert revert1[3]=='extraarg2'
 
 	revert2 = agglib.interpret_cost_args(costs_script={'ordered-args': collections.OrderedDict({'use-args': ['clim_scenario', 'rcp_num'],
-                                  'extra-args': {'extra-arg1': 'extraarg2', 'extra-arg2': 'extraarg1'}}), 'costs-suffix':'somesuf'}, 
+                                  'extra-args': ['extraarg2','extraarg1']}), 'costs-suffix':'somesuf'}, 
                                   **templates)
 
 	assert revert2[0]=='rcp45'
@@ -70,11 +70,7 @@ def test_interpret_costs_script():
 		'costs-script': { 
 			'command-prefix': 'Rscript /home/etenezakis/CIL_repo/agriculture/1_code/3_projections/4_run_projections/adaptation_costs/tmp_and_prcp_costs.R',
 			'ordered-args': collections.OrderedDict({
-				'extra-args': { 
-					'crop': 'rice',
-					'avgperiod': 13,
-					'seed-csvv': '""'
-				},
+				'extra-args': ['rice', 13,'""'],
 	    		'use-args': ['batchwd','clim_model','rcp_num','ssp_num','iam']
 	    	}),
 	    	'costs-suffix': 'adaptation_costs',
