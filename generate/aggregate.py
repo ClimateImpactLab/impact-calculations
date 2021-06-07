@@ -340,7 +340,7 @@ def make_costs_aggregate(targetdir, filename, outfilename, halfweight, weight_ar
     """
     # Setup the metadata
     dimensions_template = "/shares/gcp/outputs/temps/rcp45/CCSM4/climtas.nc4"
-    metainfo = config['costs-script'].get('meta-info', None)
+    metainfo = config['costs-config'].get('meta-info', None)
 
     # Perform the aggregation
     make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, dimensions_template=dimensions_template, metainfo=metainfo, halfweight_denom=halfweight_denom, weight_args_denom=weight_args_denom, config=config)
@@ -483,7 +483,7 @@ def make_costs_levels(targetdir, filename, outfilename, halfweight, weight_args,
     """
     # Setup the metadata
     dimensions_template = "/shares/gcp/outputs/temps/rcp45/CCSM4/climtas.nc4"
-    metainfo = config['costs-script'].get('meta-info', None)
+    metainfo = config['costs-config'].get('meta-info', None)
 
     # Perform the levels calculations
     make_levels(targetdir, filename, outfilename, halfweight, weight_args, dimensions_template=dimensions_template, metainfo=metainfo, config=config)
@@ -517,10 +517,10 @@ if __name__ == '__main__':
 
     regioncount = config.get('region-count', 24378) # used by checks to ensure complete files
 
-    costs_script = config.get('costs-script', None)
+    costs_config = config.get('costs-config', None)
     
-    if costs_script is not None:
-        command_prefix, ordered_args, use_args, extra_args, costs_suffix, costs_variable = agglib.interpret_costs_script(costs_script)
+    if costs_config is not None:
+        command_prefix, ordered_args, use_args, extra_args, costs_suffix, costs_variable = agglib.interpret_costs_config(costs_config)
 
     # Construct object to claim directories
     # Allow directories to be re-claimed after this many seconds
@@ -641,7 +641,7 @@ if __name__ == '__main__':
                         if isinstance(debug_aggregate, str) or not missing_only or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable=variable, regioncount=5665) or not os.path.exists(os.path.join(targetdir, outfilename)):
                             make_aggregates(targetdir, filename, outfilename, halfweight_aggregate, weight_args_aggregate, halfweight_denom=halfweight_aggregate_denom, weight_args_denom=weight_args_aggregate_denom, config=config)
 
-                    if costs_script is not None:
+                    if costs_config is not None:
                         if '-noadapt' not in filename and '-incadapt' not in filename and 'histclim' not in filename and 'indiamerge' not in filename:
                             # Tries to generate costs every time it finds a 'fulladapt' file. 
                             outfilename = fullfile(filename, costs_suffix, config)
@@ -664,7 +664,7 @@ if __name__ == '__main__':
                                         get_stweights = [lambda year0, year1: halfweight_levels.load(year0, year1, econ_model, econ_scenario, 'age0-4', shareonly=True), lambda year0, year1: halfweight_levels.load(year0, year1, econ_model, econ_scenario, 'age5-64', shareonly=True), lambda year0, year1: halfweight_levels.load(year0, year1, econ_model, econ_scenario, 'age65+', shareonly=True)]
                                         agglib.combine_results(targetdir, filename[:-4] + costs_suffix, basenames, get_stweights, "Combined costs across age-groups for " + filename.replace('-combined.nc4', ''))
                                 else:
-                                    costs_command = ' '.join([command_prefix, ' '.join(x for x in agglib.interpret_cost_args(costs_script=costs_script,
+                                    costs_command = ' '.join([command_prefix, ' '.join(x for x in agglib.interpret_cost_args(costs_config=costs_config,
                                                                                                                              outputdir=config['outputdir'],
                                                                                                                              targetdir=targetdir,
                                                                                                                              filename=filename,

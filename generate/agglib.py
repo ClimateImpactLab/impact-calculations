@@ -355,7 +355,7 @@ def available_cost_use_args():
     return ['clim_scenario', 'clim_model', 'impactspath', 'batchwd', 'ssp_num','rcp_num','iam','seed-csvv', 'costs-suffix']
 
 def interpret_cost_use_args(use_args, outputdir, targetdir, batch, clim_scenario, clim_model,econ_model, econ_scenario, filename, costs_suffix):
-    """retrieves arguments for a cost script among a known set of arguments using some directory information. 
+    """retrieves arguments to be passed to a cost command among a known set of arguments using some directory information. 
     Availability definition in `available_cost_args()` should be updated as needed. 
 
     Parameters
@@ -391,14 +391,14 @@ def interpret_cost_use_args(use_args, outputdir, targetdir, batch, clim_scenario
 
     return [available_args[x] for x in use_args]
  
-def interpret_cost_args(costs_script, **targetdir_info):
+def interpret_cost_args(costs_config, **targetdir_info):
 
-    """interprets and collects cost-script arguments, preserving the order defined by the user.  
+    """interprets and collects arguments to be passed to a cost command, preserving the order defined by the user.  
     Able to pick and understands only 'use-args' and 'extra-args' keys. 
 
     Parameters
     ----------
-    costs_script : dict. 
+    costs_config : dict. 
         Must contain the following keys : 
             'costs-suffix' str 
             'ordered-args' collections.OrderedDict. Known keys :
@@ -408,12 +408,12 @@ def interpret_cost_args(costs_script, **targetdir_info):
 
     Returns 
     -------
-    list of str containing all the arguments to be concatenated and passed to the costs script.
+    list of str containing all the arguments to be concatenated and passed to the costs command.
     """
 
     arglist = list() # initialize
 
-    ordered_args = costs_script.get('ordered-args')
+    ordered_args = costs_config.get('ordered-args')
     for argtype in ordered_args:
 
         if argtype=='use-args':
@@ -422,36 +422,36 @@ def interpret_cost_args(costs_script, **targetdir_info):
         elif argtype=='extra-args':
             arglist = arglist + [str(x) for x in ordered_args['extra-args']]
         else: 
-            raise ValueError('unknown argtype in the costs script `ordered-args`. Should contain either `use-args` or `extra-args` or both')
+            raise ValueError('unknown argtype in the costs config `ordered-args`. Should contain either `use-args` or `extra-args` or both')
 
     return arglist
 
-def interpret_costs_script(costs_script):
+def interpret_costs_config(costs_config):
 
-    """ interprets the `costs-script` entry of an aggregator config and verifies that required 
+    """ interprets the `costs-config` entry of an aggregator config and verifies that required 
     entries are present.
 
     Returns
     -------
-    a list of str containing possible etnries to the `costs_script` config key : 
+    a list of str containing possible entries to the `costs_config` config key : 
     [command_prefix, ordered_args, use_args, extra_args, costs_suffix, costs_variable]
     
     """
 
-    command_prefix = costs_script.get('command-prefix', None)
-    ordered_args = collections.OrderedDict(costs_script.get('ordered-args')) if costs_script.get('ordered-args', None) is not None else None 
+    command_prefix = costs_config.get('command-prefix', None)
+    ordered_args = collections.OrderedDict(costs_config.get('ordered-args')) if costs_config.get('ordered-args', None) is not None else None 
     if ordered_args is None or ('use-args' not in ordered_args and 'extra-args' not in ordered_args) or (not ordered_args.get('use-args') and not ordered_args.get('extra-args')):
         raise ValueError('user must pass an `ordered_args` dictionary containing either a non-empty `extra-args` list or a non empty `use-args` list or both')
-    use_args = costs_script.get('use-args', None)
-    extra_args = costs_script.get('extra-args', None)
-    costs_suffix = costs_script.get('costs-suffix', None) # if starts with '-', interpreted as suffix, otherwise as full file name.
-    costs_variable = costs_script.get('check-variable-costs', None)
+    use_args = costs_config.get('use-args', None)
+    extra_args = costs_config.get('extra-args', None)
+    costs_suffix = costs_config.get('costs-suffix', None) # if starts with '-', interpreted as suffix, otherwise as full file name.
+    costs_variable = costs_config.get('check-variable-costs', None)
     if command_prefix is None or costs_suffix is None or costs_variable is None :
-        raise ValueError('missing info in costs-script dictionary')
+        raise ValueError('missing info in costs-config dictionary')
     if use_args is not None and not all(arg in agglib.available_cost_use_args() for arg in use_args):
         raise ValueError('unknown entries in `use-args` for costs')
-    if costs_script.get('meta-info', None) is not None:
-        if not all(x in costs_script.get('meta-info') for x in ['description', 'version', 'author']):
+    if costs_config.get('meta-info', None) is not None:
+        if not all(x in costs_config.get('meta-info') for x in ['description', 'version', 'author']):
             raise ValueError('if providing meta info, should include description, version and author at least')
     return (command_prefix, ordered_args, use_args, extra_args, costs_suffix, costs_variable)
 
