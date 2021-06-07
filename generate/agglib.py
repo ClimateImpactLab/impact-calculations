@@ -414,7 +414,7 @@ def interpret_cost_args(costs_script, **targetdir_info):
     arglist = list() # initialize
 
     ordered_args = costs_script.get('ordered-args')
-    for argtype in [arg for arg in ordered_args if 'args' in arg]:
+    for argtype in ordered_args:
 
         if argtype=='use-args':
             arglist = arglist + interpret_cost_use_args(use_args=ordered_args['use-args'], 
