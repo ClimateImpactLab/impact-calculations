@@ -2,7 +2,7 @@ outputdir: /shares/gcp/outputs/agriculture/impacts-mealy/testing/rice-single-191
 targetdir: /shares/gcp/outputs/agriculture/impacts-mealy/testing/rice-single-191020/single/rcp85/CCSM4/high/SSP3
 aggregate-weighting: constcsv/estimation/agriculture/Data/1_raw/3_cropped_area/agglomerated-world-new-hierid-crop-weights.csv:hierid:rice
 basename: rice-191020
-costs-script: 
+costs-config: 
   command-prefix: 'Rscript /home/etenezakis/CIL_repo/agriculture/1_code/3_projections/4_run_projections/adaptation_costs/tmp_and_prcp_costs.R'
   ordered-args:
     extra-args: ['rice', 13, '""']

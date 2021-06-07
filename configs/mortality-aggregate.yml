@@ -2,7 +2,7 @@ outputdir: /shares/gcp/outputs/agriculture/impacts-mealy/testing/mortality-impac
 targetdir: /shares/gcp/outputs/agriculture/impacts-mealy/testing/mortality-impacts-darwin-single-fastadapt2-iam-low/single/rcp85/CCSM4/low/SSP3
 weighting: agecohorts
 basename: Agespec_interaction_response
-costs-script: 
+costs-config: 
   command-prefix: 'Rscript /home/etenezakis/CIL_repo/impact-calculations/generate/cost_curves.R'
   ordered-args:
     use-args: ['clim_scenario','clim_model','impactspath','costs-suffix','iam']
