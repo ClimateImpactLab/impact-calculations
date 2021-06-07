@@ -6,28 +6,32 @@ import copy
 @pytest.mark.imperics_shareddir
 def test_interpret_cost_use_args():
 
-    assert agglib.interpret_cost_use_args(['clim_scenario', 'rcp_num'], 'whatever','/idontknow/rcp85/idk/idk/end','idk', 'somesuf')[0]=='rcp85'
+    assert agglib.interpret_cost_use_args(['clim_scenario', 'rcp_num'], '','','','rcp85','','','','','')[0]=='rcp85'
     # check order preserved
-    assert agglib.interpret_cost_use_args(['rcp_num', 'clim_scenario'], 'whatever','/idontknow/rcp85/idk/idk/end','idk', 'somesuf')[1]=='rcp85'
+    assert agglib.interpret_cost_use_args(['rcp_num', 'clim_scenario'], '','','','rcp85','','','','','')[1]=='rcp85'
     # check int works
-    assert agglib.interpret_cost_use_args(['rcp_num', 'clim_scenario'], 'whatever','/idontknow/rcp85/idk/idk/end','idk', 'somesuf')[0]=='85'
+    assert agglib.interpret_cost_use_args(['rcp_num', 'clim_scenario'], '','','','rcp85','','','','','')[0]=='85'
     # check seed reading works 
     assert agglib.interpret_cost_use_args(['seed-csvv'],
      '/shares/gcp/outputs/agriculture/impacts-mealy/testing/montecarlo-cassava-261020/montecarlo',
-     'batch7/rcp45/surrogate_CanESM2_89/high/SSP3','cassava-031020.nc4', 'somesuf')[0]=='1603562142'
+     'batch7/rcp45/surrogate_CanESM2_89/high/SSP3','','rcp85','','','','cassava-031020.nc4', 'somesuf')[0]=='1603562142'
 
 @pytest.mark.imperics_shareddir
 def test_interpret_cost_args():
 
 	templates = {'outputdir':'/shares/gcp/outputs/agriculture/impacts-mealy/testing/montecarlo-cassava-261020/montecarlo', 
 	'targetdir' : 'batch7/rcp45/surrogate_CanESM2_89/high/SSP3',
-	'filename' : 'cassava-031020.nc4'}
+	'filename' : 'cassava-031020.nc4',
+	'batch':'batch7',
+	'clim_scenario':'rcp45',
+	'clim_model':'rcp85',
+	'econ_model':'high',
+	'econ_scenario':'SSP3',
+	'costs_suffix':'somesuf'}
 
 	strd = agglib.interpret_cost_args(costs_script={'ordered-args': {'extra-args': {'extra-arg1': 'extraarg1', 'extra-arg2': 'extraarg2'},
-	                                  'use-args': ['rcp_num', 'clim_scenario']}, 'costs-suffix':'somesuf'}, 
-	                                  outputdir=templates['outputdir'], 
-	                                  targetdir=templates['targetdir'],
-	                                  filename=templates['filename'])
+	                                  'use-args': ['rcp_num', 'clim_scenario']}, 'costs-suffix':'somesuf'},
+	                                  **templates)
 
 	assert len(strd)==4
 	assert strd[0]=='extraarg1'
@@ -35,18 +39,14 @@ def test_interpret_cost_args():
 
 	revert1 = agglib.interpret_cost_args(costs_script={'ordered-args': {'use-args': ['rcp_num', 'clim_scenario'],
                                   'extra-args': {'extra-arg1': 'extraarg1', 'extra-arg2': 'extraarg2'}},'costs-suffix':'somesuf'}, 
-                                  outputdir=templates['outputdir'], 
-	                              targetdir=templates['targetdir'],
-	                              filename=templates['filename'])
+                                  **templates)
 
 	assert revert1[0]=='45'
 	assert revert1[3]=='extraarg2'
 
 	revert2 = agglib.interpret_cost_args(costs_script={'ordered-args': {'use-args': ['clim_scenario', 'rcp_num'],
                                   'extra-args': {'extra-arg1': 'extraarg2', 'extra-arg2': 'extraarg1'}}, 'costs-suffix':'somesuf'}, 
-                                  outputdir=templates['outputdir'], 
-	                              targetdir=templates['targetdir'],
-	                              filename=templates['filename'])
+                                  **templates)
 
 	assert revert2[0]=='rcp45'
 	assert revert2[3]=='extraarg1'

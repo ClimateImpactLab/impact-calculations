@@ -34,7 +34,7 @@ from impactlab_tools.utils import paralog
 # Suffixes applied to the output filenames
 levels_suffix = '-levels' # scaled results, typically changing rates to levels
 suffix = "-aggregated"    # aggregated results across higher-level regions
-missing_only = True       # generate only missing output files, or regenerate all?
+missing_only = False       # generate only missing output files, or regenerate all?
 
 debug_aggregate = False   # If not false, set to the name of an aggregated region to report. e.g., 'ARE'
 
@@ -664,7 +664,16 @@ if __name__ == '__main__':
                                         get_stweights = [lambda year0, year1: halfweight_levels.load(year0, year1, econ_model, econ_scenario, 'age0-4', shareonly=True), lambda year0, year1: halfweight_levels.load(year0, year1, econ_model, econ_scenario, 'age5-64', shareonly=True), lambda year0, year1: halfweight_levels.load(year0, year1, econ_model, econ_scenario, 'age65+', shareonly=True)]
                                         agglib.combine_results(targetdir, filename[:-4] + costs_suffix, basenames, get_stweights, "Combined costs across age-groups for " + filename.replace('-combined.nc4', ''))
                                 else:
-                                    costs_command = ' '.join([command_prefix, ' '.join(x for x in agglib.interpret_cost_args(costs_script, config['outputdir'], targetdir, filename))])
+                                    costs_command = ' '.join([command_prefix, ' '.join(x for x in agglib.interpret_cost_args(costs_script=costs_script,
+                                                                                                                             outputdir=config['outputdir'],
+                                                                                                                             targetdir=targetdir,
+                                                                                                                             filename=filename,
+                                                                                                                             batch=batch,
+                                                                                                                             clim_scenario=clim_scenario,
+                                                                                                                             clim_model=clim_model,
+                                                                                                                             econ_model=econ_model,
+                                                                                                                             econ_scenario=econ_scenario,
+                                                                                                                             costs_suffix=costs_suffix))])
                                     # Call the adaptation costs system
                                     print(costs_command)
                                     os.system(costs_command)

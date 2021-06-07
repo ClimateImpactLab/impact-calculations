@@ -353,7 +353,7 @@ def available_cost_use_args():
     """ returns a list of str containing known 'use-args' interpretable by interpret_cost_use_args()  """
     return ['clim_scenario', 'clim_model', 'impactspath', 'batchwd', 'ssp_num','rcp_num','iam','seed-csvv', 'costs-suffix']
 
-def interpret_cost_use_args(use_args, outputdir, targetdir, filename, costs_suffix):
+def interpret_cost_use_args(use_args, outputdir, targetdir, batch, clim_scenario, clim_model,econ_model, econ_scenario, filename, costs_suffix):
     """retrieves arguments for a cost script among a known set of arguments using some directory information. 
     Availability definition in `available_cost_args()` should be updated as needed. 
 
@@ -362,6 +362,11 @@ def interpret_cost_use_args(use_args, outputdir, targetdir, filename, costs_suff
     use_args : list of str
     outputdir : str
     targetdir : str
+    batch : str
+    clim_scenario : str
+    clim_model : str
+    econ_scenario : str
+    econ_model : str
     filename : str
         used to be returned as such with its path and to retrieve `pvals.yml` if needed
     costs_suffix : str
@@ -370,15 +375,14 @@ def interpret_cost_use_args(use_args, outputdir, targetdir, filename, costs_suff
     -------
     a list containing arguments selected by `use_args`. 
     """
-    batch, rcp, gcm, iam, ssp = tuple(targetdir.split('/')[-5:])
 
-    available_args = {'clim_scenario' : rcp,
-    'clim_model' : gcm,
+    available_args = {'clim_scenario' : clim_scenario,
+    'clim_model' : clim_model,
     'impactspath' : os.path.join(targetdir, filename),
     'batchwd' : os.path.join(outputdir,batch),
-    'ssp_num' : re.sub('\D', '', ssp),
-    'rcp_num' : re.sub('\D', '', rcp),
-    'iam' : iam,
+    'ssp_num' : re.sub('\D', '', econ_scenario),
+    'rcp_num' : re.sub('\D', '', clim_scenario),
+    'iam' : econ_model,
     'costs-suffix' : costs_suffix}
 
     if 'seed-csvv' in use_args:
@@ -386,7 +390,7 @@ def interpret_cost_use_args(use_args, outputdir, targetdir, filename, costs_suff
 
     return [available_args[x] for x in use_args]
  
-def interpret_cost_args(costs_script, outputdir='', targetdir='', filename=''):
+def interpret_cost_args(costs_script, **targetdir_info):
 
     """interprets and collects cost-script arguments, preserving the order defined by the user.  
     Able to pick and understands only 'use-args' and 'extra-args' keys. 
@@ -396,12 +400,7 @@ def interpret_cost_args(costs_script, outputdir='', targetdir='', filename=''):
     costs_script : dict. Should contain 'costs-suffix' and an 'ordered-args' entry in which it can understand :
         'use-args' key : should be a list of str.
         'extra-args' key : should be a dict. 
-    outputdir : str
-        must be given a non empty value if `costs_script` contains 'use-args' key. 
-    targetdir : str
-        must be given a non empty value if `costs_script` contains 'use-args' key. 
-    filename : str
-        must be given a non empty value if `costs_script` contains 'use-args' key. 
+    **targetdir_info : additional arguments passed on to interpret_cost_use_args()
 
     Returns 
     -------
@@ -414,13 +413,8 @@ def interpret_cost_args(costs_script, outputdir='', targetdir='', filename=''):
     for argtype in [arg for arg in ordered_args if 'args' in arg]:
 
         if argtype=='use-args':
-            if outputdir=='' or targetdir=='' or filename=='':
-                raise ValueError('if passing `use-args` to be interpreted you need to fill outputdir and targetdir info')
             arglist = arglist + interpret_cost_use_args(use_args=ordered_args['use-args'], 
-                                                        costs_suffix=costs_script['costs-suffix'],
-                                                        outputdir=outputdir, 
-                                                        targetdir=targetdir,
-                                                        filename=filename)
+                                                        **targetdir_info)
         elif argtype=='extra-args':
             arglist = arglist + [str(x) for x in list(ordered_args['extra-args'].values())]
         else: 
@@ -470,3 +464,4 @@ def interpret_costs_script(costs_script):
         raise ValueError('unknown entries in `use-args` for costs')
 
     return [command_prefix, ordered_args, use_args, extra_args, costs_suffix, costs_variable]
+
