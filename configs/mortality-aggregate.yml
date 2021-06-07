@@ -8,4 +8,8 @@ costs-script:
     use-args: ['clim_scenario','clim_model','impactspath','costs-suffix','iam']
   costs-suffix: -costs
   check-variable-costs: costs_lb
-  description: deaths
+  meta-info:
+    description: "Upper and lower bounds costs of adaptation calculation."
+    version: "DEADLY-2016-04-22"
+    dependencies: "TEMPERATURES, ADAPTATION-ALL-AGES"
+    author: "Tamma Carleton"

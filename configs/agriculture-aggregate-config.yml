@@ -9,4 +9,8 @@ costs-script:
     use-args: ['batchwd', 'clim_model', 'rcp_num', 'ssp_num', 'iam']
   costs-suffix: adaptation_costs
   check-variable-costs: adpt.cost.cuml
-  description: yields
+  meta-info: 
+    description: "costs of yield adaptation to temperature and precipitation long term changes"
+    version: "YIELDS-2021-06-03"
+    dependencies: "tmp_and_prcp_costs.R"
+    author: "Andy Hultgren"

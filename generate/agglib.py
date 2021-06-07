@@ -426,22 +426,6 @@ def interpret_cost_args(costs_script, **targetdir_info):
 
     return arglist
 
-def get_meta_info_costs(name):
-
-
-    if name not in ['deaths', 'yields']:
-        raise ValueError('unknown identifier of meta information for costs netcdfs')
-    data = {'deaths': dict(description="Upper and lower bounds costs of adaptation calculation.",
-                    version="DEADLY-2016-04-22",
-                    dependencies="TEMPERATURES, ADAPTATION-ALL-AGES",
-                    author="Tamma Carleton"), 
-    'yields': dict(description="costs of yield adaptation to temperature and precipitation long term changes",
-                    version="YIELDS-2021-06-03",
-                    dependencies="tmp_and_prcp_costs.R",
-                    author="Andy Hultgren")}
-
-    return data[name]
-
 def interpret_costs_script(costs_script):
 
     """ interprets the `costs-script` entry of an aggregator config and verifies that required 
@@ -462,10 +446,12 @@ def interpret_costs_script(costs_script):
     extra_args = costs_script.get('extra-args', None)
     costs_suffix = costs_script.get('costs-suffix', None) # if starts with '-', interpreted as suffix, otherwise as full file name.
     costs_variable = costs_script.get('check-variable-costs', None)
-    if command_prefix is None or costs_suffix is None or costs_variable is None or costs_script.get('description', None) is None :
+    if command_prefix is None or costs_suffix is None or costs_variable is None :
         raise ValueError('missing info in costs-script dictionary')
     if use_args is not None and not all(arg in agglib.available_cost_use_args() for arg in use_args):
         raise ValueError('unknown entries in `use-args` for costs')
-
+    if costs_script.get('meta-info', None) is not None:
+        if not all(x in costs_script.get('meta-info') for x in ['description', 'version', 'author']):
+            raise ValueError('if providing meta info, should include description, version and author at least')
     return [command_prefix, ordered_args, use_args, extra_args, costs_suffix, costs_variable]
 

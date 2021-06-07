@@ -75,7 +75,6 @@ def test_interpret_costs_script():
 	    	}),
 	    	'costs-suffix': 'adaptation_costs',
 			'check-variable-costs': 'adpt.cost.cuml',
-			'description': 'yields'
 		}
 	}
 
@@ -102,5 +101,10 @@ def test_interpret_costs_script():
 	work_config = copy.deepcopy(nice_config.get('costs-script'))
 	work_config['ordered-args'].pop('extra-args')
 	work_config['ordered-args'].pop('use-args')
+	with pytest.raises(ValueError):
+		agglib.interpret_costs_script(costs_script=work_config)
+
+	work_config = copy.deepcopy(nice_config.get('costs-script'))
+	work_config['meta-info'] = {}
 	with pytest.raises(ValueError):
 		agglib.interpret_costs_script(costs_script=work_config)
