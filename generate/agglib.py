@@ -453,5 +453,5 @@ def interpret_costs_script(costs_script):
     if costs_script.get('meta-info', None) is not None:
         if not all(x in costs_script.get('meta-info') for x in ['description', 'version', 'author']):
             raise ValueError('if providing meta info, should include description, version and author at least')
-    return [command_prefix, ordered_args, use_args, extra_args, costs_suffix, costs_variable]
+    return (command_prefix, ordered_args, use_args, extra_args, costs_suffix, costs_variable)
 
