@@ -105,6 +105,12 @@ def test_interpret_costs_script():
 		agglib.interpret_costs_script(costs_script=work_config)
 
 	work_config = copy.deepcopy(nice_config.get('costs-script'))
+	work_config['ordered-args']['extra-args'] = {}
+	work_config['ordered-args']['use-args'] = {}
+	with pytest.raises(ValueError):
+		agglib.interpret_costs_script(costs_script=work_config)
+
+	work_config = copy.deepcopy(nice_config.get('costs-script'))
 	work_config['meta-info'] = {}
 	with pytest.raises(ValueError):
 		agglib.interpret_costs_script(costs_script=work_config)

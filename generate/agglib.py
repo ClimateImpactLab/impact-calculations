@@ -440,8 +440,8 @@ def interpret_costs_script(costs_script):
 
     command_prefix = costs_script.get('command-prefix', None)
     ordered_args = collections.OrderedDict(costs_script.get('ordered-args')) if costs_script.get('ordered-args', None) is not None else None 
-    if ordered_args is None or (ordered_args.get('use-args', None) is None and ordered_args.get('extra-args', None) is None):
-        raise ValueError('user must pass an `ordered_args` dictionary containing either `extra-args` or `use-args` keys')
+    if ordered_args is None or ('use-args' not in ordered_args and 'extra-args' not in ordered_args) or (not ordered_args.get('use-args') and not ordered_args.get('extra-args')):
+        raise ValueError('user must pass an `ordered_args` dictionary containing either a non-empty `extra-args` list or a non empty `use-args` list or both')
     use_args = costs_script.get('use-args', None)
     extra_args = costs_script.get('extra-args', None)
     costs_suffix = costs_script.get('costs-suffix', None) # if starts with '-', interpreted as suffix, otherwise as full file name.
