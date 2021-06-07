@@ -2,6 +2,7 @@ import pytest
 from generate import agglib
 from generate import aggregate
 import copy 
+import collections
 
 @pytest.mark.imperics_shareddir
 def test_interpret_cost_use_args():
@@ -37,22 +38,22 @@ def test_interpret_cost_args():
 	assert strd[0]=='extraarg1'
 	assert strd[3]=='rcp45'
 
-	revert1 = agglib.interpret_cost_args(costs_script={'ordered-args': {'use-args': ['rcp_num', 'clim_scenario'],
-                                  'extra-args': {'extra-arg1': 'extraarg1', 'extra-arg2': 'extraarg2'}},'costs-suffix':'somesuf'}, 
+	revert1 = agglib.interpret_cost_args(costs_script={'ordered-args': collections.OrderedDict({'use-args': ['rcp_num', 'clim_scenario'],
+                                  'extra-args': {'extra-arg1': 'extraarg1', 'extra-arg2': 'extraarg2'}}),'costs-suffix':'somesuf'}, 
                                   **templates)
 
 	assert revert1[0]=='45'
 	assert revert1[3]=='extraarg2'
 
-	revert2 = agglib.interpret_cost_args(costs_script={'ordered-args': {'use-args': ['clim_scenario', 'rcp_num'],
-                                  'extra-args': {'extra-arg1': 'extraarg2', 'extra-arg2': 'extraarg1'}}, 'costs-suffix':'somesuf'}, 
+	revert2 = agglib.interpret_cost_args(costs_script={'ordered-args': collections.OrderedDict({'use-args': ['clim_scenario', 'rcp_num'],
+                                  'extra-args': {'extra-arg1': 'extraarg2', 'extra-arg2': 'extraarg1'}}), 'costs-suffix':'somesuf'}, 
                                   **templates)
 
 	assert revert2[0]=='rcp45'
 	assert revert2[3]=='extraarg1'
 
 	with pytest.raises(ValueError):
-		agglib.interpret_cost_args(costs_script={'ordered-args':{'random-args':'idk'}, 'costs-suffix':'somesuf'})
+		agglib.interpret_cost_args(costs_script={'ordered-args':collections.OrderedDict({'random-args':'idk'}), 'costs-suffix':'somesuf'})
 
 def test_fullfile():
 
@@ -68,14 +69,14 @@ def test_interpret_costs_script():
 		'basename': 'rice-191020',
 		'costs-script': { 
 			'command-prefix': 'Rscript /home/etenezakis/CIL_repo/agriculture/1_code/3_projections/4_run_projections/adaptation_costs/tmp_and_prcp_costs.R',
-			'ordered-args': {
+			'ordered-args': collections.OrderedDict({
 				'extra-args': { 
 					'crop': 'rice',
 					'avgperiod': 13,
 					'seed-csvv': '""'
 				},
 	    		'use-args': ['batchwd','clim_model','rcp_num','ssp_num','iam']
-	    	},
+	    	}),
 	    	'costs-suffix': 'adaptation_costs',
 			'check-variable-costs': 'adpt.cost.cuml',
 			'description': 'yields'

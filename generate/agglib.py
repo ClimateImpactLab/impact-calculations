@@ -7,6 +7,7 @@ from datastore import irregions
 from impactlab_tools.utils import files
 import re
 from . import pvalses 
+import collections 
 
 def iterdir(basedir, dironly=False):
     """Generator giving filename, path for files and dirs within `basedir`.
@@ -397,9 +398,12 @@ def interpret_cost_args(costs_script, **targetdir_info):
 
     Parameters
     ----------
-    costs_script : dict. Should contain 'costs-suffix' and an 'ordered-args' entry in which it can understand :
-        'use-args' key : should be a list of str.
-        'extra-args' key : should be a dict. 
+    costs_script : dict. 
+        Must contain the following keys : 
+            'costs-suffix' str 
+            'ordered-args' collections.OrderedDict. Known keys :
+                'use-args' list of str.
+                'extra-args' dict
     **targetdir_info : additional arguments passed on to interpret_cost_use_args()
 
     Returns 
@@ -451,7 +455,7 @@ def interpret_costs_script(costs_script):
     """
 
     command_prefix = costs_script.get('command-prefix', None)
-    ordered_args = costs_script.get('ordered-args', None)
+    ordered_args = collections.OrderedDict(costs_script.get('ordered-args')) if costs_script.get('ordered-args', None) is not None else None 
     if ordered_args is None or (ordered_args.get('use-args', None) is None and ordered_args.get('extra-args', None) is None):
         raise ValueError('user must pass an `ordered_args` dictionary containing either `extra-args` or `use-args` keys')
     use_args = costs_script.get('use-args', None)
