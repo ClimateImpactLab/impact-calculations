@@ -27,6 +27,7 @@ from netCDF4 import Dataset
 from . import nc4writer, agglib, checks
 from datastore import weights
 from impactlab_tools.utils import paralog
+import subprocess 
 
 ### Master Configuration
 ### See docs/aggregator.md for other configuration options
@@ -665,19 +666,22 @@ if __name__ == '__main__':
                                         agglib.combine_results(targetdir, filename[:-4] + costs_suffix, basenames, get_stweights, "Combined costs across age-groups for " + filename.replace('-combined.nc4', ''))
                                 else:
                                     costs_suffix = '-' + str(costs_config['infix']) + costs_suffix if 'infix' in costs_config else costs_suffix 
-                                    costs_command = ' '.join([command_prefix, ' '.join(x for x in agglib.interpret_cost_args(costs_config=costs_config,
-                                                                                                                             outputdir=config['outputdir'],
-                                                                                                                             targetdir=targetdir,
-                                                                                                                             filename=filename,
-                                                                                                                             batch=batch,
-                                                                                                                             clim_scenario=clim_scenario,
-                                                                                                                             clim_model=clim_model,
-                                                                                                                             econ_model=econ_model,
-                                                                                                                             econ_scenario=econ_scenario,
-                                                                                                                             costs_suffix=costs_suffix))])
+                                    args = agglib.interpret_cost_args(costs_config=costs_config,
+                                                                      outputdir=config['outputdir'],
+                                                                      targetdir=targetdir,
+                                                                      filename=filename,
+                                                                      batch=batch,
+                                                                      clim_scenario=clim_scenario,
+                                                                      clim_model=clim_model,
+                                                                      econ_model=econ_model,
+                                                                      econ_scenario=econ_scenario,
+                                                                      costs_suffix=costs_suffix)
+
                                     # Call the adaptation costs system
-                                    print(costs_command)
-                                    os.system(costs_command)
+                                    command = command_prefix.split() + args
+                                    print(' '.join(command))
+                                    subprocess.run(command)
+
 
                             # Levels of costs
                             if halfweight_levels:
