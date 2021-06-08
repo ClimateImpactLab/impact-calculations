@@ -444,9 +444,9 @@ def interpret_costs_config(costs_config):
         raise ValueError('user must pass an `ordered_args` dictionary containing either a non-empty `extra-args` list or a non empty `use-args` list or both')
     use_args = costs_config.get('use-args', None)
     extra_args = costs_config.get('extra-args', None)
-    costs_suffix = costs_config.get('costs-suffix', None) # if starts with '-', interpreted as suffix, otherwise as full file name.
+    costs_suffix = costs_config.get('costs-suffix', '-costs') # if starts with '-', interpreted as suffix, otherwise as full file name.
     costs_variable = costs_config.get('check-variable-costs', None)
-    if command_prefix is None or costs_suffix is None or costs_variable is None :
+    if command_prefix is None or costs_variable is None :
         raise ValueError('missing info in costs-config dictionary')
     if use_args is not None and not all(arg in agglib.available_cost_use_args() for arg in use_args):
         raise ValueError('unknown entries in `use-args` for costs')
