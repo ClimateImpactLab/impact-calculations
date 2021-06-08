@@ -426,16 +426,10 @@ def interpret_costs_args(costs_config, **targetdir_info):
 
     return arglist
 
-def interpret_costs_config(costs_config):
+def validate_costs_config(costs_config):
 
     """ interprets the `costs-config` entry of an aggregator config and verifies that required 
-    entries are present.
-
-    Returns
-    -------
-    a list of str containing possible entries to the `costs_config` config key : 
-    [command_prefix, ordered_args, known_args, extra_args, costs_suffix, costs_variable]
-    
+    entries are present. Returns nothing.  
     """
 
     command_prefix = costs_config.get('command-prefix', None)
@@ -453,5 +447,4 @@ def interpret_costs_config(costs_config):
     if costs_config.get('meta-info', None) is not None:
         if not all(x in costs_config.get('meta-info') for x in ['description', 'version', 'author']):
             raise ValueError('if providing meta info, should include description, version and author at least')
-    return (command_prefix, ordered_args, known_args, extra_args, costs_suffix, costs_variable)
 

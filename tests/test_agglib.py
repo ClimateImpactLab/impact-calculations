@@ -72,13 +72,11 @@ def test_fullfile():
 	# with suffix not starting with '-' and without infix in config -- verify the suffix becomes the full name.  
 	assert aggregate.fullfile('myname.nc4', 'newname', {})=='newname.nc4'
 
-def test_interpret_costs_config():
+def test_validate_costs_config():
 
 	'''
-	testing the behavior of agglib.interpret_costs_config(). Mainly, verifying 
-	that correct calls return arguments in the order indicated in the spec and 
-	verifying that the function does its main job which it to raise ValueError if 
-	key elements are missing from the config. 
+	testing the behavior of agglib.validate_costs_config(). Mainly, that the function does
+	its main job which it to raise ValueError with informative messages if key elements are missing from the costs config. 
 
 	'''
 
@@ -99,41 +97,30 @@ def test_interpret_costs_config():
 		}
 	}
 
-	# verifying that it properly returns the config elements 
-	work_config = copy.deepcopy(nice_config.get('costs-config'))
-	assert agglib.interpret_costs_config(costs_config=work_config)[0]=='Rscript /home/etenezakis/CIL_repo/agriculture/1_code/3_projections/4_run_projections/adaptation_costs/tmp_and_prcp_costs.R'
-	assert agglib.interpret_costs_config(costs_config=work_config)[4]=='adaptation_costs'
-	assert agglib.interpret_costs_config(costs_config=work_config)[5]=='adpt.cost.cuml'
-	assert len(agglib.interpret_costs_config(costs_config=work_config))==6
-
 	# in all that follows, dropping various key elements and verifying Exceptions are raised 
 	work_config = copy.deepcopy(nice_config.get('costs-config'))
 	work_config.pop('command-prefix')
 	with pytest.raises(ValueError):
-		agglib.interpret_costs_config(costs_config=work_config)
+		agglib.validate_costs_config(costs_config=work_config)
 
 	work_config = copy.deepcopy(nice_config.get('costs-config'))
 	work_config.pop('ordered-args')
 	with pytest.raises(ValueError):
-		agglib.interpret_costs_config(costs_config=work_config)
-
-	work_config = copy.deepcopy(nice_config.get('costs-config'))
-	work_config['ordered-args'].pop('extra-args')
-	assert agglib.interpret_costs_config(costs_config=work_config)[3]==None
+		agglib.validate_costs_config(costs_config=work_config)
 
 	work_config = copy.deepcopy(nice_config.get('costs-config'))
 	work_config['ordered-args'].pop('extra-args')
 	work_config['ordered-args'].pop('known-args')
 	with pytest.raises(ValueError):
-		agglib.interpret_costs_config(costs_config=work_config)
+		agglib.validate_costs_config(costs_config=work_config)
 
 	work_config = copy.deepcopy(nice_config.get('costs-config'))
 	work_config['ordered-args']['extra-args'] = {}
 	work_config['ordered-args']['known-args'] = {}
 	with pytest.raises(ValueError):
-		agglib.interpret_costs_config(costs_config=work_config)
+		agglib.validate_costs_config(costs_config=work_config)
 
 	work_config = copy.deepcopy(nice_config.get('costs-config'))
 	work_config['meta-info'] = {}
 	with pytest.raises(ValueError):
-		agglib.interpret_costs_config(costs_config=work_config)
+		agglib.validate_costs_config(costs_config=work_config)

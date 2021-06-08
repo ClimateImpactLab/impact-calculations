@@ -521,8 +521,9 @@ if __name__ == '__main__':
     costs_config = config.get('costs-config', None)
     
     if costs_config is not None:
-        command_prefix, ordered_args, known_args, extra_args, costs_suffix, costs_variable = agglib.interpret_costs_config(costs_config)
+        agglib.validate_costs_config(costs_config)
 
+    costs_suffix = costs_config.get('costs-suffix', '-costs')
     # Construct object to claim directories
     # Allow directories to be re-claimed after this many seconds
     claim_timeout = config.get('timeout', 24) * 60*60
@@ -646,7 +647,7 @@ if __name__ == '__main__':
                         if '-noadapt' not in filename and '-incadapt' not in filename and 'histclim' not in filename and 'indiamerge' not in filename:
                             # Tries to generate costs every time it finds a 'fulladapt' file. 
                             outfilename = fullfile(filename, costs_suffix, config)
-                            if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)) or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable=costs_variable, regioncount=5665):
+                            if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)) or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable=costs_config.get('check-variable-costs', None), regioncount=5665):
                                 if '-combined' in filename:
                                     # Trying to obtain a combined cost file from age files. 
                                     # Look for age-specific costs
@@ -678,7 +679,7 @@ if __name__ == '__main__':
                                                                       costs_suffix=costs_suffix)
 
                                     # Call the adaptation costs system
-                                    command = command_prefix.split() + args
+                                    command = costs_config.get('command-prefix').split() + args
                                     print(' '.join(command))
                                     subprocess.run(command)
 
