@@ -522,8 +522,10 @@ if __name__ == '__main__':
     
     if costs_config is not None:
         agglib.validate_costs_config(costs_config)
+        costs_suffix = costs_config.get('costs-suffix', '-costs')
+    else 
+        costs_suffix = '-costs'
 
-    costs_suffix = costs_config.get('costs-suffix', '-costs')
     # Construct object to claim directories
     # Allow directories to be re-claimed after this many seconds
     claim_timeout = config.get('timeout', 24) * 60*60
