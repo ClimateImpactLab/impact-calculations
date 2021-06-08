@@ -4,7 +4,6 @@ from generate import aggregate
 import copy 
 import collections
 
-@pytest.mark.imperics_shareddir
 def test_interpret_costs_use_args():
 
 	"""
@@ -19,10 +18,9 @@ def test_interpret_costs_use_args():
 	assert agglib.interpret_costs_use_args(['rcp_num', 'clim_scenario'], '','','','rcp85','','','','','')[0]=='85'
 	# check seed reading works 
 	assert agglib.interpret_costs_use_args(['seed-csvv'],
-	 '/shares/gcp/outputs/agriculture/impacts-mealy/testing/montecarlo-cassava-261020/montecarlo',
-	 'batch7/rcp45/surrogate_CanESM2_89/high/SSP3','','rcp85','','','','cassava-031020.nc4', 'somesuf')[0]=='1603562142'
+	 'tests/testdata/agsingle',
+	 'single','','rcp85','','','','cassava-031020.nc4', 'somesuf')[0]=='1603562142'
 
-@pytest.mark.imperics_shareddir
 def test_interpret_costs_args():
 
 	'''
