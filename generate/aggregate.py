@@ -521,7 +521,7 @@ if __name__ == '__main__':
     costs_config = config.get('costs-config', None)
     
     if costs_config is not None:
-        command_prefix, ordered_args, use_args, extra_args, costs_suffix, costs_variable = agglib.interpret_costs_config(costs_config)
+        command_prefix, ordered_args, known_args, extra_args, costs_suffix, costs_variable = agglib.interpret_costs_config(costs_config)
 
     # Construct object to claim directories
     # Allow directories to be re-claimed after this many seconds

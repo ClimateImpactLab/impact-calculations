@@ -6,7 +6,7 @@ only-variables: ['rebased']
 costs-config: 
   command-prefix: 'Rscript /home/etenezakis/CIL_repo/impact-calculations/generate/cost_curves.R'
   ordered-args:
-    use-args: ['clim_scenario','clim_model','impactspath','costs-suffix','iam']
+    known-args: ['clim_scenario','clim_model','impactspath','costs-suffix','iam']
   costs-suffix: -costs
   check-variable-costs: costs_lb
   meta-info:

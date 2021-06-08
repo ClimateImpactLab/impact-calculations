@@ -350,17 +350,17 @@ def get_farmer_suffix(filename):
         return parts[-1][:-4]
     return ''
 
-def available_costs_use_args():
-    """ returns a list of str containing known 'use-args' interpretable by interpret_cost_use_args()  """
+def available_costs_known_args():
+    """ returns a list of str containing known 'known-args' interpretable by interpret_cost_known_args()  """
     return ['clim_scenario', 'clim_model', 'impactspath', 'batchwd', 'ssp_num','rcp_num','iam','seed-csvv', 'costs-suffix']
 
-def interpret_costs_use_args(use_args, outputdir, targetdir, batch, clim_scenario, clim_model,econ_model, econ_scenario, filename, costs_suffix):
+def interpret_costs_known_args(known_args, outputdir, targetdir, batch, clim_scenario, clim_model,econ_model, econ_scenario, filename, costs_suffix):
     """retrieves arguments to be passed to a cost command among a known set of arguments using some directory information. 
     Availability definition in `available_costs_args()` should be updated as needed. 
 
     Parameters
     ----------
-    use_args : list of str
+    known_args : list of str
     outputdir : str
     targetdir : str
     batch : str
@@ -374,7 +374,7 @@ def interpret_costs_use_args(use_args, outputdir, targetdir, batch, clim_scenari
 
     Returns 
     -------
-    a list containing arguments selected by `use_args`. 
+    a list containing arguments selected by `known_args`. 
     """
 
     available_args = {'clim_scenario' : clim_scenario,
@@ -386,15 +386,15 @@ def interpret_costs_use_args(use_args, outputdir, targetdir, batch, clim_scenari
     'iam' : econ_model,
     'costs-suffix' : costs_suffix}
 
-    if 'seed-csvv' in use_args:
+    if 'seed-csvv' in known_args:
         available_args['seed-csvv']=str(pvalses.read_pval_file(path=os.path.join(outputdir, targetdir), relative_location=targetdir)[filename[:-4]]['seed-csvv'])
 
-    return [available_args[x] for x in use_args]
+    return [available_args[x] for x in known_args]
  
 def interpret_costs_args(costs_config, **targetdir_info):
 
     """interprets and collects arguments to be passed to a cost command, preserving the order defined by the user.  
-    Able to pick and understands only 'use-args' and 'extra-args' keys. 
+    Able to pick and understands only 'known-args' and 'extra-args' keys. 
 
     Parameters
     ----------
@@ -402,9 +402,9 @@ def interpret_costs_args(costs_config, **targetdir_info):
         Must contain the following keys : 
             'costs-suffix' str 
             'ordered-args' collections.OrderedDict. Known keys :
-                'use-args' list of str.
+                'known-args' list of str.
                 'extra-args' list
-    **targetdir_info : additional arguments passed on to interpret_costs_use_args()
+    **targetdir_info : additional arguments passed on to interpret_costs_known_args()
 
     Returns 
     -------
@@ -416,13 +416,13 @@ def interpret_costs_args(costs_config, **targetdir_info):
     ordered_args = costs_config.get('ordered-args')
     for argtype in ordered_args:
 
-        if argtype=='use-args':
-            arglist = arglist + interpret_costs_use_args(use_args=ordered_args['use-args'], 
+        if argtype=='known-args':
+            arglist = arglist + interpret_costs_known_args(known_args=ordered_args['known-args'], 
                                                         **targetdir_info)
         elif argtype=='extra-args':
             arglist = arglist + [str(x) for x in ordered_args['extra-args']]
         else: 
-            raise ValueError('unknown argtype in the costs config `ordered-args`. Should contain either `use-args` or `extra-args` or both')
+            raise ValueError('unknown argtype in the costs config `ordered-args`. Should contain either `known-args` or `extra-args` or both')
 
     return arglist
 
@@ -434,24 +434,24 @@ def interpret_costs_config(costs_config):
     Returns
     -------
     a list of str containing possible entries to the `costs_config` config key : 
-    [command_prefix, ordered_args, use_args, extra_args, costs_suffix, costs_variable]
+    [command_prefix, ordered_args, known_args, extra_args, costs_suffix, costs_variable]
     
     """
 
     command_prefix = costs_config.get('command-prefix', None)
     ordered_args = collections.OrderedDict(costs_config.get('ordered-args')) if costs_config.get('ordered-args', None) is not None else None 
-    if ordered_args is None or ('use-args' not in ordered_args and 'extra-args' not in ordered_args) or (not ordered_args.get('use-args') and not ordered_args.get('extra-args')):
-        raise ValueError('user must pass an `ordered_args` dictionary containing either a non-empty `extra-args` list or a non empty `use-args` list or both')
-    use_args = costs_config.get('use-args', None)
+    if ordered_args is None or ('known-args' not in ordered_args and 'extra-args' not in ordered_args) or (not ordered_args.get('known-args') and not ordered_args.get('extra-args')):
+        raise ValueError('user must pass an `ordered_args` dictionary containing either a non-empty `extra-args` list or a non empty `known-args` list or both')
+    known_args = costs_config.get('known-args', None)
     extra_args = costs_config.get('extra-args', None)
     costs_suffix = costs_config.get('costs-suffix', '-costs') # if starts with '-', interpreted as suffix, otherwise as full file name.
     costs_variable = costs_config.get('check-variable-costs', None)
     if command_prefix is None or costs_variable is None :
         raise ValueError('missing info in costs-config dictionary')
-    if use_args is not None and not all(arg in agglib.available_costs_use_args() for arg in use_args):
-        raise ValueError('unknown entries in `use-args` for costs')
+    if known_args is not None and not all(arg in agglib.available_costs_known_args() for arg in known_args):
+        raise ValueError('unknown entries in `known-args` for costs')
     if costs_config.get('meta-info', None) is not None:
         if not all(x in costs_config.get('meta-info') for x in ['description', 'version', 'author']):
             raise ValueError('if providing meta info, should include description, version and author at least')
-    return (command_prefix, ordered_args, use_args, extra_args, costs_suffix, costs_variable)
+    return (command_prefix, ordered_args, known_args, extra_args, costs_suffix, costs_variable)
 
