@@ -666,7 +666,7 @@ if __name__ == '__main__':
                                         agglib.combine_results(targetdir, filename[:-4] + costs_suffix, basenames, get_stweights, "Combined costs across age-groups for " + filename.replace('-combined.nc4', ''))
                                 else:
                                     costs_suffix = '-' + str(costs_config['infix']) + costs_suffix if 'infix' in costs_config else costs_suffix 
-                                    args = agglib.interpret_cost_args(costs_config=costs_config,
+                                    args = agglib.interpret_costs_args(costs_config=costs_config,
                                                                       outputdir=config['outputdir'],
                                                                       targetdir=targetdir,
                                                                       filename=filename,

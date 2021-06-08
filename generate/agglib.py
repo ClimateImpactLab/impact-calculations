@@ -350,13 +350,13 @@ def get_farmer_suffix(filename):
         return parts[-1][:-4]
     return ''
 
-def available_cost_use_args():
+def available_costs_use_args():
     """ returns a list of str containing known 'use-args' interpretable by interpret_cost_use_args()  """
     return ['clim_scenario', 'clim_model', 'impactspath', 'batchwd', 'ssp_num','rcp_num','iam','seed-csvv', 'costs-suffix']
 
-def interpret_cost_use_args(use_args, outputdir, targetdir, batch, clim_scenario, clim_model,econ_model, econ_scenario, filename, costs_suffix):
+def interpret_costs_use_args(use_args, outputdir, targetdir, batch, clim_scenario, clim_model,econ_model, econ_scenario, filename, costs_suffix):
     """retrieves arguments to be passed to a cost command among a known set of arguments using some directory information. 
-    Availability definition in `available_cost_args()` should be updated as needed. 
+    Availability definition in `available_costs_args()` should be updated as needed. 
 
     Parameters
     ----------
@@ -391,7 +391,7 @@ def interpret_cost_use_args(use_args, outputdir, targetdir, batch, clim_scenario
 
     return [available_args[x] for x in use_args]
  
-def interpret_cost_args(costs_config, **targetdir_info):
+def interpret_costs_args(costs_config, **targetdir_info):
 
     """interprets and collects arguments to be passed to a cost command, preserving the order defined by the user.  
     Able to pick and understands only 'use-args' and 'extra-args' keys. 
@@ -404,7 +404,7 @@ def interpret_cost_args(costs_config, **targetdir_info):
             'ordered-args' collections.OrderedDict. Known keys :
                 'use-args' list of str.
                 'extra-args' list
-    **targetdir_info : additional arguments passed on to interpret_cost_use_args()
+    **targetdir_info : additional arguments passed on to interpret_costs_use_args()
 
     Returns 
     -------
@@ -417,7 +417,7 @@ def interpret_cost_args(costs_config, **targetdir_info):
     for argtype in ordered_args:
 
         if argtype=='use-args':
-            arglist = arglist + interpret_cost_use_args(use_args=ordered_args['use-args'], 
+            arglist = arglist + interpret_costs_use_args(use_args=ordered_args['use-args'], 
                                                         **targetdir_info)
         elif argtype=='extra-args':
             arglist = arglist + [str(x) for x in ordered_args['extra-args']]
@@ -448,7 +448,7 @@ def interpret_costs_config(costs_config):
     costs_variable = costs_config.get('check-variable-costs', None)
     if command_prefix is None or costs_variable is None :
         raise ValueError('missing info in costs-config dictionary')
-    if use_args is not None and not all(arg in agglib.available_cost_use_args() for arg in use_args):
+    if use_args is not None and not all(arg in agglib.available_costs_use_args() for arg in use_args):
         raise ValueError('unknown entries in `use-args` for costs')
     if costs_config.get('meta-info', None) is not None:
         if not all(x in costs_config.get('meta-info') for x in ['description', 'version', 'author']):
