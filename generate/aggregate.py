@@ -523,7 +523,7 @@ if __name__ == '__main__':
     if costs_config is not None:
         agglib.validate_costs_config(costs_config)
         costs_suffix = costs_config.get('costs-suffix', '-costs')
-    else 
+    else:
         costs_suffix = '-costs'
 
     # Construct object to claim directories
