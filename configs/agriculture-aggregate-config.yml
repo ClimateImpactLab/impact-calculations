@@ -6,7 +6,7 @@ only-variables: ['rebased', 'response_rebased', 'response2_rebased', 'response22
 costs-config: 
   command-prefix: 'Rscript /home/etenezakis/CIL_repo/agriculture/1_code/3_projections/4_run_projections/adaptation_costs/tmp_and_prcp_costs.R'
   ordered-args:
-    extra-args: ['rice', 13, '""']
+    extra-args: ['rice', 13, 'unused']
     known-args: ['batchwd', 'clim_model', 'rcp_num', 'ssp_num', 'iam']
   costs-suffix: adaptation_costs
   check-variable-costs: adpt.cost.cuml
