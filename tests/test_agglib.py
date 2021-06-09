@@ -11,11 +11,9 @@ def test_interpret_costs_known_args():
 	"""
 
 	# a simple case requesting two known_args 
-	assert agglib.interpret_costs_known_args(['clim_scenario', 'rcp_num'], '','','','rcp85','','','','','')[0]=='rcp85'
+	assert agglib.interpret_costs_known_args(['clim_scenario', 'clim_model'], '','','','rcp85','','','','','')[0]=='rcp85'
 	# switch order and verify the output changes accordingly
-	assert agglib.interpret_costs_known_args(['rcp_num', 'clim_scenario'], '','','','rcp85','','','','','')[1]=='rcp85'
-	# verify the numeric-style scenarios are properly workings
-	assert agglib.interpret_costs_known_args(['rcp_num', 'clim_scenario'], '','','','rcp85','','','','','')[0]=='85'
+	assert agglib.interpret_costs_known_args(['clim_model', 'clim_scenario'], '','','','rcp85','','','','','')[1]=='rcp85'
 	# check seed reading works 
 	assert agglib.interpret_costs_known_args(['seed-csvv'],
 	 'tests/testdata/agsingle',
@@ -31,14 +29,14 @@ def test_interpret_costs_args():
 	'filename' : 'cassava-031020.nc4',
 	'batch':'batch7',
 	'clim_scenario':'rcp45',
-	'clim_model':'rcp85',
+	'clim_model':'CCSM4',
 	'econ_model':'high',
 	'econ_scenario':'SSP3',
 	'costs_suffix':'somesuf'}
 
 	# standard behavior 
 	strd = agglib.interpret_costs_args(costs_config={'ordered-args': {'extra-args': ['extraarg1', 'extraarg2'],
-	                                  'known-args': ['rcp_num', 'clim_scenario']}, 'costs-suffix':'somesuf'},
+	                                  'known-args': ['clim_model', 'clim_scenario']}, 'costs-suffix':'somesuf'},
 	                                  **templates)
 
 	assert len(strd)==4
@@ -46,15 +44,15 @@ def test_interpret_costs_args():
 	assert strd[3]=='rcp45'
 
 	# switch the order of known-args and extra-args and verify output changes accordingly 
-	revert1 = agglib.interpret_costs_args(costs_config={'ordered-args': collections.OrderedDict({'known-args': ['rcp_num', 'clim_scenario'],
+	revert1 = agglib.interpret_costs_args(costs_config={'ordered-args': collections.OrderedDict({'known-args': ['clim_model', 'clim_scenario'],
                                   'extra-args': ['extraarg1','extraarg2']}),'costs-suffix':'somesuf'}, 
                                   **templates)
 
-	assert revert1[0]=='45'
+	assert revert1[0]=='CCSM4'
 	assert revert1[3]=='extraarg2'
 
 	# flip the order within known-args an extra-args and verify output changes accordingly
-	revert2 = agglib.interpret_costs_args(costs_config={'ordered-args': collections.OrderedDict({'known-args': ['clim_scenario', 'rcp_num'],
+	revert2 = agglib.interpret_costs_args(costs_config={'ordered-args': collections.OrderedDict({'known-args': ['clim_scenario', 'clim_model'],
                                   'extra-args': ['extraarg2','extraarg1']}), 'costs-suffix':'somesuf'}, 
                                   **templates)
 
@@ -90,7 +88,7 @@ def test_validate_costs_config():
 			'command-prefix': 'Rscript /home/etenezakis/CIL_repo/agriculture/1_code/3_projections/4_run_projections/adaptation_costs/tmp_and_prcp_costs.R',
 			'ordered-args': collections.OrderedDict({
 				'extra-args': ['rice', 13,'""'],
-	    		'known-args': ['batchwd','clim_model','rcp_num','ssp_num','iam']
+	    		'known-args': ['batchwd','clim_model','clim_scenario','econ_scenario','iam']
 	    	}),
 	    	'costs-suffix': 'adaptation_costs',
 			'check-variable-costs': 'adpt.cost.cuml',

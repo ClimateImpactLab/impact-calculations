@@ -352,7 +352,7 @@ def get_farmer_suffix(filename):
 
 def available_costs_known_args():
     """ returns a list of str containing known 'known-args' interpretable by interpret_cost_known_args()  """
-    return ['clim_scenario', 'clim_model', 'impactspath', 'batchwd', 'ssp_num','rcp_num','iam','seed-csvv', 'costs-suffix']
+    return ['clim_scenario', 'clim_model', 'impactspath', 'batchwd','econ_scenario','iam','seed-csvv', 'costs-suffix']
 
 def interpret_costs_known_args(known_args, outputdir, targetdir, batch, clim_scenario, clim_model,econ_model, econ_scenario, filename, costs_suffix):
     """retrieves arguments to be passed to a cost command among a known set of arguments using some directory information. 
@@ -381,8 +381,7 @@ def interpret_costs_known_args(known_args, outputdir, targetdir, batch, clim_sce
     'clim_model' : clim_model,
     'impactspath' : os.path.join(targetdir, filename),
     'batchwd' : os.path.join(outputdir,batch),
-    'ssp_num' : re.sub('\D', '', econ_scenario),
-    'rcp_num' : re.sub('\D', '', clim_scenario),
+    'econ_scenario' : econ_scenario,
     'iam' : econ_model,
     'costs-suffix' : costs_suffix}
 
