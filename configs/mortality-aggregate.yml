@@ -2,15 +2,21 @@ outputdir: /shares/gcp/outputs/agriculture/impacts-mealy/testing/mortality-impac
 targetdir: /shares/gcp/outputs/agriculture/impacts-mealy/testing/mortality-impacts-darwin-single-fastadapt2-iam-low/single/rcp85/CCSM4/low/SSP3
 weighting: agecohorts
 basename: Agespec_interaction_response
-only-variables: ['rebased']
+only-variables: 
+  - rebased
 costs-config: 
   command-prefix: 'Rscript /home/etenezakis/CIL_repo/impact-calculations/generate/cost_curves.R'
   ordered-args:
-    known-args: ['clim_scenario','clim_model','impactspath','costs-suffix','iam']
+    known-args:
+      - clim_scenario
+      - clim_model
+      - impactspath
+      - costs-suffix
+      - iam
   costs-suffix: -costs
   check-variable-costs: costs_lb
   meta-info:
-    description: "Upper and lower bounds costs of adaptation calculation."
-    version: "DEADLY-2016-04-22"
-    dependencies: "TEMPERATURES, ADAPTATION-ALL-AGES"
-    author: "Tamma Carleton"
+    description: 'Upper and lower bounds costs of adaptation calculation.'
+    version: 'DEADLY-2016-04-22'
+    dependencies: 'TEMPERATURES, ADAPTATION-ALL-AGES'
+    author: 'Tamma Carleton'
