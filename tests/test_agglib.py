@@ -2,7 +2,6 @@ import pytest
 from generate import agglib
 from generate import aggregate
 import copy 
-import collections
 
 def test_interpret_costs_known_args():
 
@@ -44,16 +43,16 @@ def test_interpret_costs_args():
 	assert strd[3]=='rcp45'
 
 	# switch the order of known-args and extra-args and verify output changes accordingly 
-	revert1 = agglib.interpret_costs_args(costs_config={'ordered-args': collections.OrderedDict({'known-args': ['clim_model', 'clim_scenario'],
-                                  'extra-args': ['extraarg1','extraarg2']}),'costs-suffix':'somesuf'}, 
+	revert1 = agglib.interpret_costs_args(costs_config={'ordered-args': {'known-args': ['clim_model', 'clim_scenario'],
+                                  'extra-args': ['extraarg1','extraarg2']},'costs-suffix':'somesuf'}, 
                                   **templates)
 
 	assert revert1[0]=='CCSM4'
 	assert revert1[3]=='extraarg2'
 
 	# flip the order within known-args an extra-args and verify output changes accordingly
-	revert2 = agglib.interpret_costs_args(costs_config={'ordered-args': collections.OrderedDict({'known-args': ['clim_scenario', 'clim_model'],
-                                  'extra-args': ['extraarg2','extraarg1']}), 'costs-suffix':'somesuf'}, 
+	revert2 = agglib.interpret_costs_args(costs_config={'ordered-args': {'known-args': ['clim_scenario', 'clim_model'],
+                                  'extra-args': ['extraarg2','extraarg1']}, 'costs-suffix':'somesuf'}, 
                                   **templates)
 
 	assert revert2[0]=='rcp45'
@@ -61,7 +60,7 @@ def test_interpret_costs_args():
 
 	# verify that a ValueError is raised if known-args and extra-args are missing from ordered-args
 	with pytest.raises(ValueError):
-		agglib.interpret_costs_args(costs_config={'ordered-args':collections.OrderedDict({'random-args':'idk'}), 'costs-suffix':'somesuf'})
+		agglib.interpret_costs_args(costs_config={'ordered-args':{'random-args':'idk'}, 'costs-suffix':'somesuf'})
 
 def test_fullfile():
 
@@ -86,10 +85,10 @@ def test_validate_costs_config():
 		'basename': 'rice-191020',
 		'costs-config': { 
 			'command-prefix': 'Rscript /home/etenezakis/CIL_repo/agriculture/1_code/3_projections/4_run_projections/adaptation_costs/tmp_and_prcp_costs.R',
-			'ordered-args': collections.OrderedDict({
+			'ordered-args': {
 				'extra-args': ['rice', 13,'""'],
 	    		'known-args': ['batchwd','clim_model','clim_scenario','econ_scenario','iam']
-	    	}),
+	    	},
 	    	'costs-suffix': 'adaptation_costs',
 			'check-variable-costs': 'adpt.cost.cuml',
 		}

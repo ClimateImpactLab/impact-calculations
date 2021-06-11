@@ -7,7 +7,6 @@ from datastore import irregions
 from impactlab_tools.utils import files
 import re
 from . import pvalses 
-import collections 
 
 def iterdir(basedir, dironly=False):
     """Generator giving filename, path for files and dirs within `basedir`.
@@ -400,7 +399,7 @@ def interpret_costs_args(costs_config, **targetdir_info):
     costs_config : dict. 
         Must contain the following keys : 
             'costs-suffix' str 
-            'ordered-args' collections.OrderedDict. Known keys :
+            'ordered-args' dict. It is assumed that the order of the keys in the dictionary match the order of the source config. Known keys :
                 'known-args' list of str.
                 'extra-args' list
     **targetdir_info : additional arguments passed on to interpret_costs_known_args()
@@ -432,7 +431,7 @@ def validate_costs_config(costs_config):
     """
 
     command_prefix = costs_config.get('command-prefix', None)
-    ordered_args = collections.OrderedDict(costs_config.get('ordered-args')) if costs_config.get('ordered-args', None) is not None else None 
+    ordered_args = costs_config.get('ordered-args') if costs_config.get('ordered-args', None) is not None else None 
     if ordered_args is None or ('known-args' not in ordered_args and 'extra-args' not in ordered_args) or (not ordered_args.get('known-args') and not ordered_args.get('extra-args')):
         raise ValueError('user must pass an `ordered_args` dictionary containing either a non-empty `extra-args` list or a non empty `known-args` list or both')
     known_args = costs_config.get('known-args', None)
