@@ -111,6 +111,55 @@ Optional keys are :
    - `author`
 
 
+Example 1 : 
+
+
+```
+costs-config: 
+  command-prefix: 'Rscript /home/etenezakis/CIL_repo/agriculture/1_code/3_projections/4_run_projections/adaptation_costs/tmp_and_prcp_costs.R'
+  ordered-args:
+    extra-args:
+      - rice
+      - 13
+      - unused
+    known-args:
+      - batchwd
+      - clim_model
+      - clim_scenario
+      - econ_scenario
+      - iam
+  costs-suffix: adaptation_costs
+  check-variable-costs: adpt.cost.cuml
+  meta-info: 
+    description: "costs of yield adaptation to temperature and precipitation long term changes"
+    version: "YIELDS-2021-06-03"
+    dependencies: "tmp_and_prcp_costs.R"
+    author: "Andy Hultgren"
+```
+
+Example 2 : 
+
+
+```
+costs-config: 
+  command-prefix: 'Rscript /home/etenezakis/CIL_repo/impact-calculations/generate/cost_curves.R'
+  ordered-args:
+    known-args:
+      - clim_scenario
+      - clim_model
+      - impactspath
+      - costs-suffix
+      - iam
+  costs-suffix: -costs
+  check-variable-costs: costs_lb
+  meta-info:
+    description: 'Upper and lower bounds costs of adaptation calculation.'
+    version: 'DEADLY-2016-04-22'
+    dependencies: 'TEMPERATURES, ADAPTATION-ALL-AGES'
+    author: 'Tamma Carleton'
+```
+
+
 ## Weighting Schemes
 
 A weighting schemes consists of an expression that can consist of a
