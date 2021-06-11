@@ -89,21 +89,21 @@ Filtering Targets (also Optional):
 
 ## Adaptation Costs files
 
-The adaptation cost files can be generated along with the aggregated impact files. For this, the user need to pass a `costs-config` entry in the config. It should be a dictionary. Two examples are provided at the end of this section. 
+The adaptation cost files and their aggregated version can be generated along the aggregation of impact files. For this, the user must pass a dictionary `costs-config` entry in the config. Two examples are provided at the end of this section. 
 
 Required keys are : 
 
- - `command-prefix` a string representing the command to run the cost script set up by the user in the command line
+ - `command-prefix` a string representing the command to run the cost script set up by the user in the command line.
  - `ordered-args` containing arguments to be passed to the costs script. It shoud be represented by a dictionary. It should contain at least one of the below keys : 
 
-   - `known-args` list of strings representing arguments that are known to the code and must be built on the fly. Currently available : `['clim_scenario', 'clim_model', 'impactspath', 'batchwd','econ_scenario','iam','seed-csvv', 'costs-suffix']`
+   - `known-args` list of strings representing arguments that are known to the code and that depend on data known to the system during runtime (e.g. target directory). Currently available : `['clim_scenario', 'clim_model', 'impactspath', 'batchwd','econ_scenario','iam','seed-csvv', 'costs-suffix']`
    - `extra-args` list of strings, representing extra arguments to be passed to the cost script.  
 
- - `check-variable-costs` if is required to perform checks that are analogous to those performed with `check-variable` (see above), but for costs files.
+ - `check-variable-costs` a string. It is required to perform checks that are analogous to those performed with `check-variable` (see above), but for costs files.
 
 Optional keys are : 
 
-- `costs-suffix` : a string. Default value is '-costs'. It is used to determine the name of the aggregated cost files. If `costs-suffix` starts with `-` it is interpreted as a suffix and the system will name the aggregated cost files after the prefix of the targetdir response files, and look for those names in preliminary checks. If it doesn't start with `-`, the aggregated cost files will have as a full name the value of `costs_suffix`. The system also used the value of `costs-suffix` for the known argument `costs-suffix` in `known-args`, if the user requires so.
+- `costs-suffix` : a string. The default value is '-costs'. It is used to determine the name of the aggregated cost files. If `costs-suffix` starts with `-` it is interpreted as a suffix and the system will name the aggregated cost files after the prefix of the targetdir response files, and will look for those names in preliminary checks. If it doesn't start with `-`, the aggregated cost files will have as a full name the value of `costs_suffix`. The system also uses the value of `costs-suffix` for the known argument `costs-suffix` in `known-args`, if the user requires this known argument.
 - `infix` : A label inserted before `costs-suffix` historically available to distinguish multiple weighting schemes.
 - `meta-info`: a dictionary of strings to fill in the aggregated adaptation costs netcdf files meta information. Required keys : 
    - `description`
