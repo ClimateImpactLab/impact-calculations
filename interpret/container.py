@@ -2,7 +2,7 @@
 
 import os, glob, copy, warnings
 from impactlab_tools.utils import files
-from generate import weather, server, effectset, caller, checks
+from generate import weather, server, effectset, caller, checks, pvalses
 from adaptation import csvvfile
 from climate.discover import discover_variable, discover_derived_variable, standard_variable
 from interpret import configs
@@ -119,6 +119,10 @@ def produce_csvv(basename, csvv, module, specconf, targetdir, weatherbundle, eco
 
         effectset.generate(targetdir, basename + suffix, weatherbundle, calculation, specconf['description'] + ", with interpolation and adaptation through interpolation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, basename), diagnosefile=diagnosefile.replace('.csv', '-' + basename + '.csv') if diagnosefile else False, deltamethod_vcv=deltamethod_vcv)
 
+        # Make sure to save any random decisions to the pvals file
+        if not isinstance(pvals, pvalses.PlaceholderPvals):
+            pvalses.make_pval_file(targetdir, pvals)
+        
     if profile:
         return
         
