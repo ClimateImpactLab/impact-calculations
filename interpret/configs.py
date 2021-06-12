@@ -1,4 +1,4 @@
-import yaml, copy, itertools
+import yaml, copy, itertools, importlib
 from pathlib import Path
 from impactlab_tools.utils.files import get_file_config
 
@@ -140,6 +140,31 @@ def get_regions(allregions, filter_region):
 
     return my_regions
 
+def get_interpret_container(config):
+    """
+    Decide on the main controller, which determines the number of threads.
+
+     - The default number of threads for median and montecarlo mode is
+       currently 1, but expected to become 2.
+     - The default number of threads for parallelmc and testparallelpe
+       is 3.
+     - All other mode by default use the single threaded container.
+    """
+    mode = config['mode']
+    if mode in ['median', 'montecarlo']:
+        threads = config.get('threads', 1)
+    elif mode in ['parallelmc', 'testparallelpe']:
+        threads = config.get('threads', 3)
+    else:
+        threads = config.get('threads', 1)
+        
+    if threads == 1:
+        return importlib.import_module("interpret.container")
+    elif threads == 2:
+        return importlib.import_module("interpret.twothread_container")
+    else:
+        return importlib.import_module("interpret.parallel_container")
+
 def get_covariate_rate(config, group):
     """ 
     handles the 'scale-covariate-changes' key and the legacy key 'slowadapt'
@@ -176,4 +201,3 @@ def get_covariate_rate(config, group):
         return rate
     else:
         return 1
-
