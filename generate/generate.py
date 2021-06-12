@@ -190,10 +190,7 @@ def main(config, config_name=None):
 
     if not config.get('module'):
         # Specification and run config already together.
-        if config.get('threads', 1) == 1:
-            mod = importlib.import_module("interpret.container")
-        else:
-            mod = importlib.import_module("interpret.parallel_container")
+        mod = configs.get_interpret_container(config)
         shortmodule = str(config_name)
     elif config['module'][-4:] == '.yml':
         # Specification config in another yaml file.
@@ -202,11 +199,7 @@ def main(config, config_name=None):
             "Pointing 'module:' to YAML files is deprecated, please use 'module:' with Python modules and 'import:' with YAML",
             FutureWarning,
         )
-        if config.get('threads', 1) == 1:
-            mod = importlib.import_module("interpret.container")
-        else:
-            mod = importlib.import_module("interpret.parallel_container")
-
+        mod = configs.get_interpret_container(config)
         with open(config['module'], 'r') as fp:
             config.update(yaml.load(fp))
         shortmodule = os.path.basename(config['module'])[:-4]
