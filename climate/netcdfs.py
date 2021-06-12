@@ -40,6 +40,8 @@ def load_netcdf(filename_or_obj, **kwargs):
             filename_or_obj = str(filename_or_obj) # xarray chokes on LocalPath
     except KeyError as ex:
         pass # this seems to happen erratically
+    except AttributeError as ex:
+        pass # this seems to happen erratically
 
     with open_dataset(filename_or_obj, **kwargs) as ds:
         return ds.load()
