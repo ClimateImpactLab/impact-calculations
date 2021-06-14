@@ -237,7 +237,8 @@ def write_ncdf(targetdir, basename, columndata, weatherbundle, calculation, desc
     years[:] = yeardata
 
     if deltamethod_vcv is not False:
-        for col in range(len(columndata) / 2):
+        assert len(columndata) % 2 == 0
+        for col in range(len(columndata) // 2):
             columns[2 * col][:, :] = columndata[2 * col]
             columns[2 * col + 1][:, :, :] = columndata[2 * col + 1]
     else:

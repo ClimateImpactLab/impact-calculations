@@ -86,13 +86,8 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer="full",
                 new_unit = str(reunit_spec["new-unit"])
                 this_csvv["variables"][target_variable]["unit"] = new_unit
 
-        # Subset to regions (i.e. hierids) to act on. Does config have a
-        # filter-region?
-        filter_region = config.get("filter-region")
-        if filter_region:
-            target_regions = [str(filter_region)]
-        else:
-            target_regions = weatherbundle.regions
+        # Subset to regions (i.e. hierids) to act on.
+        target_regions = configs.get_regions(weatherbundle.regions, config.get('filter-region'))
 
         model = specification.create_curvegen(
             this_csvv,
