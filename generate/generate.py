@@ -2,12 +2,11 @@
 Manages rcps and econ and climate models, and generate.effectset.simultaneous_application handles the regions and years.
 """
 
-import os, shutil, csv, time, yaml, tempfile
+import os, shutil, csv, yaml, tempfile
 from collections import OrderedDict
 import numpy as np
 from . import loadmodels
 from . import weather, pvalses, timing
-from adaptation import curvegen
 from interpret import configs
 from openest.generate import diagnostic
 from impactlab_tools.utils import files, paralog

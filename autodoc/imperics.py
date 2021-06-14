@@ -148,7 +148,7 @@ if not config.get('deltamethod', False):
             try:
                 lib.show_header("Calculation of %s coefficient in %d (%f reported)" % (variable, year, lib.excind(calcs, year-1, 'coeff-' + variable)))
                 lib.show_coefficient(csvv, calcs, year, variable, betalimits=betalimits.get(variable, None))
-            except:
+            except IndexError as ex:
                 print("Missing coefficient %s" % ('coeff-' + variable))
 
 pvals = pvalses.ConstantPvals(.5)

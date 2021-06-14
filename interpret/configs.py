@@ -29,11 +29,11 @@ def get_config_module(config, config_name):
         else:
             mod = importlib.import_module("interpret.parallel_container")
         shortmodule = str(config_name)
-    elif config['module'][-4:] == '.yml':
+    elif os.path.splitext(config['module'])[1] in ['.yml', '.yaml']:
         # Specification config in another yaml file.
         import warnings
         warnings.warn(
-            "Pointing 'module:' to YAML files is deprecated, please use 'module:' with Python modules and 'import:' with YAML",
+            "Pointing 'module:' to YAML files is deprecated, please use 'import:'",
             FutureWarning,
         )
         if config.get('threads', 1) == 1:

@@ -171,6 +171,8 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
         Specification configuration.
     getcsvvcurve : bool, optional
         If True, a adaptation.curvegen.CSVVCurveGenerator instance is returned.
+    diag_infix : str
+        Appended to the diagnostic suffix for CurveGenerators that report diagnostics.
 
     Returns
     -------
