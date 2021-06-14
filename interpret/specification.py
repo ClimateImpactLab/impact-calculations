@@ -360,18 +360,16 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
         else:
             final_curve = smart_curve.CoefficientsCurve(curve.ccs, weathernames)
 
-        if clipping_cfg:
-            final_curve = smart_curve.ShiftedCurve(final_curve, -curve.univariate(baselineexts[region]))
+        if clipping_cfg or specconf.get('goodmoney'):
+            final_curve = smart_curve.ShiftedCurve(final_curve, -final_curve.univariate(baselineexts[region]))
 
         if specconf.get('goodmoney', False):
             covars = covariator.get_current(region)
             covars['loggdppc'] = baselineloggdppcs[region]
             noincadapt_unshifted_curve = curr_curvegen.get_curve(region, None, covars, recorddiag=False)
-            if len(weathernames) > 1:
-                coeff_noincadapt_unshifted_curve = smart_curve.CoefficientsCurve(noincadapt_unshifted_curve.ccs, weathernames)
-            else:
-                coeff_noincadapt_unshifted_curve = noincadapt_unshifted_curve
-            noincadapt_curve = smart_curve.ShiftedCurve(coeff_noincadapt_unshifted_curve, -noincadapt_unshifted_curve(baselineexts[region]))
+            if not isinstance(noincadapt_unshifted_curve, smart_curve.SmartCurve):
+                noincadapt_unshifted_curve = smart_curve.CoefficientsCurve(noincadapt_unshifted_curve.ccs, weathernames)
+            noincadapt_curve = smart_curve.ShiftedCurve(noincadapt_unshifted_curve, -noincadapt_unshifted_curve.univariate(baselineexts[region]))
 
             final_curve = smart_curve.MinimumCurve(final_curve, noincadapt_curve)
 
@@ -474,7 +472,11 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     depenunit = specconf['depenunit']
     
     covariator = create_covariator(specconf, weatherbundle, economicmodel, config, farmer=farmer)
-    final_curvegen = create_curvegen(csvv, covariator, weatherbundle.regions, farmer=farmer, specconf=specconf)
+
+    # Subset to regions (i.e. hierids) to act on.
+    target_regions = configs.get_regions(weatherbundle.regions, config.get('filter-region'))
+
+    final_curvegen = create_curvegen(csvv, covariator, target_regions, farmer=farmer, specconf=specconf)
 
     extras = dict(output_unit=depenunit, units=depenunit, curve_description=specconf['description'], errorvar=csvvfile.get_errorvar(csvv))
     calculation = calculator.create_postspecification(specconf['calculation'], {'default': final_curvegen}, None, extras=extras)
