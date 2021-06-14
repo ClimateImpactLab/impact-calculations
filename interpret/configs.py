@@ -8,12 +8,14 @@ def get_config_module(config, config_name):
     """Interpret the `module` entry in a config. Currently also handles `module` as `import`.
 
     This modifies `config` if the deprecated `module` option pointing
-    to an importalbe config is used.
+    to an importable config is used.
 
     Parameters
     ----------
     config : dict
-	Projection run configuration, with or without an "module" key
+	    Projection run configuration, with or without a "module" key.
+    config_name : str
+        Configuration name, used for logging and output filenames if 'config' missing "module" key.
 
     Returns
     -------
