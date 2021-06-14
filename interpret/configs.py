@@ -8,7 +8,7 @@ def get_config_module(config, config_name):
     """Interpret the `module` entry in a config. Currently also handles `module` as `import`.
 
     This modifies `config` if the deprecated `module` option pointing
-    to an importalbe config is used.
+    to an importable config is used.
 
     Parameters
     ----------
