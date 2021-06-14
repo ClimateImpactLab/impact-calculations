@@ -13,7 +13,9 @@ def get_config_module(config, config_name):
     Parameters
     ----------
     config : dict
-	Projection run configuration, with or without an "module" key
+	    Projection run configuration, with or without a "module" key.
+    config_name : str
+        Configuration name, used for logging and output filenames if 'config' missing "module" key.
 
     Returns
     -------
