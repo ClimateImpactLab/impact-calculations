@@ -306,7 +306,7 @@ def make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, d
             coeffcolumn[:, :, :] = coeffvalues
 
         # Copy the result into the output file
-        agglib.copy_timereg_variable(writer, variable, key, dstvalues, "(aggregated)", unitchange=lambda unit: unit + '/person')
+        agglib.copy_timereg_variable(writer, variable, key, dstvalues, "(aggregated)")
 
     # Close all files
     reader.close()
@@ -453,7 +453,7 @@ def make_levels(targetdir, filename, outfilename, halfweight, weight_args, dimen
             coeffcolumn[:, :, :] = coeffvalues
 
         # Copy the result into the output file
-        agglib.copy_timereg_variable(writer, variable, key, dstvalues, "(levels)", unitchange=lambda unit: unit.replace('/person', ''))
+        agglib.copy_timereg_variable(writer, variable, key, dstvalues, "(levels)")
 
     # Close all files
     reader.close()
@@ -649,7 +649,7 @@ if __name__ == '__main__':
                         if '-noadapt' not in filename and '-incadapt' not in filename and 'histclim' not in filename and 'indiamerge' not in filename:
                             # Tries to generate costs every time it finds a 'fulladapt' file. 
                             outfilename = fullfile(filename, costs_suffix, config)
-                            if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)) or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable=costs_config.get('check-variable-costs', None), regioncount=5665):
+                            if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)) or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable=costs_config.get('check-variable-costs', None)):
                                 if '-combined' in filename:
                                     # Trying to obtain a combined cost file from age files. 
                                     # Look for age-specific costs
@@ -694,7 +694,7 @@ if __name__ == '__main__':
 
                             # Aggregate costs
                             outfilename = fullfile(filename, costs_suffix + suffix, config)
-                            if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)):
+                            if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)) or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable=costs_config.get('check-variable-costs', None), regioncount=5665):
                                 make_costs_aggregate(targetdir, fullfile(filename, costs_suffix, config), outfilename, halfweight_aggregate, weight_args_aggregate, halfweight_denom=halfweight_aggregate_denom, weight_args_denom=weight_args_aggregate_denom, config=config)
                         elif 'indiamerge' in filename:
                             # Just aggregate the costs for indiamerge file
