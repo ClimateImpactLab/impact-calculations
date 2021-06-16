@@ -272,7 +272,7 @@ class CubicSplineCurveGenerator(SmartCSVVCurveGenerator):
         self.knots = knots
         self.variablename = str(variablename)
         prednames = [self.variablename] + [prefix + str(ii) for ii in range(1, len(knots)-1)]
-        super(CubicSplineCurveGenerator, self).__init__(prednames, indepunits, depenunit, csvv, betalimits=betalimits)
+        super(CubicSplineCurveGenerator, self).__init__(prednames, indepunits, depenunit, csvv, diagprefix=diagprefix, betalimits=betalimits)
         self.allow_raising = allow_raising
         self.weathernames = prednames
 

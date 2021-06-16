@@ -1,10 +1,60 @@
-import yaml, copy, itertools
+import yaml, copy, itertools, importlib, os
 from pathlib import Path
 from impactlab_tools.utils.files import get_file_config
 
 global_statman = None
 
+def get_config_module(config, config_name):
+    """Interpret the `module` entry in a config. Currently also handles `module` as `import`.
+
+    This modifies `config` if the deprecated `module` option pointing
+    to an importable config is used.
+
+    Parameters
+    ----------
+    config : dict
+	    Projection run configuration, with or without a "module" key.
+    config_name : str
+        Configuration name, used for logging and output filenames if 'config' missing "module" key.
+
+    Returns
+    -------
+    module
+        The module used to handle projections.
+    str
+        A name associated with the configuration.
+    """
+    if not config.get('module'):
+        # Specification and run config already together.
+        if config.get('threads', 1) == 1:
+            mod = importlib.import_module("interpret.container")
+        else:
+            mod = importlib.import_module("interpret.parallel_container")
+        shortmodule = str(config_name)
+    elif os.path.splitext(config['module'])[1] in ['.yml', '.yaml']:
+        # Specification config in another yaml file.
+        import warnings
+        warnings.warn(
+            "Pointing 'module:' to YAML files is deprecated, please use 'import:'",
+            FutureWarning,
+        )
+        if config.get('threads', 1) == 1:
+            mod = importlib.import_module("interpret.container")
+        else:
+            mod = importlib.import_module("interpret.parallel_container")
+
+        with open(config['module'], 'r') as fp:
+            config.update(yaml.load(fp))
+        shortmodule = os.path.basename(config['module'])[:-4]
+    else:
+        # Specification config uses old module/script system, module needs to be imported.
+        mod = importlib.import_module("impacts." + config['module'] + ".allmodels")
+        shortmodule = config['module']
+
+    return mod, shortmodule
+
 def merge_import_config(config, fpath):
+
     """Parse "import" in `config` dict and merge
 
     Values in 'config' override values from any imported dict.
