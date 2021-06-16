@@ -70,11 +70,13 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer="full",
         modelspecconf = configs.merge(specconf, specconf["specifications"][key])
 
         this_csvv = deepcopy(csvv)
+        diag_infix = ""
 
         # If used csvv-subset: option in specifications config:
         csvv_subset = modelspecconf.get("csvv-subset")
         if csvv_subset:
             this_csvv = csvvfile.subset(this_csvv, slice(*csvv_subset))
+            diag_infix += "s%d-%d-" % tuple(csvv_subset)
 
         # If used csvv-reunit: option in specifications config:
         csvv_reunit = modelspecconf.get("csvv-reunit")
@@ -93,6 +95,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer="full",
             target_regions,
             farmer=farmer,
             specconf=modelspecconf,
+            diag_infix=diag_infix
         )
         modelextras = dict(
             output_unit=modelspecconf["depenunit"],

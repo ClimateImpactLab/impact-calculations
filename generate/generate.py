@@ -2,12 +2,11 @@
 Manages rcps and econ and climate models, and generate.effectset.simultaneous_application handles the regions and years.
 """
 
-import os, importlib, shutil, csv, time, yaml, tempfile
+import os, shutil, csv, yaml, tempfile
 from collections import OrderedDict
 import numpy as np
 from . import loadmodels
 from . import weather, pvalses, timing
-from adaptation import curvegen
 from interpret import configs
 from openest.generate import diagnostic
 from impactlab_tools.utils import files, paralog
@@ -188,33 +187,7 @@ def main(config, config_name=None):
 
     start = timing.process_time()
 
-    if not config.get('module'):
-        # Specification and run config already together.
-        if config.get('threads', 1) == 1:
-            mod = importlib.import_module("interpret.container")
-        else:
-            mod = importlib.import_module("interpret.parallel_container")
-        shortmodule = str(config_name)
-    elif config['module'][-4:] == '.yml':
-        # Specification config in another yaml file.
-        import warnings
-        warnings.warn(
-            "Pointing 'module:' to YAML files is deprecated, please use 'module:' with Python modules and 'import:' with YAML",
-            FutureWarning,
-        )
-        if config.get('threads', 1) == 1:
-            mod = importlib.import_module("interpret.container")
-        else:
-            mod = importlib.import_module("interpret.parallel_container")
-
-        with open(config['module'], 'r') as fp:
-            config.update(yaml.load(fp))
-        shortmodule = os.path.basename(config['module'])[:-4]
-    else:
-        # Specification config uses old module/script system, module needs to be imported.
-        mod = importlib.import_module("impacts." + config['module'] + ".allmodels")
-        shortmodule = config['module']
-
+    mod, shortmodule = configs.get_config_module(config, config_name)
     mod.preload()
 
     # Loop through target directories
