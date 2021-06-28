@@ -1,6 +1,7 @@
 outputdir: /shares/gcp/outputs/agriculture/impacts-mealy/testing/rice-single-191020
 targetdir: /shares/gcp/outputs/agriculture/impacts-mealy/testing/rice-single-191020/single/rcp85/CCSM4/high/SSP3
 aggregate-weighting: constcsv/estimation/agriculture/Data/1_raw/3_cropped_area/agglomerated-world-new-hierid-crop-weights.csv:hierid:rice
+aggregated-unit: "log kg / Ha"
 basename: rice-191020
 only-variables: 
   - rebased

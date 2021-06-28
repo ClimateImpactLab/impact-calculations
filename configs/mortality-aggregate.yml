@@ -1,6 +1,8 @@
 outputdir: /shares/gcp/outputs/agriculture/impacts-mealy/testing/mortality-impacts-darwin-single-fastadapt2-iam-low
 targetdir: /shares/gcp/outputs/agriculture/impacts-mealy/testing/mortality-impacts-darwin-single-fastadapt2-iam-low/single/rcp85/CCSM4/low/SSP3
 weighting: agecohorts
+aggregated-unit: "portion/person"
+levels-unit: "portion"
 basename: Agespec_interaction_response
 only-variables: 
   - rebased

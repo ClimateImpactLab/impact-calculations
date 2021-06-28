@@ -35,7 +35,7 @@ import subprocess
 # Suffixes applied to the output filenames
 levels_suffix = '-levels' # scaled results, typically changing rates to levels
 suffix = "-aggregated"    # aggregated results across higher-level regions
-missing_only = True       # generate only missing output files, or regenerate all?
+missing_only = False       # generate only missing output files, or regenerate all?
 
 debug_aggregate = False   # If not false, set to the name of an aggregated region to report. e.g., 'ARE'
 
@@ -306,7 +306,7 @@ def make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, d
             coeffcolumn[:, :, :] = coeffvalues
 
         # Copy the result into the output file
-        agglib.copy_timereg_variable(writer, variable, key, dstvalues, "(aggregated)")
+        agglib.copy_timereg_variable(writer, variable, key, dstvalues, "(aggregated)", unitchange = lambda unit: config.get('aggregated-unit'))
 
     # Close all files
     reader.close()
@@ -453,7 +453,7 @@ def make_levels(targetdir, filename, outfilename, halfweight, weight_args, dimen
             coeffcolumn[:, :, :] = coeffvalues
 
         # Copy the result into the output file
-        agglib.copy_timereg_variable(writer, variable, key, dstvalues, "(levels)")
+        agglib.copy_timereg_variable(writer, variable, key, dstvalues, "(levels)", unitchange = lambda unit: config.get('levels-unit'))
 
     # Close all files
     reader.close()
@@ -539,6 +539,7 @@ if __name__ == '__main__':
         halfweight_levels = weights.interpret_halfweight(config['weighting'])
         halfweight_aggregate = halfweight_levels
         halfweight_aggregate_denom = None # Same as numerator
+        assert ('aggregated-unit' in config and 'levels-unit' in config), "the weighting option requires aggregated-unit and level-unit options"
         assert 'levels-weighting' not in config, "Cannot have both a weighting and levels-weighting option."
         assert 'aggregate-weighting' not in config, "Cannot have both a weighting and aggregate-weighting option."
         assert 'aggregate-weighting-numerator' not in config, "Cannot have both a weighting and aggregate-weighting-numerator option."
@@ -546,6 +547,7 @@ if __name__ == '__main__':
         # Levels weighting
         if 'levels-weighting' in config:
             halfweight_levels = weights.interpret_halfweight(config['levels-weighting'])
+            assert 'levels-unit' in config, "the levels-weighting option requires the level-unit option"
         else:
             halfweight_levels = None
 
@@ -553,10 +555,12 @@ if __name__ == '__main__':
         if 'aggregate-weighting' in config:
             halfweight_aggregate = weights.interpret_halfweight(config['aggregate-weighting'])
             halfweight_aggregate_denom = None # Same as numerator
+            assert 'aggregated-unit' in config, "the aggregate-weighting option requires the aggregated-unit option"
             assert 'aggregate-weighting-numerator' not in config, "Cannot have both a aggregate-weighting and aggregate-weighting-numerator option."
         else:
             # Separate numerator and denominator
             if 'aggregate-weighting-numerator' in config:
+                assert 'aggregated-unit' in config, "the aggregate-weighting-numerator option requires the aggregated-unit option"
                 halfweight_aggregate = weights.interpret_halfweight(config['aggregate-weighting-numerator'])
                 halfweight_aggregate_denom = weights.interpret_halfweight(config['aggregate-weighting-denominator'])
             else:
