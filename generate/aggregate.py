@@ -35,7 +35,7 @@ import subprocess
 # Suffixes applied to the output filenames
 levels_suffix = '-levels' # scaled results, typically changing rates to levels
 suffix = "-aggregated"    # aggregated results across higher-level regions
-missing_only = False       # generate only missing output files, or regenerate all?
+missing_only = True       # generate only missing output files, or regenerate all?
 
 debug_aggregate = False   # If not false, set to the name of an aggregated region to report. e.g., 'ARE'
 
