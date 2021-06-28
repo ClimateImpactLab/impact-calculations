@@ -121,3 +121,49 @@ def test_validate_costs_config():
 	work_config['meta-info'] = {}
 	with pytest.raises(ValueError):
 		agglib.validate_costs_config(costs_config=work_config)
+
+def test_listtargetdir():
+
+	''' testing the listtargetdir generator. Using `tests/testdata/agsingle/single` as `targetdir`. 
+		- `only`, `exclude`, `lowprio` all None
+		- only = ['.yml']
+		- only = ['.yml', '.txt']
+		- exclude = ['.yml']
+		- exclude = ['.yml', '.txt']
+		- lowprio = ['.yml']
+		- lowprio = ['.txt']
+		- lowprio = [list of files in the directory]
+		- lowprio = ['.notthere']
+
+	'''
+
+	targetdir = 'tests/testdata/agsingle/single'
+
+	files = agglib.listtargetdir(targetdir, only=None, exclude=None, lowprio=None)
+	assert len(files)==3 and 'pvals.yml' in files and 'emptyfile1.txt' in files and 'emptyfile2.txt' in files
+
+	files = agglib.listtargetdir(targetdir, only=['.yml'], exclude=None, lowprio=None)
+	assert len(files)==1 and 'pvals.yml' in files and 'emptyfile1.txt' not in files and 'emptyfile2.txt' not in files
+
+	files = agglib.listtargetdir(targetdir, only=['.yml', '.txt'], exclude=None, lowprio=None)
+	assert len(files)==0
+
+	files = agglib.listtargetdir(targetdir, only=None, exclude=['.yml'], lowprio=None)
+	assert len(files)==2 and 'pvals.yml' not in files and 'emptyfile1.txt' in files and 'emptyfile2.txt' in files
+
+	files = agglib.listtargetdir(targetdir, only=None, exclude=['.yml', '.txt'], lowprio=None)
+	assert len(files)==0
+
+	files = agglib.listtargetdir(targetdir, only=None, exclude=None, lowprio=['.yml'])
+	assert len(files)==3 and files[2]=='pvals.yml' and 'emptyfile1.txt' in files and 'emptyfile2.txt' in files
+
+	files = agglib.listtargetdir(targetdir, only=None, exclude=None, lowprio=['.txt'])
+	assert len(files)==3 and files[0]=='pvals.yml' and 'emptyfile1.txt' in files and 'emptyfile2.txt' in files
+
+	files = agglib.listtargetdir(targetdir, only=None, exclude=None) # just list all
+	allmoved = agglib.listtargetdir(targetdir, only=None, exclude=None, lowprio=files) #shifting one by one to last position is like doing nothing
+	assert files==allmoved
+
+	files = agglib.listtargetdir(targetdir, only=None, exclude=None) # just list all
+	nochange = agglib.listtargetdir(targetdir, only=None, exclude=None, lowprio=['.notthere'])
+	assert files==nochange

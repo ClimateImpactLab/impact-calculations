@@ -588,136 +588,136 @@ if __name__ == '__main__':
         if isinstance(debug_aggregate, str):
             incomplete = True
 
-        # Try to process every NetCDF file in targetdir
-        for filename in os.listdir(targetdir):
-            if filename[-4:] == '.nc4' and suffix not in filename and costs_suffix not in filename and levels_suffix not in filename:
-                if 'basename' in config:
-                    if config['basename'] not in filename[:-4]:
-                        continue
-
-                if 'only-farmers' in config:
-                    adaptsuffix = agglib.get_farmer_suffix(filename)
-                    if adaptsuffix not in config['only-farmers']:
-                        continue
-                    
-                # This looks like a valid file to consider!
-                print(filename)
-
-                # Check if this file is complete
-                variable = config.get('check-variable', 'rebased')
-                if not checks.check_result_100years(os.path.join(targetdir, filename), variable=variable, regioncount=regioncount):
-                    print("Incomplete.")
-                    incomplete = True
+        # Try to process every NetCDF file to aggregate in targetdir
+        for filename in agglib.listtargetdir(targetdir=targetdir, only=['.nc4'], exclude=[suffix, costs_suffix, levels_suffix], lowprio=['combined']):
+            
+            if 'basename' in config:
+                if config['basename'] not in filename[:-4]:
                     continue
 
-                # Construct the weight arguments, inferring an age cohort if it's used
-                if 'weighting' in config and config['weighting'] == 'agecohorts':
+            if 'only-farmers' in config:
+                adaptsuffix = agglib.get_farmer_suffix(filename)
+                if adaptsuffix not in config['only-farmers']:
+                    continue
+                
+            # This looks like a valid file to consider!
+            print(filename)
+
+            # Check if this file is complete
+            variable = config.get('check-variable', 'rebased')
+            if not checks.check_result_100years(os.path.join(targetdir, filename), variable=variable, regioncount=regioncount):
+                print("Incomplete.")
+                incomplete = True
+                continue
+
+            # Construct the weight arguments, inferring an age cohort if it's used
+            if 'weighting' in config and config['weighting'] == 'agecohorts':
+                weight_args_levels = (econ_model, econ_scenario, agecohorts.age_from_filename(filename) if 'IND_' not in filename else 'total')
+                weight_args_aggregate = weight_args_levels
+                weight_args_aggregate_denom = None
+            else:
+                if 'levels-weighting' in config and config['levels-weighting'] == 'agecohorts':
                     weight_args_levels = (econ_model, econ_scenario, agecohorts.age_from_filename(filename) if 'IND_' not in filename else 'total')
-                    weight_args_aggregate = weight_args_levels
+                else:
+                    weight_args_levels = (econ_model, econ_scenario)
+                    
+                if 'aggregate-weighting' in config and config['aggregate-weighting'] == 'agecohorts':
+                    weight_args_aggregate = (econ_model, econ_scenario, agecohorts.age_from_filename(filename) if 'IND_' not in filename else 'total')
                     weight_args_aggregate_denom = None
                 else:
-                    if 'levels-weighting' in config and config['levels-weighting'] == 'agecohorts':
-                        weight_args_levels = (econ_model, econ_scenario, agecohorts.age_from_filename(filename) if 'IND_' not in filename else 'total')
-                    else:
-                        weight_args_levels = (econ_model, econ_scenario)
-                        
-                    if 'aggregate-weighting' in config and config['aggregate-weighting'] == 'agecohorts':
+                    if 'aggregate-weighting-numerator' in config and config['aggregate-weighting-numerator'] == 'agecohorts':
                         weight_args_aggregate = (econ_model, econ_scenario, agecohorts.age_from_filename(filename) if 'IND_' not in filename else 'total')
-                        weight_args_aggregate_denom = None
                     else:
-                        if 'aggregate-weighting-numerator' in config and config['aggregate-weighting-numerator'] == 'agecohorts':
-                            weight_args_aggregate = (econ_model, econ_scenario, agecohorts.age_from_filename(filename) if 'IND_' not in filename else 'total')
-                        else:
-                            weight_args_aggregate = (econ_model, econ_scenario)
-                            
-                        if 'aggregate-weighting-denominator' in config and config['aggregate-weighting-denominator'] == 'agecohorts':
-                            weight_args_aggregate_denom = (econ_model, econ_scenario, agecohorts.age_from_filename(filename) if 'IND_' not in filename else 'total')
-                        else:
-                            weight_args_aggregate_denom = (econ_model, econ_scenario)
+                        weight_args_aggregate = (econ_model, econ_scenario)
+                        
+                    if 'aggregate-weighting-denominator' in config and config['aggregate-weighting-denominator'] == 'agecohorts':
+                        weight_args_aggregate_denom = (econ_model, econ_scenario, agecohorts.age_from_filename(filename) if 'IND_' not in filename else 'total')
+                    else:
+                        weight_args_aggregate_denom = (econ_model, econ_scenario)
 
-                # Catch any kind of failure
-                try:
-                    # Generate levels (e.g., total deaths)
-                    if halfweight_levels:
-                        outfilename = fullfile(filename, levels_suffix, config)
-                        if not missing_only or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable=variable, regioncount=regioncount) or not os.path.exists(os.path.join(targetdir, outfilename)):
-                            make_levels(targetdir, filename, outfilename, halfweight_levels, weight_args_levels, config=config)
+            # Catch any kind of failure
+            try:
+                # Generate levels (e.g., total deaths)
+                if halfweight_levels:
+                    outfilename = fullfile(filename, levels_suffix, config)
+                    if not missing_only or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable=variable, regioncount=regioncount) or not os.path.exists(os.path.join(targetdir, outfilename)):
+                        make_levels(targetdir, filename, outfilename, halfweight_levels, weight_args_levels, config=config)
 
-                    # Aggregate impacts
-                    if halfweight_aggregate:
-                        outfilename = fullfile(filename, suffix, config)
-                        if isinstance(debug_aggregate, str) or not missing_only or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable=variable, regioncount=5665) or not os.path.exists(os.path.join(targetdir, outfilename)):
-                            make_aggregates(targetdir, filename, outfilename, halfweight_aggregate, weight_args_aggregate, halfweight_denom=halfweight_aggregate_denom, weight_args_denom=weight_args_aggregate_denom, config=config)
+                # Aggregate impacts
+                if halfweight_aggregate:
+                    outfilename = fullfile(filename, suffix, config)
+                    if isinstance(debug_aggregate, str) or not missing_only or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable=variable, regioncount=5665) or not os.path.exists(os.path.join(targetdir, outfilename)):
+                        make_aggregates(targetdir, filename, outfilename, halfweight_aggregate, weight_args_aggregate, halfweight_denom=halfweight_aggregate_denom, weight_args_denom=weight_args_aggregate_denom, config=config)
 
-                    if costs_config is not None:
-                        if '-noadapt' not in filename and '-incadapt' not in filename and 'histclim' not in filename and 'indiamerge' not in filename:
-                            # Tries to generate costs every time it finds a 'fulladapt' file. 
-                            outfilename = fullfile(filename, costs_suffix, config)
-                            if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)) or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable=costs_config.get('check-variable-costs', None)):
-                                if '-combined' in filename:
-                                    # Trying to obtain a combined cost file from age files. 
-                                    # Look for age-specific costs
-                                    agegroups = ['young', 'older', 'oldest']
-                                    basenames = [filename[:-4].replace('-combined', '-' + agegroup + '-costs') for agegroup in agegroups]
-                                    hasall = True
-                                    for basename in basenames:
-                                        if not os.path.exists(os.path.join(targetdir, basename + '.nc4')):
-                                            print("Missing " + os.path.join(targetdir, basename + '.nc4'))
-                                            hasall = False
-                                            break
+                if costs_config is not None:
+                    if '-noadapt' not in filename and '-incadapt' not in filename and 'histclim' not in filename and 'indiamerge' not in filename:
+                        # Tries to generate costs every time it finds a 'fulladapt' file. 
+                        outfilename = fullfile(filename, costs_suffix, config)
+                        if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)) or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable=costs_config.get('check-variable-costs', None)):
+                            if '-combined' in filename:
+                                # Trying to obtain a combined cost file from age files. 
+                                # Look for age-specific costs
+                                agegroups = ['young', 'older', 'oldest']
+                                basenames = [filename[:-4].replace('-combined', '-' + agegroup + '-costs') for agegroup in agegroups]
+                                hasall = True
+                                for basename in basenames:
+                                    if not os.path.exists(os.path.join(targetdir, basename + '.nc4')):
+                                        print("Missing " + os.path.join(targetdir, basename + '.nc4'))
+                                        hasall = False
+                                        break
 
-                                    if hasall:
-                                        # Combine costs across age-groups
-                                        print("Has all component costs")
-                                        get_stweights = [lambda year0, year1: halfweight_levels.load(year0, year1, econ_model, econ_scenario, 'age0-4', shareonly=True), lambda year0, year1: halfweight_levels.load(year0, year1, econ_model, econ_scenario, 'age5-64', shareonly=True), lambda year0, year1: halfweight_levels.load(year0, year1, econ_model, econ_scenario, 'age65+', shareonly=True)]
-                                        agglib.combine_results(targetdir, filename[:-4] + costs_suffix, basenames, get_stweights, "Combined costs across age-groups for " + filename.replace('-combined.nc4', ''))
-                                else:
-                                    costs_suffix = '-' + str(costs_config['infix']) + costs_suffix if 'infix' in costs_config else costs_suffix 
-                                    args = agglib.interpret_costs_args(costs_config=costs_config,
-                                                                      outputdir=config['outputdir'],
-                                                                      targetdir=targetdir,
-                                                                      filename=filename,
-                                                                      batch=batch,
-                                                                      clim_scenario=clim_scenario,
-                                                                      clim_model=clim_model,
-                                                                      econ_model=econ_model,
-                                                                      econ_scenario=econ_scenario,
-                                                                      costs_suffix=costs_suffix)
+                                if hasall:
+                                    # Combine costs across age-groups
+                                    print("Has all component costs")
+                                    get_stweights = [lambda year0, year1: halfweight_levels.load(year0, year1, econ_model, econ_scenario, 'age0-4', shareonly=True), lambda year0, year1: halfweight_levels.load(year0, year1, econ_model, econ_scenario, 'age5-64', shareonly=True), lambda year0, year1: halfweight_levels.load(year0, year1, econ_model, econ_scenario, 'age65+', shareonly=True)]
+                                    agglib.combine_results(targetdir, filename[:-4] + costs_suffix, basenames, get_stweights, "Combined costs across age-groups for " + filename.replace('-combined.nc4', ''))
+                            else:
+                                costs_suffix = '-' + str(costs_config['infix']) + costs_suffix if 'infix' in costs_config else costs_suffix 
+                                args = agglib.interpret_costs_args(costs_config=costs_config,
+                                                                  outputdir=config['outputdir'],
+                                                                  targetdir=targetdir,
+                                                                  filename=filename,
+                                                                  batch=batch,
+                                                                  clim_scenario=clim_scenario,
+                                                                  clim_model=clim_model,
+                                                                  econ_model=econ_model,
+                                                                  econ_scenario=econ_scenario,
+                                                                  costs_suffix=costs_suffix)
 
-                                    # Call the adaptation costs system
-                                    command = costs_config.get('command-prefix').split() + args
-                                    print(' '.join(command))
-                                    subprocess.run(command)
+                                # Call the adaptation costs system
+                                command = costs_config.get('command-prefix').split() + args
+                                print(' '.join(command))
+                                subprocess.run(command)
 
 
-                            # Levels of costs
-                            if halfweight_levels:
-                                outfilename = fullfile(filename, costs_suffix + levels_suffix, config)
-                                if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)):
-                                    make_costs_levels(targetdir, fullfile(filename, costs_suffix, config), outfilename, halfweight_levels, weight_args_levels, config=config)
-
-                            # Aggregate costs
-                            outfilename = fullfile(filename, costs_suffix + suffix, config)
-                            if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)) or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable=costs_config.get('check-variable-costs', None), regioncount=5665):
-                                make_costs_aggregate(targetdir, fullfile(filename, costs_suffix, config), outfilename, halfweight_aggregate, weight_args_aggregate, halfweight_denom=halfweight_aggregate_denom, weight_args_denom=weight_args_aggregate_denom, config=config)
-                        elif 'indiamerge' in filename:
-                            # Just aggregate the costs for indiamerge file
-
-                            # Levels of costs
-                            outfilename = filename[:-4].replace('combined', 'combined-costs') + levels_suffix + '.nc4'
+                        # Levels of costs
+                        if halfweight_levels:
+                            outfilename = fullfile(filename, costs_suffix + levels_suffix, config)
                             if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)):
-                                make_costs_levels(targetdir, filename[:-4].replace('combined', 'combined-costs') + '.nc4', outfilename, halfweight_levels, weight_args_levels, config=config)
+                                make_costs_levels(targetdir, fullfile(filename, costs_suffix, config), outfilename, halfweight_levels, weight_args_levels, config=config)
 
-                            # Aggregate costs
-                            outfilename = filename[:-4].replace('combined', 'combined-costs') + suffix + '.nc4'
-                            if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)):
-                                make_costs_aggregate(targetdir, filename[:-4].replace('combined', 'combined-costs') + '.nc4', outfilename, halfweight_aggregate, weight_args_aggregate, halfweight_denom=halfweight_aggregate_denom, weight_args_denom=weight_args_aggregate_denom, config=config)
+                        # Aggregate costs
+                        outfilename = fullfile(filename, costs_suffix + suffix, config)
+                        if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)) or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable=costs_config.get('check-variable-costs', None), regioncount=5665):
+                            make_costs_aggregate(targetdir, fullfile(filename, costs_suffix, config), outfilename, halfweight_aggregate, weight_args_aggregate, halfweight_denom=halfweight_aggregate_denom, weight_args_denom=weight_args_aggregate_denom, config=config)
+                    elif 'indiamerge' in filename:
+                        # Just aggregate the costs for indiamerge file
 
-                # On exception, report it and continue
-                except Exception as ex:
-                    print("Failed.")
-                    traceback.print_exc()
-                    incomplete = True
+                        # Levels of costs
+                        outfilename = filename[:-4].replace('combined', 'combined-costs') + levels_suffix + '.nc4'
+                        if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)):
+                            make_costs_levels(targetdir, filename[:-4].replace('combined', 'combined-costs') + '.nc4', outfilename, halfweight_levels, weight_args_levels, config=config)
+
+                        # Aggregate costs
+                        outfilename = filename[:-4].replace('combined', 'combined-costs') + suffix + '.nc4'
+                        if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)):
+                            make_costs_aggregate(targetdir, filename[:-4].replace('combined', 'combined-costs') + '.nc4', outfilename, halfweight_aggregate, weight_args_aggregate, halfweight_denom=halfweight_aggregate_denom, weight_args_denom=weight_args_aggregate_denom, config=config)
+
+            # On exception, report it and continue
+            except Exception as ex:
+                print("Failed.")
+                traceback.print_exc()
+                incomplete = True
 
         # Release the claim on this directory
         statman.release(targetdir, "Incomplete" if incomplete else "Complete")

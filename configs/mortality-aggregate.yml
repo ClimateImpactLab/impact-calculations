@@ -7,7 +7,7 @@ basename: Agespec_interaction_response
 only-variables: 
   - rebased
 costs-config: 
-  command-prefix: 'Rscript /home/etenezakis/CIL_repo/impact-calculations/generate/cost_curves.R'
+  command-prefix: 'Rscript tests/testdata/costs_scripts/mortality.R'
   ordered-args:
     known-args:
       - clim_scenario

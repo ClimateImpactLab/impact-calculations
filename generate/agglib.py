@@ -64,6 +64,44 @@ def iterresults(outdir, batchfilter=lambda batch: True, targetdirfilter=lambda t
                             continue
                         yield batch, clim_scenario, clim_model, econ_scenario, econ_model, espath
 
+def listtargetdir(targetdir, only=None, exclude=None, lowprio=None):
+
+    """ Giving list of filenames for files within `targetdir` keeping only those with the patterns in `only` (intersection), excluding those with the patterns in 
+    `exclude`, and making sure those in `lowprio` appear in the last position(s) of the list. 
+
+    Parameters
+    ----------
+    targetdir : str 
+        Target directory to iterate through
+    only : None or list of str 
+    exclude : None or list of str
+    lowprio : None or list of str 
+        if a list, the order in the list is interpreted as an order of priority. 
+
+    Returns 
+    ------ 
+    list of str
+
+    """
+
+    files = os.listdir(targetdir)
+    if only:
+        for pattern in only: 
+            files = list(filter(lambda x: pattern in x, files))
+
+    if exclude:
+        for pattern in exclude:
+            files = list(filter(lambda x: pattern not in x, files))
+
+    if lowprio:
+        for pattern in lowprio:
+            toshift = list(filter(lambda x: pattern in x, files))
+            for f in toshift: 
+                i=files.index(f)
+                files += [files.pop(i)] # moving to last position 
+
+    return files
+
 def copy_timereg_variable(writer, variable, key, dstvalues, suffix, unitchange=lambda x: x, timevar='year'):
     """Creates a copy of the source variable, with the given aggregated data.
 
