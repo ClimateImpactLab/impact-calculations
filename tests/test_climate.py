@@ -1,7 +1,8 @@
 import numpy as np
 import xarray as xr
 from climate.netcdfs import load_netcdf
-
+from climate import discover
+import pytest 
 
 def test_load_netcdf(tmpdir):
     """Test that load_netcdf actually loads a dataset."""
@@ -16,3 +17,12 @@ def test_load_netcdf(tmpdir):
     # This is the actual, very sophisticated test:
     ds = load_netcdf(testdata_path)
     assert ds == orig_ds
+
+
+@pytest.mark.imperics_shareddir
+def test_standard_variable_identifies():
+
+    """ testing that discover.standard_variable() is able to find existing data """
+
+    # particular version of tas data with month timerate 
+    discover.standard_variable('tasmin = tasmin-clip23', 'month', **{'grid-weight': 'cropwt'})
