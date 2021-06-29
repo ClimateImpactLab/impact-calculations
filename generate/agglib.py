@@ -5,6 +5,8 @@ from . import nc4writer
 from helpers import header
 from datastore import irregions
 from impactlab_tools.utils import files
+import re
+from . import pvalses 
 
 def iterdir(basedir, dironly=False):
     """Generator giving filename, path for files and dirs within `basedir`.
@@ -61,6 +63,44 @@ def iterresults(outdir, batchfilter=lambda batch: True, targetdirfilter=lambda t
                         if not targetdirfilter(espath):
                             continue
                         yield batch, clim_scenario, clim_model, econ_scenario, econ_model, espath
+
+def listtargetdir(targetdir, only=None, exclude=None, lowprio=None):
+
+    """ Giving list of filenames for files within `targetdir` keeping only those with the patterns in `only` (intersection), excluding those with the patterns in 
+    `exclude`, and making sure those in `lowprio` appear in the last position(s) of the list. 
+
+    Parameters
+    ----------
+    targetdir : str 
+        Target directory to iterate through
+    only : None or list of str 
+    exclude : None or list of str
+    lowprio : None or list of str 
+        if a list, the order in the list is interpreted as an order of priority. 
+
+    Returns 
+    ------ 
+    list of str
+
+    """
+
+    files = os.listdir(targetdir)
+    if only:
+        for pattern in only: 
+            files = list(filter(lambda x: pattern in x, files))
+
+    if exclude:
+        for pattern in exclude:
+            files = list(filter(lambda x: pattern not in x, files))
+
+    if lowprio:
+        for pattern in lowprio:
+            toshift = list(filter(lambda x: pattern in x, files))
+            for f in toshift: 
+                i=files.index(f)
+                files += [files.pop(i)] # moving to last position 
+
+    return files
 
 def copy_timereg_variable(writer, variable, key, dstvalues, suffix, unitchange=lambda x: x, timevar='year'):
     """Creates a copy of the source variable, with the given aggregated data.
@@ -346,3 +386,101 @@ def get_farmer_suffix(filename):
     if parts[-1] in ['incadapt.nc4', 'noadapt.nc4', 'histclim.nc4']:
         return parts[-1][:-4]
     return ''
+
+def available_costs_known_args():
+    """ returns a list of str containing known 'known-args' interpretable by interpret_cost_known_args()  """
+    return ['clim_scenario', 'clim_model', 'impactspath', 'batchwd','econ_scenario','iam','seed-csvv', 'costs-suffix']
+
+def interpret_costs_known_args(known_args, outputdir, targetdir, batch, clim_scenario, clim_model,econ_model, econ_scenario, filename, costs_suffix):
+    """retrieves arguments to be passed to a cost command among a known set of arguments using some directory information. 
+    Availability definition in `available_costs_args()` should be updated as needed. 
+
+    Parameters
+    ----------
+    known_args : list of str
+    outputdir : str
+    targetdir : str
+    batch : str
+    clim_scenario : str
+    clim_model : str
+    econ_scenario : str
+    econ_model : str
+    filename : str
+        used to be returned as such with its path and to retrieve `pvals.yml` if needed
+    costs_suffix : str
+
+    Returns 
+    -------
+    a list containing arguments selected by `known_args`. 
+    """
+
+    available_args = {'clim_scenario' : clim_scenario,
+    'clim_model' : clim_model,
+    'impactspath' : os.path.join(targetdir, filename),
+    'batchwd' : os.path.join(outputdir,batch),
+    'econ_scenario' : econ_scenario,
+    'iam' : econ_model,
+    'costs-suffix' : costs_suffix}
+
+    if 'seed-csvv' in known_args:
+        available_args['seed-csvv']=str(pvalses.read_pval_file(path=os.path.join(outputdir, targetdir), relative_location=targetdir)[filename[:-4]]['seed-csvv'])
+
+    return [available_args[x] for x in known_args]
+ 
+def interpret_costs_args(costs_config, **targetdir_info):
+
+    """interprets and collects arguments to be passed to a cost command, preserving the order defined by the user.  
+    Able to pick and understands only 'known-args' and 'extra-args' keys. 
+
+    Parameters
+    ----------
+    costs_config : dict. 
+        Must contain the following keys : 
+            'costs-suffix' str 
+            'ordered-args' dict. It is assumed that the order of the keys in the dictionary match the order of the source config. Known keys :
+                'known-args' list of str.
+                'extra-args' list
+    **targetdir_info : additional arguments passed on to interpret_costs_known_args()
+
+    Returns 
+    -------
+    list of str containing all the arguments to be concatenated and passed to the costs command.
+    """
+
+    arglist = list() # initialize
+
+    ordered_args = costs_config.get('ordered-args')
+    for argtype in ordered_args:
+
+        if argtype=='known-args':
+            arglist = arglist + interpret_costs_known_args(known_args=ordered_args['known-args'], 
+                                                        **targetdir_info)
+        elif argtype=='extra-args':
+            arglist = arglist + [str(x) for x in ordered_args['extra-args']]
+        else: 
+            raise ValueError('unknown argtype in the costs config `ordered-args`. Should contain either `known-args` or `extra-args` or both')
+
+    return arglist
+
+def validate_costs_config(costs_config):
+
+    """ interprets the `costs-config` entry of an aggregator config and verifies that required 
+    entries are present. Returns nothing.  
+    """
+
+    command_prefix = costs_config.get('command-prefix', None)
+    ordered_args = costs_config.get('ordered-args') if costs_config.get('ordered-args', None) is not None else None 
+    if ordered_args is None or ('known-args' not in ordered_args and 'extra-args' not in ordered_args) or (not ordered_args.get('known-args') and not ordered_args.get('extra-args')):
+        raise ValueError('user must pass an `ordered_args` dictionary containing either a non-empty `extra-args` list or a non empty `known-args` list or both')
+    known_args = costs_config.get('known-args', None)
+    extra_args = costs_config.get('extra-args', None)
+    costs_suffix = costs_config.get('costs-suffix', '-costs') # if starts with '-', interpreted as suffix, otherwise as full file name.
+    costs_variable = costs_config.get('check-variable-costs', None)
+    if command_prefix is None or costs_variable is None :
+        raise ValueError('missing info in costs-config dictionary')
+    if known_args is not None and not all(arg in agglib.available_costs_known_args() for arg in known_args):
+        raise ValueError('unknown entries in `known-args` for costs')
+    if costs_config.get('meta-info', None) is not None:
+        if not all(x in costs_config.get('meta-info') for x in ['description', 'version', 'author']):
+            raise ValueError('if providing meta info, should include description, version and author at least')
+

@@ -1,0 +1,30 @@
+outputdir: /shares/gcp/outputs/agriculture/impacts-mealy/testing/rice-single-191020
+targetdir: /shares/gcp/outputs/agriculture/impacts-mealy/testing/rice-single-191020/single/rcp85/CCSM4/high/SSP3
+aggregate-weighting: constcsv/estimation/agriculture/Data/1_raw/3_cropped_area/agglomerated-world-new-hierid-crop-weights.csv:hierid:rice
+aggregated-unit: "log kg / Ha"
+basename: rice-191020
+only-variables: 
+  - rebased
+  - response_rebased
+  - response2_rebased
+  - response22_rebased
+costs-config: 
+  command-prefix: 'Rscript /home/etenezakis/CIL_repo/agriculture/1_code/3_projections/4_run_projections/adaptation_costs/tmp_and_prcp_costs.R'
+  ordered-args:
+    extra-args:
+      - rice
+      - 13
+      - unused
+    known-args:
+      - batchwd
+      - clim_model
+      - clim_scenario
+      - econ_scenario
+      - iam
+  costs-suffix: adaptation_costs
+  check-variable-costs: adpt.cost.cuml
+  meta-info: 
+    description: "costs of yield adaptation to temperature and precipitation long term changes"
+    version: "YIELDS-2021-06-03"
+    dependencies: "tmp_and_prcp_costs.R"
+    author: "Andy Hultgren"
