@@ -24,12 +24,6 @@ class SmartCSVVCurveGenerator(curvegen.CSVVCurveGenerator):
         The units for each independent variable.
     depenunit : str
         The unit of the dependent variable.
-    prefix : str
-        The prefix used in the CSVV for all terms.
-    knots : seq of float
-        The location of the knots in the cubic spline
-    variablename: str
-        Variable to apply the spline to.
     csvv : csvv dictionary
         Source for all parameter calculations.
     diagprefix : str (optional)
