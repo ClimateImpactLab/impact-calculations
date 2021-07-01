@@ -47,14 +47,14 @@ You will need to do this last line every time you want to use the system.
 
 Next, install a laundry-list of public packages, if they aren't already installed (use `--user` for pip commands on a shared computer):
     - numpy
-    - netcdf (if not on Sacagawea): `apt-get install python-netcdf netcdf-bin libnetcdfc++4 libnetcdf-dev`.
+    - netcdf: `apt-get install python-netcdf netcdf-bin libnetcdfc++4 libnetcdf-dev`.
        You may need to install
        `https://github.com/Unidata/netcdf4-python` from the source
-    - libhdf5 and h5py (if not on Sacagawea): `apt-get install libhdf5-serial-dev`; `pip install h5py`
+    - libhdf5 and h5py: `apt-get install libhdf5-serial-dev`; `pip install h5py`
     - metacsv: `pip install metacsv`
-    - libffi-dev (if not on Sacagawea): `apt-get install libffi-dev`
+    - libffi-dev: `apt-get install libffi-dev`
     - statsmodels: `pip install statsmodels`
-    - scipy: `apt-get install libblas-dev liblapack-dev gfortran` (if not on Sacagawea); `pip install scipy`
+    - scipy: `apt-get install libblas-dev liblapack-dev gfortran`; `pip install scipy`
     - xarray: `pip install xarray==0.10.9`
     - pandas: `pip install pandas==0.25.3`
 
