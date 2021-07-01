@@ -7,33 +7,30 @@
 
 ## Installation:
 
-If you are working on Sacagawea, you can skip steps -1 and 0.
+1. Prepare your data directory.
 
--1. Choose the root directories for data with > 1 TB space.  Here is how they are organized on existing systems:
+The data directory contains input files for the projection system, and
+generally is where output files are written. The necessary inputs
+differ depending on the projection being performed, but generally
+consist of projection climate data and socioeconomic data, and common
+region definitions.
 
-   | Server | $DATA |
-   | --- | --- |
-   | Shackleton | /shares/gcp |
-   | BRC | /global/scratch/groups/co_laika/gcp |
-   | OSDC | /mnt/gcp/data |
+This directory can be in any accessible location on the computer. Its
+location will be used in a later step.
 
--0. Ensure that you have Python 3+ and the `numpy` and `scipy` libraries installed
-```
-$ python --version
-$ pip install numpy
-$ pip install scipy
-```
+2. Prepare the software environment.
 
-On BRC, these are provided as modules.  Execute,
-```
-module load python/3
-module load numpy
-module load scipy
-```
+The easiest way to install the necessary libraries is to use the
+`risingverse` conda environment, available at
+https://github.com/ClimateImpactLab/risingverse/
 
-OPTIONAL. Use a virtual environment to keep python packages separate across projects; and always use it on BRC.
+Instructions for installing it are provided in the README of that
+repository.
 
-Then make a new virtual environment directory, execuing from your project directory:
+Alternatively, you can install the necessary libraries by hand. The
+remaining text in this section provides information on doing that. If you do this, we recommend that you start by creating a virtual environment to keep python packages separate across projects.
+
+First, make a new virtual environment directory, execuing from your project directory:
 ```
 python -m venv env
 ```
@@ -48,36 +45,8 @@ source env/bin/activate
 Now, all of your `pip` commands will add packages just to the environment.  Drop all `--user` arguments from the `pip` commands below.
 You will need to do this last line every time you want to use the system.
 
-POSSIBLE. If someone else has already created a virtual environment with all of the installed packages, you may be able to use theirs.  Try running `source <PATH-TO-THEIR-ENV>/bin/activate` and then skip to trying to the last step (where you create the `server.yml`) file below.
-
-Remaining instructions:
-
-1. Clone `open-estimate` to your project directory:
-   ```$ git clone https://github.com/ClimateImpactLab/open-estimate.git```
-
-2. Install it: 
-```
-$ cd open-estimate
-$ python setup.py develop --user
-$ cd ..
-```
-
-3. Similarly, install `impactlab-tools` and `impact-common`:
-```
-$ git clone https://github.com/ClimateImpactLab/impactlab-tools.git
-$ cd impactlab-tools
-$ python setup.py develop --user
-$ cd ..
-$ git clone https://github.com/ClimateImpactLab/impact-common.git
-$ cd impact-common
-$ python setup.py develop --user
-$ cd ..
-```
-
-4. Clone `impact-calculations` to your project directory:
-   ```$ git clone git@bitbucket.org:ClimateImpactLab/impact-calculations.git```
-
-5. Install a laundry-list of other packages, if they aren't already installed (use `--user` for pip commands on a shared computer):
+Next, install a laundry-list of public packages, if they aren't already installed (use `--user` for pip commands on a shared computer):
+    - numpy
     - netcdf (if not on Sacagawea): `apt-get install python-netcdf netcdf-bin libnetcdfc++4 libnetcdf-dev`.
        You may need to install
        `https://github.com/Unidata/netcdf4-python` from the source
@@ -89,13 +58,39 @@ $ cd ..
     - xarray: `pip install xarray==0.10.9`
     - pandas: `pip install pandas==0.25.3`
 
-6. Copy the necessary data from Sacagawea into your `$DATA` directory, if you are not on Sacagawea:
-   ```$ rsync -avz sacagawea.gspp.berkeley.edu:/shares/gcp/social $DATA/social```
-   ```$ rsync -avz sacagawea.gspp.berkeley.edu:/shares/gcp/regions $DATA/regions```
-   ```$ rsync -avz sacagawea.gspp.berkeley.edu:/shares/gcp/climate $DATA/climate```
-   (you probably only want to copy over a subset of the data in `climate`.)
+Clone `open-estimate` to your project directory:
+   ```$ git clone https://github.com/ClimateImpactLab/open-estimate.git```
 
-7. The `impact-calculations` code needs to know where to find the `$DATA` directory and is given this information by placing a file named `server.yml` in the directory that contains `impact-calculations`.  Look at one of the files `impact-calculations/configs/servers-*.yml` and copy it to the directory containing `impact-calculations`, giving it the name `server.yml`.
+Install it: 
+```
+$ cd open-estimate
+$ python setup.py develop --user
+$ cd ..
+```
+
+Similarly, install `impactlab-tools` and `impact-common`:
+```
+$ git clone https://github.com/ClimateImpactLab/impactlab-tools.git
+$ cd impactlab-tools
+$ python setup.py develop --user
+$ cd ..
+$ git clone https://github.com/ClimateImpactLab/impact-common.git
+$ cd impact-common
+$ python setup.py develop --user
+$ cd ..
+```
+
+3. Install the `impact-calculations` repository.
+
+Clone `impact-calculations` to your project directory:
+   ```$ git clone git@bitbucket.org:ClimateImpactLab/impact-calculations.git```
+
+The `impact-calculations` code needs to know where to find the data directory from step one, and this information is given in a file named `server.yml` in the directory that contains `impact-calculations`.
+
+The contents of this file should be:
+```
+shareddir: <full-path-to-data-directory>
+```
 
 ## Producing results
 
