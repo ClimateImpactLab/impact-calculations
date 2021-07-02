@@ -58,6 +58,21 @@ Next, install a laundry-list of public packages, if they aren't already installe
     - xarray: `pip install xarray==0.10.9`
     - pandas: `pip install pandas==0.25.3`
 
+Install the custom `open-estimate`, `impactlab-tools` and
+`impact-common` libraries.
+
+If you will not be developing code in the projection system, you can
+do this directly with `pip`:
+
+ - `open-estimate`: ```$ pip install git+https://github.com/climateimpactlab/open-estimate```
+ - `impactlab-tools`: ```$ pip install git+https://github.com/ClimateImpactLab/impactlab-tools.git```
+ - `impact-common`: ```$ pip install git+https://github.com/ClimateImpactLab/impact-common.git```
+
+In many cases, however, changes to the projection system functioning
+requires changes to these libraries. In this case, it is recommended
+that you clone the git repositories and then install the packages with
+`python setup.py develop`, as follows:
+
 Clone `open-estimate` to your project directory:
    ```$ git clone https://github.com/ClimateImpactLab/open-estimate.git```
 
@@ -85,7 +100,25 @@ $ cd ..
 Clone `impact-calculations` to your project directory:
    ```$ git clone git@bitbucket.org:ClimateImpactLab/impact-calculations.git```
 
-The `impact-calculations` code needs to know where to find the data directory from step one, and this information is given in a file named `server.yml` in the directory that contains `impact-calculations`.
+The `impact-calculations` code needs to know where to find the data
+directory from step 1. There are two ways to configure the system.
+
+Option 1: `IMPERICS_SHAREDDIR`:
+
+You can export the environmental variable with the path to the data
+directory, as follows:
+
+```
+export IMPERICS_SHAREDDIR=<full-path-to-data-directory>
+```
+
+You may want to add this line to your `~/.bashrc` file, to export it
+any time you start a bash shell.
+
+Option 2: `server.yml`:
+
+You can create a file named `server.yml` in the directory that
+contains the `impact-calculations` directory.
 
 The contents of this file should be:
 ```
