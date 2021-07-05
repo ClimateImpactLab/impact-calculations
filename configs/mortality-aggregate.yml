@@ -1,4 +1,24 @@
-outputdir: outputs/mortality/impacts-darwin-u/brc/minpoly30mcs
+outputdir: /shares/gcp/outputs/agriculture/impacts-mealy/testing/mortality-impacts-darwin-single-fastadapt2-iam-low
+targetdir: /shares/gcp/outputs/agriculture/impacts-mealy/testing/mortality-impacts-darwin-single-fastadapt2-iam-low/single/rcp85/CCSM4/low/SSP3
 weighting: agecohorts
-infix: 20190708
-
+aggregated-unit: "portion/person"
+levels-unit: "portion"
+basename: Agespec_interaction_response
+only-variables: 
+  - rebased
+costs-config: 
+  command-prefix: 'Rscript tests/testdata/costs_scripts/mortality.R'
+  ordered-args:
+    known-args:
+      - clim_scenario
+      - clim_model
+      - impactspath
+      - costs-suffix
+      - iam
+  costs-suffix: -costs
+  check-variable-costs: costs_lb
+  meta-info:
+    description: 'Upper and lower bounds costs of adaptation calculation.'
+    version: 'DEADLY-2016-04-22'
+    dependencies: 'TEMPERATURES, ADAPTATION-ALL-AGES'
+    author: 'Tamma Carleton'

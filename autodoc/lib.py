@@ -15,7 +15,7 @@ def show_julia(command, clipto=160):
     if isinstance(command, str):
         print(command)
         try:
-            print("# " + subprocess.check_output(["julia", "-e", "println(" + command + ")"]).decode("utf-8"))
+            print("# " + subprocess.check_output(["/home/jrising/added/julia-1.3.1/bin/julia", "-e", "println(" + command + ")"]).decode("utf-8"))
         except Exception as ex:
             print(ex)
     else:
@@ -26,7 +26,7 @@ def show_julia(command, clipto=160):
                 print(line)
 
         try:
-            print("# " + subprocess.check_output(["julia", "-e", "; ".join(command[:-1]) + "; println(" + command[-1] + ")"]).decode("utf-8"))
+            print("# " + subprocess.check_output(["/home/jrising/added/julia-1.3.1/bin/julia", "-e", "; ".join(command[:-1]) + "; println(" + command[-1] + ")"]).decode("utf-8"))
         except Exception as ex:
             print(ex)
 

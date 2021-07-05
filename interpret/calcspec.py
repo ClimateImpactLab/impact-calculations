@@ -54,7 +54,11 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer="full",
     if config.get("report-variance", False):
         csvv["gamma"] = np.zeros(len(csvv["gamma"]))  # So no mistaken results
     else:
-        csvvfile.collapse_bang(csvv, qvals.get_seed("csvv"))
+        csvvfile.collapse_bang(
+            csvv,
+            seed=qvals.get_seed("csvv"),
+            method=config.get("mvn-method", "svd")
+        )
 
     covariator = specification.create_covariator(
         specconf, weatherbundle, economicmodel, config, quiet=config.get("quiet", False), farmer=farmer
@@ -66,11 +70,13 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer="full",
         modelspecconf = configs.merge(specconf, specconf["specifications"][key])
 
         this_csvv = deepcopy(csvv)
+        diag_infix = ""
 
         # If used csvv-subset: option in specifications config:
         csvv_subset = modelspecconf.get("csvv-subset")
         if csvv_subset:
             this_csvv = csvvfile.subset(this_csvv, slice(*csvv_subset))
+            diag_infix += "s%d-%d-" % tuple(csvv_subset)
 
         # If used csvv-reunit: option in specifications config:
         csvv_reunit = modelspecconf.get("csvv-reunit")
@@ -80,13 +86,8 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer="full",
                 new_unit = str(reunit_spec["new-unit"])
                 this_csvv["variables"][target_variable]["unit"] = new_unit
 
-        # Subset to regions (i.e. hierids) to act on. Does config have a
-        # filter-region?
-        filter_region = config.get("filter-region")
-        if filter_region:
-            target_regions = [str(filter_region)]
-        else:
-            target_regions = weatherbundle.regions
+        # Subset to regions (i.e. hierids) to act on.
+        target_regions = configs.get_regions(weatherbundle.regions, config.get('filter-region'))
 
         model = specification.create_curvegen(
             this_csvv,
@@ -94,6 +95,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer="full",
             target_regions,
             farmer=farmer,
             specconf=modelspecconf,
+            diag_infix=diag_infix
         )
         modelextras = dict(
             output_unit=modelspecconf["depenunit"],

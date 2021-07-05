@@ -69,6 +69,9 @@ This section can interpret the following named parameters:
   interpreted by `climate.discover::standard_variable`.
 * `rolling-years` (optional): Number of years to be included in each
   result year's calculation, as a rolling sequence.
+* `mvn-method` (optional): String giving method to use for any 
+  multivariate normal draws from CSVV data. Accepts `svd`, `eigh`, 
+  `cholesky`. Default is `svd`.
 * `models` (required): The list of model configurations.
 
 Basic model configration:
@@ -119,6 +122,10 @@ Basic model configration:
   weather parameters will be limited to seasons specified by the given
   CSV file.  The columns of file should include `hierid`,
   `plant_date`, `harvest_date`, `plant_month`, `harvest_month`.
+
+* `covariate-season` (optional): Specify a distinct season definition
+  file, following the same format as for `within-season`, for seasonal
+  covariates.
 
 * `extrapolation` (optional): Assumes linear extrapolation outside of
   certain bounds, if given. The following arguments specify the

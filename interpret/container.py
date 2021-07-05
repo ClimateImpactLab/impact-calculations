@@ -44,13 +44,13 @@ def get_modules(config):
         csvvs = model['csvvs']
         if 'module' in model:
             module = model['module']
-            specconf = model
+            specconf = configs.merge(config, model)
         elif 'specification' in model:
             module = 'interpret.specification'
-            specconf = model['specification']
+            specconf = configs.merge(config, model['specification'])
         elif 'calculation' in model:
             module = 'interpret.calcspec'
-            specconf = model
+            specconf = configs.merge(config, model)
         else:
             assert False, "Model missing one of 'module', 'specification', or 'calculation'."
 
