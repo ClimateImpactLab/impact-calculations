@@ -52,7 +52,7 @@ batchfilter = lambda batch: True
 #   Only process SSP3: lambda targetdir: 'SSP3' in targetdir
 targetdirfilter = lambda targetdir: True
 
-def main(config, config_name):
+def main(config, config_name, statman=None):
 
     """Main aggregate func, given run config dict
 
@@ -62,6 +62,7 @@ def main(config, config_name):
         Run configurations.
     config_name : str
         Configuration name, used for logging and output filenames.
+    statman : paralog.StatusManager, optional 
     """
 
     regioncount = config.get('region-count', 24378) # used by checks to ensure complete files
@@ -78,7 +79,11 @@ def main(config, config_name):
     # Allow directories to be re-claimed after this many seconds
     claim_timeout = config.get('timeout', 24) * 60*60
 
-    statman = paralog.StatusManager('aggregate', "generate.aggregate " + str(config_name), 'logs', claim_timeout)
+    if statman is not None:
+        assert isinstance(statman, paralog.StatusManager)
+    else:
+        # Create the object for claiming directories
+        statman = paralog.StatusManager('aggregate', "generate.aggregate " + str(config_name), 'logs', claim_timeout)
 
     ### Determine weights
     
