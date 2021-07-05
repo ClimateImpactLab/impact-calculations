@@ -11,6 +11,7 @@ from interpret import configs
 from openest.generate import diagnostic
 from impactlab_tools.utils import files, paralog
 import cProfile, pstats, io, metacsv
+import traceback 
 
 def main(config, config_name=None, statman=None):
     """Main generate func, given run config dict and run ID str for logging
@@ -303,4 +304,12 @@ if __name__ == '__main__':
     # Interpret "import" in configs here while we have file path info.
     file_configs = configs.merge_import_config(run_config, config_path.parent)
 
-    main(file_configs, config_name)
+    statman = paralog.StatusManager('generate', "generate.generate " + str(config_name), 'logs', config.get('timeout', 12) * 60*60)
+   
+    try :
+        main(file_configs, config_name, statman)
+    except Exception as ex: 
+        filepath = statman.extra_log('-exceptions', traceback.format_exc())
+        print(f"an unknown error occurred, details are logged at {filepath}")
+        exit()
+

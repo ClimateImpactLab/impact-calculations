@@ -733,7 +733,13 @@ if __name__ == '__main__':
     config_path = Path(sys.argv[1])
     config_name = config_path.stem
     run_config = files.get_allargv_config()
-    main(run_config, config_name)
+    statman = paralog.StatusManager('aggregate', "generate.aggregate " + str(config_name), 'logs', config.get('timeout', 24) * 60*60)
 
+    try : 
+        main(run_config, config_name, statman)
+    except Exception as ex: 
+        filepath = statman.extra_log('-exceptions', traceback.format_exc())
+        print(f"an unknown error occurred, details are logged at {filepath}")
+        exit()
 
 
