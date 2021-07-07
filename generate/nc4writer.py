@@ -20,7 +20,7 @@ def create(targetdir, basename, nosideeffects=False):
         basename += '.nc4'
     
     if nosideeffects:
-        return debugging.NoWriteDataset(os.path.join(targetdir, basename), 'w', format='NETCDF4')
+        return Dataset(os.path.join(targetdir, basename), 'w', diskless=True)
         
     # Delete any pre-existing file
     if os.path.exists(os.path.join(targetdir, basename)):

@@ -29,30 +29,3 @@ class NoClaimStatusManager:
 
     def release(self, dirpath, status):
         pass
-
-class NoWriteDataset:
-    def __init__(self, filepath, mode, format='NETCDF4'):
-        pass
-
-    def createDimension(self, dimname, size=None):
-        pass
-
-    def createVariable(self, varname, datatype, *args, **kwargs):
-        return NoWriteVariable(varname, datatype)
-
-    def close(self):
-        pass
-
-class NoWriteVariable:
-    def __init__(self, varname, datatype):
-        self.values = None
-
-    def __setitem__(self, key, value):
-        if isinstance(key, slice):
-            self.values = value
-    
-    def __iter__(self):
-        return iter(self.values)
-
-    def __len__(self):
-        return len(self.values)
