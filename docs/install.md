@@ -72,8 +72,8 @@ do this directly with `pip`:
 
 In many cases, however, changes to the projection system functioning
 requires changes to these libraries. In this case, it is recommended
-that you clone the git repositories and then install the packages with
-`python setup.py develop`, as follows:
+that you clone the git repositories and run `pip install -e .` to
+install an editable version. Specifically:
 
 Clone `open-estimate` to your project directory:
    ```$ git clone https://github.com/ClimateImpactLab/open-estimate.git```
@@ -81,7 +81,7 @@ Clone `open-estimate` to your project directory:
 Install it: 
 ```
 $ cd open-estimate
-$ python setup.py develop --user
+$ pip install -e .
 $ cd ..
 ```
 
@@ -89,11 +89,11 @@ Similarly, install `impactlab-tools` and `impact-common`:
 ```
 $ git clone https://github.com/ClimateImpactLab/impactlab-tools.git
 $ cd impactlab-tools
-$ python setup.py develop --user
+$ pip install -e .
 $ cd ..
 $ git clone https://github.com/ClimateImpactLab/impact-common.git
 $ cd impact-common
-$ python setup.py develop --user
+$ pip install -e .
 $ cd ..
 ```
 
