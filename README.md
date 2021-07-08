@@ -36,6 +36,10 @@ export IMPERICS_SHAREDDIR=/shares/gcp
 ```
 to `~/.bashrc`.
 
+For more details on installation, or to install the repository in a
+way more conducive to doing development work on the projection system,
+see `docs/install.md`.
+
 ## Projections with the `imperics` CLI
 
 The installed python package includes a command-line interface (CLI) to handle projection generation, diagnostics, and aggregation. This is done with `imperics generate`, `imperics diagnostic` and `imperics aggregate`. All commands accept a YAML run configuration file as the first argument. For basic options, see `imperics --help`, or use `--help` with any `imperics` subcommand.
