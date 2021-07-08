@@ -20,12 +20,29 @@ location will be used in a later step.
 
 2. Prepare the software environment.
 
-The easiest way to install the necessary libraries is to use the
-`risingverse` conda environment, available at
-https://github.com/ClimateImpactLab/risingverse/
+The easiest way to install the necessary libraries is to use a conda
+environment, as follows:
 
-Instructions for installing it are provided in the README of that
-repository.
+From the root directory of this repository, call
+```
+conda env create -f environment.yml -n env
+```
+
+Then activate `env` with `conda activate env` and run
+```
+pip install -e .
+```
+to do a "development install" of impact-calculations. When ready, you
+can deactivate the environment with `conda deactivate`.
+
+If you need to install custom branches of any of the CIL libraries
+(like `open-estimate`), you can run something like the following
+(shown for a `new_feature_branch` of `open-estimate`):
+```
+pip install git+https:github.com/climateimpactlab/open-estimate@new_feature_branch --upgrade
+```
+which will tell the environment to overwrite and use the
+`open-estimate` package installed from that branch.
 
 Alternatively, you can install the necessary libraries by hand. The
 remaining text in this section provides information on doing that. If you do this, we recommend that you start by creating a virtual environment to keep python packages separate across projects.
