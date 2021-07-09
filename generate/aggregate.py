@@ -28,6 +28,7 @@ from . import nc4writer, agglib, checks
 from datastore import weights
 from impactlab_tools.utils import paralog
 import subprocess 
+from datastore import agecohorts, population 
 
 ### Master Configuration
 ### See docs/aggregator.md for other configuration options
@@ -727,8 +728,9 @@ def fullfile(filename, suffix, config):
 if __name__ == '__main__':
    
     # Prepare environment
-    from impactlab_tools.utils import files
+    import sys
     from pathlib import Path
+    from impactlab_tools.utils import files
 
     config_path = Path(sys.argv[1])
     config_name = config_path.stem
