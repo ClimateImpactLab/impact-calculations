@@ -569,8 +569,9 @@ if __name__ == '__main__':
 
     ### Generate aggregate and levels files
 
+    outputdir = config['outputdir']
     # Find all target directories
-    for batch, clim_scenario, clim_model, econ_scenario, econ_model, targetdir in agglib.iterresults(config['outputdir'], agglib.make_batchfilter(config), targetdirfilter):
+    for batch, clim_scenario, clim_model, econ_scenario, econ_model, targetdir in agglib.iterresults(outputdir, agglib.make_batchfilter(config), targetdirfilter):
 
         # Check if we should process this targetdir
         if not agglib.config_targetdirfilter(clim_scenario, clim_model, econ_scenario, econ_model, targetdir, config):
@@ -641,13 +642,13 @@ if __name__ == '__main__':
                 if halfweight_levels:
                     outfilename = fullfile(filename, levels_suffix, config)
                     if not missing_only or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable=variable, regioncount=regioncount) or not os.path.exists(os.path.join(targetdir, outfilename)):
-                        make_levels(targetdir, filename, outfilename, halfweight_levels, weight_args_levels, config=config)
+                        make_levels(targetdir.replace(outputdir, config.get('writedir', outputdir)), filename, outfilename, halfweight_levels, weight_args_levels, config=config)
 
                 # Aggregate impacts
                 if halfweight_aggregate:
                     outfilename = fullfile(filename, suffix, config)
                     if isinstance(debug_aggregate, str) or not missing_only or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable=variable, regioncount=5665) or not os.path.exists(os.path.join(targetdir, outfilename)):
-                        make_aggregates(targetdir, filename, outfilename, halfweight_aggregate, weight_args_aggregate, halfweight_denom=halfweight_aggregate_denom, weight_args_denom=weight_args_aggregate_denom, config=config)
+                        make_aggregates(targetdir.replace(outputdir, config.get('writedir', outputdir)), filename, outfilename, halfweight_aggregate, weight_args_aggregate, halfweight_denom=halfweight_aggregate_denom, weight_args_denom=weight_args_aggregate_denom, config=config)
 
                 if costs_config is not None:
                     if '-noadapt' not in filename and '-incadapt' not in filename and 'histclim' not in filename and 'indiamerge' not in filename:
@@ -674,7 +675,7 @@ if __name__ == '__main__':
                             else:
                                 costs_suffix = '-' + str(costs_config['infix']) + costs_suffix if 'infix' in costs_config else costs_suffix 
                                 args = agglib.interpret_costs_args(costs_config=costs_config,
-                                                                  outputdir=config['outputdir'],
+                                                                  outputdir=outputdir,
                                                                   targetdir=targetdir,
                                                                   filename=filename,
                                                                   batch=batch,
