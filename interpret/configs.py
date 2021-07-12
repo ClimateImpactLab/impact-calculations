@@ -1,6 +1,7 @@
 import yaml, copy, itertools, importlib, os
 from pathlib import Path
 from impactlab_tools.utils.files import get_file_config
+from collections.abc import MutableMapping, MutableSequence
 
 global_statman = None
 
@@ -227,3 +228,102 @@ def get_covariate_rate(config, group):
     else:
         return 1
 
+class ConfigDict(MutableMapping):
+    """Wrapper on configuration dictionaries to monitor key access."""
+
+    def __init__(self, config, prefix='', master_accessed=None):
+        if isinstance(config, ConfigDict):
+            self.config = config.config
+        else:
+            self.config = config
+        self.prefix = prefix
+        self.accessed = set() if master_accessed is None else master_accessed
+
+    def __len__(self):
+        return len(self.config)
+
+    def __iter__(self):
+        return iter(self.config)
+
+    def __contains__(self, key):
+        return key in self.config
+        
+    def __getitem__(self, key):
+        access_key = self.prefix + str(key)
+        self.accessed.append(access_key)
+        return self.wrapped_get(key)
+
+    def wrapped_get(self, key):
+        access_key = self.prefix + str(key)
+        value = self.config[key]
+        if isinstance(value, dict):
+            return ConfigDict(value, prefix=access_key + '.', master_accessed=self.accessed)
+        if isinstance(value, list):
+            return ConfigList(value, prefix=access_key + '.', master_accessed=self.accessed)
+        return value
+
+    def __setitem__(self, key, value):
+        """Do not record in accessed until access."""
+        self.config[key] = value
+
+    def __delitem__(self, key):
+        self self.config[key]
+
+    def check_usage(self):
+        missing = set()
+        for key in self.config:
+            access_key = self.prefix + str(key)
+            if access_key not in self.accessed:
+                missing.add(access_key)
+            value = self.wrapped.get(key)
+            if isinstance(value, ConfigDict) or isinstance(value, ConfigList):
+                missing.update(value.check_usage())
+
+        return missing
+
+class ConfigList(MutableSequence):
+    """Wrapper on lists contained in configuration dictionaries to monitor index access."""
+
+    def __init__(self, configlist, prefix='', master_accessed=None):
+        if isinstance(configlist, ConfigList):
+            self.configlist = configlist.configlist
+        else:
+            self.configlist = configlist
+        self.prefix = prefix
+        self.accessed = [] if master_accessed is None else master_accessed
+
+    def __len__(self):
+        return len(self.configlist)
+
+    def __getitem__(self, key):
+        access_key = self.prefix + str(key)
+        self.accessed.append(access_key)
+        return self.wrapped_get(key)
+
+    def wrapped_get(self, key):
+        access_key = self.prefix + str(key)
+        value = self.configlist[key]
+        if isinstance(value, dict):
+            return ConfigDict(value, prefix=access_key + '.', master_accessed=self.accessed)
+        if isinstance(value, list):
+            return ConfigList(value, prefix=access_key + '.', master_accessed=self.accessed)
+        return value
+
+    def __setitem__(self, key, value):
+	"""Do not record in accessed until access."""
+        self.configlist[key] = value
+
+    def __delitem__(self, key):
+        self self.configlist[key]
+
+    def check_usage(self):
+        missing = set()
+        for ii in range(len(self.configlist)):
+            access_key = self.prefix + str(ii)
+            if access_key not in self.accessed:
+                missing.add(access_key)
+            value = self.wrapped_get(ii)
+            if isinstance(value, ConfigDict) or isinstance(value, ConfigList):
+                missing.update(value.check_usage())
+
+        return missing
