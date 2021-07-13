@@ -1,6 +1,0 @@
-outputdir: outputs/labor/impacts-fedconference-oct2019
-# Levels are minutes * wage * 250days / elasticity; wage = income / (250 days * 6 hours * 60 minutes); elasticity = 1
-aggregate-weighting-numerator: population * income / 360
-aggregate-weighting-denominator: population * income
-infix: gdp
-targetdir: /shares/gcp/outputs/labor/impacts-fedconference-oct2019/single-24oct/rcp85/CCSM4/high/SSP3
