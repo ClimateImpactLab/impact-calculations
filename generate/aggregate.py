@@ -99,7 +99,7 @@ def get_cached_weight(halfweight, weight_args, years):
     cached_weights[key] = stweight
     return stweight
 
-def make_aggregates(targetdir, writetargetdir=None, filename, outfilename, halfweight, weight_args, dimensions_template=None, metainfo=None, limityears=None, halfweight_denom=None, weight_args_denom=None, config=None):
+def make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, dimensions_template=None, metainfo=None, limityears=None, halfweight_denom=None, weight_args_denom=None, config=None, writetargetdir=None):
     """Generate aggregate output files.
 
     Creates a copy of the `targetdir/filename` NetCDF file as
@@ -317,7 +317,7 @@ def make_aggregates(targetdir, writetargetdir=None, filename, outfilename, halfw
         dimreader.close()
     writer.close()
 
-def make_costs_aggregate(targetdir, writetargetdir=None, filename, outfilename, halfweight, weight_args, halfweight_denom=None, weight_args_denom=None, config=None):
+def make_costs_aggregate(targetdir, filename, outfilename, halfweight, weight_args, halfweight_denom=None, weight_args_denom=None, config=None, writetargetdir=None):
     """Aggregate adaptation costs (currently only for mortality).
 
     This sets up metadata appropriate to the mortality costs
@@ -349,9 +349,9 @@ def make_costs_aggregate(targetdir, writetargetdir=None, filename, outfilename, 
     metainfo = config['costs-config'].get('meta-info', None)
 
     # Perform the aggregation
-    make_aggregates(targetdir, writetargetdir, filename, outfilename, halfweight, weight_args, dimensions_template=dimensions_template, metainfo=metainfo, halfweight_denom=halfweight_denom, weight_args_denom=weight_args_denom, config=config)
+    make_aggregates(targetdir, filename, outfilename, halfweight, weight_args, dimensions_template=dimensions_template, metainfo=metainfo, halfweight_denom=halfweight_denom, weight_args_denom=weight_args_denom, config=config, writetargetdir=writetargetdir)
 
-def make_levels(targetdir, writetargetdir=None, filename, outfilename, halfweight, weight_args, dimensions_template=None, metainfo=None, limityears=None, config=None):
+def make_levels(targetdir, filename, outfilename, halfweight, weight_args, dimensions_template=None, metainfo=None, limityears=None, config=None, writetargetdir=None):
     """Generate levels output files.
 
     Creates a copy of the `targetdir/filename` NetCDF file as
@@ -469,7 +469,7 @@ def make_levels(targetdir, writetargetdir=None, filename, outfilename, halfweigh
         dimreader.close()
     writer.close()
 
-def make_costs_levels(targetdir, writetargetdir=None, filename, outfilename, halfweight, weight_args, config=None):
+def make_costs_levels(targetdir, filename, outfilename, halfweight, weight_args, config=None, writetargetdir=None):
     """Make adaptation cost levels (currently only for mortality).
 
     This sets up metadata appropriate to the mortality costs levels
@@ -497,7 +497,7 @@ def make_costs_levels(targetdir, writetargetdir=None, filename, outfilename, hal
     metainfo = config['costs-config'].get('meta-info', None)
 
     # Perform the levels calculations
-    make_levels(targetdir, writetargetdir, filename, outfilename, halfweight, weight_args, dimensions_template=dimensions_template, metainfo=metainfo, config=config)
+    make_levels(targetdir, filename, outfilename, halfweight, weight_args, dimensions_template=dimensions_template, metainfo=metainfo, config=config, writetargetdir=writetargetdir)
 
 def fullfile(filename, suffix, config):
     """
@@ -652,13 +652,13 @@ if __name__ == '__main__':
                 if halfweight_levels:
                     outfilename = fullfile(filename, levels_suffix, config)
                     if not missing_only or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable=variable, regioncount=regioncount) or not os.path.exists(os.path.join(targetdir, outfilename)):
-                        make_levels(targetdir, targetdir.replace(outputdir, config.get('writedir', outputdir)), filename, outfilename, halfweight_levels, weight_args_levels, config=config)
+                        make_levels(targetdir, filename, outfilename, halfweight_levels, weight_args_levels, config=config, writetargetdir=targetdir.replace(outputdir, config.get('writedir', outputdir)))
 
                 # Aggregate impacts
                 if halfweight_aggregate:
                     outfilename = fullfile(filename, suffix, config)
                     if isinstance(debug_aggregate, str) or not missing_only or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable=variable, regioncount=5665) or not os.path.exists(os.path.join(targetdir, outfilename)):
-                        make_aggregates(targetdir, targetdir.replace(outputdir, config.get('writedir', outputdir)), filename, outfilename, halfweight_aggregate, weight_args_aggregate, halfweight_denom=halfweight_aggregate_denom, weight_args_denom=weight_args_aggregate_denom, config=config)
+                        make_aggregates(targetdir, filename, outfilename, halfweight_aggregate, weight_args_aggregate, halfweight_denom=halfweight_aggregate_denom, weight_args_denom=weight_args_aggregate_denom, config=config, writetargetdir=targetdir.replace(outputdir, config.get('writedir', outputdir)))
 
                 if costs_config is not None:
                     if '-noadapt' not in filename and '-incadapt' not in filename and 'histclim' not in filename and 'indiamerge' not in filename:
@@ -705,24 +705,24 @@ if __name__ == '__main__':
                         if halfweight_levels:
                             outfilename = fullfile(filename, costs_suffix + levels_suffix, config)
                             if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)):
-                                make_costs_levels(targetdir, targetdir.replace(outputdir, config.get('writedir', outputdir)),fullfile(filename, costs_suffix, config), outfilename, halfweight_levels, weight_args_levels, config=config)
+                                make_costs_levels(targetdir, fullfile(filename, costs_suffix, config), outfilename, halfweight_levels, weight_args_levels, config=config, writetargetdir=targetdir.replace(outputdir, config.get('writedir', outputdir)))
 
                         # Aggregate costs
                         outfilename = fullfile(filename, costs_suffix + suffix, config)
                         if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)) or not checks.check_result_100years(os.path.join(targetdir, outfilename), variable=costs_config.get('check-variable-costs', None), regioncount=5665):
-                            make_costs_aggregate(targetdir, targetdir.replace(outputdir, config.get('writedir', outputdir)),fullfile(filename, costs_suffix, config), outfilename, halfweight_aggregate, weight_args_aggregate, halfweight_denom=halfweight_aggregate_denom, weight_args_denom=weight_args_aggregate_denom, config=config)
+                            make_costs_aggregate(targetdir, fullfile(filename, costs_suffix, config), outfilename, halfweight_aggregate, weight_args_aggregate, halfweight_denom=halfweight_aggregate_denom, weight_args_denom=weight_args_aggregate_denom, config=config, writetargetdir=targetdir.replace(outputdir, config.get('writedir', outputdir)))
                     elif 'indiamerge' in filename:
                         # Just aggregate the costs for indiamerge file
 
                         # Levels of costs
                         outfilename = filename[:-4].replace('combined', 'combined-costs') + levels_suffix + '.nc4'
                         if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)):
-                            make_costs_levels(targetdir, targetdir.replace(outputdir, config.get('writedir', outputdir)), filename[:-4].replace('combined', 'combined-costs') + '.nc4', outfilename, halfweight_levels, weight_args_levels, config=config)
+                            make_costs_levels(targetdir, filename[:-4].replace('combined', 'combined-costs') + '.nc4', outfilename, halfweight_levels, weight_args_levels, config=config, writetargetdir=targetdir.replace(outputdir, config.get('writedir', outputdir)))
 
                         # Aggregate costs
                         outfilename = filename[:-4].replace('combined', 'combined-costs') + suffix + '.nc4'
                         if not missing_only or not os.path.exists(os.path.join(targetdir, outfilename)):
-                            make_costs_aggregate(targetdir, targetdir.replace(outputdir, config.get('writedir', outputdir)), filename[:-4].replace('combined', 'combined-costs') + '.nc4', outfilename, halfweight_aggregate, weight_args_aggregate, halfweight_denom=halfweight_aggregate_denom, weight_args_denom=weight_args_aggregate_denom, config=config)
+                            make_costs_aggregate(targetdir, filename[:-4].replace('combined', 'combined-costs') + '.nc4', outfilename, halfweight_aggregate, weight_args_aggregate, halfweight_denom=halfweight_aggregate_denom, weight_args_denom=weight_args_aggregate_denom, config=config, writetargetdir=targetdir.replace(outputdir, config.get('writedir', outputdir)))
 
             # On exception, report it and continue
             except Exception as ex:
