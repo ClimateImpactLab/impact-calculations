@@ -1,4 +1,4 @@
-import yaml, copy, itertools, importlib, os
+import yaml, copy, itertools, importlib, os, warnings
 from pathlib import Path
 from impactlab_tools.utils.files import get_file_config
 from collections.abc import MutableMapping, MutableSequence
@@ -94,7 +94,7 @@ def merge_import_config(config, fpath):
         import_path.parent
     )
 
-    return {**import_config, **config}
+    return wrap_config({**import_config, **config}, config)
 
 def standardize(config):
     newconfig = copy.copy(config)
@@ -107,20 +107,17 @@ def standardize(config):
         if '_' in key and asdash not in config:
             newconfig[asdash] = config[key]
                 
-    return newconfig
+    return wrap_config(newconfig, config)
 
 def merge(parent, child):
-    if isinstance(child, dict):
-        result = copy.copy(parent)
-        result.update(child)
-        return result
+    raise DeprecationWarning("merge is no longer used with ConfigDict.")
 
-    if child not in parent:
-        return parent
-
-    result = copy.copy(parent)
-    result.update(parent[child])
-    return result
+    # warnings.warn("merge is no longer used with ConfigDict.", DeprecationWarning)
+    # assert isinstance(parent, ConfigDict)
+    # if isinstance(child, ConfigDict):
+    #     return child
+    # assert not isinstance(child, dict)
+    # return parent[child]
 
 def search(config, needle, pathroot=''):
     found = {}
@@ -145,7 +142,7 @@ def search_list(conflist, needle, pathroot=''):
     return found
 
 def deepcopy(config):
-    return copy.deepcopy(config)
+    raise DeprecationWarning("deepcopy is no longer used with ConfigDict.")
 
 def get_batch_iter(config):
     # How many monte carlo iterations do we do?
@@ -228,25 +225,50 @@ def get_covariate_rate(config, group):
     else:
         return 1
 
-class ConfigDict(MutableMapping):
-    """Wrapper on configuration dictionaries to monitor key access."""
+def wrap_config(config, source_config=None):
+    if isinstance(source_config, ConfigDict):
+        newconfig = ConfigDict(config, prefix=source_config.prefix, parent=source_config.parent)
+        newconfig.accessed = source_config.accessed # source_config.parent may not be a ConfigDict
+        return newconfig
 
-    def __init__(self, config, prefix='', master_accessed=None):
+    return ConfigDict(config)
+    
+class ConfigDict(MutableMapping):
+    """Wrapper on configuration dictionaries to monitor key access.
+
+    Also looks to lower levels of the config dict tree, if a key is missing.
+
+    Parameters
+    ----------
+    config : MutableMapping
+    prefix : str
+    parent : MutableMapping
+
+    """
+    def __init__(self, config, prefix='', parent=None):
         if isinstance(config, ConfigDict):
+            self.accessed = config.accessed
             self.config = config.config
+            if isinstance(parent, ConfigDict):
+                assert self.accessed == parent.accessed
         else:
             self.config = config
+            if isinstance(parent, ConfigDict):
+                self.accessed = parent.accessed
+            else:
+                self.accessed = set()
+                
         self.prefix = prefix
-        self.accessed = set() if master_accessed is None else master_accessed
+        self.parent = parent if parent else {}
 
     def __len__(self):
-        return len(self.config)
+        return len(self.config) + len(self.parent)
 
     def __iter__(self):
-        return iter(self.config)
+        return iter(list(self.config.keys()) + list(self.parent.keys()))
 
     def __contains__(self, key):
-        return key in self.config
+        return key in self.config or key in self.parent
         
     def __getitem__(self, key):
         access_key = self.prefix + str(key)
@@ -257,9 +279,9 @@ class ConfigDict(MutableMapping):
         access_key = self.prefix + str(key)
         value = self.config[key]
         if isinstance(value, dict):
-            return ConfigDict(value, prefix=access_key + '.', master_accessed=self.accessed)
+            return ConfigDict(value, prefix=access_key + '.', parent=self)
         if isinstance(value, list):
-            return ConfigList(value, prefix=access_key + '.', master_accessed=self.accessed)
+            return ConfigList(value, prefix=access_key + '.', ancestordict=self)
         return value
 
     def __setitem__(self, key, value):
@@ -267,7 +289,7 @@ class ConfigDict(MutableMapping):
         self.config[key] = value
 
     def __delitem__(self, key):
-        self self.config[key]
+        del self.config[key]
 
     def check_usage(self):
         missing = set()
@@ -275,22 +297,38 @@ class ConfigDict(MutableMapping):
             access_key = self.prefix + str(key)
             if access_key not in self.accessed:
                 missing.add(access_key)
-            value = self.wrapped.get(key)
+            value = self.wrapped_get(key)
             if isinstance(value, ConfigDict) or isinstance(value, ConfigList):
                 missing.update(value.check_usage())
 
         return missing
 
 class ConfigList(MutableSequence):
-    """Wrapper on lists contained in configuration dictionaries to monitor index access."""
+    """Wrapper on lists contained in configuration dictionaries to monitor index access.
 
-    def __init__(self, configlist, prefix='', master_accessed=None):
+    Parameters
+    ----------
+    configlist : MutableSequence
+    prefix : str
+    parent : MutableMapping
+
+    """
+
+    def __init__(self, configlist, prefix='', ancestordict=None):
         if isinstance(configlist, ConfigList):
+            self.accessed = configlist.accessed
             self.configlist = configlist.configlist
+            if isinstance(ancestordict, ConfigDict):
+                assert self.accessed == ancestordict.accessed
         else:
             self.configlist = configlist
+            if isinstance(ancestordict,	ConfigDict):
+                self.accessed = ancestordict.accessed
+            else:
+                self.accessed = set()
+
         self.prefix = prefix
-        self.accessed = [] if master_accessed is None else master_accessed
+        self.ancestordict if ancestordict else {}
 
     def __len__(self):
         return len(self.configlist)
@@ -304,9 +342,9 @@ class ConfigList(MutableSequence):
         access_key = self.prefix + str(key)
         value = self.configlist[key]
         if isinstance(value, dict):
-            return ConfigDict(value, prefix=access_key + '.', master_accessed=self.accessed)
+            return ConfigDict(value, prefix=access_key + '.', parent=ancestordict)
         if isinstance(value, list):
-            return ConfigList(value, prefix=access_key + '.', master_accessed=self.accessed)
+            return ConfigList(value, prefix=access_key + '.', ancestordict=ancestordict)
         return value
 
     def __setitem__(self, key, value):
@@ -314,7 +352,7 @@ class ConfigList(MutableSequence):
         self.configlist[key] = value
 
     def __delitem__(self, key):
-        self self.configlist[key]
+        del self.configlist[key]
 
     def check_usage(self):
         missing = set()
