@@ -1,5 +1,0 @@
-module: mortality
-mode: profile
-outputdir: /shares/gcp/outputs/mortality/tmp
-do_only: interpolation
-do_farmers: false
