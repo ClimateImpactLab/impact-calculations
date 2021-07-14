@@ -11,6 +11,7 @@ that is stochastic.
 import os, yaml, zlib
 import secrets
 import numpy as np
+import math
 
 ## These dictionaries (keys in the top-level Pvals object) have common values across sectors
 cross_sector_dictionaries = ['histclim']
@@ -149,8 +150,8 @@ class OnDemandRandomDictionary(PvalsDictionary):
         self.locked = True
 
     def __getitem__(self, name):
-        value = self.values.get(name, np.nan)
-        if np.isnan(value) and not self.locked:
+        value = self.values.get(name, math.nan)
+        if math.isnan(value) and not self.locked:
             value = np.random.uniform()
             self.values[name] = value
 
