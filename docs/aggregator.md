@@ -65,8 +65,8 @@ Optional:
    24378 but overrideable with the `region-count` configuration
    option-- and that an arbitrary year of values all look valid.
  - `costs-config` a dictionary containing all the necessary information to compute adaptation costs. See [the Adaptation Costs files](#Adaptation-Costs-files) section for details. 
- - `writedir` the outputdir directory in which to save aggregated or levels files -- the default is the value of `outputdir`. Not implemented for costs.
- 
+ - `writedir` the outputdir directory in which to save aggregated or levels files -- the default is the value of `outputdir`. Only implemented for aggregated files and levels files writing.
+
 Filtering Targets (also Optional):
 
  - `rcp`: Only aggregate results from the given RCP.
