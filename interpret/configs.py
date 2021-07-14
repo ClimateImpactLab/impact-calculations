@@ -14,7 +14,7 @@ def get_config_module(config, config_name):
     Parameters
     ----------
     config : dict
-	    Projection run configuration, with or without a "module" key.
+        Projection run configuration, with or without a "module" key.
     config_name : str
         Configuration name, used for logging and output filenames if 'config' missing "module" key.
 
@@ -322,7 +322,7 @@ class ConfigList(MutableSequence):
                 assert self.accessed == ancestordict.accessed
         else:
             self.configlist = configlist
-            if isinstance(ancestordict,	ConfigDict):
+            if isinstance(ancestordict, ConfigDict):
                 self.accessed = ancestordict.accessed
             else:
                 self.accessed = set()
@@ -348,7 +348,7 @@ class ConfigList(MutableSequence):
         return value
 
     def __setitem__(self, key, value):
-	"""Do not record in accessed until access."""
+        """Do not record in accessed until access."""
         self.configlist[key] = value
 
     def __delitem__(self, key):
