@@ -117,13 +117,18 @@ def standard_variable(name, mytimerate, **config):
                     {'tasmax_rcs_term_' + str(ii+1): 'tasmax_rcspline' + str(ii+1) for ii in range(len(found[key]) - 2)})
 
     if mytimerate == 'month':
-        if name in ['tas', 'tasmax', 'tasmin']:
-            return discover_day2month(standard_variable(name, 'day', **config),  lambda arr, dim: np.mean(arr, axis=dim))
+
         if name == 'tasbin':
             if config.get('show-source', False):
                 print((files.sharedpath('climate/BCSD/aggregation/cmip5_bins/IR_level/*/tas')))
             return discover_binned(files.sharedpath('climate/BCSD/aggregation/cmip5_bins/IR_level'), 'year', # Should this be year?
                                    'tas/tas_Bindays_aggregated_%scenario_r1i1p1_%model_%d.nc', 'SHAPENUM', 'DayNumber')
+
+        # any 'tas*' variable except particular cases are retrieved at the daily level and averaged at the monthly level. 
+        # particular cases must be logically addressed by the code above this comment, e.g. 'tasbin'.
+        if name[0:3]=='tas':
+            return discover_day2month(standard_variable(name, 'day', **config),  lambda arr, dim: np.mean(arr, axis=dim))
+
         if name == 'edd':
             if config.get('show-source', False):
                 print((files.sharedpath('climate/BCSD/hierid/cropwt/monthly/edd_monthly')))

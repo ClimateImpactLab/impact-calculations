@@ -7,33 +7,47 @@
 
 ## Installation:
 
-If you are working on Sacagawea, you can skip steps -1 and 0.
+1. Prepare your data directory.
 
--1. Choose the root directories for data with > 1 TB space.  Here is how they are organized on existing systems:
+The data directory contains input files for the projection system, and
+generally is where output files are written. The necessary inputs
+differ depending on the projection being performed, but generally
+consist of projection climate data and socioeconomic data, and common
+region definitions.
 
-   | Server | $DATA |
-   | --- | --- |
-   | Shackleton | /shares/gcp |
-   | BRC | /global/scratch/groups/co_laika/gcp |
-   | OSDC | /mnt/gcp/data |
+This directory can be in any accessible location on the computer. Its
+location will be used in a later step.
 
--0. Ensure that you have Python 3+ and the `numpy` and `scipy` libraries installed
+2. Prepare the software environment.
+
+The easiest way to install the necessary libraries is to use a conda
+environment, as follows:
+
+From the root directory of this repository, call
 ```
-$ python --version
-$ pip install numpy
-$ pip install scipy
-```
-
-On BRC, these are provided as modules.  Execute,
-```
-module load python/3
-module load numpy
-module load scipy
+conda env create -f environment.yml -n env
 ```
 
-OPTIONAL. Use a virtual environment to keep python packages separate across projects; and always use it on BRC.
+Then activate `env` with `conda activate env` and run
+```
+pip install -e .
+```
+to do a "development install" of impact-calculations. When ready, you
+can deactivate the environment with `conda deactivate`.
 
-Then make a new virtual environment directory, execuing from your project directory:
+If you need to install custom branches of any of the CIL libraries
+(like `open-estimate`), you can run something like the following
+(shown for a `new_feature_branch` of `open-estimate`):
+```
+pip install git+https:github.com/climateimpactlab/open-estimate@new_feature_branch --upgrade
+```
+which will tell the environment to overwrite and use the
+`open-estimate` package installed from that branch.
+
+Alternatively, you can install the necessary libraries by hand. The
+remaining text in this section provides information on doing that. If you do this, we recommend that you start by creating a virtual environment to keep python packages separate across projects.
+
+First, make a new virtual environment directory, execuing from your project directory:
 ```
 python -m venv env
 ```
@@ -48,54 +62,87 @@ source env/bin/activate
 Now, all of your `pip` commands will add packages just to the environment.  Drop all `--user` arguments from the `pip` commands below.
 You will need to do this last line every time you want to use the system.
 
-POSSIBLE. If someone else has already created a virtual environment with all of the installed packages, you may be able to use theirs.  Try running `source <PATH-TO-THEIR-ENV>/bin/activate` and then skip to trying to the last step (where you create the `server.yml`) file below.
+Next, install a laundry-list of public packages, if they aren't
+already installed (use `--user` for pip commands on a shared
+computer):
+ - numpy
+ - netcdf: `apt-get install python-netcdf netcdf-bin libnetcdfc++4 libnetcdf-dev`.
+       You may need to install
+       `https://github.com/Unidata/netcdf4-python` from the source
+ - libhdf5 and h5py: `apt-get install libhdf5-serial-dev`; `pip install h5py`
+ - metacsv: `pip install metacsv`
+ - libffi-dev: `apt-get install libffi-dev`
+ - statsmodels: `pip install statsmodels`
+ - scipy: `apt-get install libblas-dev liblapack-dev gfortran`; `pip install scipy`
+ - xarray: `pip install xarray==0.10.9`
+ - pandas: `pip install pandas==0.25.3`
 
-Remaining instructions:
+Install the custom `open-estimate`, `impactlab-tools` and
+`impact-common` libraries.
 
-1. Clone `open-estimate` to your project directory:
+If you will not be developing code in the projection system, you can
+do this directly with `pip`:
+
+ - `open-estimate`: ```$ pip install git+https://github.com/climateimpactlab/open-estimate```
+ - `impactlab-tools`: ```$ pip install git+https://github.com/ClimateImpactLab/impactlab-tools.git```
+ - `impact-common`: ```$ pip install git+https://github.com/ClimateImpactLab/impact-common.git```
+
+In many cases, however, changes to the projection system functioning
+requires changes to these libraries. In this case, it is recommended
+that you clone the git repositories and run `pip install -e .` to
+install an editable version. Specifically:
+
+Clone `open-estimate` to your project directory:
    ```$ git clone https://github.com/ClimateImpactLab/open-estimate.git```
 
-2. Install it: 
+Install it: 
 ```
 $ cd open-estimate
-$ python setup.py develop --user
+$ pip install -e .
 $ cd ..
 ```
 
-3. Similarly, install `impactlab-tools` and `impact-common`:
+Similarly, install `impactlab-tools` and `impact-common`:
 ```
 $ git clone https://github.com/ClimateImpactLab/impactlab-tools.git
 $ cd impactlab-tools
-$ python setup.py develop --user
+$ pip install -e .
 $ cd ..
 $ git clone https://github.com/ClimateImpactLab/impact-common.git
 $ cd impact-common
-$ python setup.py develop --user
+$ pip install -e .
 $ cd ..
 ```
 
-4. Clone `impact-calculations` to your project directory:
+3. Install the `impact-calculations` repository.
+
+Clone `impact-calculations` to your project directory:
    ```$ git clone git@bitbucket.org:ClimateImpactLab/impact-calculations.git```
 
-5. Install a laundry-list of other packages, if they aren't already installed (use `--user` for pip commands on a shared computer):
-    - netcdf (if not on Sacagawea): `apt-get install python-netcdf netcdf-bin libnetcdfc++4 libnetcdf-dev`.
-       You may need to install
-       `https://github.com/Unidata/netcdf4-python` from the source
-    - libhdf5 and h5py (if not on Sacagawea): `apt-get install libhdf5-serial-dev`; `pip install h5py`
-    - metacsv: `pip install metacsv`
-    - libffi-dev (if not on Sacagawea): `apt-get install libffi-dev`
-    - statsmodels: `pip install statsmodels`
-    - scipy: `apt-get install libblas-dev liblapack-dev gfortran` (if not on Sacagawea); `pip install scipy`
-    - xarray: `pip install xarray==0.10.9`
-    - pandas: `pip install pandas==0.25.3`
+The `impact-calculations` code needs to know where to find the data
+directory from step 1. There are two ways to configure the system.
 
-6. Copy the necessary data from Sacagawea into your `$DATA` directory, if you are not on Sacagawea:
-   ```$ rsync -avz sacagawea.gspp.berkeley.edu:/shares/gcp/social $DATA/social```
-   ```$ rsync -avz sacagawea.gspp.berkeley.edu:/shares/gcp/regions $DATA/regions```
-   ```$ rsync -avz sacagawea.gspp.berkeley.edu:/shares/gcp/climate $DATA/climate```
-   (you probably only want to copy over a subset of the data in `climate`.)
+Option 1: `IMPERICS_SHAREDDIR`:
 
-7. The `impact-calculations` code needs to know where to find the `$DATA` directory and is given this information by placing a file named `server.yml` in the directory that contains `impact-calculations`.  Look at one of the files `impact-calculations/configs/servers-*.yml` and copy it to the directory containing `impact-calculations`, giving it the name `server.yml`.
+You can export the environmental variable with the path to the data
+directory, as follows:
+
+```
+export IMPERICS_SHAREDDIR=<full-path-to-data-directory>
+```
+
+You may want to add this line to your `~/.bashrc` file, to export it
+any time you start a bash shell.
+
+Option 2: `server.yml`:
+
+You can create a file named `server.yml` in the directory that
+contains the `impact-calculations` directory.
+
+The contents of this file should be:
+```
+shareddir: <full-path-to-data-directory>
+```
 
 ## Producing results
 
