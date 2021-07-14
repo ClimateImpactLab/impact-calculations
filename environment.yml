@@ -20,7 +20,7 @@ dependencies:
   - xarray=0.10
   - pip:
     - impactlab-tools
-    - metacsv
+    - git+https://github.com/ClimateImpactLab/metacsv.git@master
     - git+https://github.com/ClimateImpactLab/open-estimate@master
     - git+https://github.com/ClimateImpactLab/impact-common@master
     
