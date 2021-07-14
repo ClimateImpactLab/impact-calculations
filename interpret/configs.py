@@ -62,7 +62,7 @@ def merge_import_config(config, fpath):
 
     Parameters
     ----------
-    config : dict
+    config : MutableMapping
         Projection run configuration, with or without an "import" key pointing
         to a relative or absolute file path.
     fpath : str or pathlib.Path
@@ -81,7 +81,7 @@ def merge_import_config(config, fpath):
         import_path = Path(config.pop("import"))
     except KeyError:
         # Nothing to import
-        return {**config}
+        return wrap_config(config)
 
     # Read "import" - relative to fpath, if needed.
     if not import_path.is_absolute():
@@ -94,7 +94,7 @@ def merge_import_config(config, fpath):
         import_path.parent
     )
 
-    return wrap_config({**import_config, **config}, config)
+    return wrap_config(merge(config, import_config.config))
 
 def standardize(config):
     newconfig = copy.copy(config)
@@ -110,14 +110,17 @@ def standardize(config):
     return wrap_config(newconfig, config)
 
 def merge(parent, child):
-    raise DeprecationWarning("merge is no longer used with ConfigDict.")
+    if isinstance(parent, ConfigDict) and isinstance(child, ConfigDict):
+        return child
 
-    # warnings.warn("merge is no longer used with ConfigDict.", DeprecationWarning)
-    # assert isinstance(parent, ConfigDict)
-    # if isinstance(child, ConfigDict):
-    #     return child
-    # assert not isinstance(child, dict)
-    # return parent[child]
+    if isinstance(child, dict):
+        if not isinstance(parent, ConfigDict):
+            parent = ConfigDict(parent)
+        
+        return ConfigDict(child, prefix=parent.prefix, parent=parent)
+
+    assert isinstance(parent, ConfigDict)
+    return parent[child]
 
 def search(config, needle, pathroot=''):
     found = {}
@@ -142,7 +145,10 @@ def search_list(conflist, needle, pathroot=''):
     return found
 
 def deepcopy(config):
-    raise DeprecationWarning("deepcopy is no longer used with ConfigDict.")
+    if isinstance(config, ConfigDict):
+        return deepcopy(config.config)
+
+    return copy.deepcopy(config)
 
 def get_batch_iter(config):
     # How many monte carlo iterations do we do?
@@ -335,7 +341,7 @@ class ConfigList(MutableSequence):
 
     def __getitem__(self, key):
         access_key = self.prefix + str(key)
-        self.accessed.append(access_key)
+        self.accessed.add(access_key)
         return self.wrapped_get(key)
 
     def wrapped_get(self, key):
