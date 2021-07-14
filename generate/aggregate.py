@@ -731,11 +731,13 @@ if __name__ == '__main__':
     import sys
     from pathlib import Path
     from impactlab_tools.utils import files
+    from interpret.configs import merge_import_config
 
     config_path = Path(sys.argv[1])
     config_name = config_path.stem
     run_config = files.get_allargv_config()
-    main(run_config, config_name)
+    all_config = merge_import_config(run_config, config_path.parent)
+    main(all_config, config_name)
 
 
 
