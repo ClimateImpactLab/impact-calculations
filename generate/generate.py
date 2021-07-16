@@ -299,3 +299,7 @@ if __name__ == '__main__':
     file_configs = configs.merge_import_config(run_config, config_path.parent)
 
     main(file_configs, config_name)
+
+    missing_usage = file_configs.check_usage()
+    if missing_usage:
+        print(f"WARNING: Some configuration entries were not used: " + ', '.join(missing_usage))
