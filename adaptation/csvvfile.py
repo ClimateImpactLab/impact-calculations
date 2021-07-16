@@ -24,14 +24,15 @@ def read(filename):
 
         # Clean up variables
         for variable in variables:
-            assert isinstance(variable[1], dict), "Variable definition '%s' malformed." % str(variable[1])
-            if 'unit' in variable[1]:
-                fullunit = variable[1]['unit']
+            vardef = variables[variable]
+            assert isinstance(vardef, dict), "Variable definition '%s' malformed." % str(vardef)
+            if 'unit' in vardef:
+                fullunit = vardef['unit']
                 if ']' in fullunit:
-                    variable[1]['unit'] = fullunit[:fullunit.index(']')]
+                    vardef['unit'] = fullunit[:fullunit.index(']')]
             else:
                 print("WARNING: Missing unit for variable %s." % variable)
-                variable[1]['unit'] = None
+                vardef['unit'] = None
 
         data = {'attrs': attrs, 'variables': variables, 'coords': coords}
         
@@ -273,7 +274,7 @@ def partial_derivative(csvv, covariate, covarunit):
     csvvpart = subset(csvv, include)
     if 'outcome' in csvv['variables']:
         csvvpart['variables'] = csvvpart['variables'].copy()  # remove when MetaCSV fixed
-        csvvpart['variables']._data = copy.deepcopy(csvvpart['variables']._data)
+        csvvpart['variables'].data = copy.deepcopy(csvvpart['variables'].data)
         oldunit = csvv['variables']['outcome']['unit']
         csvvpart['variables']['outcome']['unit'] = csvv['variables']['outcome']['unit'] + '/' + covarunit
         assert csvv['variables']['outcome']['unit'] == oldunit
