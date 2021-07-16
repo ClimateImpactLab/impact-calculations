@@ -1,4 +1,4 @@
-import yaml, copy, itertools, importlib, os, warnings
+import yaml, copy, itertools, importlib, os
 from pathlib import Path
 from impactlab_tools.utils.files import get_file_config
 from collections.abc import MutableMapping, MutableSequence
@@ -145,8 +145,8 @@ def search_list(conflist, needle, pathroot=''):
     return found
 
 def deepcopy(config):
-    if isinstance(config, ConfigDict):
-        return deepcopy(config.config)
+    if isinstance(config, ConfigDict) or isinstance(config, MergedConfigDict):
+        return deepcopy(dict(config.items()))
 
     return copy.deepcopy(config)
 
