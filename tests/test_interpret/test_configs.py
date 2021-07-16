@@ -1,6 +1,7 @@
 import pytest
 import unittest
 from pathlib import Path
+from interpret import configs
 from interpret.configs import merge_import_config, get_covariate_rate
 
 class TestMergeImportConfig:
@@ -13,7 +14,7 @@ class TestMergeImportConfig:
         expected = input_dict.copy()
 
         output = merge_import_config(input_dict, fpath="")
-        assert expected == output
+        assert expected == dict(output.items())
 
     def test_import_absolutepath(self, tmpdir):
         """Test that imports absolute path, input configs over-rides import configs"""
@@ -24,7 +25,7 @@ class TestMergeImportConfig:
         expected = {"a": 123, "b": 456, "alist": ["item1"]}
 
         output = merge_import_config(input_dict, fpath="")
-        assert expected == output
+        assert expected == dict(output.items())
 
     def test_import_relativepath(self, tmpdir):
         """Test that imports relative to input config path, input configs overrides import configs"""
@@ -38,7 +39,7 @@ class TestMergeImportConfig:
         expected = {"a": 123, "b": 456, "alist": ["item1"]}
 
         output = merge_import_config(input_dict, fpath=base_path)
-        assert expected == output
+        assert expected == dict(output.items())
 
     def test_nested_import(self, tmpdir):
         """Test that resolves 'import:' in imported config."""
@@ -58,7 +59,7 @@ class TestMergeImportConfig:
         expected = {"a": 123, "b": 456, "alist": ["item1"], "z": "foobar"}
 
         output = merge_import_config(input_dict, fpath=base_path)
-        assert expected == output
+        assert expected == dict(output.items())
 
 
 class TestConfigCovariateChange(unittest.TestCase):
