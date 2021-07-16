@@ -41,7 +41,7 @@ class YearlyWeatherReader(WeatherReader):
         for ii in range(len(years)):
             yeards = ds[{self.timevar: ii}]
             if self.timevar != 'time':
-                yeards.rename({self.timevar: 'time'}, inplace=True)
+                yeards = yeards.rename({self.timevar: 'time'})
                 if self.timevar == 'year':
                     yeards['time'] = pd.to_datetime(["%d-01-01" % yeards['time']])
                     for variable in self.variables:
@@ -92,7 +92,7 @@ class YearlyDayLikeWeatherReader(YearlySplitWeatherReader):
 
     def prepare_ds(self, filename, year):
         ds = netcdfs.load_netcdf(filename)
-        ds.rename({self.regionvar: 'region'}, inplace=True)
+        ds = ds.rename({self.regionvar: 'region'})
         ds['time'] = np.array([year])
         ds.set_coords(['time'])
         ds[self.variable[0]] = ds[self.variable[0]].expand_dims('time', 0)

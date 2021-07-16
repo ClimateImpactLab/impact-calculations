@@ -7,7 +7,7 @@ dependencies:
   - emcee
   - numpy>=1.18
   - netCDF4>=1.3.1
-  - pandas=0.25
+  - pandas
   - pip
   - python=3.7
   - pyyaml
@@ -17,10 +17,10 @@ dependencies:
   - setuptools_scm
   - statsmodels
   - bottleneck
-  - xarray=0.10
+  - xarray
   - pip:
     - impactlab-tools
-    - metacsv
+    - git+https://github.com/ClimateImpactLab/metacsv.git@master
     - git+https://github.com/ClimateImpactLab/open-estimate@master
     - git+https://github.com/ClimateImpactLab/impact-common@master
     
