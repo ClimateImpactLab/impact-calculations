@@ -83,6 +83,8 @@ def merge_import_config(config, fpath):
         # Nothing to import
         return wrap_config(config)
 
+    config = wrap_config(config) # make sure I have a ConfigDict
+    
     # Read "import" - relative to fpath, if needed.
     if not import_path.is_absolute():
         if isinstance(fpath, str):
@@ -90,11 +92,11 @@ def merge_import_config(config, fpath):
         import_path = fpath.joinpath(import_path)
 
     import_config = merge_import_config(
-        get_file_config(import_path),
+        ConfigDict(get_file_config(import_path), prefix='', master_accessed=config.accessed), # save accessed
         import_path.parent
     )
 
-    return wrap_config(merge(config, import_config.config))
+    return wrap_config(merge(import_config, config))
 
 def standardize(config):
     newconfig = copy.copy(config)
@@ -235,6 +237,9 @@ def wrap_config(config, source_config=None):
         newconfig.accessed = source_config.accessed # source_config.parent may not be a ConfigDict
         return newconfig
 
+    if isinstance(config, MergedConfigDict):
+        return config
+
     return ConfigDict(config)
 
 class ConfigDict(MutableMapping):
@@ -301,6 +306,9 @@ class ConfigDict(MutableMapping):
     def __delitem__(self, key):
         del self.config[key]
 
+    def items(self):
+        return self.config.items()
+
     def check_usage(self):
         """Look through every key and sub-structures, and return a list of unaccessed entries."""
         missing = set()
@@ -359,6 +367,11 @@ class MergedConfigDict(MutableMapping):
         else:
             del self.parent[key]
 
+    def items(self):
+        copy = dict(self.parent.items())
+        copy.update(dict(self.child.items()))
+        return copy
+            
 class ConfigList(MutableSequence):
     """Wrapper on lists contained in configuration dictionaries to monitor key access.
 
