@@ -1,7 +1,0 @@
-module: labor
-mode: single
-outputdir: /shares/gcp/outputs/labor/impacts-cupim
-do_only: interpolation
-do_farmers: False
-csvvfile: social/parameters/labor/csvv_oct2019/labor_test.csvv
-specification: polynomial

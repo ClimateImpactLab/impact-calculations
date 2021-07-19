@@ -27,8 +27,7 @@
 # This simplifies to: sum_k [ T_0^k * gamma_k * (Tbar_0^k - Tbar_1^k)] < COST < sum_k [ T_1^k * gamma_k * (Tbar_0^k - Tbar_1^k)], where "k" indicates each term in the nonlinear response (e.g. if it's a fourth order polynomial, we have k = 1,...,4), and where the Tbar values may vary by climate term (e.g for bins we interact each bin variable by the average number of days in that bin)
 
 ###########################
-# Syntax: cost_curves(tavgpath, rcp, climate_model, impactspath), Where:
-# tavgpath = filepath for long run average climate data by impact region year
+# Syntax: cost_curves(rcp, climate_model, impactspath), Where:
 # rcp = which RCP? enter as a string --  'rcp85' or 'rcp45'
 # climate_model = which climate model? enter as a string -- e.g. 'MIROC-ESM'
 # impactspath = filepath for the projected impacts for this model
@@ -38,14 +37,13 @@
 
 rm(list=ls())
 
-library(pracma)
-library(ncdf4)
-library(dplyr)
-library(DataCombine)
-library(zoo)
-library(abind)
-library(rPython)
-source("generate/stochpower.R")
+list.of.packages <- c('pracma','ncdf4','dplyr','DataCombine','zoo','abind')
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages, repos = "http://cran.us.r-project.org")
+devtools::install_github("cran/rPython") # that one is not available directly from cran anymore : https://cran.r-project.org/web/packages/rPython/index.html
+invisible(lapply(c(list.of.packages, 'rPython'), function(x) suppressPackageStartupMessages({library(x, character.only=TRUE)})))
+suppressPackageStartupMessages({source("generate/stochpower.R")})
+
 
 #####################
 is.local <- F
@@ -69,15 +67,16 @@ avgmethod = 'bartlett'
 
 args <- commandArgs(trailingOnly=T)
 
+rcp = args[1]
+climmodel = args[2]
+
 # Filepath for climate covariates and annual temperatures by region-year through 2100
-tavgpath = args[1] # outputs/temps/RCP/GCM/climtas.nc4
-rcp = args[2]
-climmodel = args[3]
+tavgpath = paste0('/shares/gcp/outputs/temps/',rcp,'/',climmodel,'/climtas.nc4')
 
 # Filepath for impacts
-impactspath <- args[4] # paste0("outputs/", sector, "/", impactsfolder, "/median-clipped/rcp", rcp, "/", climmodel, "/high/SSP4/moratlity_cubic_splines_2factors_", climdata, "_031617.nc4")
+impactspath <- args[3] # paste0("outputs/", sector, "/", impactsfolder, "/median-clipped/rcp", rcp, "/", climmodel, "/high/SSP4/moratlity_cubic_splines_2factors_", climdata, "_031617.nc4")
 
-suffix <- args[5] # "-costs"
+suffix <- args[4] # "-costs"
 
 # Averaging method
 #avgmethod = args[5]
