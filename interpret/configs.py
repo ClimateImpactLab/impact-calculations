@@ -275,6 +275,9 @@ class ConfigDict(MutableMapping):
                 
         self.prefix = prefix
 
+    def __repr__(self):
+        return repr(self.config)
+
     def __len__(self):
         return len(self.config)
 
@@ -343,6 +346,9 @@ class MergedConfigDict(MutableMapping):
         self.parent = parent
         self.child = child
 
+    def __repr__(self):
+        return repr(dict(items()))
+
     def __len__(self):
         return len(self.child) + len(self.parent)
 
@@ -370,7 +376,7 @@ class MergedConfigDict(MutableMapping):
     def items(self):
         copy = dict(self.parent.items())
         copy.update(dict(self.child.items()))
-        return copy
+        return copy.items()
             
 class ConfigList(MutableSequence):
     """Wrapper on lists contained in configuration dictionaries to monitor key access.
