@@ -156,7 +156,7 @@ def create_covariator(specconf, weatherbundle, economicmodel, config=None, quiet
 
     return covariator
         
-def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, getcsvvcurve=False):
+def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, getcsvvcurve=False, diag_infix=""):
     """Create a CurveGenerator instance from specifications
 
     Parameters
@@ -171,6 +171,8 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
         Specification configuration.
     getcsvvcurve : bool, optional
         If True, a adaptation.curvegen.CSVVCurveGenerator instance is returned.
+    diag_infix : str
+        Appended to the diagnostic suffix for CurveGenerators that report diagnostics.
 
     Returns
     -------
@@ -224,7 +226,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
             weathernames = [variables.interpret_ds_transform(name, specconf) for name in weathernames]
 
         curr_curvegen = curvegen_known.PolynomialCurveGenerator([indepunit] + ['%s^%d' % (indepunit, pow) for pow in range(2, order+1)],
-                                                                depenunit, coeffvar, order, csvv, predinfix=predinfix,
+                                                                depenunit, coeffvar, order, csvv, diagprefix='coeff-' + diag_infix, predinfix=predinfix,
                                                                 weathernames=weathernames, betalimits=betalimits, allow_raising=specconf.get('allow-raising', False))
         minfinder = lambda mintemp, maxtemp, sign: lambda curve: minpoly.findpolymin([0] + [sign * cc for cc in curve.coeffs], mintemp, maxtemp)
 
@@ -235,7 +237,8 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
         variable_name = specconf['variable']
 
         curr_curvegen = curvegen_known.CubicSplineCurveGenerator([indepunit] + ['%s^3' % indepunit] * (len(knots) - 2),
-                                                                 depenunit, prefix, knots, variable_name, csvv, betalimits=betalimits)
+                                                                 depenunit, prefix, knots, variable_name, csvv, diagprefix='coeff-' + diag_infix,
+                                                                 betalimits=betalimits)
         minfinder = lambda mintemp, maxtemp, sign: lambda curve: minspline.findsplinemin(knots, sign * np.asarray(curve.coeffs), mintemp, maxtemp)
         weathernames = curr_curvegen.weathernames[:]
     elif specconf['functionalform'] == 'coefficients':
@@ -267,7 +270,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
 
         curr_curvegen = curvegen_arbitrary.SumCoefficientsCurveGenerator(list(ds_transforms.keys()), ds_transforms,
                                                                          transform_descriptions, indepunits, depenunit,
-                                                                         csvv, betalimits=betalimits,
+                                                                         csvv, diagprefix='coeff-' + diag_infix, betalimits=betalimits,
                                                                          univariate_index=univariate_index,
                                                                          univariate_transform=univariate_transform)
         weathernames = [] # Use curve directly
@@ -283,7 +286,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
                 raise ValueError("Error: Curve-generator resulted in a " + str(csvvcurvegen.__class__))
             
             if 'suffixes' in specconf:
-                curr_curvegen = sumbytime_constructor(csvv, csvvcurvegen, specconf['suffixes'])
+                curr_curvegen = sumbytime_constructor(csvv, csvvcurvegen, specconf['suffixes'], diagprefix='coeff-' + diag_infix)
             elif 'suffix-triangle' in specconf:
                 assert 'within-season' in specconf
                 suffix_triangle = specconf['suffix-triangle']
@@ -291,7 +294,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
                     assert isinstance(suffix_triangle, list) and len(suffix_triangle[rr]) == rr + 1
 
                 culture_map = irvalues.get_file_cached(specconf['within-season'], irvalues.load_culture_months)
-                get_curvegen = lambda suffixes: sumbytime_constructor(csvv, csvvcurvegen, suffixes)
+                get_curvegen = lambda suffixes: sumbytime_constructor(csvv, csvvcurvegen, suffixes, diagprefix='coeff-' + diag_infix)
                 
                 curr_curvegen = curvegen.SeasonTriangleCurveGenerator(culture_map, get_curvegen=get_curvegen, suffix_triangle=suffix_triangle)
             else:
@@ -359,18 +362,16 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
         else:
             final_curve = smart_curve.CoefficientsCurve(curve.ccs, weathernames)
 
-        if clipping_cfg:
-            final_curve = smart_curve.ShiftedCurve(final_curve, -curve.univariate(baselineexts[region]))
+        if clipping_cfg or specconf.get('goodmoney'):
+            final_curve = smart_curve.ShiftedCurve(final_curve, -final_curve.univariate(baselineexts[region]))
 
         if specconf.get('goodmoney', False):
             covars = covariator.get_current(region)
             covars['loggdppc'] = baselineloggdppcs[region]
             noincadapt_unshifted_curve = curr_curvegen.get_curve(region, None, covars, recorddiag=False)
-            if len(weathernames) > 1:
-                coeff_noincadapt_unshifted_curve = smart_curve.CoefficientsCurve(noincadapt_unshifted_curve.ccs, weathernames)
-            else:
-                coeff_noincadapt_unshifted_curve = noincadapt_unshifted_curve
-            noincadapt_curve = smart_curve.ShiftedCurve(coeff_noincadapt_unshifted_curve, -noincadapt_unshifted_curve(baselineexts[region]))
+            if not isinstance(noincadapt_unshifted_curve, smart_curve.SmartCurve):
+                noincadapt_unshifted_curve = smart_curve.CoefficientsCurve(noincadapt_unshifted_curve.ccs, weathernames)
+            noincadapt_curve = smart_curve.ShiftedCurve(noincadapt_unshifted_curve, -noincadapt_unshifted_curve.univariate(baselineexts[region]))
 
             final_curve = smart_curve.MinimumCurve(final_curve, noincadapt_curve)
 
@@ -473,7 +474,11 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     depenunit = specconf['depenunit']
     
     covariator = create_covariator(specconf, weatherbundle, economicmodel, config, farmer=farmer)
-    final_curvegen = create_curvegen(csvv, covariator, weatherbundle.regions, farmer=farmer, specconf=specconf)
+
+    # Subset to regions (i.e. hierids) to act on.
+    target_regions = configs.get_regions(weatherbundle.regions, config.get('filter-region'))
+
+    final_curvegen = create_curvegen(csvv, covariator, target_regions, farmer=farmer, specconf=specconf)
 
     extras = dict(output_unit=depenunit, units=depenunit, curve_description=specconf['description'], errorvar=csvvfile.get_errorvar(csvv))
     calculation = calculator.create_postspecification(specconf['calculation'], {'default': final_curvegen}, None, extras=extras)

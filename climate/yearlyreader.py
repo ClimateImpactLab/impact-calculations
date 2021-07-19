@@ -35,13 +35,13 @@ class YearlyWeatherReader(WeatherReader):
         return self.variables
 
     def read_iterator(self):
-        ds = xr.open_dataset(self.filepath)
+        ds = netcdfs.load_netcdf(self.filepath)
         years = self.get_times()
 
         for ii in range(len(years)):
             yeards = ds[{self.timevar: ii}]
             if self.timevar != 'time':
-                yeards.rename({self.timevar: 'time'}, inplace=True)
+                yeards = yeards.rename({self.timevar: 'time'})
                 if self.timevar == 'year':
                     yeards['time'] = pd.to_datetime(["%d-01-01" % yeards['time']])
                     for variable in self.variables:
@@ -91,12 +91,11 @@ class YearlyDayLikeWeatherReader(YearlySplitWeatherReader):
         return self.prepare_ds(self.file_for_year(year), year)
 
     def prepare_ds(self, filename, year):
-        ds = xr.open_dataset(filename)
-        ds.rename({self.regionvar: 'region'}, inplace=True)
+        ds = netcdfs.load_netcdf(filename)
+        ds = ds.rename({self.regionvar: 'region'})
         ds['time'] = np.array([year])
         ds.set_coords(['time'])
         ds[self.variable[0]] = ds[self.variable[0]].expand_dims('time', 0)
-        ds.load() # Collect all data now
         return ds
 
 class RandomYearlyAccess(object):

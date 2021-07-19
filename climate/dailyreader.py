@@ -44,15 +44,13 @@ class DailyWeatherReader(YearlySplitWeatherReader):
 
     def prepare_ds(self, filename):
         try:
-            ds = xr.open_dataset(filename, autoclose=True)
+            ds = netcdfs.load_netcdf(filename)
             if 'time' in ds.coords:
-                ds.rename({'time': 'yyyyddd', self.regionvar: 'region'}, inplace=True)
+                ds = ds.rename({'time': 'yyyyddd', self.regionvar: 'region'})
                 ds['time'] = (('yyyyddd'), pd.date_range('%d-01-01' % (ds.yyyyddd[0] // 1000), periods=365))
-                ds.swap_dims({'yyyyddd': 'time'}, inplace=True)
+                ds = ds.swap_dims({'yyyyddd': 'time'})
             elif 'month' in ds.coords:
-                ds.rename({'month': 'time', self.regionvar: 'region'}, inplace=True)
-                
-            ds.load() # Collect all data now
+                ds = ds.rename({'month': 'time', self.regionvar: 'region'})
             return ds
         except Exception as ex:
             print(("Failed to prepare %s" % filename))
@@ -104,11 +102,11 @@ class MonthlyDimensionedWeatherReader(YearlySplitWeatherReader):
         years = self.get_years()
         yy = 0
         for filename in self.file_iterator():
-            ds = xr.open_dataset(filename)
+            ds = netcdfs.load_netcdf(filename)
             if 'month' in ds.coords:
-                ds.rename({'month': 'time', self.regionvar: 'region'}, inplace=True)
+                ds = ds.rename({'month': 'time', self.regionvar: 'region'})
             else:
-                ds.rename({self.regionvar: 'region'}, inplace=True)
+                ds = ds.rename({self.regionvar: 'region'})
             ds[self.variable] = ds[self.variable].transpose('time', 'region', self.dim) # Some old code may depend on T x REGIONS x K
             ds.attrs['year'] = years[yy]
             yield ds
@@ -116,15 +114,14 @@ class MonthlyDimensionedWeatherReader(YearlySplitWeatherReader):
 
     def read_year(self, year):
         """Read variable for ``year`` from file"""
-        with xr.open_dataset(self.file_for_year(year), lock=True) as ds:
-            if 'month' in ds.coords:
-                ds.rename({'month': 'time', self.regionvar: 'region'}, inplace=True)
-            else:
-                ds.rename({self.regionvar: 'region'}, inplace=True)
-            ds[self.variable] = ds[self.variable].transpose('time', 'region', self.dim) # Some old code may depend on T x REGIONS x K
-            ds.attrs['year'] = year
-            ds.load()
-            return ds
+        ds = netcdfs.load_netcdf(self.file_for_year(year))
+        if 'month' in ds.coords:
+            ds = ds.rename({'month': 'time', self.regionvar: 'region'})
+        else:
+            ds = ds.rename({self.regionvar: 'region'})
+        ds[self.variable] = ds[self.variable].transpose('time', 'region', self.dim) # Some old code may depend on T x REGIONS x K
+        ds.attrs['year'] = year
+        return ds
 
 class MonthlyBinnedWeatherReader(MonthlyDimensionedWeatherReader):
     """Exposes binned weather data, accumulated into months and split into yearly file."""

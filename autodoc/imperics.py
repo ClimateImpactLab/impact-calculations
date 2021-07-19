@@ -26,6 +26,7 @@ reported to be compared with the pre-computed result.
 """
 
 import sys, os, csv, importlib, yaml
+from pathlib import Path
 import numpy as np
 from impactlab_tools.utils import files
 from interpret import container, configs
@@ -37,7 +38,7 @@ from . import lib
 
 ## Configuration
 
-config = files.get_argv_config()
+config = configs.standardize(files.get_argv_config())
 allcalcs = sys.argv[2]
 
 region = sys.argv[3] if len(sys.argv) > 3 else 'USA.14.608' #'IND.21.329.1353'
@@ -46,9 +47,9 @@ futureyear = int(sys.argv[4]) if len(sys.argv) > 4 else 2050
 ## Starting
 
 print("Configuring system...")
-with open(config['module'], 'r') as fp:
-    config.update(yaml.load(fp))
-shortmodule = os.path.basename(config['module'])[:-4]
+config_path = Path(sys.argv[1])
+config_name = config_path.stem
+mod, shortmodule = configs.get_config_module(config, config_name)
 
 allcalcs_prefix = shortmodule + "-allcalcs-"
 onlymodel = os.path.basename(allcalcs)[len(allcalcs_prefix):-4]
@@ -144,8 +145,11 @@ if not config.get('deltamethod', False):
         if variable == '':
             continue
         for year in [2001, futureyear]:
-            lib.show_header("Calculation of %s coefficient in %d (%f reported)" % (variable, year, lib.excind(calcs, year-1, 'coeff-' + variable)))
-            lib.show_coefficient(csvv, calcs, year, variable, betalimits=betalimits.get(variable, None))
+            try:
+                lib.show_header("Calculation of %s coefficient in %d (%f reported)" % (variable, year, lib.excind(calcs, year-1, 'coeff-' + variable)))
+                lib.show_coefficient(csvv, calcs, year, variable, betalimits=betalimits.get(variable, None))
+            except IndexError as ex:
+                print("Missing coefficient %s" % ('coeff-' + variable))
 
 pvals = pvalses.ConstantPvals(.5)
 calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvvobj, module, weatherbundle, economicmodel, pvals[basename], specconf=specconf, config=configs.merge(config, {'quiet': True}), standard=False)
@@ -179,13 +183,17 @@ for year in [2001, futureyear]:
     used_outputs = set()
     for label, elements in formatting.format_labels:
         if label == 'rebased':
-            break
+            continue
 
         while label in used_outputs:
             label += '2'
         last_label = label
         used_outputs.add(label)
 
+        if label not in outputs[year]:
+            print("Missing output %s" % (label))
+            continue
+            
         lib.show_header("Calculation of %s in %d (%f reported)" % (label, year, outputs[year][label]))
 
         elements.update(extraelements)

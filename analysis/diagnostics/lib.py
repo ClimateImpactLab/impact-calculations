@@ -2,6 +2,7 @@
 Various utils for various sector-specific diagnostic scripts.
 """
 
+from climate.netcdfs import load_netcdf
 from autodoc.lib import *
 endbaseline = 2015
 
@@ -13,7 +14,7 @@ def get_weather(weathertemplate, years, shapenum, show_all_years=None, variable=
     for year in years:
         filepath = weathertemplate.format(rcp='historical' if year < 2006 else 'rcp85', variable=variable, year=year)
         assert os.path.exists(filepath), "Cannot find %s" % filepath
-        ds = xr.open_dataset(filepath)
+        ds = load_netcdf(filepath)
         if isinstance(shapenum, str):
             regions = list(ds[regindex].values)
             shapenum = regions.index(shapenum)

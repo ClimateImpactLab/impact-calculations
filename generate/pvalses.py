@@ -8,8 +8,10 @@ resolving the uncertainty forecasts for conflict and anything else
 that is stochastic.
 """
 
-import os, yaml, time, zlib
+import os, yaml, zlib
+import secrets
 import numpy as np
+import math
 
 ## These dictionaries (keys in the top-level Pvals object) have common values across sectors
 cross_sector_dictionaries = ['histclim']
@@ -148,8 +150,8 @@ class OnDemandRandomDictionary(PvalsDictionary):
         self.locked = True
 
     def __getitem__(self, name):
-        value = self.values.get(name, np.nan)
-        if np.isnan(value) and not self.locked:
+        value = self.values.get(name, math.nan)
+        if math.isnan(value) and not self.locked:
             value = np.random.uniform()
             self.values[name] = value
 
@@ -168,7 +170,7 @@ class OnDemandRandomDictionary(PvalsDictionary):
 
         if self.relative_location is None:
             # Not a cross-sector dictionary
-            seed = int(time.time()) + plus
+            seed = secrets.randbits(128) + plus
         else:
             seed = cross_sector_seed(self.relative_location, name, plus)
         self.values[fullname] = seed

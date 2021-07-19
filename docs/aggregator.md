@@ -64,6 +64,7 @@ Optional:
    the standard length is 120, and the number of regions, defaulted to
    24378 but overrideable with the `region-count` configuration
    option-- and that an arbitrary year of values all look valid.
+ - `costs-config` a dictionary containing all the necessary information to compute adaptation costs. See [the Adaptation Costs files](#Adaptation-Costs-files) section for details. 
 
 Filtering Targets (also Optional):
 
@@ -88,15 +89,76 @@ Filtering Targets (also Optional):
 
 ## Adaptation Costs files
 
-For the adpatation cost files to be generated, the sector needs to be setup so
-that the normal output files include a `climtas_effect` variable.  If
-this is present, the `generate/cost_curves.R` script will be run to
-generate IR-level cost estimates, and then the aggregate script will
-aggregate these like it does other files.
+The adaptation cost files and their aggregated version can be generated along the aggregation of impact files. For this, the user must pass a dictionary `costs-config` entry in the config. Two examples are provided at the end of this section. 
 
-For the `cost_curves.R` file to be run, the following libraries need
-to be available to the local R program: `pracma`, `ncdf4`, `dplyr`,
-`DataCombine`, `zoo`, `abind`, and `rPython`.
+Required keys are : 
+
+ - `command-prefix` a string representing the command to run the cost script set up by the user in the command line.
+ - `ordered-args` containing arguments to be passed to the costs script. It shoud be represented by a dictionary. It should contain at least one of the below keys : 
+
+   - `known-args` list of strings representing arguments that are known to the code and that depend on data known to the system during runtime (e.g. target directory). Currently available : `['clim_scenario', 'clim_model', 'impactspath', 'batchwd','econ_scenario','iam','seed-csvv', 'costs-suffix']`
+   - `extra-args` list of strings, representing extra arguments to be passed to the cost script.  
+
+ - `check-variable-costs` a string. It is required to perform checks that are analogous to those performed with `check-variable` (see above), but for costs files.
+
+Optional keys are : 
+
+- `costs-suffix` : a string. The default value is '-costs'. It is used to determine the name of the aggregated cost files. If `costs-suffix` starts with `-` it is interpreted as a suffix and the system will name the aggregated cost files after the prefix of the targetdir response files, and will look for those names in preliminary checks. If it doesn't start with `-`, the aggregated cost files will have as a full name the value of `costs_suffix`. The system also uses the value of `costs-suffix` for the known argument `costs-suffix` in `known-args`, if the user requires this known argument.
+- `infix` : A label inserted before `costs-suffix` historically available to distinguish multiple weighting schemes.
+- `meta-info`: a dictionary of strings to fill in the aggregated adaptation costs netcdf files meta information. Required keys : 
+   - `description`
+   - `version`
+   - `author`
+
+
+Example 1 : 
+
+
+```
+costs-config: 
+  command-prefix: 'Rscript /home/etenezakis/CIL_repo/agriculture/1_code/3_projections/4_run_projections/adaptation_costs/tmp_and_prcp_costs.R'
+  ordered-args:
+    extra-args:
+      - rice
+      - 13
+      - unused
+    known-args:
+      - batchwd
+      - clim_model
+      - clim_scenario
+      - econ_scenario
+      - iam
+  costs-suffix: adaptation_costs
+  check-variable-costs: adpt.cost.cuml
+  meta-info: 
+    description: "costs of yield adaptation to temperature and precipitation long term changes"
+    version: "YIELDS-2021-06-03"
+    dependencies: "tmp_and_prcp_costs.R"
+    author: "Andy Hultgren"
+```
+
+Example 2 : 
+
+
+```
+costs-config: 
+  command-prefix: 'Rscript /home/etenezakis/CIL_repo/impact-calculations/generate/cost_curves.R'
+  ordered-args:
+    known-args:
+      - clim_scenario
+      - clim_model
+      - impactspath
+      - costs-suffix
+      - iam
+  costs-suffix: -costs
+  check-variable-costs: costs_lb
+  meta-info:
+    description: 'Upper and lower bounds costs of adaptation calculation.'
+    version: 'DEADLY-2016-04-22'
+    dependencies: 'TEMPERATURES, ADAPTATION-ALL-AGES'
+    author: 'Tamma Carleton'
+```
+
 
 ## Weighting Schemes
 
