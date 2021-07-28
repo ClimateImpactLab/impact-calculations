@@ -38,9 +38,7 @@ def load_netcdf(filename_or_obj, **kwargs):
     try:
         if isinstance(filename_or_obj, py._path.local.LocalPath):
             filename_or_obj = str(filename_or_obj) # xarray chokes on LocalPath
-    except KeyError as ex:
-        pass # this seems to happen erratically
-    except AttributeError as ex:
+    except (KeyError, AttributeError) as ex:
         pass # this seems to happen erratically
 
     with open_dataset(filename_or_obj, **kwargs) as ds:
