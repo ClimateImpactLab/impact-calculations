@@ -26,7 +26,7 @@ def get_config_module(config, config_name):
     """
     if not config.get('module'):
         # Specification and run config already together.
-        mod = configs.get_interpret_container(config)
+        mod = get_interpret_container(config)
         shortmodule = str(config_name)
     elif os.path.splitext(config['module'])[1] in ['.yml', '.yaml']:
         # Specification config in another yaml file.
@@ -35,7 +35,7 @@ def get_config_module(config, config_name):
             "Pointing 'module:' to YAML files is deprecated, please use 'import:'",
             FutureWarning,
         )
-        mod = configs.get_interpret_container(config)
+        mod = get_interpret_container(config)
         with open(config['module'], 'r') as fp:
             config.update(yaml.load(fp))
         shortmodule = os.path.basename(config['module'])[:-4]
