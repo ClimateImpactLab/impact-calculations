@@ -48,7 +48,8 @@ def get_config_module(config, config_name):
         shortmodule = os.path.basename(config['module'])[:-4]
     else:
         # Specification config uses old module/script system, module needs to be imported.
-        mod = importlib.import_module("impacts." + config['module'] + ".allmodels")
+        mod = importlib.import_module(config['module'])
+        # mod = importlib.machinery.SourceFileLoader('allmodels', config['module'])
         shortmodule = config['module']
 
     return mod, shortmodule
