@@ -92,7 +92,7 @@ class WeatherCovariatorLockstepParallelDriver(multithread.FoldedActionsLockstepP
         self.farm_curvegen = curvegen.FarmerCurveGenerator(curvegen.ConstantCurveGenerator(['unused'], 'unused', curvegen.FlatCurve(0)),
                                                            covariator, farmer, save_curve=False)
         # Call with every region, so that last_curves is filled out
-        for region in self.weatherbundle.regions:
+        for region in self.regions:
             self.farm_curvegen.get_curve(region, 2010, weather=None)
 
     def covariate_update(self, outputs, covariator, farmer):
