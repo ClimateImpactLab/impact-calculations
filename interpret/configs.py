@@ -49,7 +49,6 @@ def get_config_module(config, config_name):
     else:
         # Specification config uses old module/script system, module needs to be imported.
         mod = importlib.import_module(config['module'])
-        # mod = importlib.machinery.SourceFileLoader('allmodels', config['module'])
         shortmodule = config['module']
 
     return mod, shortmodule
