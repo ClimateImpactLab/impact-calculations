@@ -26,10 +26,7 @@ def get_config_module(config, config_name):
     """
     if not config.get('module'):
         # Specification and run config already together.
-        if config.get('threads', 1) == 1:
-            mod = importlib.import_module("interpret.container")
-        else:
-            mod = importlib.import_module("interpret.parallel_container")
+        mod = get_interpret_container(config)
         shortmodule = str(config_name)
     elif os.path.splitext(config['module'])[1] in ['.yml', '.yaml']:
         # Specification config in another yaml file.
@@ -38,11 +35,7 @@ def get_config_module(config, config_name):
             "Pointing 'module:' to YAML files is deprecated, please use 'import:'",
             FutureWarning,
         )
-        if config.get('threads', 1) == 1:
-            mod = importlib.import_module("interpret.container")
-        else:
-            mod = importlib.import_module("interpret.parallel_container")
-
+        mod = get_interpret_container(config)
         with open(config['module'], 'r') as fp:
             config.update(yaml.load(fp))
         shortmodule = os.path.basename(config['module'])[:-4]
@@ -190,6 +183,31 @@ def get_regions(allregions, filter_region):
 
     return my_regions
 
+def get_interpret_container(config):
+    """
+    Decide on the main controller, which determines the number of threads.
+
+     - The default number of threads for median and montecarlo mode is
+       currently 1, but expected to become 2.
+     - The default number of threads for parallelmc and testparallelpe
+       is 3.
+     - All other mode by default use the single threaded container.
+    """
+    mode = config['mode']
+    if mode in ['median', 'montecarlo']:
+        threads = config.get('threads', 1)
+    elif mode in ['parallelmc', 'testparallelpe']:
+        threads = config.get('threads', 3)
+    else:
+        threads = config.get('threads', 1)
+        
+    if threads == 1:
+        return importlib.import_module("interpret.container")
+    elif threads == 2:
+        return importlib.import_module("interpret.twothread_container")
+    else:
+        return importlib.import_module("interpret.parallel_container")
+
 def get_covariate_rate(config, group):
     """ 
     handles the 'scale-covariate-changes' key and the legacy key 'slowadapt'
@@ -226,4 +244,3 @@ def get_covariate_rate(config, group):
         return rate
     else:
         return 1
-
