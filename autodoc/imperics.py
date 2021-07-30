@@ -101,7 +101,7 @@ lib.show_header("The Predictors File (allcalcs):")
 calcs = lib.get_excerpt(os.path.join(dir, allcalcs_prefix + onlymodel + ".csv"), 2, region, list(range(2000, 2011)) + [futureyear-1, futureyear], hasmodel=False)
 
 shapenum = 0
-with open(os.path.join("/shares/gcp/regions/hierarchy-flat.csv"), 'r') as fp:
+with open(files.sharedpath("regions/hierarchy-flat.csv", 'r') as fp:
     reader = csv.reader(fp)
     header = next(reader)
     for row in reader:

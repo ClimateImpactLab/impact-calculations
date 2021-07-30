@@ -1,6 +1,6 @@
 """Climate covariates generation tool.
 
-This tool creates files stored in the /shares/gcp/outputs/temps
+This tool creates files stored in the outputs/temps
 directory, which describe climate variables at the annual level and
 averaged covariates.
 
@@ -24,7 +24,7 @@ from impactcommon.math import averages
 filename = 'areatas.nc4' #'dd_tasmax.nc4'
 only_missing = True
 
-outputdir = '/shares/gcp/outputs/temps'
+outputdir = files.sharedpath('outputs/temps')
 
 standard_running_mean_init = averages.BartlettAverager
 numtempyears = 30
