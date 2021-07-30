@@ -5,7 +5,7 @@ from datastore.irregions import contains_region
 
 @pytest.fixture
 def hierid_df():
-    """pandas.DataFrame mimicing /shares/gcp/regions/hierarchy.csv with
+    """pandas.DataFrame mimicing regions/hierarchy.csv with
     'region-key' column as index
     """
     out = (pd.DataFrame({"region-key": ["Aa", "Ab", "Ba", "Baa", "Ca"], 

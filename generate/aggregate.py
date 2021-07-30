@@ -26,7 +26,7 @@ import numpy as np
 from netCDF4 import Dataset
 from . import nc4writer, agglib, checks
 from datastore import weights
-from impactlab_tools.utils import paralog
+from impactlab_tools.utils import paralog, files
 import subprocess 
 
 ### Master Configuration
@@ -340,7 +340,7 @@ def make_costs_aggregate(targetdir, filename, outfilename, halfweight, weight_ar
         The aggregation configuration dictionary
     """
     # Setup the metadata
-    dimensions_template = "/shares/gcp/outputs/temps/rcp45/CCSM4/climtas.nc4"
+    dimensions_template = files.sharedpath("outputs/temps/rcp45/CCSM4/climtas.nc4")
     metainfo = config['costs-config'].get('meta-info', None)
 
     # Perform the aggregation
@@ -483,7 +483,7 @@ def make_costs_levels(targetdir, filename, outfilename, halfweight, weight_args,
         The aggregation configuration dictionary
     """
     # Setup the metadata
-    dimensions_template = "/shares/gcp/outputs/temps/rcp45/CCSM4/climtas.nc4"
+    dimensions_template = files.sharedpath("outputs/temps/rcp45/CCSM4/climtas.nc4")
     metainfo = config['costs-config'].get('meta-info', None)
 
     # Perform the levels calculations
@@ -507,7 +507,6 @@ if __name__ == '__main__':
     # Prepare environment
     import sys
     from pathlib import Path
-    from impactlab_tools.utils import files
     from interpret.configs import merge_import_config
     from datastore import population, agecohorts
 
