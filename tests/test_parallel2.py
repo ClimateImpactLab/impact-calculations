@@ -55,7 +55,7 @@ def worker_process(proc, driver):
         baseline += weather
         driver.end_timestep(local)
 
-    print("MIDP" + str(proc))
+    # print("MIDP" + str(proc))
         
     # Calculate results
     year = 0
@@ -71,7 +71,7 @@ def worker_process(proc, driver):
 
     np.testing.assert_equal(results, results_true)
     driver.end_worker()
-    print("DONE" + str(proc))
+    # print("DONE" + str(proc))
 
 def test_folded():
     driver = MyTestFoldedActionsLockstepParallelDriver(5)
