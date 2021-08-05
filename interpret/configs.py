@@ -1,5 +1,6 @@
 import yaml, copy, itertools, importlib, os
 from pathlib import Path
+from impactlab_tools.utils import paralog
 from impactlab_tools.utils.files import get_file_config
 
 global_statman = None
