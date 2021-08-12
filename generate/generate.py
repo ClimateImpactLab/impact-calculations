@@ -12,7 +12,7 @@ from openest.generate import diagnostic
 from impactlab_tools.utils import files, paralog
 import cProfile, pstats, io, metacsv
 
-def main(config, config_name=None):
+def main(config, config_name=None, statman=None):
     """Main generate func, given run config dict and run ID str for logging
 
     Parameters
@@ -24,6 +24,7 @@ def main(config, config_name=None):
         is missing "module". If `None`, then uses `config["config_name"]`. If
         `config_name` is given and "config_name" is also in `config` then uses
         `config_name` arg and a warning is printed.
+    statman : paralog.StatusManager, optional 
     """
     global do_single
     
@@ -44,8 +45,12 @@ def main(config, config_name=None):
 
     do_single = config.get('do-single', False)
 
-    # Create the object for claiming directories
-    statman = paralog.StatusManager('generate', "generate.generate " + str(config_name), 'logs', claim_timeout)
+    if statman is not None:
+        assert isinstance(statman, paralog.StatusManager)
+    else: 
+        # Create the object for claiming directories
+        statman = paralog.StatusManager('generate', "generate.generate " + str(config_name), 'logs', claim_timeout)
+    
     configs.global_statman = statman
 
     targetdir = None # The current targetdir
