@@ -108,7 +108,8 @@ def merge(parent, child):
     if isinstance(child, MutableMapping):
         return MergedConfigDict(parent, child)
 
-    assert isinstance(parent, ConfigDict) or isinstance(parent, MergedConfigDict)
+    if not (isinstance(parent, ConfigDict) or isinstance(parent, MergedConfigDict)):
+        raise TypeError("parent must be a ConfigDict or MergedConfigDict")
 
     if child not in parent:
         return parent
@@ -250,6 +251,24 @@ def get_covariate_rate(config, group):
         return 1
 
 def wrap_config(config, source_config=None):
+    """Ensure that a config dictionary is wrapped in a ConfigDict-like object.
+
+    This should be called, rather than ConfigDict, if `config` may be
+    a MergedConfigDict or if information is `source_config` needs to
+    be maintained.
+
+    Include `source_config` if the content in config is a
+    copied-and-edited version of data from `source_config`.
+
+    Parameters
+    ----------
+    config : MutableMapping
+        The configuration dictionary. Could already be a ConfigDict or MergedConfigDict
+    source_config : MutableMapping, optional
+        Source of content in config. Used to maintain access list.
+
+    """
+    
     if isinstance(source_config, ConfigDict):
         newconfig = ConfigDict(config, prefix=source_config.prefix, parent=source_config.parent)
         newconfig.accessed = source_config.accessed # source_config.parent may not be a ConfigDict
@@ -261,7 +280,7 @@ def wrap_config(config, source_config=None):
     return ConfigDict(config)
 
 class ConfigDict(MutableMapping):
-    """Wrapper on configuration dictionaries to monitor key access.
+    """Configuration dictionary that monitors key access.
 
     Acts just like a dict, except that every time a key of this or a
     child dict or list is accessed, that information is logged (in
@@ -294,7 +313,8 @@ class ConfigDict(MutableMapping):
         self.prefix = prefix
 
     def __repr__(self):
-        return repr(self.config)
+        class_name = type(self).__name__
+        return f"{class_name}({self.config!r}, prefix={self.prefix!r})"
 
     def __len__(self):
         return len(self.config)
@@ -331,7 +351,7 @@ class ConfigDict(MutableMapping):
         return self.config.items()
 
     def check_usage(self):
-        """Look through every key and sub-structures, and return a list of unaccessed entries."""
+        """Look through every key and sub-structures, and return a set of unaccessed entries."""
         missing = set()
         for key in self.config:
             access_key = self.prefix + str(key)
@@ -365,7 +385,8 @@ class MergedConfigDict(MutableMapping):
         self.child = child
 
     def __repr__(self):
-        return repr(dict(items()))
+        class_name = type(self).__name__
+        return f"{class_name}({self.parent!r}, prefix={self.child!r})"
 
     def __len__(self):
         return len(self.child) + len(self.parent)
@@ -392,9 +413,9 @@ class MergedConfigDict(MutableMapping):
             del self.parent[key]
 
     def items(self):
-        copy = dict(self.parent.items())
-        copy.update(dict(self.child.items()))
-        return copy.items()
+        copydict = dict(self.parent.items())
+        copydict.update(dict(self.child.items()))
+        return copydict.items()
             
 class ConfigList(MutableSequence):
     """Wrapper on lists contained in configuration dictionaries to monitor key access.
