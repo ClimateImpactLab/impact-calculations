@@ -3,7 +3,6 @@ Classes for handling lazy-loaded spatiotemporal data.
 """
 
 import numpy as np
-import numpy.matlib
 
 class SpaceTimeData(object):
     """SpaceTimeData is the top-level class for providing spatiotemporal data.
@@ -350,7 +349,7 @@ class SpaceTimeMatrixData(SpaceTimeData):
         else:
             array = np.zeros(((year1 - year0 + 1), self.array.shape[1]))
             if self.year0 > year0:
-                array[:(self.year0 - year0), :] = np.matlib.repmat(self.array[0, :], self.year0 - year0, 1)
+                array[:(self.year0 - year0), :] = np.tile(self.array[0, :], (self.year0 - year0, 1))
                 selfii0 = 0
                 arrayii0 = self.year0 - year0
             else:
@@ -358,7 +357,7 @@ class SpaceTimeMatrixData(SpaceTimeData):
                 arrayii0 = 0
                 
             if self.year1 < year1:
-                array[(year1 - self.year1):, :] = np.matlib.repmat(self.array[-1, :], year1 - self.year1, 1)
+                array[(year1 - self.year1):, :] = np.tile(self.array[-1, :], (year1 - self.year1, 1))
                 selfii1 = self.array.shape[0]
                 arrayii1 = array.shape[0] - (year1 - self.year1)
             else:
