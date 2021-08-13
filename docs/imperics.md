@@ -263,13 +263,13 @@ Modifications of covariates:
   values input into the model will be aggregates at the country-level, rather 
   than regional-level. This refers to the first portion of each 
   region's hierarchical "region-keys" as given in 
-  /shares/gcp/regions/hierarchy.csv. The "country-level" is the first portion
+  regions/hierarchy.csv. The "country-level" is the first portion
   of the key when it is split by ".".
 
 Additionally, `hierid-...` can be given as a covariate to add a constant for 
 just a subset of the impact regions. To define the regions that will have a 
 non-zero value for this term, this covariate takes a list of one or more impact 
-region hierarchical "region-keys", as defined in /shares/gcp/regions/hierarchy.csv. 
+region hierarchical "region-keys", as defined in regions/hierarchy.csv. 
 The covariate name should match a variable/"covarnames" value in the projection 
 run's CSVV file. If an impact-region falls within one of the covariates' regions, 
 that CSVV value is used for the covariate term. Otherwise the term is 0.0. 
