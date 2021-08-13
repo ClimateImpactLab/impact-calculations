@@ -1,5 +1,6 @@
 import yaml, copy, itertools, importlib, os
 from pathlib import Path
+from impactlab_tools.utils import paralog
 from impactlab_tools.utils.files import get_file_config
 
 global_statman = None
@@ -41,7 +42,7 @@ def get_config_module(config, config_name):
         shortmodule = os.path.basename(config['module'])[:-4]
     else:
         # Specification config uses old module/script system, module needs to be imported.
-        mod = importlib.import_module("impacts." + config['module'] + ".allmodels")
+        mod = importlib.import_module(config['module'])
         shortmodule = config['module']
 
     return mod, shortmodule
