@@ -75,28 +75,11 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
             csvv = csvvfile.read(filepath)
             csvvfile.collapse_bang(csvv, pvals[basename].get_seed('csvv'))
 
-            if specification == 'cubicspline':
-                numpreds = 5
-                module = 'impacts.mortality.ols_cubic_spline'
-                minpath_suffix = '-splinemins'
-            elif specification == 'polynomial':
+            if specification == 'polynomial':
                 numpreds = len(csvv['prednames']) / 9
                 assert numpreds * 9 == len(csvv['prednames'])
-                module = 'impacts.mortality.ols_polynomial'
+                module = 'tests.configs.mortality.ols_polynomial'
                 minpath_suffix = '-polymins'
-            elif specification == 'mle':
-                numpreds = len(csvv['prednames']) / 9
-                assert numpreds * 9 == len(csvv['prednames'])
-                module = 'impacts.mortality.mle_polynomial'
-                minpath_suffix = '-polymins'
-            elif specification == 'bins':
-                numpreds = 10
-                module = 'impacts.mortality.ols_binned'
-                minpath_suffix = '-binmins'
-            elif specification == 'linear':
-                numpreds = len(config['terms'])
-                module = 'impacts.mortality.ols_linear'
-                minpath_suffix = None
             else:
                 raise ValueError("Unknown specification: " + specification)
             if minpath_suffix is not None and weatherbundle.is_historical():
