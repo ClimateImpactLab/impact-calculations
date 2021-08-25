@@ -23,13 +23,13 @@ def projection_netcdf():
     """
 
     run_configs = {
-        'outputdir': '/shares/gcp/outputs/energy/unittest'
-        'basename': 'FD_FGLS_inter_climGMFD_Exclude_all-issues_break2_semi-parametric_poly2_OTHERIND_other_energy_TINV_clim_income_spline-incadapt'
-        'levels-weighting': 'social/baselines/energy/IEA_Price_FIN_Clean_gr014_GLOBAL_COMPILE.dta:country:year:other_energycompile_price'
-        'levels-unit': ''
-        'aggregate-weighting-numerator': 'population * social/baselines/energy/IEA_Price_FIN_Clean_gr014_GLOBAL_COMPILE.dta:country:year:other_energycompile_price'
-        'aggregate-weighting-denominator': 'population'
-        'aggregated-unit': ''
+        'outputdir': '/mnt/sacagawea_shares/gcp/outputs/energy/unittest',
+        'basename': 'FD_FGLS_inter_climGMFD_Exclude_all-issues_break2_semi-parametric_poly2_OTHERIND_other_energy_TINV_clim_income_spline-incadapt',
+        'levels-weighting': 'social/baselines/energy/IEA_Price_FIN_Clean_gr014_GLOBAL_COMPILE.dta:country:year:other_energycompile_price',
+        'levels-unit': '',
+        'aggregate-weighting-numerator': 'population * social/baselines/energy/IEA_Price_FIN_Clean_gr014_GLOBAL_COMPILE.dta:country:year:other_energycompile_price',
+        'aggregate-weighting-denominator': 'population',
+        'aggregated-unit': '',
         'infix': 'withprice'
     }
     
@@ -40,7 +40,7 @@ def projection_netcdf():
                 tmpdirname,
                 "rcp45/surrogate_CanESM2_89/low/SSP3",
                 "FD_FGLS_inter_climGMFD_Exclude_all-issues_break2_semi-parametric_poly2_OTHERIND_other_energy_TINV_clim_income_spline_lininter-aggregated.nc4"
-            )
+            ),
             'results_levels': Path(
                 tmpdirname,
                 "rcp45/surrogate_CanESM2_89/low/SSP3",
