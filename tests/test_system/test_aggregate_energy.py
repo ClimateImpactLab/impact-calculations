@@ -24,16 +24,17 @@ def projection_netcdf():
 
     run_configs = {
         'outputdir': '/shares/gcp/outputs/energy/unittest'
-        'module': 'impacts/energy/hddcddspline_t_OTHERIND_other_energy.yml'
         'basename': 'FD_FGLS_inter_climGMFD_Exclude_all-issues_break2_semi-parametric_poly2_OTHERIND_other_energy_TINV_clim_income_spline-incadapt'
         'levels-weighting': 'social/baselines/energy/IEA_Price_FIN_Clean_gr014_GLOBAL_COMPILE.dta:country:year:other_energycompile_price'
+        'levels-unit': ''
         'aggregate-weighting-numerator': 'population * social/baselines/energy/IEA_Price_FIN_Clean_gr014_GLOBAL_COMPILE.dta:country:year:other_energycompile_price'
         'aggregate-weighting-denominator': 'population'
+        'aggregated-unit': ''
         'infix': 'withprice'
     }
     
-    # Trigger projection run in temprary directory:
-    with tmpdir_projection(run_configs, "aggregate energy test", main_aggregate) as tmpdirname:
+    # Trigger projection run in temporary directory:
+    with tmpdir_projection(run_configs, "aggregate energy test", main_aggregate, 'writedir') as tmpdirname:
         results_nc_path = {
             'results_aggregate': Path(
                 tmpdirname,
