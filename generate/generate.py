@@ -296,6 +296,7 @@ if __name__ == '__main__':
     # Legacy run from command line.
     import sys
     from pathlib import Path
+    import traceback 
 
     config_path = Path(sys.argv[1])
     config_name = config_path.stem
@@ -304,3 +305,12 @@ if __name__ == '__main__':
     file_configs = configs.merge_import_config(run_config, config_path.parent)
 
     main(file_configs, config_name)
+
+    statman = paralog.StatusManager('generate', "generate.generate " + str(config_name), 'logs', file_configs.get('timeout', 12) * 60*60)
+   
+    try :
+        main(file_configs, config_name, statman)
+    except Exception as ex: 
+        statman.log_message(msg=traceback.format_exc())
+        print(f"an unknown error occurred, details are logged at {statman.logpath}")
+        exit()
