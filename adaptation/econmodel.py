@@ -64,7 +64,7 @@ class SSPEconomicModel(object):
     def reset(self):
         self.income_model.reset()
 
-    def baseline_prepared(self, maxbaseline, numeconyears, func):
+    def baseline_prepared(self, maxbaseline, numeconyears, func, country_level_gdppc=False):
         """
         Return a dictionary {region: {loggdppc: loggdppc, popop: popop}
         """
@@ -86,8 +86,10 @@ class SSPEconomicModel(object):
 
         # Iterate through pop_baseline, since it has all regions
         for region in list(pop_baseline.keys()):
+            query_region = str(x.split(".")[0]) if country_level_gdppc else region
+            
             # Get the income timeseries
-            gdppcs = self.income_model.get_timeseries(region)
+            gdppcs = self.income_model.get_timeseries(query_region)
             if maxbaseline < self.income_model.get_startyear():
                 baseline_gdppcs = [gdppcs[0]]
             else:
