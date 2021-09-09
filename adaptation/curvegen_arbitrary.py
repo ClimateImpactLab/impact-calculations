@@ -130,7 +130,7 @@ class SumCoefficientsCurveGenerator(LinearCSVVCurveGenerator):
         if covariates is None:
             covariates = {}
         pred = np.sum(predictors[predname]._values)
-        covar = covariates[self.csvv['covarnames'][ii]] if self.csvv['covarnames'][ii] != '1' else 1
+        covar = covariates[covarname] if covarname != '1' else 1
         return pred * covar
 
     def format_call(self, lang, *args):
