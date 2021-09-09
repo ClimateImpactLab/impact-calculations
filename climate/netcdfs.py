@@ -1,6 +1,49 @@
-import os, re
+"""Helper functions for working with NetCDF files."""
+
+import os, re, py
+import logging
 import numpy as np
 from netCDF4 import Dataset
+from xarray import open_dataset
+
+logger = logging.getLogger(__name__)
+
+
+def load_netcdf(filename_or_obj, **kwargs):
+    """Open, load NetCDF file, close file - with thread global thread lock.
+
+    This is a thin wrapper around ``xarray.open_dataset``, behaving like
+    ``xarray.load_dataset`` (in xarray >= 0.12) in that it ensures data is
+    read into memory, returns the data, and then closes the file. This
+    function also ensures the global thread lock is set.
+
+    Parameters
+    ----------
+    filename_or_obj
+    kwargs :
+        Passed to ``xarray.open_dataset``.
+
+    Returns
+    -------
+    xarray.Dataset
+        The freshly loaded Dataset.
+    """
+    logger.debug(f"Loading {filename_or_obj}")
+
+    if "cache" in kwargs:
+        raise TypeError("cache has no effect in this context")
+    if "lock" in kwargs:
+        raise TypeError("lock has no effect in this context")
+
+    try:
+        if isinstance(filename_or_obj, py._path.local.LocalPath):
+            filename_or_obj = str(filename_or_obj) # xarray chokes on LocalPath
+    except (KeyError, AttributeError) as ex:
+        pass # this seems to happen erratically
+
+    with open_dataset(filename_or_obj, **kwargs) as ds:
+        return ds.load()
+
 
 def get_arbitrary_variables(path):
     variables = {} # result of the function
@@ -14,7 +57,7 @@ def get_arbitrary_variables(path):
                 variable = match.group(1)
                 filepath = os.path.join(root, filename)
                 variables[variable] = filepath # add to the result set
-                print "Found %s: %s" % (variable, filepath)
+                print(("Found %s: %s" % (variable, filepath)))
 
     return variables
 
@@ -33,26 +76,12 @@ def readmeta(filepath, variable):
     elif hasattr(rootgrp.variables[variable], 'unit'):
         units = rootgrp.variables[variable].unit
     else:
-        print "Warning: Unknown unit for %s" % filepath
+        print(("Warning: %s in %s has no units." % (variable, filepath)))
         units = None
         
     rootgrp.close()
 
     return version, units
-
-def readncdf(filepath, variable):
-    """
-    Return yyyyddd, weather
-    """
-    rootgrp = Dataset(filepath, 'r', format='NETCDF4')
-    weather = rootgrp.variables[variable][:,:]
-    if 'time' in rootgrp.variables:
-        yyyyddd = rootgrp.variables['time'][:]
-    else:
-        yyyyddd = rootgrp.variables['day'][:]
-    rootgrp.close()
-
-    return yyyyddd, weather
 
 def readncdf_single(filepath, variable, allow_missing=False):
     """
@@ -66,40 +95,6 @@ def readncdf_single(filepath, variable, allow_missing=False):
     rootgrp.close()
 
     return data
-
-def readncdf_multiple(filepath, variables):
-    """
-    Return yyyyddd, weather
-    """
-    rootgrp = Dataset(filepath, 'r', format='NETCDF4')
-    if 'time' in rootgrp.variables:
-        yyyyddd = rootgrp.variables['time'][:]
-    else:
-        yyyyddd = rootgrp.variables['day'][:]
-        
-    hierid = rootgrp.variables['hierid'][:]
-    weather = np.empty(len(yyyyddd), len(hierid), len(variables))
-    for ii in range(len(variables)):
-        weather[:, :, ii] = rootgrp.variables[variables[ii]][:,:]
-    rootgrp.close()
-
-    return yyyyddd, weather
-
-def readncdf_binned(filepath, variable):
-    """
-    Return month, perbin [12 x BINS x REGIONS]
-    """
-
-    rootgrp = Dataset(filepath, 'r', format='NETCDF4')
-    weather = rootgrp.variables[variable][:,:,:]
-    months = rootgrp.variables['month'][:]
-    rootgrp.close()
-
-    m = re.search('\\d{4}', filepath)
-    if m:
-        months = int(m.group(0)) * 1000 + months
-
-    return months, weather
 
 def available_years(template):
     """
@@ -142,5 +137,14 @@ def guess_variable(filename):
         return 'tas'
     if filename[0:2] == 'pr':
         return 'pr'
+
+    return None
+
+def precheck_single(filepath, variable):
+    if not os.path.exists(filepath):
+        return "%s is missing" % filepath
+
+    if os.path.splitext(filepath)[1] not in ['.nc', '.nc4']:
+        return "%s does not appear to be NetCDF" % filepath
 
     return None

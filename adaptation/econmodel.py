@@ -1,3 +1,12 @@
+"""System for providing socioeconomic scenario information.
+
+Socioeconomic scenario information is drawn from the SSPs. There are
+multiple SSPs (generally 5) and multiple models (generally 2) can
+produce each one. As with GCMs, we discover these scenarios and then
+provide an iterator to an SSPEconomicModel object, which is the
+clearinghouse for their content.
+"""
+
 import csv
 import numpy as np
 from impactlab_tools.utils import files
@@ -5,20 +14,34 @@ from impactcommon.exogenous_economy import provider, gdppc
 from helpers import header
 from datastore import population, popdensity
 
-def iterate_econmodels(config={}):
+def iterate_econmodels(config=None):
+    """Discover and yield each known scenario as a SSPEconomicModel.
+    
+    Parameters
+    ----------
+    config : dict (optional)
+        Configuration dictionary with filtering information.
+
+    Yields
+    ------
+    tuple of str, str, SSPEconomicModel
+        The first str is the model producing the data; the second is the scenario.
+    """
+    if config is None:
+        config = {}
     modelscenarios = set() # keep track of model-scenario pairs
 
     dependencies = []
+    # Look for scenarios in the GDPpc baseline data
     with open(files.sharedpath('social/baselines/gdppc-merged-baseline.csv'), 'r') as fp:
         reader = csv.reader(header.deparse(fp, dependencies))
-        headrow = reader.next()
+        headrow = next(reader)
 
         for row in reader:
             model = row[headrow.index('model')]
             scenario = row[headrow.index('scenario')]
-            if scenario == 'SSP5' and config.get('ssp', None) != 'SSP5':
-                continue # Dropping entire scenario
-            
+
+            # Yield each newly discovered model, scenario combination
             if (model, scenario) not in modelscenarios:
                 yield model, scenario, SSPEconomicModel(model, scenario, dependencies, config)
                 modelscenarios.add((model, scenario))
@@ -57,12 +80,12 @@ class SSPEconomicModel(object):
 
         # Prepare densitiy factor
         self.densities = popdensity.load_popop()
-        mean_density = np.mean(self.densities.values())
+        mean_density = np.mean(list(self.densities.values()))
         
         econ_predictors = {} # {region: {loggdppc: loggdppc, popop: popop}
 
         # Iterate through pop_baseline, since it has all regions
-        for region in pop_baseline.keys():
+        for region in list(pop_baseline.keys()):
             # Get the income timeseries
             gdppcs = self.income_model.get_timeseries(region)
             if maxbaseline < self.income_model.get_startyear():
@@ -95,3 +118,11 @@ class SSPEconomicModel(object):
                 return self.pop_future_years[region][year] * self.densities[region] / self.pop_future_years[region][2010]
 
         return None
+
+    def get_population_year(self, region, year):
+        if region not in self.pop_future_years:
+            return np.nan
+        if year not in self.pop_future_years[region]:
+            return np.nan
+        return self.pop_future_years[region][year]
+    

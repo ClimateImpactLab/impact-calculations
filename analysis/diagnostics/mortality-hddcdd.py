@@ -1,6 +1,4 @@
-import sys, os, csv
-import numpy as np
-from openest.models.curve import ZeroInterceptPolynomialCurve
+import sys, os
 import lib
 
 futureyear = 2050
@@ -9,7 +7,7 @@ terms = 2
 variables = ["tas-10-spline-poly-2", "tas-25-spline-poly-2"]
 coeffnames = ['hdd10', 'cdd25']
 
-dir = sys.argv[1]
+outdir = sys.argv[1]
 csvvpath = "/shares/gcp/social/parameters/mortality/polyspline_dd/quadratic/Agespec_interaction_response_polyspline_10C_25C_order2_GMFD.csvv"
 weathertemplate = "/shares/gcp/climate/BCSD/hierid/popwt/annual/{variable}/{rcp}/CCSM4/{year}/1.0.nc4"
 onlymodel = "Agespec_interaction_response_polyspline_10C_25C_order2_GMFD-oldest"
@@ -18,10 +16,10 @@ region = 'USA.14.608'
 onlyreg = True #False
 
 lib.show_header("The Covariates File (allpreds):")
-preds = lib.get_excerpt(os.path.join(dir, "mortality-allpreds.csv"), 3, region, [2001, 2009, futureyear-1, futureyear], onlymodel=onlymodel)
+preds = lib.get_excerpt(os.path.join(outdir, "mortality-allpreds.csv"), 3, region, [2001, 2009, futureyear-1, futureyear], onlymodel=onlymodel)
 
 lib.show_header("The Calculations File (allcalcs):")
-calcs = lib.get_excerpt(os.path.join(dir, "mortality-allcalcs-" + onlymodel + ".csv"), 2, region, range(2000, 2011) + [futureyear-1, futureyear], hasmodel=False)
+calcs = lib.get_excerpt(os.path.join(outdir, "mortality-allcalcs-" + onlymodel + ".csv"), 2, region, list(range(2000, 2011)) + [futureyear-1, futureyear], hasmodel=False)
 
 lib.show_header("CSVV:")
 csvv = lib.get_csvv(csvvpath, *csvvargs)
@@ -30,10 +28,10 @@ lib.show_header("Weather:")
 weathers = {}
 for variable in variables:
     lib.show_header(" %s:" % variable)
-    weathers[variable] = lib.get_weather(weathertemplate, range(2001, 2011) + [2049, 2050, 2099], region, variable=variable)
+    weathers[variable] = lib.get_weather(weathertemplate, list(range(2001, 2011)) + [2049, 2050, 2099], region, variable=variable)
 
 lib.show_header("Outputs:")
-outputs = lib.get_outputs(os.path.join(dir, onlymodel + '.nc4'), range(2001, 2011) + [2049, 2050], 0)
+outputs = lib.get_outputs(os.path.join(outdir, onlymodel + '.nc4'), list(range(2001, 2011)) + [2049, 2050], 0)
 
 lib.show_header("Calc. of baseline (%f reported)" % (lib.excind(calcs, 2000, 'baseline')))
 lines = []

@@ -42,10 +42,10 @@ Required:
 
  - `outputdir`: A directory where the `single` directory will be
    created.  Typically, this is a versioned subdirectory of
-   `/shares/gcp/outputs/<sector>`, such as
-   `/shares/gcp/outputs/mortality/impacts-crypto`.  If given a
+   `/<shareddir>/outputs/<sector>`, such as
+   `/<shareddir>/outputs/mortality/impacts-crypto`.  If given a
    relative path, this path is assumed to be a subdirectory of the
-   data directory (`/shares/gcp` on Sacagawea).
+   shared directory.
 
 Optional:
 
@@ -54,16 +54,8 @@ Optional:
    results, `acp` for the ACP specification, and `country` for the
    country-specific models.
 
- - `do_farmers`: true or false; if true, alternative assumptions of
-   adaptation (income-only and no-adaptation) will be generated.
-
- - `do_historical`: true or false; by default, historical climate
-   results are not produced with the diagnostic run, but setting this
-   to `true` will produce them.
-
- - `csvvfile`: A path to a CSVV file to be used for the coefficients.
-   This can be given as a subpath from the data directory; e.g.,
-   `social/parameters/mortality/.../....csv`.
+ - `do_fillin`: true or false; if true, an existing single folder is
+   not deleted and only new files are added.
 
  - `singledir`: The name of the single batch directory; default:
    `single`.
@@ -77,23 +69,20 @@ it and using the normal `generate.sh` script is that it will just
 produce a result for a single region, and output the result to a local
 `temp` directory.
 
-## Covariate Averaging
+# Diagnostic calculations
 
-You can specify in a configuration file the averaging scheme for
-climate and economic covariates.  By default, a 13-year Bartlett
-kernel is used for economic covariates and a 30-year Bartlett for
-climate covariates.  To change these, specify the `class` and `length`
-of the new averaging scheme.  For example, to change to a 25-year
-running average, you would say,
-```
-climcovar:
-    class: mean
-    length: 25
-```
+The projection system can produce LaTeX representations of the
+calculations, as well as versions of the computations in Julia that
+can be run independently of the system.  The `autodoc.sh` can be used
+to generate the Julia calculations, in a standardized diagnostic
+file.  To do so, first generate a single-region diagnostic file, using
+the `diagnostic.sh` script.
 
-The available classes are `mean` (a running average), `median` (a
-running median), `bartlett` (a running triangular kernel), and
-`bucket` (a running Bayesian updating or exponential kernel).  For the
-first three, `length` is the length to the last non-zero term in the
-kernel; for the last, it's the decay-rate of the exponential decay.
-Always use spaces to indent these parameters.
+Then run the `autodoc.sh` script as follows:
+
+```$ ./autodoc.sh configs/<CONFIG-FILE>.yml <ALLCALCS>```
+
+In the above, `<CONFIG-FILE>.yml` should be the same file to generate
+the diagnostic run.  `<ALLCALCS>` should be the path to the
+`allcalcs...` file, which would be contained in a `temp/` directory,
+if produced by the `diagnostic.sh` script.

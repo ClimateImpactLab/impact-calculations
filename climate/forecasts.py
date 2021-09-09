@@ -1,3 +1,5 @@
+"""Helper functions for reading IRI forecasts."""
+
 import numpy as np
 from netCDF4 import Dataset
 
@@ -7,19 +9,6 @@ temp_mean_climate_path = "/shares/gcp/climate/IRI/final_v2/tas_aggregated_climat
 prcp_mean_climate_path = "/shares/gcp/climate/IRI/final_v2/prcp_aggregated_climatology_1982-2010.nc"
 temp_sdev_climate_path = "/shares/gcp/climate/IRI/final_v2/tas_aggregated_historical_std_1982-2010_IR.nc"
 temp_adm0sdev_climate_path = "/shares/gcp/climate/IRI/final_v2/tas_aggregated_historical_std_1982-2010_ISO.nc"
-
-def readncdf_lastpred(filepath, variable):
-    """
-    Return weather for each region for most recent prediction, of all leads
-    """
-    rootgrp = Dataset(filepath, 'r', format='NETCDF4')
-    weather = rootgrp.variables[variable][-1, :, :]
-    rootgrp.close()
-
-    for ii in range(weather.shape[0]):
-        weather[ii, :] = maskmissing(weather[ii, :])
-
-    return weather
 
 def readncdf_allpred(filepath, variable, lead):
     """

@@ -1,0 +1,61 @@
+Bootstrap: debootstrap
+OSVersion: xenial
+MirrorURL: http://us.archive.ubuntu.com/ubuntu/
+
+%post
+    mkdir -p /global/scratch
+    mkdir -p /global/scratch/groups/co_laika
+    mkdir -p /global/scratch/avatar
+    mkdir -p /global/home/users
+    mkdir -p /shares/gcp
+
+    apt-get -y update
+    apt-get -y install software-properties-common
+    apt-add-repository universe
+    apt-get -y update
+    apt-get -y install python2.7 git
+    apt-get -y install python-pip netcdf-bin
+    apt-get -y install libnetcdf-c++4
+    ##python-netcdf libnetcdfc++4 libnetcdf-dev
+    apt-get -y install libhdf5-serial-dev libffi-dev
+    apt-get -y install libssl1.0.0
+
+    pip install numpy==1.13.1
+    pip install scipy
+    pip install xarray==0.9.6
+    pip install h5py
+    pip install netcdf4
+    pip install metacsv
+    pip install statsmodels
+
+    if [ -d impactlab-tools ]; then
+        cd impactlab-tools
+	git pull
+    else
+        git clone https://github.com/ClimateImpactLab/impactlab-tools.git
+        cd impactlab-tools
+        python setup.py install
+    fi
+
+%runscript
+    cd impact-common
+    python setup.py develop --user
+    cd ../open-estimate
+    python setup.py develop --user
+    cd ../impact-calculations
+
+    if [ "$#" -ne 1 ]; then
+        for ln in $(seq 0 8); do
+            if [ `hostname` = "ln00$ln.brc" ]; then
+	        echo "Cannot run multiple generate processes on a BRC login node!"
+	    	exit
+	    fi
+	done
+
+        for i in $( seq 1 $2 )
+        do
+            python -m generate.generate $1 > /dev/null 2>&1 &
+        done
+    fi
+
+    python -m generate.generate $1

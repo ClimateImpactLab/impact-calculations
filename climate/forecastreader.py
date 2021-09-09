@@ -1,9 +1,11 @@
+"""Classes for exposing readers from IRI forecasts."""
+
 from netCDF4 import Dataset
-from reader import WeatherReader
+from .reader import WeatherReader
 from scipy.stats import norm
-import netcdfs, forecasts
+from . import netcdfs, forecasts
 import numpy as np
-from openest.generate.weatherslice import ForecastMonthlyWeatherSlice
+import xarray as xr
 from datastore import irregions
 
 class MonthlyForecastReader(WeatherReader):
@@ -37,13 +39,13 @@ class MonthlyForecastReader(WeatherReader):
 
     def read_iterator(self):
         months, aheads = self.get_start_ahead_times()
-        valuesgen = forecasts.readncdf_allpred(self.filepath, self.variable, 0)
-        for month in months:
-            yield ForecastMonthlyWeatherSlice(month, aheads[0], valuesgen.next())
 
-        lastvalues = forecasts.readncdf_lastpred(self.filepath, self.variable)
+        ds = netcdfs.load_netcdf(self.filepath, decode_times=False)
+        for month in months:
+            yield ds.sel(S=month, L=1.5)
+        
         for ii in range(1, len(aheads)):
-            yield ForecastMonthlyWeatherSlice(months[-1], aheads[ii], lastvalues[ii, :])
+            yield ds.sel(S=months[-1], L=aheads[ii])
 
 class MonthlyStochasticForecastReader(MonthlyForecastReader):
     """
@@ -63,10 +65,10 @@ class MonthlyStochasticForecastReader(MonthlyForecastReader):
         allsdevs = np.vstack((allsdevs[:, 0, :], allsdevs[-1, 1:, :]))
 
         tt = 0
-        for weatherslice in super(MonthlyStochasticForecastReader, self).read_iterator():
-            weatherslice.weathers = norm.ppf(self.qval, weatherslice.weathers, allsdevs[tt, :])
+        for ds in super(MonthlyStochasticForecastReader, self).read_iterator():
+            ds['mean'] = norm.ppf(self.qval, ds.mean, allsdevs[tt, :])
             tt += 1
-            yield weatherslice
+            yield ds
 
 class TransformedReader(WeatherReader):
     def __init__(self, source):
@@ -88,21 +90,23 @@ class MonthlyZScoreForecastReader(TransformedReader):
     """
     Translates into z-scores on-the-fly, using climate data.
     """
-    def __init__(self, source, meanclimate, sdevclimate, climvar):
+    def __init__(self, source, meanclimate, climmeanvar, sdevclimate, climstdvvar, climformat):
         super(MonthlyZScoreForecastReader, self).__init__(source)
-        version_climate, units_climate = netcdfs.readmeta(sdevclimate, climvar)
+        version_climate, units_climate = netcdfs.readmeta(sdevclimate, climstdvvar)
         assert self.units == units_climate
 
         self.meanclimate = meanclimate
         self.sdevclimate = sdevclimate
-        self.climvar = climvar
+        self.climmeanvar = climmeanvar
+        self.climstdvvar = climstdvvar
+        self.climformat = climformat
 
     def get_dimension(self):
         return ['Z(' + self.source.dimension()[0] + ')']
 
     def read_iterator(self):
-        means = forecasts.readncdf_allmonths(self.meanclimate, self.climvar)
-        sdevs = forecasts.readncdf_allmonths(self.sdevclimate, self.climvar)
+        means = forecasts.readncdf_allmonths(self.meanclimate, self.climmeanvar)
+        sdevs = forecasts.readncdf_allmonths(self.sdevclimate, self.climstdvvar)
         
         if means.shape[1] > sdevs.shape[1]:
             # Sdevs is country-level; need to average means and reorder sdevs
@@ -118,17 +122,21 @@ class MonthlyZScoreForecastReader(TransformedReader):
             means = country_means
             sdevs = ordered_sdevs
 
-        for weatherslice in self.source.read_iterator():
-            assert weatherslice.weathers.shape[0] == 1
-
-            weathers = (weatherslice.weathers[0, :] - means[int(weatherslice.month + weatherslice.ahead) % 12, :]) / sdevs[int(weatherslice.month + weatherslice.ahead) % 12, :]
-            weatherslice.weathers = np.expand_dims(weathers, axis=0)
-            yield weatherslice
+        variable = self.source.get_dimension()[0]
+        for ds in self.source.read_iterator():
+            SS = ds.S if ds.S.shape == () else ds.S[0]
+            LL = ds.L if ds.L.shape == () else ds.L[0]
+            if self.climformat == '3d':
+                ds[variable] = (ds[variable] - means[int(SS) % 12, int(LL) - 1, :]) / sdevs[int(SS) % 12, int(LL) - 1, :]
+            else:
+                ds[variable] = (ds[variable] - means[int(SS + LL) % 12, :]) / sdevs[int(SS + LL) % 12, :]
+            yield ds
             
 class CountryDuplicatedReader(TransformedReader):
-    def __init__(self, source, regions):
+    def __init__(self, source, regions, variable):
         super(CountryDuplicatedReader, self).__init__(source)
         self.regions = regions
+        self.variable = variable
         
         countryindex = {} # {iso: index}
         for ii in range(len(self.source.regions)):
@@ -136,41 +144,43 @@ class CountryDuplicatedReader(TransformedReader):
         self.countryindex = countryindex
             
     def read_iterator(self):
-        for weatherslice in self.source.read_iterator():
-            weathers = np.zeros((weatherslice.weathers.shape[0], len(self.regions)))
+        for ds in self.source.read_iterator():
+            weathers = np.zeros((ds[self.variable].shape[0], len(self.regions)))
             for ii in range(len(self.regions)):
-                weathers[:, ii] = weatherslice.weathers[:, self.countryindex[self.regions[ii][:3]]]
+                weathers[:, ii] = ds[self.variable][:, self.countryindex[self.regions[ii][:3]]]
 
-            weatherslice.weathers = weathers
-            yield weatherslice
+            ds[self.variable] = weathers
+            yield ds
             
 class CountryAveragedReader(TransformedReader):
-    def __init__(self, source):
+    def __init__(self, source, variable):
         super(CountryAveragedReader, self).__init__(source)
 
-        self.regions = np.unique(map(lambda region: region[:3], source.regions))
+        self.regions = np.unique([region[:3] for region in source.regions])
+        self.variable = variable
 
     def read_iterator(self):
-        for weatherslice in self.source.read_iterator():
-            bycountry = forecasts.get_means(self.source.regions, lambda ii: weatherslice.weathers[:, ii])
+        for ds in self.source.read_iterator():
+            bycountry = forecasts.get_means(self.source.regions, lambda ii: ds[self.variable][:, ii])
 
-            weathers = np.zeros((weatherslice.weathers.shape[0], len(self.regions)))
+            weathers = np.zeros((ds[self.variable].shape[0], len(self.regions)))
             for ii in range(len(self.regions)): # Just countries
                 weathers[:, ii] = bycountry[self.regions[ii]]
                 
-            yield ForecastMonthlyWeatherSlice(weatherslice.month, weatherslice.ahead, weathers, ignore_regionnum=True)
+            yield ForecastMonthlyDs(ds.month, ds.ahead, weathers, ignore_regionnum=True)
 
 class CountryDeviationsReader(TransformedReader):
-    def __init__(self, source):
+    def __init__(self, source, variable):
         super(CountryDeviationsReader, self).__init__(source)
+        self.variable = variable
 
     def read_iterator(self):
-        for weatherslice in self.source.read_iterator():
-            weathers = weatherslice.weathers
+        for ds in self.source.read_iterator():
+            weathers = ds[self.variable]
             bycountry = forecasts.get_means(self.source.regions, lambda ii: weathers[:, ii])
 
             regions = self.source.regions
             for ii in range(len(regions)):
-                weatherslice.weathers[:, ii] = weatherslice.weathers[:, ii] - bycountry[regions[ii][:3]]
+                ds[self.variable][:, ii] = ds[self.variable][:, ii] - bycountry[regions[ii][:3]]
 
-            yield weatherslice
+            yield ds

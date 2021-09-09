@@ -1,42 +1,35 @@
 import unittest
 import numpy as np
 from numpy import testing
+from impactlab_tools.utils import files
 from climate.forecastreader import *
 from climate import forecasts
 
 class TestForecastReader(unittest.TestCase):
-    def test_zscore(self):
-        weatherreader = MonthlyForecastReader("/shares/gcp/IRI/tas_aggregated_forecast_2012-2016Aug.nc", 'mean')
-        for month, weather in weatherreader.read_iterator():
-            print weather[1001]
+    def setUp(self):
+        files.server_config = {'shareddir': 'tests/testdata'}
+    
+    def tearDown(self):
+        files.server_config = None
 
-        weatherreader_z = MonthlyForecastReader(forecasts.temp_zscore_path, 'z-scores')
-        z_weatherreader = MonthlyZScoreForecastReader(forecasts.temp_path, forecasts.temp_climate_path, 'temp')
+    def test_zscore(self):
+        weatherreader = MonthlyForecastReader("tests/testdata/tas_aggregated_forecast_2012-2016Aug.nc", 'mean')
+        for ds in weatherreader.read_iterator():
+            self.assertAlmostEqual(ds['mean'][1001], 24.36522102355957)
+            break
+
+        weatherreader_z = MonthlyForecastReader("tests/testdata/tas_zscores_aggregated_forecast_2012-2016Aug.nc", 'z-scores')
+        z_weatherreader = MonthlyZScoreForecastReader(weatherreader,
+                                                      "tests/testdata/tas_aggregated_climatology_1981-2010-new.nc", 'mean',
+                                                      "tests/testdata/tas_aggregated_climatology_1981-2010-new.nc", 'stddev', '3d')
 
         wz_iterator = weatherreader_z.read_iterator()
         zw_iterator = z_weatherreader.read_iterator()
 
-        for month1, weather1 in wz_iterator:
-            print month1
-            month2, weather2 = zw_iterator.next()
-
-            self.assertEqual(month1, month2)
-
-            self.assertAlmostEqual(weather1[3], weather2[3])
-            continue
-            try:
-                testing.assert_allclose(weather1, weather2)
-            except:
-                mismatch = np.abs(weather1 - weather2) > 1e-3
-                # print np.sum(mismatch)
-                # print weather1[7], weather2[7]
-                # a = forecasts.readncdf_allpred(forecasts.temp_path, 'mean', 0).next()[7]
-                # bs = list(forecasts.readncdf_allpred(forecasts.temp_climate_path, 'mean', 0))
-                # cs = list(forecasts.readncdf_allpred(forecasts.temp_climate_path, 'stddev', 0))
-                # print a, bs[month1 % 12][7], cs[month1 % 12][7]
-                # print (a - bs[month1 % 12][7]) / cs[month1 % 12][7]
-                # print weather1[mismatch], weather2[mismatch]
-            print month1
+        for ds1 in wz_iterator:
+            ds2 = next(zw_iterator)
+            self.assertAlmostEqual(ds1['z-scores'][3], ds2['mean'][3])
+            return
 
 if __name__ == '__main__':
     unittest.main()

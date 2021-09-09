@@ -1,0 +1,6 @@
+
+calculator: Interprets the `calculation` part of a model into a
+`Calculation` object.
+
+variable: Interprets the `variable` parts of a model into a lambda
+function transformation.
