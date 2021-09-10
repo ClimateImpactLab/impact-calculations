@@ -86,7 +86,7 @@ class SSPEconomicModel(object):
 
         # Iterate through pop_baseline, since it has all regions
         for region in list(pop_baseline.keys()):
-            query_region = str(x.split(".")[0]) if country_level_gdppc else region
+            query_region = str(region.split(".")[0]) if country_level_gdppc else region
             
             # Get the income timeseries
             gdppcs = self.income_model.get_timeseries(query_region)
