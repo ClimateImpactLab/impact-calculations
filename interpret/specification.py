@@ -373,7 +373,10 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
                 noincadapt_unshifted_curve = smart_curve.CoefficientsCurve(noincadapt_unshifted_curve.ccs, weathernames)
             noincadapt_curve = smart_curve.ShiftedCurve(noincadapt_unshifted_curve, -noincadapt_unshifted_curve.univariate(baselineexts[region]))
 
-            final_curve = smart_curve.MinimumCurve(final_curve, noincadapt_curve)
+            if specconf.get('goodmoney')=='more-is-good':
+                final_curve = smart_curve.MaximumCurve(final_curve, noincadapt_curve)
+            else:
+                final_curve = smart_curve.MinimumCurve(final_curve, noincadapt_curve)
 
         # Clause for additional curve clipping transforms, if configured.
         if clipping_cfg:
