@@ -75,10 +75,8 @@ def merge_import_config(config, fpath):
         import_path = Path(config.pop("import"))
     except KeyError:
         # Nothing to import
-        return wrap_config(config)
+        return shallow_copy(config)
 
-    config = wrap_config(config) # make sure I have a ConfigDict
-    
     # Read "import" - relative to fpath, if needed.
     if not import_path.is_absolute():
         if isinstance(fpath, str):
@@ -86,11 +84,11 @@ def merge_import_config(config, fpath):
         import_path = fpath.joinpath(import_path)
 
     import_config = merge_import_config(
-        ConfigDict(get_file_config(import_path), prefix='', master_accessed=config.accessed), # save accessed
+        get_file_config(import_path),
         import_path.parent
     )
 
-    return wrap_config(merge(import_config, config))
+    return merge(import_config, config)
 
 def standardize(config):
     newconfig = copy.copy(config)
@@ -106,11 +104,38 @@ def standardize(config):
     return wrap_config(newconfig, config)
 
 def merge(parent, child):
-    if isinstance(child, MutableMapping):
-        return MergedConfigDict(parent, child)
+    """Combine two config dicts, handling case where ConfigDict is
+involved. Entries in `child` supercede entries in `parent`.
 
+    Parameters
+    ----------
+    parent : MutableMapping
+        The dict/ConfigDict/MergedConfigDict, for fall-back keys
+    child : MutableMapping
+        The dict/ConfigDict/MergedConfigDict, for first-pick keys
+
+    Returns
+    -------
+    MutableMapping
+
+    """
+
+    if isinstance(parent, dict) and isinstance(child, dict):
+        return {**parent, **child}
+    
+    if isinstance(child, MutableMapping):
+        return MergedConfigDict(parent, child) # works for either dict or [Merged]ConfigDict
+
+    if isinstance(parent, dict):
+        if child not in parent:
+            return parent
+
+        result = copy.copy(parent)
+        result.update(parent[child])
+        return result
+    
     if not (isinstance(parent, ConfigDict) or isinstance(parent, MergedConfigDict)):
-        raise TypeError("parent must be a ConfigDict or MergedConfigDict")
+        raise TypeError("parent is not a config dict type.")
 
     if child not in parent:
         return parent
@@ -279,6 +304,30 @@ def wrap_config(config, source_config=None):
         return config
 
     return ConfigDict(config)
+
+def shallow_copy(config):
+    """Return a shallow copy of either a raw dict or a ConfigDict/MergedConfigDict.
+
+    Parameters
+    ----------
+    config : MutableMapping
+        The dict/ConfigDict/MergedConfigDict to be copied
+
+    Returns
+    -------
+    MutableMapping
+    """
+
+    if isinstance(config, ConfigDict):
+        newconfig = ConfigDict(shallow_copy(config.config), prefix=config.prefix, parent=config.parent)
+        newconfig.accessed = config.accessed
+        return newconfig
+
+    if isinstance(config, MergedConfigDict):
+        return MergedConfigDict(shallow_copy(config.parent), shallow_copy(config.child))
+
+    return {**config}
+
 
 class ConfigDict(MutableMapping):
     """Configuration dictionary that monitors key access.
