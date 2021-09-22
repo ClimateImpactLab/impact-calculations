@@ -507,13 +507,13 @@ if __name__ == '__main__':
     # Prepare environment
     import sys
     from pathlib import Path
-    from interpret.configs import merge_import_config
+    from interpret.configs import merge_import_config, wrap_config
     from datastore import population, agecohorts
 
     config = files.get_allargv_config()
     config_path = Path(sys.argv[1])
     # Interpret "import" in configs here while we have file path info.
-    file_configs = merge_import_config(config, config_path.parent)
+    file_configs = wrao_config(merge_import_config(config, config_path.parent))
 
     regioncount = config.get('region-count', 24378) # used by checks to ensure complete files
 
