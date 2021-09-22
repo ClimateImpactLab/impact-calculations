@@ -164,12 +164,6 @@ def search_list(conflist, needle, pathroot=''):
 
     return found
 
-def deepcopy(config):
-    if isinstance(config, ConfigDict) or isinstance(config, MergedConfigDict):
-        return deepcopy(dict(config.items()))
-
-    return copy.deepcopy(config)
-
 def get_batch_iter(config):
     # How many monte carlo iterations do we do?
     mc_n = config.get('mc-n', config.get('mc_n'))
@@ -397,6 +391,9 @@ class ConfigDict(MutableMapping):
     def __delitem__(self, key):
         del self.config[key]
 
+    def __deepcopy__(self):
+        return copy.deepcopy(dict(self.items()))
+        
     def items(self):
         return self.config.items()
 
@@ -461,6 +458,9 @@ class MergedConfigDict(MutableMapping):
             del self.child[key]
         else:
             del self.parent[key]
+
+    def __deepcopy__(self):
+        return copy.deepcopy(dict(self.items()))
 
     def items(self):
         copydict = dict(self.parent.items())

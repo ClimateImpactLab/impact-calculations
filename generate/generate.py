@@ -2,7 +2,7 @@
 Manages rcps and econ and climate models, and generate.effectset.simultaneous_application handles the regions and years.
 """
 
-import os, shutil, csv, yaml, tempfile
+import os, shutil, csv, yaml, tempfile, warnings
 from collections import OrderedDict
 import numpy as np
 from . import loadmodels
@@ -302,4 +302,4 @@ if __name__ == '__main__':
 
     missing_usage = file_configs.check_usage()
     if missing_usage:
-        print(f"WARNING: Some configuration entries were not used: " + ', '.join(missing_usage))
+        warnings.warn(f"Some configuration entries were not used: " + ', '.join(missing_usage))
