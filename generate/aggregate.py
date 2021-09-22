@@ -21,7 +21,7 @@ Helper functions are organized in agglib.py, which are also used by
 climateagg.py.
 """
 
-import os, traceback
+import os, traceback, warnings
 import numpy as np
 from netCDF4 import Dataset
 from . import nc4writer, agglib, checks
