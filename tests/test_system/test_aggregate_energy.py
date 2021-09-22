@@ -63,8 +63,8 @@ def test_levels_rebased(projection_netcdf):
 
     assert actual.shape == (119, 24378)
 
-    goal_head = np.array([7.7720156, 28.00633, 19.375658])
-    goal_tail = np.array([-602.15814, -619.549, -649.28516])
+    goal_head = np.array([5.39619, 19.44508, 13.45272])
+    goal_tail = np.array([-576.1952, -592.8362, -621.2902])
     npt.assert_allclose(actual[:3, 0], goal_head, atol=1e-4, rtol=0)
     npt.assert_allclose(actual[-3:, -1], goal_tail, atol=1e-4, rtol=0)
 
@@ -73,7 +73,7 @@ def test_aggregated_regions(projection_netcdf):
     actual = projection_netcdf['results_aggregate']['regions'].values
     assert actual.shape == (5716, )
     assert actual[0] == ''
-    assert actual[-1] == 'RUS.73.2026'
+    assert actual[-1] == 'FUND-JPK'
 
 def test_aggregated_rebased(projection_netcdf):
     """Test shape & (head, tail) values of 'rebased' in *aggregated file"""
@@ -81,8 +81,8 @@ def test_aggregated_rebased(projection_netcdf):
 
     assert actual.shape == (119, 5716)
 
-    goal_head = np.array([2.8525314, 2.285627, 2.2759197])
-    goal_tail = np.array([-42.953907, -65.55747, -51.37832])
+    goal_head = np.array([2.25789, 1.751476, 1.788347])
+    goal_tail = np.array([-264.9955530, -274.8205048, -272.6145703])
     npt.assert_allclose(actual[:3, 0], goal_head, atol=1e-4, rtol=0)
     npt.assert_allclose(actual[-3:, -1], goal_tail, atol=1e-4, rtol=0)
 
