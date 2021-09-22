@@ -332,7 +332,7 @@ def create_calcstep(name, args, models, subcalc, extras=None):
         print(arglist)
         raise t(v).with_traceback(tb)
 
-def sample_sequence(calculation, region):
+def sample_sequence(weatherbundle, calculation, region):
     application = calculation.apply(region)
     for year, ds in weatherbundle.yearbundles():
         print("%d:" % year)

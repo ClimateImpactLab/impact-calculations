@@ -29,10 +29,10 @@ pip install -e .
 
 Although the code in the repo can be installed as a Python package, there are additional bits of supplimental code and scripts that are hard-coded to the local directory and so will only function from the root directory of this repository.
 
-Generating projections, diagnostics, and projection aggregations depends on additional input files in a particular directory structure. Users can point to the root of this directory with the `IMPERICS_SHAREDDIR` environment variable. For example, if the root of the directory is `/shares/gcp` we can append
+Generating projections, diagnostics, and projection aggregations depends on additional input files in a particular directory structure. Users can point to the root of this directory with the `IMPERICS_SHAREDDIR` environment variable. For example, if the root of the directory is `/sharedir` we can append
 ```
 # Configs for impact projection runs
-export IMPERICS_SHAREDDIR=/shares/gcp
+export IMPERICS_SHAREDDIR=/shareddir
 ```
 to `~/.bashrc`.
 

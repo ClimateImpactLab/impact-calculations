@@ -76,7 +76,7 @@ Filtering Targets (also Optional):
  - `mode`: Only aggregate results produced by the given mode.  Options: `median`, `montecarlo`, or `xsingle` (median and montecarlo, but not diagnostic).
  - `targetdir`: Only aggregate results in the given leaf output
    directory.  This should be a full path name (e.g.,
-   `/shares/gcp/.../SSP3`)  Do not include a tailing slash.
+   `/shareddir/.../SSP3`)  Do not include a tailing slash.
  - `basename`: Only aggregate results for a given basename (the
    portion of the filename before `.nc4`, typically copied from the
    name of the CSVV file).

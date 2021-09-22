@@ -12,7 +12,7 @@ from impactlab_tools.utils import files
 
 @pytest.fixture
 def hierid_df():
-    """pandas.DataFrame mimicing /shares/gcp/regions/hierarchy.csv with
+    """pandas.DataFrame mimicing regions/hierarchy.csv with
     'region-key' column as index
     """
     out = pd.DataFrame(
