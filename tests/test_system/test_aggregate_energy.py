@@ -38,13 +38,13 @@ def projection_netcdf():
         results_nc_path = {
             'results_aggregate': Path(
                 tmpdirname,
-                "rcp45/surrogate_CanESM2_89/low/SSP3",
-                "FD_FGLS_inter_climGMFD_Exclude_all-issues_break2_semi-parametric_poly2_OTHERIND_other_energy_TINV_clim_income_spline_lininter-aggregated.nc4"
+                "median/rcp45/surrogate_CanESM2_89/low/SSP3",
+                "FD_FGLS_inter_climGMFD_Exclude_all-issues_break2_semi-parametric_poly2_OTHERIND_other_energy_TINV_clim_income_spline-incadapt-withprice-aggregated.nc4"
             ),
             'results_levels': Path(
                 tmpdirname,
-                "rcp45/surrogate_CanESM2_89/low/SSP3",
-                "FD_FGLS_inter_climGMFD_Exclude_all-issues_break2_semi-parametric_poly2_OTHERIND_other_energy_TINV_clim_income_spline_lininter-levels.nc4"
+                "median/rcp45/surrogate_CanESM2_89/low/SSP3",
+                "FD_FGLS_inter_climGMFD_Exclude_all-issues_break2_semi-parametric_poly2_OTHERIND_other_energy_TINV_clim_income_spline-incadapt-withprice-levels.nc4"
                                   )}
 
         yield {'results_aggregate' : xr.open_dataset(results_nc_path['results_aggregate']), 'results_levels': xr.open_dataset(results_nc_path['results_levels'])}
@@ -70,14 +70,14 @@ def test_levels_rebased(projection_netcdf):
 
 def test_aggregated_regions(projection_netcdf):
     """Test regions in *aggregated results file"""
-    actual = projection_netcdf['results_aggregated']['regions'].values
+    actual = projection_netcdf['results_aggregate']['regions'].values
     assert actual.shape == (5716, )
     assert actual[0] == ''
     assert actual[-1] == 'RUS.73.2026'
 
 def test_aggregated_rebased(projection_netcdf):
     """Test shape & (head, tail) values of 'rebased' in *aggregated file"""
-    actual = projection_netcdf['results_aggregated']['rebased'].values
+    actual = projection_netcdf['results_aggregate']['rebased'].values
 
     assert actual.shape == (119, 5716)
 
