@@ -23,7 +23,7 @@ def projection_netcdf():
     """
 
     run_configs = {
-        'outputdir': '/mnt/sacagawea_shares/gcp/outputs/energy/unittest',
+        'outputdir': 'outputs/energy/unittest',
         'basename': 'FD_FGLS_inter_climGMFD_Exclude_all-issues_break2_semi-parametric_poly2_OTHERIND_other_energy_TINV_clim_income_spline-incadapt',
         'levels-weighting': 'social/baselines/energy/IEA_Price_FIN_Clean_gr014_GLOBAL_COMPILE.dta:country:year:other_energycompile_price',
         'levels-unit': '',
