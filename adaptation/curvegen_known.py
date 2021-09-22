@@ -89,7 +89,7 @@ class SmartCSVVCurveGenerator(curvegen.CSVVCurveGenerator):
 
         weatherreps = []
         weatherdeps = []
-        for weather in self.weathernames:
+        for weather in self.prednames:
             if isinstance(weather, str):
                 weatherreps.append(formatting.get_parametername(weather, lang))
                 weatherdeps.append(weather)
@@ -98,21 +98,21 @@ class SmartCSVVCurveGenerator(curvegen.CSVVCurveGenerator):
                 weatherdeps.extend(selfdocumented.get_dependencies(weather, lang))
             
         if lang == 'latex':
-            elements = {'main': formatting.FormatElement(' + '.join(["%s_k %s" % (beta, weatherreps[kk]) for kk in range(len(self.weathernames))]), coeffs + weatherdeps, is_primitive=True)}
+            elements = {'main': formatting.FormatElement(' + '.join(["\\beta_k %s" % (weatherreps[kk]) for kk in range(len(self.prednames))]), coeffs + weatherdeps, is_primitive=True)}
         elif lang == 'julia':
-            elements = {'main': formatting.FormatElement(' + '.join(["%s * %s" % (coeffreps[kk], weatherreps[kk]) for kk in range(len(self.weathernames))]), coeffs + weatherdeps, is_primitive=True)}
+            elements = {'main': formatting.FormatElement(' + '.join(["%s * %s" % (coeffreps[kk], weatherreps[kk]) for kk in range(len(self.prednames))]), coeffs + weatherdeps, is_primitive=True)}
 
         for ii in range(len(coeffs)):
             elements[coeffs[ii]] = formatting.ParameterFormatElement(coeffs[ii], coeffreps[ii])
-        for ii in range(len(self.weathernames)):
-            if isinstance(self.weathernames[ii], str):
-                elements[self.weathernames[ii]] = formatting.ParameterFormatElement(self.weathernames[ii], weatherreps[ii])
+        for ii in range(len(self.prednames)):
+            if isinstance(self.prednames[ii], str):
+                elements[self.prednames[ii]] = formatting.ParameterFormatElement(self.prednames[ii], weatherreps[ii])
             
         return elements
 
 class BetaLimitsDerivativeSmartCSVVCurveGenerator(CurveGenerator):
     def __init__(self, prederiv_curvegen, curvegen):
-        super(BetaLimitsDerivativeSmartCSVVCurveGenerator, self).__init__(curveben.indepunits, curvegen.depenunit)
+        super(BetaLimitsDerivativeSmartCSVVCurveGenerator, self).__init__(curvegen.indepunits, curvegen.depenunit)
         self.prederiv_curvegen = prederiv_curvegen
         self.curvegen = curvegen
 
@@ -128,12 +128,12 @@ class BetaLimitsDerivativeSmartCSVVCurveGenerator(CurveGenerator):
         yy = [coeffs[predname] for predname in self.curvegen.prednames]
 
         if recorddiag and diagnostic.is_recording():
-            for predname in self.prednames:
+            for predname in self.curvegen.prednames:
                 if year < 2015: # Only called once, so make the most of it
                     for yr in range(year, 2015):
-                        diagnostic.record(region, yr, self.diagprefix + predname, coefficients[predname])
+                        diagnostic.record(region, yr, self.curvegen.diagprefix + predname, coeffs[predname])
                 else:
-                    diagnostic.record(region, year, self.diagprefix + predname, coefficients[predname])
+                    diagnostic.record(region, year, self.curvegen.diagprefix + predname, coeffs[predname])
 
         return self.curvegen.get_smartcurve(yy)
         
@@ -221,7 +221,7 @@ class PolynomialCurveGenerator(SmartCSVVCurveGenerator):
             elements = {'main': formatting.FormatElement(r"\sum_{k=1}^%d %s_k %s^k" % (self.order, beta, args[0]), [beta], is_primitive=True),
                         beta: formatting.FormatElement('[' + ', '.join(coeffreps) + ']', coeffs)}
         elif lang == 'julia':
-            elements = {'main': formatting.FormatElement(' + '.join(["%s * %s^%d" % (coeffreps[kk], args[0], order+1) for kk in range(self.order)]), coeffs, is_primitive=True)}
+            elements = {'main': formatting.FormatElement(' + '.join(["%s * %s^%d" % (coeffreps[kk], args[0], self.order[kk]+1) for kk in range(self.order)]), coeffs, is_primitive=True)}
 
         for ii in range(len(coeffs)):
             elements[coeffs[ii]] = formatting.ParameterFormatElement(coeffs[ii], coeffreps[ii])
@@ -367,10 +367,10 @@ class SumByTimePolynomialCurveGenerator(curvegen.SumByTimeMixin, SmartCSVVCurveG
 
         if lang == 'latex':
             beta = formatting.get_beta(lang)
-            elements = {'main': formatting.FormatElement(r"\sum_{t=1} \sum_{k=1}^%d %s_{kt} %s_t^k" % (self.order, beta, args[0]), [beta], is_primitive=True),
+            elements = {'main': formatting.FormatElement(r"\sum_{t=1} \sum_{k=1}^%d %s_{kt} %s_t^k" % (self.polycurvegen.order, beta, args[0]), [beta], is_primitive=True),
                         beta: formatting.FormatElement('[' + ', '.join(coeffreps) + ']', coeffs)}
         elif lang == 'julia':
-            elements = {'main': formatting.FormatElement(' + '.join(["sum(%s .* %s^%d)" % (coeffreps[kk], args[0], order+1) for kk in range(self.order)]), coeffs, is_primitive=True)}
+            elements = {'main': formatting.FormatElement(' + '.join(["sum(%s .* %s^%d)" % (coeffreps[kk], args[0], self.polycurvegen.order[kk]+1) for kk in range(self.polycurvegen.order)]), coeffs, is_primitive=True)}
 
         for ii in range(len(coeffs)):
             elements[coeffs[ii]] = formatting.ParameterFormatElement(coeffs[ii], coeffreps[ii])
