@@ -304,8 +304,6 @@ if __name__ == '__main__':
     # Interpret "import" in configs here while we have file path info.
     file_configs = configs.merge_import_config(run_config, config_path.parent)
 
-    main(file_configs, config_name)
-
     statman = paralog.StatusManager('generate', "generate.generate " + str(config_name), 'logs', file_configs.get('timeout', 12) * 60*60)
    
     try :
