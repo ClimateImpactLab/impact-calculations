@@ -10,24 +10,28 @@ import pytest
 import xarray as xr
 import numpy as np
 import numpy.testing as npt
+import os 
 
 from utils import tmpdir_projection
 from generate.aggregate import main as main_aggregate
 
 pytestmark = pytest.mark.imperics_shareddir
 
+testdatadir = os.path.join(os.getcwd(), 'tests/test_system/testdata/test_aggregate_energy')
 
 @pytest.fixture(scope="module")
 def projection_netcdf():
     """Runs the projection in tmpdir, gets results netCDF, cleans output on exit
     """
 
+    price_expr = os.path.join(testdatadir, 'IEA_Price_FIN_Clean_gr014_GLOBAL_COMPILE.dta') + ':country:year:other_energycompile_price'
+    
     run_configs = {
-        'outputdir': '/mnt/sacagawea_shares/gcp/outputs/energy/unittest',
+        'outputdir': testdatadir,
         'basename': 'FD_FGLS_inter_climGMFD_Exclude_all-issues_break2_semi-parametric_poly2_OTHERIND_other_energy_TINV_clim_income_spline-incadapt',
-        'levels-weighting': 'social/baselines/energy/IEA_Price_FIN_Clean_gr014_GLOBAL_COMPILE.dta:country:year:other_energycompile_price',
+        'levels-weighting': price_expr,
         'levels-unit': '',
-        'aggregate-weighting-numerator': 'population * social/baselines/energy/IEA_Price_FIN_Clean_gr014_GLOBAL_COMPILE.dta:country:year:other_energycompile_price',
+        'aggregate-weighting-numerator': 'population * ' + price_expr,
         'aggregate-weighting-denominator': 'population',
         'aggregated-unit': '',
         'infix': 'withprice'
@@ -38,13 +42,13 @@ def projection_netcdf():
         results_nc_path = {
             'results_aggregate': Path(
                 tmpdirname,
-                "rcp45/surrogate_CanESM2_89/low/SSP3",
-                "FD_FGLS_inter_climGMFD_Exclude_all-issues_break2_semi-parametric_poly2_OTHERIND_other_energy_TINV_clim_income_spline_lininter-aggregated.nc4"
+                "median/rcp45/surrogate_CanESM2_89/low/SSP3",
+                "FD_FGLS_inter_climGMFD_Exclude_all-issues_break2_semi-parametric_poly2_OTHERIND_other_energy_TINV_clim_income_spline-incadapt-withprice-aggregated.nc4"
             ),
             'results_levels': Path(
                 tmpdirname,
-                "rcp45/surrogate_CanESM2_89/low/SSP3",
-                "FD_FGLS_inter_climGMFD_Exclude_all-issues_break2_semi-parametric_poly2_OTHERIND_other_energy_TINV_clim_income_spline_lininter-levels.nc4"
+                "median/rcp45/surrogate_CanESM2_89/low/SSP3",
+                "FD_FGLS_inter_climGMFD_Exclude_all-issues_break2_semi-parametric_poly2_OTHERIND_other_energy_TINV_clim_income_spline-incadapt-withprice-levels.nc4"
                                   )}
 
         yield {'results_aggregate' : xr.open_dataset(results_nc_path['results_aggregate']), 'results_levels': xr.open_dataset(results_nc_path['results_levels'])}
@@ -63,26 +67,26 @@ def test_levels_rebased(projection_netcdf):
 
     assert actual.shape == (119, 24378)
 
-    goal_head = np.array([7.7720156, 28.00633, 19.375658])
-    goal_tail = np.array([-602.15814, -619.549, -649.28516])
+    goal_head = np.array([5.39619, 19.44508, 13.45272])
+    goal_tail = np.array([-576.1952, -592.8362, -621.2902])
     npt.assert_allclose(actual[:3, 0], goal_head, atol=1e-4, rtol=0)
     npt.assert_allclose(actual[-3:, -1], goal_tail, atol=1e-4, rtol=0)
 
 def test_aggregated_regions(projection_netcdf):
     """Test regions in *aggregated results file"""
-    actual = projection_netcdf['results_aggregated']['regions'].values
+    actual = projection_netcdf['results_aggregate']['regions'].values
     assert actual.shape == (5716, )
     assert actual[0] == ''
-    assert actual[-1] == 'RUS.73.2026'
+    assert actual[-1] == 'FUND-JPK'
 
 def test_aggregated_rebased(projection_netcdf):
     """Test shape & (head, tail) values of 'rebased' in *aggregated file"""
-    actual = projection_netcdf['results_aggregated']['rebased'].values
+    actual = projection_netcdf['results_aggregate']['rebased'].values
 
     assert actual.shape == (119, 5716)
 
-    goal_head = np.array([2.8525314, 2.285627, 2.2759197])
-    goal_tail = np.array([-42.953907, -65.55747, -51.37832])
+    goal_head = np.array([2.25789, 1.751476, 1.788347])
+    goal_tail = np.array([-264.9955530, -274.8205048, -272.6145703])
     npt.assert_allclose(actual[:3, 0], goal_head, atol=1e-4, rtol=0)
     npt.assert_allclose(actual[-3:, -1], goal_tail, atol=1e-4, rtol=0)
 

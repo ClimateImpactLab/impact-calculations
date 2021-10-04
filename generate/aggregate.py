@@ -129,6 +129,9 @@ def main(config, config_name, statman=None):
 
         writetargetdir=targetdir.replace(outputdir, config.get('writedir', outputdir))
         
+        if not os.path.exists(writetargetdir):
+            os.makedirs(writetargetdir)
+            
         # Check if we should process this targetdir
         if not agglib.config_targetdirfilter(clim_scenario, clim_model, econ_scenario, econ_model, targetdir, config):
             continue
@@ -137,7 +140,7 @@ def main(config, config_name, statman=None):
         print(econ_model, econ_scenario)
 
         # Try to claim the directory
-        if not isinstance(debug_aggregate, str) and not statman.claim(targetdir) and 'targetdir' not in config:
+        if not isinstance(debug_aggregate, str) and not statman.claim(writetargetdir) and 'targetdir' not in config:
             continue
 
         # Flag to be set true if could not do a complete aggregation
@@ -277,7 +280,7 @@ def main(config, config_name, statman=None):
                 incomplete = True
 
         # Release the claim on this directory
-        statman.release(targetdir, "Incomplete" if incomplete else "Complete")
+        statman.release(writetargetdir, "Incomplete" if incomplete else "Complete")
         # Make sure all produced files are read-writable by the group
         os.system("chmod g+rw --quiet " + os.path.join(targetdir, "*"))
 
