@@ -5,6 +5,7 @@ import subprocess, csv
 import numpy as np
 import pandas as pd
 from netCDF4 import Dataset
+from impactlab_tools.utils import files
 
 def show_header(text):
     """Returns a bolded header label."""
@@ -308,7 +309,7 @@ def show_coefficient_mle(csvv, preds, year, coefname, covartrans):
 
 def get_regionindex(region):
     """Get the index for a given region, according to standard ordering."""
-    with open("/shares/gcp/regions/hierarchy.csv", 'r') as fp:
+    with open(files.sharedpath("regions/hierarchy.csv"), 'r') as fp:
         for line in fp:
             if line[0] != '#':
                 break
@@ -320,7 +321,7 @@ def get_regionindex(region):
 
 def get_adm0_regionindices(adm0):
     """Get all of the indexes associated with a given country, according to the standard ordering."""
-    with open("/shares/gcp/regions/hierarchy.csv", 'r') as fp:
+    with open(files.sharedpath("regions/hierarchy.csv"), 'r') as fp:
         for line in fp:
             if line[0] != '#':
                 break

@@ -17,8 +17,6 @@ Since versions of impact-calculations, open-estimate, and impact-common frequent
 
 To generate results using the container, you need to have a directory containing the impact-calculations, open-estimate, and impact-common repositories, and the server.yml file.  You also need to know where the container lives.  Let's call this /X/gcp-generate.img.
 
-On Sacagawea, /X/ is /shares/gcp/.
-
 1. Navigate to the directory containing impact-calculations.
-2. Run: `export SINGULARITY_BINDPATH=Y` where Y is /shares/gcp on Sacagawea and Y is /global/scratch for BRC.
+2. Run: `export SINGULARITY_BINDPATH=X` where X is defined as above.
 3. To produce a single generation process, run `/X/gcp-generate.img <config/path.yml> <other options>`.  <config/path.yml> should be a path to a run configuration file; if it is a relative path, it should be relative to the impact-calculations directory.  <other options> can be anything else you like to use, if you're in the habit of passing other options.  Examples are --filter-region=USA.14.608 --outputdir=$PWD/temp.  However, you cannot specify a number for multiple processes here.

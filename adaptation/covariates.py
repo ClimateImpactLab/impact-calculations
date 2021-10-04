@@ -954,7 +954,7 @@ def populate_constantcovariator_by_hierid(covar_name, parent_hierids, hi_df=None
     hi_df : pandas.DataFrame or None, optional
         Optional DataFrame of hierarchical region relationships. Must index 
         'region-key', with column 'parent-key' populated with str. If None,
-        parses /shares/gcp/regions/hierarchy.csv from sharedpath. This is 
+        parses regions/hierarchy.csv from sharedpath. This is 
         useful for testing and debugging.
 
     Returns
