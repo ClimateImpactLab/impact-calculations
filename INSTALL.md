@@ -17,4 +17,4 @@ Required external packages (beyond those required by the internal above):
 
 Server Configuration:
 
-Place a file `server.yml` on directory up, with the location of the GCP shared directory (e.g., `/shares/gcp`).
+Place a file `server.yml` on directory up, with the location of the GCP shared directory (e.g., `/shareddir`).

@@ -37,7 +37,7 @@ single (single.py) run:
    A documentation file describing the options available for it is
    forthcoming.
  - `csvvpath`: The path to a CSVV file, either as an absolute path or a
-   path relative to `/shares/gcp/`.
+   path relative to the shared directory.
  - `adaptation`: Specify a particular adaptation assumption.  May be
    `fulladapt`, `incadapt`, or `noadapt`.
  - `weighting`: Specify the weighting scheme for aggregation.  See

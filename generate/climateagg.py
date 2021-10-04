@@ -1,11 +1,12 @@
 import os
 import numpy as np
 from netCDF4 import Dataset
+from impactlab_tools.utils import files
 from . import nc4writer, agglib
 from datastore import spacetime, irregions
 
 suffix = "-aggregated"
-outputdir = '/shares/gcp/outputs/temps'
+outputdir = files.sharedpath('outputs/temps')
 
 def iterdir(basedir):
     for filename in os.listdir(basedir):
