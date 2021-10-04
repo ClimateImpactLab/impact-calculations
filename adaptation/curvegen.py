@@ -30,6 +30,7 @@ elasticities in the case of MLE or accounting for clipping).
 
 import copy
 import numpy as np
+import bottleneck as bn
 from openest.generate.curvegen import *
 from openest.generate import checks, fast_dataset, formatting, smart_curve, formattools
 from openest.models.curve import FlatCurve
@@ -134,7 +135,7 @@ class CSVVCurveGenerator(CurveGenerator):
             else:
                 try:
                     coefficients[predname] = self.constant.get(predname, 0) + np.dot(self.predgammas[predname], np.array([covariates[covar] for covar in self.predcovars[predname]]))
-                    if predname in self.betalimits and not np.any(np.isnan(coefficients[predname])):
+                    if predname in self.betalimits and not bn.anynan(coefficients[predname]):
                         coefficients[predname] = np.minimum(np.maximum(self.betalimits[predname][0], coefficients[predname]), self.betalimits[predname][1])
                     
                     if debug:
