@@ -10,24 +10,28 @@ import pytest
 import xarray as xr
 import numpy as np
 import numpy.testing as npt
+import os 
 
 from utils import tmpdir_projection
 from generate.aggregate import main as main_aggregate
 
 pytestmark = pytest.mark.imperics_shareddir
 
+testdatadir = os.path.join(os.getcwd(), 'tests/test_system/testdata/test_aggregate_energy')
 
 @pytest.fixture(scope="module")
 def projection_netcdf():
     """Runs the projection in tmpdir, gets results netCDF, cleans output on exit
     """
 
+    price_expr = os.path.join(testdatadir, 'IEA_Price_FIN_Clean_gr014_GLOBAL_COMPILE.dta') + ':country:year:other_energycompile_price'
+    
     run_configs = {
-        'outputdir': 'outputs/energy/unittest',
+        'outputdir': testdatadir,
         'basename': 'FD_FGLS_inter_climGMFD_Exclude_all-issues_break2_semi-parametric_poly2_OTHERIND_other_energy_TINV_clim_income_spline-incadapt',
-        'levels-weighting': 'social/baselines/energy/IEA_Price_FIN_Clean_gr014_GLOBAL_COMPILE.dta:country:year:other_energycompile_price',
+        'levels-weighting': price_expr,
         'levels-unit': '',
-        'aggregate-weighting-numerator': 'population * social/baselines/energy/IEA_Price_FIN_Clean_gr014_GLOBAL_COMPILE.dta:country:year:other_energycompile_price',
+        'aggregate-weighting-numerator': 'population * ' + price_expr,
         'aggregate-weighting-denominator': 'population',
         'aggregated-unit': '',
         'infix': 'withprice'
