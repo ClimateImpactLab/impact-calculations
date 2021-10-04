@@ -42,10 +42,10 @@ Required:
 
  - `outputdir`: A directory where the `single` directory will be
    created.  Typically, this is a versioned subdirectory of
-   `/shares/gcp/outputs/<sector>`, such as
-   `/shares/gcp/outputs/mortality/impacts-crypto`.  If given a
+   `/<shareddir>/outputs/<sector>`, such as
+   `/<shareddir>/outputs/mortality/impacts-crypto`.  If given a
    relative path, this path is assumed to be a subdirectory of the
-   data directory (`/shares/gcp` on Sacagawea).
+   shared directory.
 
 Optional:
 

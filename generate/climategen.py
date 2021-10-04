@@ -1,6 +1,6 @@
 """Climate covariates generation tool.
 
-This tool creates files stored in the /shares/gcp/outputs/temps
+This tool creates files stored in the outputs/temps
 directory, which describe climate variables at the annual level and
 averaged covariates.
 
@@ -21,30 +21,42 @@ from impactlab_tools.utils import files
 from impactcommon.math import averages
 
 # Options
+author = 'James Rising'
 filename = 'areatas.nc4' #'dd_tasmax.nc4'
 only_missing = True
-
-outputdir = '/shares/gcp/outputs/temps'
-
-standard_running_mean_init = averages.BartlettAverager
+outputdir = files.sharedpath('outputs/temps')
+runningstat = 'averages.BartlettAverager'
 numtempyears = 30
+
 
 # Determine the basic objects to construct the result
 if filename == 'climtas.nc4':
     discoverer = discover.discover_versioned(files.sharedpath('climate/BCSD/hierid/popwt/daily/tas'), 'tas')
     covar_names = ['climtas']
     annual_calcs = [lambda ds: np.mean(ds['tas'])] # Average within each year
+    descr = f'yearly average and {numtempyears} {runningstat} of tas'
+
+if filename == 'climtasmax.nc4':
+    discoverer = discover.discover_versioned(files.sharedpath('climate/BCSD/hierid/popwt/daily/tasmax'), 'tasmax')
+    covar_names = ['climtasmax']
+    annual_calcs = [lambda ds: np.mean(ds['tasmax'])] # Average within each year
+    descr = f'yearly average and {numtempyears} {runningstat} of tasmax'
 
 if filename == 'dd_tasmax.nc4':
     discoverer = discover.discover_yearly_variables(files.sharedpath('climate/BCSD/aggregation/cmip5_new/IR_level'),
                                                     'Degreedays_tasmax', 'coldd_agg', 'hotdd_agg')
     covar_names = ['climcold-tasmax', 'climhot-tasmax']
     annual_calcs = [lambda ds: ds.coldd_agg, lambda ds: ds.hotdd_agg]
+    descr = f'yearly value and {numtempyears} {runningstat} of degree days'
 
 if filename == 'areatas.nc4': # area-weighted tas
     discoverer = discover.discover_variable(files.sharedpath('climate/BCSD/aggregation/cmip5/IR_level'), 'tas')
     covar_names = ['climtas']
     annual_calcs = [lambda ds: np.mean(ds['tas'])] # Average within each year
+    descr = f'area weighted yearly average and {numtempyears} {runningstat} of tas'
+
+# get the moving average object
+standard_running_mean_init = eval(runningstat)
 
 # Iterate through weather datasets
 for clim_scenario, clim_model, weatherbundle in weather.iterate_bundles(discoverer):
@@ -61,8 +73,8 @@ for clim_scenario, clim_model, weatherbundle in weather.iterate_bundles(discover
 
     # Construct the NetCDF file
     rootgrp = Dataset(os.path.join(targetdir, filename), 'w', format='NETCDF4')
-    rootgrp.description = "Yearly and 30-year Bartlett average temperatures."
-    rootgrp.author = "James Rising"
+    rootgrp.description = descr
+    rootgrp.author = author
 
     years = nc4writer.make_years_variable(rootgrp)
     regions = nc4writer.make_regions_variable(rootgrp, weatherbundle.regions, None)
