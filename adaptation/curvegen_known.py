@@ -9,6 +9,7 @@ respect to a covariate to produce another known CurveGenerator.
 """
 
 import numpy as np
+import bottleneck as bn 
 from . import csvvfile, curvegen
 from openest.generate import diagnostic, formatting, selfdocumented
 from openest.generate.smart_curve import ZeroInterceptPolynomialCurve, CubicSplineCurve, SumByTimePolynomialCurve
@@ -308,7 +309,7 @@ class BinnedStepCurveGenerator(curvegen.CSVVCurveGenerator):
         min_beta = self.min_betas.get(region, None)
 
         if min_beta is None:
-            self.min_betas[region] = np.minimum(0, np.nanmin(np.array(yy)[4:-2]))
+            self.min_betas[region] = np.minimum(0, bn.nanmin(np.array(yy)[4:-2]))
         else:
             yy = np.maximum(min_beta, yy)
 
