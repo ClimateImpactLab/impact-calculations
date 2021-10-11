@@ -747,12 +747,20 @@ if __name__ == '__main__':
     import sys
     from pathlib import Path
     from interpret.configs import merge_import_config
-
+    import traceback
+    
     config_path = Path(sys.argv[1])
     config_name = config_path.stem
     run_config = files.get_allargv_config()
     all_config = merge_import_config(run_config, config_path.parent)
-    main(all_config, config_name)
 
+    statman = paralog.StatusManager('aggregate', "generate.aggregate " + str(config_name), 'logs', all_config.get('timeout', 24) * 60*60)
+
+    try : 
+        main(all_config, config_name, statman)
+    except Exception as ex: 
+        statman.log_message(msg=traceback.format_exc())
+        print(f"an unknown error occurred, details are logged at {statman.logpath}")
+        exit()
 
 
