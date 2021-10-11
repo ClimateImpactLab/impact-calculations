@@ -365,15 +365,21 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
         if clipping_cfg or specconf.get('goodmoney'):
             final_curve = smart_curve.ShiftedCurve(final_curve, -final_curve.univariate(baselineexts[region]))
 
-        if specconf.get('goodmoney', False):
+        if 'goodmoney' in specconf: 
+            gm = specconf.get('goodmoney')
+            if gm == 'more-is-good':
+                gm_curve = smart_curve.MaximumCurve
+            elif gm in ['less-is-good', True] :
+                gm_curve = smart_curve.MinimumCurve
+            else:
+                raise ValueError('the goodmoney option must be one of more-is-good, less-is-good, yes or True')
             covars = covariator.get_current(region)
             covars['loggdppc'] = baselineloggdppcs[region]
             noincadapt_unshifted_curve = curr_curvegen.get_curve(region, None, covars, recorddiag=False)
             if not isinstance(noincadapt_unshifted_curve, smart_curve.SmartCurve):
                 noincadapt_unshifted_curve = smart_curve.CoefficientsCurve(noincadapt_unshifted_curve.ccs, weathernames)
-            noincadapt_curve = smart_curve.ShiftedCurve(noincadapt_unshifted_curve, -noincadapt_unshifted_curve.univariate(baselineexts[region]))
-
-            final_curve = smart_curve.MinimumCurve(final_curve, noincadapt_curve)
+            noincadapt_curve = smart_curve.ShiftedCurve(noincadapt_unshifted_curve, -noincadapt_unshifted_curve.univariate(baselineexts[region]))            
+            final_curve = gm_curve(final_curve, noincadapt_curve)
 
         # Clause for additional curve clipping transforms, if configured.
         if clipping_cfg:
