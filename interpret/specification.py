@@ -18,7 +18,7 @@ from openest.curves import ushape_numeric
 from openest.curves.smart_linextrap import LinearExtrapolationCurve
 from openest.generate.stdlib import *
 from impactcommon.math import minpoly, minspline
-from . import calculator, variables, configs
+from . import calculator, variables, configs, exceptions
 
 def user_failure(message):
     """Prints an 'ERROR' message and exits program"""
@@ -382,7 +382,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
             else:
                 if clipping_cfg == 'boatpose':
                     cliplow = True
-                    ucurve_direction = 'boatpost'
+                    ucurve_direction = 'boatpose'
                 elif clipping_cfg == 'downdog':
                     cliplow = False
                     ucurve_direction = 'downdog'
@@ -416,12 +416,40 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
 
         return final_curve
 
+    def partial_derivative_transform(region, derivcurve, origcurve):
+        final_curve = smart_curve.CoefficientsCurve(derivcurve.ccs, weathernames)
+
+        if clipping_cfg or specconf.get('goodmoney'):
+            final_curve = smart_curve.ShiftedCurve(final_curve, -final_curve.univariate(baselineexts[region]))
+
+        # Clause for additional curve clipping transforms, if configured.
+        if clipping_cfg:
+            if clipping_cfg is True:
+                final_curve = smart_curve.OtherClippedCurve(origcurve, final_curve, cliplow=True)
+            else:
+                if clipping_cfg == 'boatpose':
+                    ucurve_direction = 'boatpose'
+                elif clipping_cfg == 'downdog':
+                    ucurve_direction = 'downdog'
+
+                final_curve = ushape_numeric.UShapedClipping(
+                    origcurve, final_curve,
+                    midtemp=baselineexts[region],
+                    gettas=lambda ds: ds[weathernames[0]].data, # Grab independent variable data, at [0].
+                    direction=ucurve_direction
+                )  
+
+        if specconf.get('extrapolation', False):
+            raise exceptions.UserException("Partial derivatives of extrapolation transforms have not been thought through.")
+
+        return final_curve
+    
     if clipping_cfg and specconf.get('goodmoney', False):
-        final_curvegen = curvegen.TransformCurveGenerator(transform, "Clipping and Good Money transformation", curr_curvegen)
+        final_curvegen = curvegen.TransformCurveGenerator(transform, "Clipping and Good Money transformation", curr_curvegen, partial_derivatve_transform=partial_derivative_transform)
     elif clipping_cfg:
-        final_curvegen = curvegen.TransformCurveGenerator(transform, "Clipping transformation", curr_curvegen)
+        final_curvegen = curvegen.TransformCurveGenerator(transform, "Clipping transformation", curr_curvegen, partial_derivatve_transform=partial_derivative_transform)
     elif specconf.get('goodmoney', False):
-        final_curvegen = curvegen.TransformCurveGenerator(transform, "Good Money transformation", curr_curvegen)
+        final_curvegen = curvegen.TransformCurveGenerator(transform, "Good Money transformation", curr_curvegen, partial_derivatve_transform=partial_derivative_transform)
     else:
         final_curvegen = curvegen.TransformCurveGenerator(transform, "Smart curve transformation", curr_curvegen)
         final_curvegen.deltamethod_passthrough = True
