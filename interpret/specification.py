@@ -417,7 +417,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
         return final_curve
 
     def partial_derivative_transform(region, derivcurve, origcurve):
-        final_curve = smart_curve.CoefficientsCurve(derivcurve.ccs, weathernames)
+        final_curve = derivcurve #final_curve = smart_curve.CoefficientsCurve(derivcurve.ccs, weathernames)
 
         if clipping_cfg or specconf.get('goodmoney'):
             final_curve = smart_curve.ShiftedCurve(final_curve, -final_curve.univariate(baselineexts[region]))

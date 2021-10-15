@@ -26,7 +26,7 @@ but fed into two arguments in the creation of the Calculation object.
 import yaml, copy, sys, traceback
 from openest.generate import stdlib, arguments
 from generate import caller
-from . import curves
+from . import curves, exceptions, configs
 
 def prepare_argument(name, argument, models, argtype, extras=None):
     """Translate a configuration option `argument` into an object of type `argtype`.
@@ -225,13 +225,13 @@ def create_calcstep(name, args, models, subcalc, extras=None):
         return caller.standardize(subcalc, **kwargs)
 
     if name == 'PartialDerivative':
-        assert isinstance(args, dict)
+        assert isinstance(args, dict) or isinstance(args, configs.ConfigDict) or isinstance(args, configs.MergedConfigDict)
         assert 'covariate' in args and 'covarunit' in args
         return subcalc.partial_derivative(args['covariate'], args['covarunit'])
 
     cls = getattr(stdlib, name)
 
-    if isinstance(args, list):
+    if isinstance(args, list) or isinstance(args, configs.ConfigList):
         remainingargs = copy.copy(args)
         get_argument = lambda name: remainingargs.pop(0)
         has_argument = lambda name: len(remainingargs) > 0
@@ -260,7 +260,12 @@ def create_calcstep(name, args, models, subcalc, extras=None):
                 # other calculation might need this one (e.g., AuxiliaryResult)
                 subextras = copy.copy(extras)
                 subextras['subcalc'] = subcalc
-                arglist.append(prepare_argument(argtype.name, get_argument(argtype.name), models, argtype, extras=subextras))
+                try:
+                    arg = get_argument(argtype.name)
+                except (KeyError, IndexError) as ex:
+                    print(args)
+                    raise exceptions.UserException("Cannot find required prior calculation in calculation spec. %s" % name, ex)
+                arglist.append(prepare_argument(argtype.name, arg, models, argtype, extras=subextras))
         elif argtype == arguments.calculationss and isinstance(args, list):
             calculations = []
             while len(remainingargs) > 0:
