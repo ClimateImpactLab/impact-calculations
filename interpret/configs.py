@@ -393,7 +393,10 @@ class ConfigDict(MutableMapping):
 
     def __deepcopy__(self):
         return copy.deepcopy(dict(self.items()))
-        
+
+    def __copy__(self):
+        return dict(self.items())
+
     def items(self):
         return self.config.items()
 
@@ -433,7 +436,7 @@ class MergedConfigDict(MutableMapping):
 
     def __repr__(self):
         class_name = type(self).__name__
-        return f"{class_name}({self.parent!r}, prefix={self.child!r})"
+        return f"{class_name}({self.parent!r}, {self.child!r})"
 
     def __len__(self):
         return len(self.child) + len(self.parent)
@@ -461,6 +464,9 @@ class MergedConfigDict(MutableMapping):
 
     def __deepcopy__(self):
         return copy.deepcopy(dict(self.items()))
+
+    def __copy__(self):
+        return dict(self.items())
 
     def items(self):
         copydict = dict(self.parent.items())
@@ -500,6 +506,10 @@ class ConfigList(MutableSequence):
 
         self.prefix = prefix
 
+    def __repr__(self):
+        class_name = type(self).__name__
+        return f"{class_name}({self.configlist!r}, {self.prefix!r})"
+
     def __len__(self):
         return len(self.configlist)
 
@@ -524,6 +534,9 @@ class ConfigList(MutableSequence):
 
     def __delitem__(self, index):
         del self.configlist[index]
+
+    def __copy__(self):
+        return copy.copy(self.configlist)
 
     def insert(self, index, value):
         self.configlist.insert(index, value)
