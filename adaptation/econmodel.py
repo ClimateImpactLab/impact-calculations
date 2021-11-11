@@ -14,6 +14,8 @@ from impactcommon.exogenous_economy import provider, gdppc
 from helpers import header
 from datastore import population, popdensity
 
+extra_econmodels = {} # Filled in later
+
 def iterate_econmodels(config=None):
     """Discover and yield each known scenario as a SSPEconomicModel.
     
@@ -30,7 +32,7 @@ def iterate_econmodels(config=None):
     if config is None:
         config = {}
     modelscenarios = set() # keep track of model-scenario pairs
-
+    
     dependencies = []
     # Look for scenarios in the GDPpc baseline data
     with open(files.sharedpath('social/baselines/gdppc-merged-baseline.csv'), 'r') as fp:
@@ -50,7 +52,18 @@ def get_economicmodel(only_scenario, only_model):
     for model, scenario, economicmodel in iterate_econmodels():
         if model == only_model and scenario == only_scenario:
             return economicmodel
-                
+
+def check_extra_economicmodel(only_scenario, only_model):
+    if (only_model, only_scenario) in extra_econmodels:
+        return extra_econmodels[(only_model, only_scenario)]
+    return None
+
+def compare_scenario(obs, desired):
+    if isinstance(obs, int):
+        return obs == desired
+    else:
+        return obs[:4] in mydo_econ_scenario_only
+
 class SSPEconomicModel(object):
     def __init__(self, model, scenario, dependencies, config):
         self.model = model
@@ -128,3 +141,56 @@ class SSPEconomicModel(object):
             return np.nan
         return self.pop_future_years[region][year]
     
+class RFFEconomicModel(object):
+    def __init__(self, model, scenario, dependencies, config):
+        self.model = model
+        self.scenario = scenario
+        self.dependencies = dependencies
+        gdppcprovider = gdppc.read_hierarchicalgdppcprovider(model, scenario,
+                                                             "social/rff/gdppc-growth-%d.csv" % scenario,
+                                                             "social/rff/gdppc-nohier-%d.csv" % scenario,
+                                                             'social/baselines/nightlight_weight_normalized.csv',
+                                                             use_sharedpath=True,
+                                                             startyear=2010, stopyear=2100)
+        self.income_model = provider.BySpaceTimeFromSpaceProvider(gdppcprovider)
+        self.endbaseline = config.get('endbaseline', 2015)
+
+    def reset(self):
+        self.income_model.reset()
+
+    def baseline_prepared(self, maxbaseline, numeconyears, func, country_level_gdppc=False):
+        """
+        Return a dictionary {region: {loggdppc: loggdppc}}
+        """
+        # Prepare population baseline
+        pop_baseline = population.population_baseline_data(2000, self.endbaseline, self.dependencies)
+
+        econ_predictors = {} # {region: {loggdppc: loggdppc}}
+
+        # Iterate through pop_baseline, since it has all regions
+        for region in list(pop_baseline.keys()):
+            query_region = str(region.split(".")[0]) if country_level_gdppc else region
+            
+            # Get the income timeseries
+            gdppcs = self.income_model.get_timeseries(query_region)
+            if maxbaseline < self.income_model.get_startyear():
+                baseline_gdppcs = [gdppcs[0]]
+            else:
+                baseline_gdppcs = gdppcs[:maxbaseline - self.income_model.get_startyear()]
+            # Pass it into the func
+            econ_predictors[region] = dict(loggdppc=func(np.log(baseline_gdppcs)), popop=func([np.nan]))
+        
+        return econ_predictors
+
+    def get_loggdppc_year(self, region, year):
+        gdppc = self.income_model.get_value(region, year)
+        return np.log(gdppc)
+
+    def get_popop_year(self, region, year):
+        return None
+
+    def get_population_year(self, region, year):
+        return np.nan
+
+# Offer as extra model
+extra_econmodels[('rff', 6546)] = RFFEconomicModel
