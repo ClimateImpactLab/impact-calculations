@@ -396,5 +396,5 @@ def main(config):
 if __name__ == '__main__':
     import yaml
     with open(str(sys.argv[1]), 'r') as file:
-        run_config = yaml.load(file)
+        run_config = yaml.safe_load(file)
     main(run_config)

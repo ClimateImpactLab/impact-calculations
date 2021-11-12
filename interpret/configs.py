@@ -38,7 +38,7 @@ def get_config_module(config, config_name):
         )
         mod = get_interpret_container(config)
         with open(config['module'], 'r') as fp:
-            config.update(yaml.load(fp))
+            config.update(yaml.safe_load(fp))
         shortmodule = os.path.basename(config['module'])[:-4]
     else:
         # Specification config uses old module/script system, module needs to be imported.
