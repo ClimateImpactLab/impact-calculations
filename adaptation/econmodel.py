@@ -62,7 +62,7 @@ def compare_scenario(obs, desired):
     if isinstance(obs, int):
         return obs == desired
     else:
-        return obs[:4] in mydo_econ_scenario_only
+        return obs[:4] in desired
 
 class SSPEconomicModel(object):
     def __init__(self, model, scenario, dependencies, config):
