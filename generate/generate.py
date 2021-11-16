@@ -142,7 +142,7 @@ def main(config, config_name=None, statman=None):
 
         filepath = os.path.join(targetdir, module + "-allpreds.csv")
         if not os.path.exists(filepath):
-            vardefs = yaml.load(open(files.configpath("social/variables.yml"), 'r'))
+            vardefs = yaml.safe_load(open(files.configpath("social/variables.yml"), 'r'))
             variables = [('region', "Hierarchy region index"), ('year', "Year of the result"), ('model', "Specification (determined by the CSVV)")]
             for covar in covars:
                 if covar in vardefs:
