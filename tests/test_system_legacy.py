@@ -113,7 +113,7 @@ class TestAggregateEnergy(unittest.TestCase):
         # Remove existing aggregation files in output directory!
         # These are files matching glob *aggregated.nc4 and *levels.nc4!
         with open(conf_path) as fl:
-            cfg = yaml.load(fl, Loader=yaml.SafeLoader)
+            cfg = yaml.safe_load(fl)
         cfg_outpath = cfg['outputdir']
         # cfg_basename = cfg['basename']
         for ending in ['aggregated', 'levels']:
