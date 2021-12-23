@@ -14,8 +14,6 @@ from impactcommon.exogenous_economy import provider, gdppc
 from helpers import header
 from datastore import population, popdensity
 
-extra_econmodels = {} # Filled in later
-
 def iterate_econmodels(config=None):
     """Discover and yield each known scenario as a SSPEconomicModel.
     
@@ -54,8 +52,11 @@ def get_economicmodel(only_scenario, only_model):
             return economicmodel
 
 def check_extra_economicmodel(only_scenario, only_model):
-    if (only_model, only_scenario) in extra_econmodels:
-        return extra_econmodels[(only_model, only_scenario)]
+    if only_model == 'rff':
+        only_scenario = int(only_scenario)
+        if only_scenario < 1 or only_exception > 10000:
+            raise ValueError("Unknown RFF scenario.")
+        return RFFEconomicModel
     return None
 
 def compare_scenario(obs, desired):
@@ -191,6 +192,3 @@ class RFFEconomicModel(object):
 
     def get_population_year(self, region, year):
         return np.nan
-
-# Offer as extra model
-extra_econmodels[('rff', 6546)] = RFFEconomicModel
