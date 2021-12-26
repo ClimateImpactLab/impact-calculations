@@ -141,7 +141,7 @@ def projection_payload(static_mvn):
         resultsdir = Path(tmpdirname, "batch0/rcp85/CCSM4/low/SSP3")
 
         with open(Path(resultsdir, "pvals.yml")) as fl:
-            results_pvals = yaml.load(fl, Loader=yaml.SafeLoader)
+            results_pvals = yaml.safe_load(fl)
 
         test_payload = McResults(
             base_ds=xr.open_dataset(Path(resultsdir, f"{RUN_BASENAME}.nc4")),

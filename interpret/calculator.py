@@ -118,7 +118,7 @@ def create_calculation(postconf, models, extras=None):
         extras = {}
     if isinstance(postconf, str):
         with open(postconf, 'r') as fp:
-            postconf = yaml.load(fp)
+            postconf = yaml.safe_load(fp)
 
     calculation = create_calcstep(list(postconf[0].keys())[0], list(postconf[0].values())[0], models, None, extras=extras)
     return create_postspecification(postconf[1:], models, calculation, extras=extras)
@@ -143,7 +143,7 @@ def create_postspecification(postconf, models, calculation, extras=None):
         extras = {}
     if isinstance(postconf, str):
         with open(postconf, 'r') as fp:
-            postconf = yaml.load(fp)
+            postconf = yaml.safe_load(fp)
     
     for calcstep in postconf:
         if isinstance(calcstep, str):
