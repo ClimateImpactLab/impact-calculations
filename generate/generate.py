@@ -12,7 +12,7 @@ from openest.generate import diagnostic
 from impactlab_tools.utils import files, paralog
 import cProfile, pstats, io, metacsv
 
-def main(config, config_name=None):
+def main(config, config_name=None, statman=None):
     """Main generate func, given run config dict and run ID str for logging
 
     Parameters
@@ -24,6 +24,7 @@ def main(config, config_name=None):
         is missing "module". If `None`, then uses `config["config_name"]`. If
         `config_name` is given and "config_name" is also in `config` then uses
         `config_name` arg and a warning is printed.
+    statman : paralog.StatusManager, optional 
     """
     global do_single
     
@@ -44,8 +45,12 @@ def main(config, config_name=None):
 
     do_single = config.get('do-single', False)
 
-    # Create the object for claiming directories
-    statman = paralog.StatusManager('generate', "generate.generate " + str(config_name), 'logs', claim_timeout)
+    if statman is not None:
+        assert isinstance(statman, paralog.StatusManager)
+    else: 
+        # Create the object for claiming directories
+        statman = paralog.StatusManager('generate', "generate.generate " + str(config_name), 'logs', claim_timeout)
+    
     configs.global_statman = statman
 
     targetdir = None # The current targetdir
@@ -137,7 +142,7 @@ def main(config, config_name=None):
 
         filepath = os.path.join(targetdir, module + "-allpreds.csv")
         if not os.path.exists(filepath):
-            vardefs = yaml.load(open(files.configpath("social/variables.yml"), 'r'))
+            vardefs = yaml.safe_load(open(files.configpath("social/variables.yml"), 'r'))
             variables = [('region', "Hierarchy region index"), ('year', "Year of the result"), ('model', "Specification (determined by the CSVV)")]
             for covar in covars:
                 if covar in vardefs:
@@ -291,6 +296,7 @@ if __name__ == '__main__':
     # Legacy run from command line.
     import sys
     from pathlib import Path
+    import traceback 
 
     config_path = Path(sys.argv[1])
     config_name = config_path.stem
@@ -298,7 +304,14 @@ if __name__ == '__main__':
     # Interpret "import" in configs here while we have file path info.
     file_configs = configs.wrap_config(configs.merge_import_config(run_config, config_path.parent))
 
-    main(file_configs, config_name)
+    statman = paralog.StatusManager('generate', "generate.generate " + str(config_name), 'logs', file_configs.get('timeout', 12) * 60*60)
+   
+    try :
+        main(file_configs, config_name, statman)
+    except Exception as ex: 
+        statman.log_message(msg=traceback.format_exc())
+        print(f"an unknown error occurred, details are logged at {statman.logpath}")
+        exit()
 
     missing_usage = file_configs.check_usage()
     if missing_usage:

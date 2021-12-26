@@ -198,16 +198,15 @@ class EconomicCovariator(Covariator):
             config = {}
 
         self.numeconyears = config.get('length', standard_economic_config['length'])
+        self.country_level = bool(country_level)
 
-        self.econ_predictors = economicmodel.baseline_prepared(maxbaseline, self.numeconyears, lambda values: averages.interpret(config, standard_economic_config, values))
+        self.econ_predictors = economicmodel.baseline_prepared(maxbaseline, self.numeconyears, lambda values: averages.interpret(config, standard_economic_config, values), country_level_gdppc=country_level)
         self.economicmodel = economicmodel
 
         self.covariates_scalar = configs.get_covariate_rate(config, 'income')
         if self.covariates_scalar != 1:
             self.baseline_loggdppc = {region: self.econ_predictors[region]['loggdppc'].get() for region in self.econ_predictors}
             self.baseline_loggdppc['mean'] = np.mean(list(self.baseline_loggdppc.values()))
-
-        self.country_level = bool(country_level)
 
     @staticmethod
     def _get_root_region(x):
@@ -227,7 +226,6 @@ class EconomicCovariator(Covariator):
             Output has keys "loggdppc" and "popop" giving the nautral log per
             capita GDP and some other value.
         """
-        region = self._get_root_region(region) if self.country_level else region
         econpreds = self.econ_predictors.get(region, None)
 
         if econpreds is None:
@@ -263,11 +261,11 @@ class EconomicCovariator(Covariator):
             natural log of per capita GDP, the natural log of popop, and
             the year, respectively.
         """
-        region = self._get_root_region(region) if self.country_level else region
         econpreds = self.get_econ_predictors(region)
+        query_region = self._get_root_region(region) if self.country_level else region
         return dict(loggdppc=econpreds['loggdppc'],
                     logpopop=np.log(econpreds['popop']),
-                    year=self.get_yearcovar(region))
+                    year=self.get_yearcovar(query_region))
 
     def get_update(self, region, year, ds):
         """
@@ -278,22 +276,22 @@ class EconomicCovariator(Covariator):
         ds : xarray.Dataset
         """
         assert year < 10000
-        region = self._get_root_region(region) if self.country_level else region
+        query_region = self._get_root_region(region) if self.country_level else region
         self.lastyear[region] = year
 
         if region in self.econ_predictors:
-            loggdppc = self.economicmodel.get_loggdppc_year(region, year)
+            loggdppc = self.economicmodel.get_loggdppc_year(query_region, year)
             if loggdppc is not None and year > self.startupdateyear:
                 self.econ_predictors[region]['loggdppc'].update(loggdppc)
 
-            popop = self.economicmodel.get_popop_year(region, year)
+            popop = self.economicmodel.get_popop_year(query_region, year)
             if popop is not None and year > self.startupdateyear:
                 self.econ_predictors[region]['popop'].update(popop)
 
         loggdppc = self.get_econ_predictors(region)['loggdppc']
         popop = self.get_econ_predictors(region)['popop']
 
-        return dict(loggdppc=loggdppc, logpopop=np.log(popop), year=self.get_yearcovar(region))
+        return dict(loggdppc=loggdppc, logpopop=np.log(popop), year=self.get_yearcovar(query_region))
 
 class BinnedEconomicCovariator(EconomicCovariator):
     """Provides income as a series of indicator values for the income bin.
