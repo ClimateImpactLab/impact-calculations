@@ -21,7 +21,7 @@ Helper functions are organized in agglib.py, which are also used by
 climateagg.py.
 """
 
-import os, traceback
+import os, traceback, warnings
 import numpy as np
 from netCDF4 import Dataset
 from . import nc4writer, agglib, checks
@@ -746,18 +746,34 @@ if __name__ == '__main__':
     # Prepare environment
     import sys
     from pathlib import Path
-    from interpret.configs import merge_import_config
     import traceback
-    
-    config_path = Path(sys.argv[1])
-    config_name = config_path.stem
-    run_config = files.get_allargv_config()
-    all_config = merge_import_config(run_config, config_path.parent)
+    from interpret.configs import merge_import_config, wrap_config
+    from datastore import population, agecohorts
 
-    statman = paralog.StatusManager('aggregate', "generate.aggregate " + str(config_name), 'logs', all_config.get('timeout', 24) * 60*60)
+    config = files.get_allargv_config()
+    config_path = Path(sys.argv[1])
+    # Interpret "import" in configs here while we have file path info.
+    file_configs = wrao_config(merge_import_config(config, config_path.parent))
+
+    regioncount = config.get('region-count', 24378) # used by checks to ensure complete files
+
+    costs_config = config.get('costs-config', None)
+    
+    if costs_config is not None:
+        agglib.validate_costs_config(costs_config)
+        costs_suffix = costs_config.get('costs-suffix', '-costs')
+    else:
+        costs_suffix = '-costs'
+
+    # Allow directories to be re-claimed after this many seconds
+    claim_timeout = config.get('timeout', 24) * 60*60
+    config_name = config_path.stem
+
+    # Construct object to claim directories
+    statman = paralog.StatusManager('aggregate', "generate.aggregate " + str(config_name), 'logs', claim_timeout)
 
     try : 
-        main(all_config, config_name, statman)
+        main(file_configs, config_name, statman)
     except Exception as ex: 
         statman.log_message(msg=traceback.format_exc())
         print(f"an unknown error occurred, details are logged at {statman.logpath}")

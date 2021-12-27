@@ -1,6 +1,7 @@
 import pytest
 import unittest
 from pathlib import Path
+from interpret import configs
 from interpret.configs import merge_import_config, get_covariate_rate
 
 class TestMergeImportConfig:
@@ -13,7 +14,7 @@ class TestMergeImportConfig:
         expected = input_dict.copy()
 
         output = merge_import_config(input_dict, fpath="")
-        assert expected == output
+        assert expected == dict(output.items())
 
     def test_import_absolutepath(self, tmpdir):
         """Test that imports absolute path, input configs over-rides import configs"""
@@ -24,7 +25,7 @@ class TestMergeImportConfig:
         expected = {"a": 123, "b": 456, "alist": ["item1"]}
 
         output = merge_import_config(input_dict, fpath="")
-        assert expected == output
+        assert expected == dict(output.items())
 
     def test_import_relativepath(self, tmpdir):
         """Test that imports relative to input config path, input configs overrides import configs"""
@@ -38,7 +39,7 @@ class TestMergeImportConfig:
         expected = {"a": 123, "b": 456, "alist": ["item1"]}
 
         output = merge_import_config(input_dict, fpath=base_path)
-        assert expected == output
+        assert expected == dict(output.items())
 
     def test_nested_import(self, tmpdir):
         """Test that resolves 'import:' in imported config."""
@@ -58,7 +59,7 @@ class TestMergeImportConfig:
         expected = {"a": 123, "b": 456, "alist": ["item1"], "z": "foobar"}
 
         output = merge_import_config(input_dict, fpath=base_path)
-        assert expected == output
+        assert expected == dict(output.items())
 
 
 class TestConfigCovariateChange(unittest.TestCase):
@@ -86,3 +87,20 @@ class TestConfigCovariateChange(unittest.TestCase):
         config = {'scale-covariate-changes': {'income': 0.7, 'climate': 4}, 'stuff': 'random'}
         rate = get_covariate_rate(config, 'income')
         self.assertTrue('stuff' in config and config.get('stuff') == 'random')
+
+class TestConfigUsage(unittest.TestCase):
+    def test_config_dict(self):
+        config = {'ignored1': 0, 'used': 1, 'inparent1': 2, 'dict': {'inchild': 3, 'ignored2': 0}, 'inparent2': 4, 'list': ['ignored3', {'inlistdict': 5, 'ignored4': 0}]}
+        config = configs.standardize(config)
+
+        # Make sure I can access all non-ignored entries
+        self.assertEqual(config['used'], 1)
+        subconfig = configs.merge(config, 'dict')
+        self.assertEqual(subconfig['inchild'], 3)
+        self.assertEqual(subconfig['inparent1'], 2)
+        subconfig = configs.merge(config, config['list'][1])
+        self.assertEqual(subconfig['inlistdict'], 5)
+        self.assertEqual(subconfig['inparent2'], 4)
+
+        missing = config.check_usage()
+        self.assertEqual(missing, set(['ignored1', 'dict.ignored2', 'list.0', 'list.1.ignored4']))
