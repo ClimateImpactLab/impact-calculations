@@ -313,7 +313,7 @@ def shallow_copy(config):
     """
 
     if isinstance(config, ConfigDict):
-        newconfig = ConfigDict(shallow_copy(config.config), prefix=config.prefix, parent=config.parent)
+        newconfig = ConfigDict(shallow_copy(config.config), prefix=config.prefix)
         newconfig.accessed = config.accessed
         return newconfig
 
