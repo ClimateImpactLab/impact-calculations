@@ -2,7 +2,7 @@
 Manages rcps and econ and climate models, and generate.effectset.simultaneous_application handles the regions and years.
 """
 
-import os, shutil, csv, yaml, tempfile
+import os, shutil, csv, yaml, tempfile, warnings
 from collections import OrderedDict
 import numpy as np
 from . import loadmodels
@@ -142,7 +142,7 @@ def main(config, config_name=None, statman=None):
 
         filepath = os.path.join(targetdir, module + "-allpreds.csv")
         if not os.path.exists(filepath):
-            vardefs = yaml.load(open(files.configpath("social/variables.yml"), 'r'))
+            vardefs = yaml.safe_load(open(files.configpath("social/variables.yml"), 'r'))
             variables = [('region', "Hierarchy region index"), ('year', "Year of the result"), ('model', "Specification (determined by the CSVV)")]
             for covar in covars:
                 if covar in vardefs:
@@ -302,7 +302,7 @@ if __name__ == '__main__':
     config_name = config_path.stem
     run_config = configs.standardize(files.get_allargv_config())
     # Interpret "import" in configs here while we have file path info.
-    file_configs = configs.merge_import_config(run_config, config_path.parent)
+    file_configs = configs.wrap_config(configs.merge_import_config(run_config, config_path.parent))
 
     statman = paralog.StatusManager('generate', "generate.generate " + str(config_name), 'logs', file_configs.get('timeout', 12) * 60*60)
    
@@ -312,3 +312,7 @@ if __name__ == '__main__':
         statman.log_message(msg=traceback.format_exc())
         print(f"an unknown error occurred, details are logged at {statman.logpath}")
         exit()
+
+    missing_usage = file_configs.check_usage()
+    if missing_usage:
+        warnings.warn(f"Some configuration entries were not used: " + ', '.join(missing_usage))

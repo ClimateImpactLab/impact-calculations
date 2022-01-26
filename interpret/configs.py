@@ -2,6 +2,7 @@ import yaml, copy, itertools, importlib, os
 from pathlib import Path
 from impactlab_tools.utils import paralog
 from impactlab_tools.utils.files import get_file_config
+from collections.abc import MutableMapping, MutableSequence
 
 global_statman = None
 
@@ -14,7 +15,7 @@ def get_config_module(config, config_name):
     Parameters
     ----------
     config : dict
-	    Projection run configuration, with or without a "module" key.
+        Projection run configuration, with or without a "module" key.
     config_name : str
         Configuration name, used for logging and output filenames if 'config' missing "module" key.
 
@@ -38,7 +39,7 @@ def get_config_module(config, config_name):
         )
         mod = get_interpret_container(config)
         with open(config['module'], 'r') as fp:
-            config.update(yaml.load(fp))
+            config.update(yaml.safe_load(fp))
         shortmodule = os.path.basename(config['module'])[:-4]
     else:
         # Specification config uses old module/script system, module needs to be imported.
@@ -55,7 +56,7 @@ def merge_import_config(config, fpath):
 
     Parameters
     ----------
-    config : dict
+    config : MutableMapping
         Projection run configuration, with or without an "import" key pointing
         to a relative or absolute file path.
     fpath : str or pathlib.Path
@@ -74,7 +75,7 @@ def merge_import_config(config, fpath):
         import_path = Path(config.pop("import"))
     except KeyError:
         # Nothing to import
-        return {**config}
+        return shallow_copy(config)
 
     # Read "import" - relative to fpath, if needed.
     if not import_path.is_absolute():
@@ -87,7 +88,7 @@ def merge_import_config(config, fpath):
         import_path.parent
     )
 
-    return {**import_config, **config}
+    return merge(import_config, config)
 
 def standardize(config):
     newconfig = copy.copy(config)
@@ -100,20 +101,46 @@ def standardize(config):
         if '_' in key and asdash not in config:
             newconfig[asdash] = config[key]
                 
-    return newconfig
+    return wrap_config(newconfig, config)
 
 def merge(parent, child):
-    if isinstance(child, dict):
+    """Combine two config dicts, handling case where ConfigDict is
+involved. Entries in `child` supercede entries in `parent`.
+
+    Parameters
+    ----------
+    parent : MutableMapping
+        The dict/ConfigDict/MergedConfigDict, for fall-back keys
+    child : MutableMapping
+        The dict/ConfigDict/MergedConfigDict, for first-pick keys
+
+    Returns
+    -------
+    MutableMapping
+
+    """
+
+    if isinstance(parent, dict) and isinstance(child, dict):
+        return {**parent, **child}
+    
+    if isinstance(child, MutableMapping):
+        return MergedConfigDict(parent, child) # works for either dict or [Merged]ConfigDict
+
+    if isinstance(parent, dict):
+        if child not in parent:
+            return parent
+
         result = copy.copy(parent)
-        result.update(child)
+        result.update(parent[child])
         return result
+    
+    if not (isinstance(parent, ConfigDict) or isinstance(parent, MergedConfigDict)):
+        raise TypeError("parent is not a config dict type.")
 
     if child not in parent:
         return parent
 
-    result = copy.copy(parent)
-    result.update(parent[child])
-    return result
+    return MergedConfigDict(parent, parent[child])
 
 def search(config, needle, pathroot=''):
     found = {}
@@ -136,9 +163,6 @@ def search_list(conflist, needle, pathroot=''):
             found.update(search_list(conflist[ii], needle, pathroot=pathroot + '/' + str(ii)))
 
     return found
-
-def deepcopy(config):
-    return copy.deepcopy(config)
 
 def get_batch_iter(config):
     # How many monte carlo iterations do we do?
@@ -245,3 +269,287 @@ def get_covariate_rate(config, group):
         return rate
     else:
         return 1
+
+def wrap_config(config, source_config=None):
+    """Ensure that a config dictionary is wrapped in a ConfigDict-like object.
+
+    This should be called, rather than ConfigDict, if `config` may be
+    a MergedConfigDict or if information is `source_config` needs to
+    be maintained.
+
+    Include `source_config` if the content in config is a
+    copied-and-edited version of data from `source_config`.
+
+    Parameters
+    ----------
+    config : MutableMapping
+        The configuration dictionary. Could already be a ConfigDict or MergedConfigDict
+    source_config : MutableMapping, optional
+        Source of content in config. Used to maintain access list.
+
+    """
+    
+    if isinstance(source_config, ConfigDict):
+        newconfig = ConfigDict(config, prefix=source_config.prefix, parent=source_config.parent)
+        newconfig.accessed = source_config.accessed # source_config.parent may not be a ConfigDict
+        return newconfig
+
+    if isinstance(config, MergedConfigDict):
+        return config
+
+    return ConfigDict(config)
+
+def shallow_copy(config):
+    """Return a shallow copy of either a raw dict or a ConfigDict/MergedConfigDict.
+
+    Parameters
+    ----------
+    config : MutableMapping
+        The dict/ConfigDict/MergedConfigDict to be copied
+
+    Returns
+    -------
+    MutableMapping
+    """
+
+    if isinstance(config, ConfigDict):
+        newconfig = ConfigDict(shallow_copy(config.config), prefix=config.prefix, parent=config.parent)
+        newconfig.accessed = config.accessed
+        return newconfig
+
+    if isinstance(config, MergedConfigDict):
+        return MergedConfigDict(shallow_copy(config.parent), shallow_copy(config.child))
+
+    return {**config}
+
+
+class ConfigDict(MutableMapping):
+    """Configuration dictionary that monitors key access.
+
+    Acts just like a dict, except that every time a key of this or a
+    child dict or list is accessed, that information is logged (in
+    self.accessed). This can then be checked for completeness with
+    `check_usage`.
+
+    Parameters
+    ----------
+    config : MutableMapping
+        ConfigDict will wrap this config, offering access to its data.
+    prefix : str
+        For sub-dicts of the top-level config, this specifies the path to this dict.
+    master_accessed : set, optional
+        For sub-dicts, this is the top-level accessed set to add to.
+
+    """
+    def __init__(self, config, prefix='', master_accessed=None):
+        if isinstance(config, ConfigDict):
+            self.accessed = config.accessed
+            self.config = config.config
+            if master_accessed is not None:
+                assert self.accessed == master_accessed
+        else:
+            self.config = config
+            if master_accessed is not None:
+                self.accessed = master_accessed
+            else:
+                self.accessed = set()
+                
+        self.prefix = prefix
+
+    def __repr__(self):
+        class_name = type(self).__name__
+        return f"{class_name}({self.config!r}, prefix={self.prefix!r})"
+
+    def __len__(self):
+        return len(self.config)
+
+    def __iter__(self):
+        return iter(self.config.keys())
+
+    def __contains__(self, key):
+        return key in self.config
+        
+    def __getitem__(self, key):
+        access_key = self.prefix + str(key)
+        self.accessed.add(access_key)
+        return self.wrapped_get(key)
+
+    def wrapped_get(self, key):
+        """Get the given key, returning a wrapped config entry as needed, without recording the access."""
+        access_key = self.prefix + str(key)
+        value = self.config[key]
+        if isinstance(value, dict):
+            return ConfigDict(value, prefix=access_key + '.', master_accessed=self.accessed)
+        if isinstance(value, list):
+            return ConfigList(value, prefix=access_key + '.', master_accessed=self.accessed)
+        return value
+
+    def __setitem__(self, key, value):
+        """Do not record in accessed until access."""
+        self.config[key] = value
+
+    def __delitem__(self, key):
+        del self.config[key]
+
+    def __deepcopy__(self):
+        return copy.deepcopy(dict(self.items()))
+
+    def __copy__(self):
+        return dict(self.items())
+
+    def items(self):
+        return self.config.items()
+
+    def check_usage(self):
+        """Look through every key and sub-structures, and return a set of unaccessed entries."""
+        missing = set()
+        for key in self.config:
+            access_key = self.prefix + str(key)
+            if access_key not in self.accessed:
+                missing.add(access_key)
+            value = self.wrapped_get(key)
+            if isinstance(value, ConfigDict) or isinstance(value, ConfigList):
+                missing.update(value.check_usage())
+
+        return missing
+
+class MergedConfigDict(MutableMapping):
+    """Combines configuration dictionaries so both can be accessed.
+
+    This acts like a dictionary containing the keys of
+    `copy(parent).update(child)`. It is used to allow sub-dicts of
+    configurations to access all ancestor keys. We use this rather
+    than an `update` line to support the key-access features in
+    ConfigDict.
+
+    Parameters
+    ----------
+    parent : MutableMapping
+        Configuration dictionary that key access falls back to, if missing from child.
+    child : MutableMapping
+        Main configuration dictionary to return values from.
+
+    """
+    def __init__(self, parent, child):
+        self.parent = parent
+        self.child = child
+
+    def __repr__(self):
+        class_name = type(self).__name__
+        return f"{class_name}({self.parent!r}, {self.child!r})"
+
+    def __len__(self):
+        return len(self.child) + len(self.parent)
+
+    def __iter__(self):
+        return iter(list(self.child.keys()) + list(self.parent.keys()))
+
+    def __contains__(self, key):
+        return key in self.child or key in self.parent
+    
+    def __getitem__(self, key):
+        if key in self.child:
+            return self.child[key]
+        else:
+            return self.parent[key]
+
+    def __setitem__(self, key, value):
+        self.child[key] = value
+
+    def __delitem__(self, key):
+        if key in self.child:
+            del self.child[key]
+        else:
+            del self.parent[key]
+
+    def __deepcopy__(self):
+        return copy.deepcopy(dict(self.items()))
+
+    def __copy__(self):
+        return dict(self.items())
+
+    def items(self):
+        copydict = dict(self.parent.items())
+        copydict.update(dict(self.child.items()))
+        return copydict.items()
+            
+class ConfigList(MutableSequence):
+    """Wrapper on lists contained in configuration dictionaries to monitor key access.
+
+    Acts just like a list, except that every time a key of this or a
+    child dict or list is accessed, that information is logged (in
+    self.accessed). This can then be checked for completeness with
+    `check_usage`.
+
+    Parameters
+    ----------
+    configlist : MutableSequence
+        ConfigList will wrap this list, offering access to its data.
+    prefix : str
+        For sub-dicts of the top-level config, this specifies the path to this dict.
+    master_accessed : set, optional
+        For sub-dicts, this is the top-level accessed set to add to.
+
+    """
+    def __init__(self, configlist, prefix, master_accessed=None):
+        if isinstance(configlist, ConfigList):
+            self.accessed = configlist.accessed
+            self.configlist = configlist.configlist
+            if master_accessed is not None:
+                assert self.accessed == master_accessed
+        else:
+            self.configlist = configlist
+            if master_accessed is not None:
+                self.accessed = master_accessed
+            else:
+                self.accessed = set()
+
+        self.prefix = prefix
+
+    def __repr__(self):
+        class_name = type(self).__name__
+        return f"{class_name}({self.configlist!r}, {self.prefix!r})"
+
+    def __len__(self):
+        return len(self.configlist)
+
+    def __getitem__(self, index):
+        access_key = self.prefix + str(index)
+        self.accessed.add(access_key)
+        return self.wrapped_get(index)
+
+    def wrapped_get(self, index):
+        """Get the given index, returning a wrapped config entry as needed, without recording the access."""
+        access_key = self.prefix + str(index)
+        value = self.configlist[index]
+        if isinstance(value, dict):
+            return ConfigDict(value, prefix=access_key + '.', master_accessed=self.accessed)
+        if isinstance(value, list):
+            return ConfigList(value, prefix=access_key + '.', master_accessed=self.accessed)
+        return value
+
+    def __setitem__(self, index, value):
+        """Do not record in accessed until access."""
+        self.configlist[index] = value
+
+    def __delitem__(self, index):
+        del self.configlist[index]
+
+    def __copy__(self):
+        return copy.copy(self.configlist)
+
+    def insert(self, index, value):
+        self.configlist.insert(index, value)
+        
+    def check_usage(self):
+        """Look through every index and sub-structures, and return a list of unaccessed entries."""
+        missing = set()
+        for ii in range(len(self.configlist)):
+            access_key = self.prefix + str(ii)
+            if access_key not in self.accessed:
+                missing.add(access_key)
+            value = self.wrapped_get(ii)
+            if isinstance(value, ConfigDict) or isinstance(value, ConfigList):
+                missing.update(value.check_usage())
+
+        return missing

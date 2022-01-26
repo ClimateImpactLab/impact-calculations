@@ -38,7 +38,7 @@ else:
     if config['module'][-4:] == '.yml':
         mod = importlib.import_module("interpret.container")
         with open(config['module'], 'r') as fp:
-            config.update(yaml.load(fp))
+            config.update(yaml.safe_load(fp))
         shortmodule = os.path.basename(config['module'])[:-4]
     else:
         mod = importlib.import_module("impacts." + config['module'] + ".allmodels")

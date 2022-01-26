@@ -19,7 +19,7 @@ re_dotsplit = re.compile("\.(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)")
 
 def standard_variable(name, mytimerate, **config):
     if config.get('fakeweather', False):
-        realconfig = configs.deepcopy(config)
+        realconfig = copy.deepcopy(config)
         realconfig['fakeweather'] = False
         return discover_fakerepeat(standard_variable(name, mytimerate, **realconfig))
 

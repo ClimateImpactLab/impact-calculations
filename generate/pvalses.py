@@ -222,7 +222,7 @@ def read_pval_file(path, relative_location, lock=False):
         path = get_pval_file(path) # assume it's a directory containing pvals.yml
         
     with open(path, 'r') as fp:
-        pvals = yaml.load(fp)
+        pvals = yaml.safe_load(fp)
 
         if pvals is None:
             return None
