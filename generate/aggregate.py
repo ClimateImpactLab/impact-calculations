@@ -753,7 +753,7 @@ if __name__ == '__main__':
     config = files.get_allargv_config()
     config_path = Path(sys.argv[1])
     # Interpret "import" in configs here while we have file path info.
-    file_configs = wrao_config(merge_import_config(config, config_path.parent))
+    file_configs = wrap_config(merge_import_config(config, config_path.parent))
 
     regioncount = config.get('region-count', 24378) # used by checks to ensure complete files
 
