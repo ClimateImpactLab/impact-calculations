@@ -156,7 +156,7 @@ def create_covariator(specconf, weatherbundle, economicmodel, config=None, quiet
 
     return covariator
         
-def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, getcsvvcurve=False, diag_infix=""):
+def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, getcsvvcurve=False, diag_infix="", othermodels={}):
     """Create a CurveGenerator instance from specifications
 
     Parameters
@@ -326,7 +326,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
 
     # Clause to set curve baseline extents if configured.
     clipping_cfg = specconf.get('clipping', False)
-    if clipping_cfg:
+    if clipping_cfg and clipping_cfg not in ['corpsepose', 'plankpose']:
         # Validate clipping configuration option.
         if clipping_cfg not in ['boatpose', 'downdog', True]:
             raise ValueError("unknown option for configuration key 'clipping'")
@@ -362,7 +362,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
         else:
             final_curve = smart_curve.CoefficientsCurve(curve.ccs, weathernames)
 
-        if clipping_cfg or specconf.get('goodmoney'):
+        if (clipping_cfg and clipping_cfg in ['boatpose', 'downdog', True]) or specconf.get('goodmoney'):
             final_curve = smart_curve.ShiftedCurve(final_curve, -final_curve.univariate(baselineexts[region]))
 
         if 'goodmoney' in specconf: 
@@ -385,7 +385,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
         if clipping_cfg:
             if clipping_cfg is True:
                 final_curve = smart_curve.ClippedCurve(final_curve, cliplow=True)
-            else:
+            elif clipping_cfg in ['boatpose', 'downdog']:
                 if clipping_cfg == 'boatpose':
                     cliplow = True
                     ucurve_direction = 'boatpost'
@@ -400,6 +400,14 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
                     unicurve=final_curve.univariate,
                     direction=ucurve_direction,
                 )
+            else: # 'corpsepose' or 'plankpose'
+                clipmodel = specconf.get('clip-model')
+                user_assert(clipmodel, "The 'clip-model' config option is required for corpsepose or plankpose clipping.")
+                user_assert(clipmodel in othermodels, "The requested 'clip-model' was not previously defined in the specifications list.")
+                if clipping_cfg == 'corpsepose':
+                    final_curve = MinimumCurve(final_curve, othermodels[clipmodel])
+                else: # plankpose
+                    final_curve = MaximumCurve(final_curve, othermodels[clipmodel])
 
         if specconf.get('extrapolation', False):
             exargs = specconf['extrapolation']
