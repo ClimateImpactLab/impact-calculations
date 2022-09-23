@@ -147,9 +147,9 @@ def search(config, needle, pathroot=''):
     for key in config:
         if needle == key:
             found[pathroot] = config[key]
-        elif isinstance(config[key], dict):
+        elif isinstance(config[key], MutableMapping):
             found.update(search(config[key], needle, pathroot=pathroot + '/' + key))
-        elif isinstance(config[key], list):
+        elif isinstance(config[key], MutableSequence):
             found.update(search_list(config[key], needle, pathroot=pathroot + '/' + key))
 
     return found
@@ -157,9 +157,9 @@ def search(config, needle, pathroot=''):
 def search_list(conflist, needle, pathroot=''):
     found = {}
     for ii in range(len(conflist)):
-        if isinstance(conflist[ii], dict):
+        if isinstance(conflist[ii], MutableMapping):
             found.update(search(conflist[ii], needle, pathroot=pathroot + '/' + str(ii)))
-        elif isinstance(conflist[ii], list):
+        elif isinstance(conflist[ii], MutableSequence):
             found.update(search_list(conflist[ii], needle, pathroot=pathroot + '/' + str(ii)))
 
     return found
@@ -261,7 +261,7 @@ def get_covariate_rate(config, group):
             return 1
     elif 'scale-covariate-changes' in config:
         changes = config.get('scale-covariate-changes')
-        if not isinstance(changes, dict):
+        if not isinstance(changes, MutableSequence):
             raise ValueError('the scale-covariate-changes entry of the config should be a dictionary')
         rate = changes.get(group, 1)
         if rate < 0:

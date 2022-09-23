@@ -24,6 +24,7 @@ but fed into two arguments in the creation of the Calculation object.
 """
 
 import yaml, copy, sys, traceback
+from collections.abc import Mapping, Sequence
 from openest.generate import stdlib, arguments
 from generate import caller
 from . import curves
@@ -54,12 +55,15 @@ def prepare_argument(name, argument, models, argtype, extras=None):
         return models[argument]
 
     if argtype == arguments.calculationss:
-        assert isinstance(argument, list)
+        assert isinstance(argument, Sequence)
         return [create_calcstep(list(argii.keys())[0], list(argii.values())[0], models, None, extras=extras) for argii in argument]
 
     if argtype.isa(arguments.calculation):
         subcalc = extras.get('subcalc', None)
-        return create_calcstep(list(argument.keys())[0], list(argument.values())[0], models, subcalc, extras=extras)
+        if isinstance(argument, str):
+            return models[argument] # should be a saved name
+        else:
+            return create_calcstep(list(argument.keys())[0], list(argument.values())[0], models, subcalc, extras=extras)
 
     if argtype.isa(arguments.input_reduce) and isinstance(argument, str):
         if argument == '-':
@@ -218,20 +222,20 @@ def create_calcstep(name, args, models, subcalc, extras=None):
     if extras is None:
         extras = {}
     if name == 'Rebase':
-        if isinstance(args, dict):
+        if isinstance(args, Mapping):
             kwargs = args
         else:
             kwargs = {}
         return caller.standardize(subcalc, **kwargs)
 
     if name == 'PartialDerivative':
-        assert isinstance(args, dict)
+        assert isinstance(args, Mapping)
         assert 'covariate' in args and 'covarunit' in args
         return subcalc.partial_derivative(args['covariate'], args['covarunit'])
 
     cls = getattr(stdlib, name)
 
-    if isinstance(args, list):
+    if isinstance(args, Sequence):
         remainingargs = copy.copy(args)
         get_argument = lambda name: remainingargs.pop(0)
         has_argument = lambda name: len(remainingargs) > 0
@@ -252,8 +256,10 @@ def create_calcstep(name, args, models, subcalc, extras=None):
     arglist = []
     kwargs = {}
     savedargs = {}
+    used_subcalc = False
     for argtype in cls.describe()['arguments']:
         if argtype.isa(arguments.calculation):
+            used_subcalc = True
             if subcalc is not None and subcalc not in arglist:
                 arglist.append(subcalc)
             else:
@@ -261,7 +267,7 @@ def create_calcstep(name, args, models, subcalc, extras=None):
                 subextras = copy.copy(extras)
                 subextras['subcalc'] = subcalc
                 arglist.append(prepare_argument(argtype.name, get_argument(argtype.name), models, argtype, extras=subextras))
-        elif argtype == arguments.calculationss and isinstance(args, list):
+        elif argtype == arguments.calculationss and isinstance(args, Sequence):
             calculations = []
             while len(remainingargs) > 0:
                 calcarg = tryprepare_argument(argtype.name, remainingargs[0], models, arguments.calculation, extras=extras)
@@ -280,7 +286,7 @@ def create_calcstep(name, args, models, subcalc, extras=None):
                 arglist.append(prepare_argument(argtype.name, get_argument(argtype.name), models, argtype, extras=extras))
         elif argtype.name in ['input_unit', 'output_unit'] and argtype.name in savedargs:
             arglist.append(savedargs[argtype.name])
-        elif argtype.types == [list] and isinstance(args, list) and cls.describe()['arguments'][-1] == argtype: # Allow a trailing list to capture remaining arguments
+        elif argtype.types == [list] and isinstance(args, Sequence) and cls.describe()['arguments'][-1] == argtype: # Allow a trailing list to capture remaining arguments
             arglist.append(remainingargs)
             remainingargs = []
         else:
@@ -298,7 +304,7 @@ def create_calcstep(name, args, models, subcalc, extras=None):
                     arglist.append(savedargs[argtype.name])
                     continue
                 elif getattr(argtype, 'is_optional', False):
-                    if isinstance(arg, dict) and len(arg) == 1 and argtype.name in arg:
+                    if isinstance(arg, Mapping) and len(arg) == 1 and argtype.name in arg:
                         kwargs[argtype.name] = get_namedarg(arg, argtype.name)
                     else:
                         kwargs[argtype.name] = arg
@@ -306,10 +312,10 @@ def create_calcstep(name, args, models, subcalc, extras=None):
                     arglist.append(arg)
             else:
                 if getattr(argtype, 'is_optional', False):
-                    if isinstance(args, list) and gotarg:
+                    if isinstance(args, Sequence) and gotarg:
                         args.insert(0, argconfig)
                     continue
-                if isinstance(args, dict) and (argtype.isa(arguments.input_unit) or argtype.isa(arguments.output_unit)):
+                if isinstance(args, Mapping) and (argtype.isa(arguments.input_unit) or argtype.isa(arguments.output_unit)):
                     if has_argument('units'):
                         arg = get_argument('units')
                         extract_units(arg, savedargs)
@@ -317,13 +323,13 @@ def create_calcstep(name, args, models, subcalc, extras=None):
                 else:
                     if argtype.name in extras:
                         arglist.append(extras[argtype.name])
-                        if isinstance(args, list) and gotarg:
+                        if isinstance(args, Sequence) and gotarg:
                             args.insert(0, argconfig)
                     else:
                         raise ValueError("Could not find required argument %s of %s" % (argtype.name, name))
 
     try:
-        return cls(*tuple(arglist), **kwargs)
+        calc = cls(*tuple(arglist), **kwargs)
     except Exception as ex:
         print("Exception but printing other stuff:")
         print(ex)
@@ -331,6 +337,14 @@ def create_calcstep(name, args, models, subcalc, extras=None):
         print(cls)
         print(arglist)
         raise t(v).with_traceback(tb)
+
+    if not used_subcalc and subcalc:
+        # Perform subcalc as a preprocessing step
+        return stdlib.SequentialProcess(subcalc, calc)
+    
+    ## save this to models
+    models[calc.column_info()[0]['name']] = calc
+    return calc
 
 def sample_sequence(weatherbundle, calculation, region):
     application = calculation.apply(region)

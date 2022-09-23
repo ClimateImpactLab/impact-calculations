@@ -9,6 +9,7 @@ precipitation.
 """
 
 import re
+from collections.abc import Mapping, Sequence
 from adaptation import csvvfile, curvegen, curvegen_known, curvegen_arbitrary, covariates, constraints, parallel_covariates, parallel_econmodel
 from generate import parallel_weather
 from datastore import irvalues
@@ -62,7 +63,7 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config=None, quiet
         config = {}
     if env is None:
         env = {}
-    if isinstance(covar, dict):
+    if isinstance(covar, Mapping):
         return get_covariator(list(covar.keys())[0], list(covar.values())[0], weatherbundle, economicmodel, config=config, quiet=quiet, env=env)
     elif covar in env:
         return env[covar]
@@ -246,7 +247,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
         indepunits = []
         transform_descriptions = []
         for name in specconf['variables']:
-            if isinstance(specconf['variables'], list):
+            if isinstance(specconf['variables'], Sequence):
                 match = re.match(r"^(.+?)\s+\[(.+?)\]$", name)
                 assert match is not None, "Could not find unit in %s" % name
                 name = match.group(1)
@@ -291,7 +292,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
                 assert 'within-season' in specconf
                 suffix_triangle = specconf['suffix-triangle']
                 for rr in range(len(suffix_triangle)):
-                    assert isinstance(suffix_triangle, list) and len(suffix_triangle[rr]) == rr + 1
+                    assert isinstance(suffix_triangle, Sequence) and len(suffix_triangle[rr]) == rr + 1
 
                 culture_map = irvalues.get_file_cached(specconf['within-season'], irvalues.load_culture_months)
                 get_curvegen = lambda suffixes: sumbytime_constructor(csvv, csvvcurvegen, suffixes, diagprefix='coeff-' + diag_infix)
@@ -404,10 +405,11 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
                 clipmodel = specconf.get('clip-model')
                 user_assert(clipmodel, "The 'clip-model' config option is required for corpsepose or plankpose clipping.")
                 user_assert(clipmodel in othermodels, "The requested 'clip-model' was not previously defined in the specifications list.")
+                assert isinstance(othermodels[clipmodel], curvegen.DelayedCurveGenerator), "Clipping CurveGenerator must have a saved curve."
                 if clipping_cfg == 'corpsepose':
-                    final_curve = MinimumCurve(final_curve, othermodels[clipmodel])
+                    final_curve = smart_curve.MinimumCurve(final_curve, othermodels[clipmodel].get_most_recent_curve(region))
                 else: # plankpose
-                    final_curve = MaximumCurve(final_curve, othermodels[clipmodel])
+                    final_curve = smart_curve.MaximumCurve(final_curve, othermodels[clipmodel].get_most_recent_curve(region))
 
         if specconf.get('extrapolation', False):
             exargs = specconf['extrapolation']
@@ -422,7 +424,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
                 margins = {indepvars[ii]: exargs['margins'][ii] for ii in range(len(indepvars))}
 
             assert 'bounds' in exargs
-            if 'bounds' in exargs and isinstance(exargs['bounds'], tuple) or (isinstance(exargs['bounds'], list) and len(exargs['bounds']) == 2 and (isinstance(exargs['bounds'][0], float) or isinstance(exargs['bounds'][0], int))):
+            if 'bounds' in exargs and isinstance(exargs['bounds'], tuple) or (isinstance(exargs['bounds'], Sequence) and len(exargs['bounds']) == 2 and (isinstance(exargs['bounds'][0], float) or isinstance(exargs['bounds'][0], int))):
                 bounds = [(exargs['bounds'][0],), (exargs['bounds'][1],)]
             else:
                 bounds = exargs['bounds']
