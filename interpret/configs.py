@@ -261,7 +261,7 @@ def get_covariate_rate(config, group):
             return 1
     elif 'scale-covariate-changes' in config:
         changes = config.get('scale-covariate-changes')
-        if not isinstance(changes, MutableSequence):
+        if not isinstance(changes, MutableMapping):
             raise ValueError('the scale-covariate-changes entry of the config should be a dictionary')
         rate = changes.get(group, 1)
         if rate < 0:
