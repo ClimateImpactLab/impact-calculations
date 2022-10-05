@@ -411,9 +411,9 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
                 user_assert(clipmodel in othermodels, "The requested 'clip-model' was not previously defined in the specifications list.")
                 assert isinstance(othermodels[clipmodel], curvegen.DelayedCurveGenerator), "Clipping CurveGenerator must have a saved curve."
                 if clipping_cfg == 'corpsepose':
-                    final_curve = smart_curve.MinimumCurve(final_curve, othermodels[clipmodel].get_most_recent_curve(region))
+                    final_curve = smart_curve.MinimumCurve(final_curve, othermodels[clipmodel].current_curves[region])
                 else: # plankpose
-                    final_curve = smart_curve.MaximumCurve(final_curve, othermodels[clipmodel].get_most_recent_curve(region))
+                    final_curve = smart_curve.MaximumCurve(final_curve, othermodels[clipmodel].current_curves[region])
 
         if specconf.get('extrapolation', False):
             exargs = specconf['extrapolation']
