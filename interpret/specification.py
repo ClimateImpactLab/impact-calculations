@@ -157,7 +157,7 @@ def create_covariator(specconf, weatherbundle, economicmodel, config=None, quiet
 
     return covariator
         
-def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, getcsvvcurve=False, diag_infix="", othermodels={}):
+def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, getcsvvcurve=False, diag_infix="", othermodels=None):
     """Create a CurveGenerator instance from specifications
 
     Parameters
@@ -174,6 +174,8 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
         If True, a adaptation.curvegen.CSVVCurveGenerator instance is returned.
     diag_infix : str
         Appended to the diagnostic suffix for CurveGenerators that report diagnostics.
+    othermodels : dict, optional
+        Previously created CurveGenerators that can be used here.
 
     Returns
     -------
@@ -181,6 +183,8 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
     """
     if specconf is None:
         specconf = {}
+    if othermodels is None:
+        othermodels = {}
     user_assert('depenunit' in specconf, "Specification configuration missing 'depenunit' string.")
     user_assert('functionalform' in specconf, "Specification configuration missing 'functionalform' string.")
     if specconf['functionalform'] in ['polynomial', 'cubicspline']:

@@ -24,7 +24,7 @@ but fed into two arguments in the creation of the Calculation object.
 """
 
 import yaml, copy, sys, traceback
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping, MutableSequence, Sequence
 from openest.generate import stdlib, arguments
 from generate import caller
 from . import curves
@@ -235,7 +235,7 @@ def create_calcstep(name, args, models, subcalc, extras=None):
 
     cls = getattr(stdlib, name)
 
-    if isinstance(args, Sequence):
+    if isinstance(args, MutableSequence):
         remainingargs = copy.copy(args)
         get_argument = lambda name: remainingargs.pop(0)
         has_argument = lambda name: len(remainingargs) > 0
@@ -312,7 +312,7 @@ def create_calcstep(name, args, models, subcalc, extras=None):
                     arglist.append(arg)
             else:
                 if getattr(argtype, 'is_optional', False):
-                    if isinstance(args, Sequence) and gotarg:
+                    if isinstance(args, MutableSequence) and gotarg:
                         args.insert(0, argconfig)
                     continue
                 if isinstance(args, Mapping) and (argtype.isa(arguments.input_unit) or argtype.isa(arguments.output_unit)):
@@ -323,7 +323,7 @@ def create_calcstep(name, args, models, subcalc, extras=None):
                 else:
                     if argtype.name in extras:
                         arglist.append(extras[argtype.name])
-                        if isinstance(args, Sequence) and gotarg:
+                        if isinstance(args, MutableSequence) and gotarg:
                             args.insert(0, argconfig)
                     else:
                         raise ValueError("Could not find required argument %s of %s" % (argtype.name, name))
