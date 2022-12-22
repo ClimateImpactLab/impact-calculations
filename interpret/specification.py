@@ -360,7 +360,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
             else:
                 curve_extrema = othermodels[clipmodel].extrema_finder(mintemp, maxtemp, -1)
                 get_baselineextrema = constraints.get_curve_maxima
-            extrema_curvegen = othermodels[clipmodel]
+            extrema_curvegen = othermodels[clipmodel].curvegen
         else:
             user_failure("unknown option for configuration key 'clipping'")
 
@@ -421,13 +421,13 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
                 )
             else: # 'corpsepose' or 'plankpose'
                 # Also shift clipmodel down
-                clip_curve = othermodels[specconf.get('clip-model')]
+                clip_curve = othermodels[specconf.get('clip-model')].current_curves[region]
                 clip_curve = smart_curve.ShiftedCurve(clip_curve, -clip_curve.univariate(baselineexts[region]))
                 
                 if clipping_cfg == 'corpsepose':
-                    final_curve = smart_curve.MinimumCurve(final_curve, clip_curve.current_curves[region])
+                    final_curve = smart_curve.MinimumCurve(final_curve, clip_curve)
                 else: # plankpose
-                    final_curve = smart_curve.MaximumCurve(final_curve, clip_curve.current_curves[region])
+                    final_curve = smart_curve.MaximumCurve(final_curve, clip_curve)
 
         if specconf.get('extrapolation', False):
             exargs = specconf['extrapolation']
