@@ -553,3 +553,18 @@ class ConfigList(MutableSequence):
                 missing.update(value.check_usage())
 
         return missing
+
+class UserError(Exception):
+    """Exception with a message to users, possibly wrapping a machine-readable exception.
+
+    Parameters
+    ----------
+    message : str
+        User-directed message
+    ex : Exception, optional
+        Internal machine-directed exception
+
+    """
+    def __init__(self, message, ex=None):
+        self.message = message
+        self.ex = ex

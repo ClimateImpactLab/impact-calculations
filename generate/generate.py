@@ -308,6 +308,10 @@ if __name__ == '__main__':
    
     try :
         main(file_configs, config_name, statman)
+    except configs.UserError as ex:
+        statman.log_message(msg=traceback.format_exc())
+        print(ex.message)
+        exit()
     except Exception as ex: 
         statman.log_message(msg=traceback.format_exc())
         print(f"an unknown error occurred, details are logged at {statman.logpath}")
