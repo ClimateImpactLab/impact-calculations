@@ -18,7 +18,6 @@ from openest.generate import smart_curve
 from openest.curves import ushape_numeric
 from openest.curves.smart_linextrap import LinearExtrapolationCurve
 from openest.generate.stdlib import *
-from impactcommon.math import minpoly, minspline
 from . import calculator, variables, configs
 
 def user_failure(message):
@@ -232,7 +231,6 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
         curr_curvegen = curvegen_known.PolynomialCurveGenerator([indepunit] + ['%s^%d' % (indepunit, pow) for pow in range(2, order+1)],
                                                                 depenunit, coeffvar, order, csvv, diagprefix='coeff-' + diag_infix, predinfix=predinfix,
                                                                 weathernames=weathernames, betalimits=betalimits, allow_raising=specconf.get('allow-raising', False))
-        minfinder = lambda mintemp, maxtemp, sign: lambda curve: minpoly.findpolymin([0] + [sign * cc for cc in curve.coeffs], mintemp, maxtemp)
 
     elif specconf['functionalform'] == 'cubicspline':
         knots = specconf['knots']
@@ -243,7 +241,6 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
         curr_curvegen = curvegen_known.CubicSplineCurveGenerator([indepunit] + ['%s^3' % indepunit] * (len(knots) - 2),
                                                                  depenunit, prefix, knots, variable_name, csvv, diagprefix='coeff-' + diag_infix,
                                                                  betalimits=betalimits)
-        minfinder = lambda mintemp, maxtemp, sign: lambda curve: minspline.findsplinemin(knots, sign * np.asarray(curve.coeffs), mintemp, maxtemp)
         weathernames = curr_curvegen.weathernames[:]
     elif specconf['functionalform'] == 'coefficients':
         ds_transforms = {}
@@ -334,9 +331,6 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
         # Validate clipping configuration option.
         user_assert(clipping_cfg in ['boatpose', 'downdog', True, 'corpsepose', 'plankpose'],
                     "unknown option for configuration key 'clipping'")
-        if clipping_cfg in ['corpsepose', 'plankpose']:
-            user_assert(specconf.get('grounding', False) in ['min', 'max'],
-                        "The 'grounding' option must be either 'min' or 'max'")
 
         # Grab temperature window to search for curve extrema.
         mintemp = specconf.get('clip-mintemp', 10)
@@ -344,24 +338,40 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
 
         # Determine extrema value of curve within temperature window.
         if clipping_cfg == 'boatpose' or clipping_cfg is True:
-            curve_extrema = minfinder(mintemp, maxtemp, 1)
+            curve_extrema = curr_curvegen.extrema_finder(mintemp, maxtemp, 1)
             get_baselineextrema = constraints.get_curve_minima
+            extrema_curvegen = curr_curvegen
         elif clipping_cfg == 'downdog':
-            curve_extrema = minfinder(mintemp, maxtemp, -1)
+            curve_extrema = curr_curvegen.extrema_finder(mintemp, maxtemp, -1)
             get_baselineextrema = constraints.get_curve_maxima
+            extrema_curvegen = curr_curvegen
         elif clipping_cfg in ['corpsepose', 'plankpose']:
-            pass
+            # Check configs
+            user_assert(specconf.get('grounding', False) in ['min', 'max'],
+                        "The 'grounding' option must be either 'min' or 'max'")
+            clipmodel = specconf.get('clip-model')
+            user_assert(clipmodel, "The 'clip-model' config option is required for corpsepose or plankpose clipping.")
+            user_assert(clipmodel in othermodels, "The requested 'clip-model' was not previously defined in the specifications list.")
+            assert isinstance(othermodels[clipmodel], curvegen.DelayedCurveGenerator), "Clipping CurveGenerator must have a saved curve."
+
+            if specconf['grounding'] == 'min':
+                curve_extrema = othermodels[clipmodel].extrema_finder(mintemp, maxtemp, 1)
+                get_baselineextrema = constraints.get_curve_minima
+            else:
+                curve_extrema = othermodels[clipmodel].extrema_finder(mintemp, maxtemp, -1)
+                get_baselineextrema = constraints.get_curve_maxima
+            extrema_curvegen = othermodels[clipmodel]
         else:
             user_failure("unknown option for configuration key 'clipping'")
 
         if covariator:
             _, baselineexts = get_baselineextrema(
-                regions, curr_curvegen, covariator,
+                regions, extrema_curvegen, covariator,
                 mintemp, maxtemp,
                 analytic=curve_extrema
             )
         else:
-            curve = curr_curvegen.get_curve('global', 2000, {})
+            curve = extrema_curvegen.get_curve('global', 2000, {})
             curve_global_extrema = curve_extrema(curve)
             baselineexts = {r: curve_global_extrema for r in regions}
 
@@ -371,7 +381,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
         else:
             final_curve = smart_curve.CoefficientsCurve(curve.ccs, weathernames)
 
-        if (clipping_cfg and clipping_cfg in ['boatpose', 'downdog', True]) or specconf.get('goodmoney'):
+        if clipping_cfg or specconf.get('goodmoney'):
             final_curve = smart_curve.ShiftedCurve(final_curve, -final_curve.univariate(baselineexts[region]))
 
         if 'goodmoney' in specconf: 
@@ -410,14 +420,14 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
                     direction=ucurve_direction,
                 )
             else: # 'corpsepose' or 'plankpose'
-                clipmodel = specconf.get('clip-model')
-                user_assert(clipmodel, "The 'clip-model' config option is required for corpsepose or plankpose clipping.")
-                user_assert(clipmodel in othermodels, "The requested 'clip-model' was not previously defined in the specifications list.")
-                assert isinstance(othermodels[clipmodel], curvegen.DelayedCurveGenerator), "Clipping CurveGenerator must have a saved curve."
+                # Also shift clipmodel down
+                clip_curve = othermodels[specconf.get('clip-model')]
+                clip_curve = smart_curve.ShiftedCurve(clip_curve, -clip_curve.univariate(baselineexts[region]))
+                
                 if clipping_cfg == 'corpsepose':
-                    final_curve = smart_curve.MinimumCurve(final_curve, othermodels[clipmodel].current_curves[region])
+                    final_curve = smart_curve.MinimumCurve(final_curve, clip_curve.current_curves[region])
                 else: # plankpose
-                    final_curve = smart_curve.MaximumCurve(final_curve, othermodels[clipmodel].current_curves[region])
+                    final_curve = smart_curve.MaximumCurve(final_curve, clip_curve.current_curves[region])
 
         if specconf.get('extrapolation', False):
             exargs = specconf['extrapolation']

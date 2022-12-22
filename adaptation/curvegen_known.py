@@ -15,6 +15,7 @@ from openest.generate import diagnostic, formatting, selfdocumented
 from openest.generate.smart_curve import ZeroInterceptPolynomialCurve, CubicSplineCurve, SumByTimePolynomialCurve
 from openest.models.curve import StepCurve
 from openest.generate.curvegen import CurveGenerator
+from impactcommon.math import minpoly, minspline
 
 class SmartCSVVCurveGenerator(curvegen.CSVVCurveGenerator):
     """Provides additional structure for CSVVCurveGenerators that produce SmartCurves.
@@ -239,6 +240,10 @@ class PolynomialCurveGenerator(SmartCSVVCurveGenerator):
 
         return BetaLimitsDerivativeSmartCSVVCurveGenerator(self, ddpoly)
 
+    def extrema_finder(self, mintemp, maxtemp, sign):
+        return lambda curve: minpoly.findpolymin([0] + [sign * cc for cc in curve.coeffs], mintemp, maxtemp)
+    
+    
 class CubicSplineCurveGenerator(SmartCSVVCurveGenerator):
     """A CurveGenerator for a series of terms representing a restricted cubic spline.
 
@@ -277,7 +282,11 @@ class CubicSplineCurveGenerator(SmartCSVVCurveGenerator):
     def format_call(self, lang, *args):
         assert self.weathernames, "Analytical representation of cubic spline not implemented."
         return super(CubicSplineCurveGenerator, self).format_call(lang, *args)
-   
+
+    def extrema_finder(self, mintemp, maxtemp, sign):
+        return lambda curve: minspline.findsplinemin(self.knots, sign * np.asarray(curve.coeffs), mintemp, maxtemp)
+
+    
 class BinnedStepCurveGenerator(curvegen.CSVVCurveGenerator):
     """A CurveGenerator for a series of cumulative bins.
 
