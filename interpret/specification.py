@@ -104,8 +104,7 @@ def get_covariator(covar, args, weatherbundle, economicmodel, config=None, quiet
         return covariates.PowerCovariator(get_covariator(chunks[0].strip(), args, weatherbundle, economicmodel, config=config, quiet=quiet, env=env), float(chunks[1]))
     elif covar[-4:] == 'clip':
         # Clip covariate to be between two bounds
-        if len(args) != 2:
-            raise ValueError(f"clipping args must be len 2, got {args}")
+        user_assert(len(args) == 2, f"clipping args must be len 2, got {args}")
         return covariates.ClipCovariator(get_covariator(covar[:-4], None, weatherbundle, economicmodel, config=config, quiet=quiet, env=env), args[0], args[1])
     elif covar[-6:] == 'spline':
         # Produces spline term covariates, named [name]spline1, [name]spline2, etc.
@@ -331,10 +330,13 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
 
     # Clause to set curve baseline extents if configured.
     clipping_cfg = specconf.get('clipping', False)
-    if clipping_cfg and clipping_cfg not in ['corpsepose', 'plankpose']:
+    if clipping_cfg:
         # Validate clipping configuration option.
-        if clipping_cfg not in ['boatpose', 'downdog', True]:
-            raise ValueError("unknown option for configuration key 'clipping'")
+        user_assert(clipping_cfg in ['boatpose', 'downdog', True, 'corpsepose', 'plankpose'],
+                    "unknown option for configuration key 'clipping'")
+        if clipping_cfg in ['corpsepose', 'plankpose']:
+            user_assert(specconf.get('grounding', False) in ['min', 'max'],
+                        "The 'grounding' option must be either 'min' or 'max'")
 
         # Grab temperature window to search for curve extrema.
         mintemp = specconf.get('clip-mintemp', 10)
@@ -347,8 +349,10 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
         elif clipping_cfg == 'downdog':
             curve_extrema = minfinder(mintemp, maxtemp, -1)
             get_baselineextrema = constraints.get_curve_maxima
+        elif clipping_cfg in ['corpsepose', 'plankpose']:
+            pass
         else:
-            raise ValueError("unknown option for configuration key 'clipping'")
+            user_failure("unknown option for configuration key 'clipping'")
 
         if covariator:
             _, baselineexts = get_baselineextrema(
@@ -377,7 +381,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
             elif gm in ['less-is-good', True] :
                 gm_curve = smart_curve.MinimumCurve
             else:
-                raise ValueError('the goodmoney option must be one of more-is-good, less-is-good, yes or True')
+                user_failure('the goodmoney option must be one of more-is-good, less-is-good, yes or True')
             covars = covariator.get_current(region)
             covars['loggdppc'] = baselineloggdppcs[region]
             noincadapt_unshifted_curve = curr_curvegen.get_curve(region, None, covars, recorddiag=False)
