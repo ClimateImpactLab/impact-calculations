@@ -95,7 +95,8 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer="full",
             target_regions,
             farmer=farmer,
             specconf=modelspecconf,
-            diag_infix=diag_infix
+            diag_infix=diag_infix,
+            othermodels=models
         )
         modelextras = dict(
             output_unit=modelspecconf["depenunit"],

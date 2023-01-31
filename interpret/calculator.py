@@ -60,7 +60,10 @@ def prepare_argument(name, argument, models, argtype, extras=None):
 
     if argtype.isa(arguments.calculation):
         subcalc = extras.get('subcalc', None)
-        return create_calcstep(list(argument.keys())[0], list(argument.values())[0], models, subcalc, extras=extras)
+        if isinstance(argument, str):
+            return models[argument] # should be a saved name
+        else:
+            return create_calcstep(list(argument.keys())[0], list(argument.values())[0], models, subcalc, extras=extras)
 
     if argtype.isa(arguments.input_reduce) and isinstance(argument, str):
         if argument == '-':
@@ -253,8 +256,10 @@ def create_calcstep(name, args, models, subcalc, extras=None):
     arglist = []
     kwargs = {}
     savedargs = {}
+    used_subcalc = False
     for argtype in cls.describe()['arguments']:
         if argtype.isa(arguments.calculation):
+            used_subcalc = True
             if subcalc is not None and subcalc not in arglist:
                 arglist.append(subcalc)
             else:
@@ -324,7 +329,7 @@ def create_calcstep(name, args, models, subcalc, extras=None):
                         raise ValueError("Could not find required argument %s of %s" % (argtype.name, name))
 
     try:
-        return cls(*tuple(arglist), **kwargs)
+        calc = cls(*tuple(arglist), **kwargs)
     except Exception as ex:
         print("Exception but printing other stuff:")
         print(ex)
@@ -332,6 +337,14 @@ def create_calcstep(name, args, models, subcalc, extras=None):
         print(cls)
         print(arglist)
         raise t(v).with_traceback(tb)
+
+    if not used_subcalc and subcalc:
+        # Perform subcalc as a preprocessing step
+        return stdlib.SequentialProcess(subcalc, calc)
+    
+    ## save this to models
+    models[calc.column_info()[0]['name']] = calc
+    return calc
 
 def sample_sequence(weatherbundle, calculation, region):
     application = calculation.apply(region)
