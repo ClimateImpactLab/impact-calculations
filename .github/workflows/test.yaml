@@ -1,0 +1,36 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - "master"
+  pull_request:
+    branches:
+      - "master"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install Conda environment from environment.yml
+        uses: mamba-org/provision-with-micromamba@v13
+        with:
+          environment-file: environment.yml
+
+      - name: Install package
+        run: |
+          pip install --no-deps .
+
+      - name: Rough CLI test for installed package
+        run: |
+          imperics --help
+
+      - name: Test with pytest
+        run: |
+          pytest -v -m "not imperics_shareddir"
