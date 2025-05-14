@@ -475,7 +475,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     weatherbundle : generate.weather.DailyWeatherBundle
     economicmodel : adaptation.econmodel.SSPEconomicModel
     qvals : generate.pvalses.ConstantDictionary
-    farmer : {'full', 'noadapt', 'incadapt'}, optional
+    farmer : {'full', 'noadapt', 'incadapt', 'global'}, optional
         Type of farmer adaptation.
     specconf : dict, optional
         Specification configuration.
