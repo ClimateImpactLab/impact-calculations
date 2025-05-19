@@ -8,7 +8,7 @@ specification can be used for temperature and another for
 precipitation.
 """
 
-import re
+import re, copy
 from collections.abc import Mapping, Sequence
 from adaptation import csvvfile, curvegen, curvegen_known, curvegen_arbitrary, covariates, constraints, parallel_covariates, parallel_econmodel
 from generate import parallel_weather
@@ -123,7 +123,7 @@ def create_covariator(specconf, weatherbundle, economicmodel, config=None, quiet
 
     Parameters
     ----------
-    specconf : dict, optional
+    specconf : dict
         Specification configuration.
     weatherbundle : generate.weather.DailyWeatherBundle
     economicmodel : adaptation.econmodel.SSPEconomicModel
@@ -136,6 +136,16 @@ def create_covariator(specconf, weatherbundle, economicmodel, config=None, quiet
     """
     if config is None:
         config = {}
+
+    if farmer == 'global':
+        # Need all regions in covariates for global
+        if 'filter-region' in config:
+            config = configs.shallow_copy(config)
+            del config['filter-region']
+        if 'filter-region' in specconf:
+            specconf = configs.shallow_copy(specconf)
+            del specconf['filter-region']
+
     if parallel_weather.is_parallel(weatherbundle) and parallel_econmodel.is_parallel(economicmodel):
         return parallel_covariates.create_covariator(specconf, weatherbundle, economicmodel, farmer)
     if 'covariates' in specconf:
@@ -164,7 +174,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
         Various parameters and curve descriptions from CSVV file.
     covariator : adaptation.covariates.Covariator or None
     regions : xarray.Dataset
-    farmer : {'full', 'noadapt', 'incadapt'}, optional
+    farmer : {'full', 'noadapt', 'incadapt', 'global'}, optional
         Type of farmer adaptation.
     specconf : dict, optional
         Specification configuration.
@@ -506,7 +516,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
         )
     
     depenunit = specconf['depenunit']
-    
+
     covariator = create_covariator(specconf, weatherbundle, economicmodel, config, farmer=farmer)
 
     # Subset to regions (i.e. hierids) to act on.

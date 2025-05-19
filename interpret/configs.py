@@ -472,7 +472,10 @@ class MergedConfigDict(MutableMapping):
         copydict = dict(self.parent.items())
         copydict.update(dict(self.child.items()))
         return copydict.items()
-            
+
+    def check_usage(self):
+        return self.parent.check_usage() + self.child.check_usage()
+        
 class ConfigList(MutableSequence):
     """Wrapper on lists contained in configuration dictionaries to monitor key access.
 

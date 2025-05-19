@@ -34,6 +34,7 @@ import bottleneck as bn
 from openest.generate.curvegen import *
 from openest.generate import checks, fast_dataset, formatting, smart_curve, formattools
 from openest.models.curve import FlatCurve
+from .covariates import GlobalAggregatedCovariator
 
 region_curves = {}
 
@@ -196,7 +197,7 @@ class FarmerCurveGenerator(DelayedCurveGenerator):
     def __init__(self, curvegen, covariator, farmer='full', save_curve=True, endbaseline=2015):
         super(FarmerCurveGenerator, self).__init__(curvegen)
         if farmer == 'global':
-            self.covariator = covariates.GlobalAggregatedCovariator(covariator, endbaseline)
+            self.covariator = GlobalAggregatedCovariator(covariator, endbaseline)
         else:
             self.covariator = covariator
         self.farmer = farmer

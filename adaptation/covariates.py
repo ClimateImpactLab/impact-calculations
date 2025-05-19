@@ -1381,9 +1381,9 @@ class GlobalAggregatedCovariator(Covariator):
     """
     def __init__(self, source, maxbaseline, config=None):
         super(GlobalAggregatedCovariator, self).__init__(maxbaseline, config=config)
-        pop_baseline_withyear = population.population_baseline_data(maxbaseline, maxbaseline, [])
+        pop_baseline_withyear = population.population_baseline_data(2000, maxbaseline, [], add_adm0=False)
         self.regions = pop_baseline_withyear.keys()
-        self.pop_baseline = [pop_baseline_withyear[region].values()[0] for region in self.regions]
+        self.pop_baseline = [np.mean(list(pop_baseline_withyear[region].values())) for region in self.regions]
         self.source = source
         self.year_of_cache = None
         self.byregion_cache = None # {region: { key-local: value }}
@@ -1400,16 +1400,16 @@ class GlobalAggregatedCovariator(Covariator):
         dict
         """
         if self.byregion_cache:
-            return {(key + '-local'): self.byregion_cache[region][key] for key in self.byregion_cache[region]} | self.global_cache
+            return {**{(key + '-local'): self.byregion_cache[region][key] for key in self.byregion_cache[region]}, **self.global_cache}
 
         self.byregion_cache = {region: self.source.get_current(region) for region in self.regions}
         
         self.global_cache = {}
-        for key in self.byregion_cache[self.regions[0]]:
+        for key in self.byregion_cache[list(self.regions)[0]]:
             regionvalues = [self.byregion_cache[region][key] for region in self.regions]
             self.global_cache[key] = np.average(regionvalues, weights=self.pop_baseline)
 
-        return get_current(region)
+        return self.get_current(region)
 
     def get_update(self, region, year, ds):
         """

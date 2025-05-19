@@ -16,10 +16,14 @@ def single(bundle_iterator):
     for econ_model, econ_scenario, economicmodel in covariates.iterate_econmodels():
         allecons.append((econ_scenario, econ_model, economicmodel))
 
+    assert allecons, "Cannot find economic models."
+
     allclims = []
     for clim_scenario, clim_model, weatherbundle in bundle_iterator:
         allclims.append((clim_scenario, clim_model, weatherbundle))
 
+    assert allclims, "Cannot find climate models."
+        
     allexogenous = []
     for econ_scenario, econ_model, economicmodel in allecons:
         for clim_scenario, clim_model, weatherbundle in allclims:
@@ -34,6 +38,8 @@ def single(bundle_iterator):
                 continue
 
             return clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
+
+    assert False, "Could not find an appropriate single model."
 
 def random_order(bundle_iterator, config=None):
     if config is None:
