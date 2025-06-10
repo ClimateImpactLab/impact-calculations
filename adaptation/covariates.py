@@ -1403,11 +1403,14 @@ class GlobalAggregatedCovariator(Covariator):
             return {**{(key + '-local'): self.byregion_cache[region][key] for key in self.byregion_cache[region]}, **self.global_cache}
 
         self.byregion_cache = {region: self.source.get_current(region) for region in self.regions}
-        
+
+        pop_baseline = np.array(self.pop_baseline)
+
         self.global_cache = {}
         for key in self.byregion_cache[list(self.regions)[0]]:
-            regionvalues = [self.byregion_cache[region][key] for region in self.regions]
-            self.global_cache[key] = np.average(regionvalues, weights=self.pop_baseline)
+            regionvalues = np.array([self.byregion_cache[region][key] for region in self.regions])
+            indices = ~np.isnan(regionvalues)
+            self.global_cache[key] = np.average(regionvalues[indices], weights=pop_baseline[indices])
 
         return self.get_current(region)
 
