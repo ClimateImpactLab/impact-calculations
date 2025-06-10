@@ -45,9 +45,10 @@ def check_dofarmer(farmer, config, weatherbundle):
     elif farmers == True:
         farmers = ['noadapt', 'incadapt']
     elif farmers == 'always':
-        farmers = ['noadapt', 'incadapt', 'histclim-noadapt', 'histclim-incadapt']
+        farmers = ['noadapt', 'incadapt', 'global', 'histclim-noadapt', 'histclim-incadapt', 'histclim-global']
 
-    return farmer in farmers or (weatherbundle.is_historical() and ('histclim-' + farmer) in farmers)
+    timedfarmer = ('histclim-' + farmer) if weatherbundle.is_historical() else farmer
+    return timedfarmer in farmers
 
 def get_modules(config):
     models = config['models']
