@@ -327,6 +327,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
 
     # Clause to set curve baseline extents if configured.
     clipping_cfg = specconf.get('clipping', False)
+    clipmodel = None
     if clipping_cfg:
         # Validate clipping configuration option.
         user_assert(clipping_cfg in ['boatpose', 'downdog', True, 'corpsepose', 'plankpose'],
@@ -375,7 +376,19 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
             curve_global_extrema = curve_extrema(curve)
             baselineexts = {r: curve_global_extrema for r in regions}
 
-    def transform(region, curve):
+    # instead of accepting exactly one curve, tansform can now accept one or more curves
+    def transform(region, *curves):
+        # for the special corpsepose/plankpose clipping configurations, we need both current model curve and clip-model curve to perform transform 
+        if clipping_cfg in ['corpsepose', 'plankpose']:
+            # force there to be exactly two curves in that case: clip_reference_curve and current model curve: curves
+            user_assert(len(curves) == 2, "corpsepose/plankpose requires both clip-model and target curves")
+            clip_reference_curve, curve = curves
+        # for other clipping configurations, we only need the current model curve 
+        else:
+            user_assert(len(curves) == 1, "expected a single curve for transform")
+            curve = curves[0]
+            clip_reference_curve = None
+
         if isinstance(curve, smart_curve.SmartCurve):
             final_curve = curve
         else:
@@ -420,9 +433,20 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
                     direction=ucurve_direction,
                 )
             else: # 'corpsepose' or 'plankpose'
+                # making sure the clip model's (low-risk) curve was passed in to clip against
+                user_assert(
+                    clip_reference_curve is not None,
+                    "clip-model curve was not provided to clipping transform"
+                )
+
+                # if not in right curve format already, convert 
+                if not isinstance(clip_reference_curve, smart_curve.SmartCurve):
+                    clip_reference_curve = smart_curve.CoefficientsCurve(
+                        clip_reference_curve.ccs, weathernames
+                    )
+
                 # Also shift clipmodel down
-                clip_curve = othermodels[specconf.get('clip-model')].current_curves[region]
-                clip_curve = smart_curve.ShiftedCurve(clip_curve, -clip_curve.univariate(baselineexts[region]))
+                clip_curve = smart_curve.ShiftedCurve(clip_reference_curve, -clip_reference_curve.univariate(baselineexts[region]))
                 
                 if clipping_cfg == 'corpsepose':
                     final_curve = smart_curve.MinimumCurve(final_curve, clip_curve)
@@ -450,74 +474,30 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
 
         return final_curve
 
+    # By default, transform only receives the current model's curve
+    transform_curvegens = [curr_curvegen]
+
+    # For corpsepose/plankpose, transform now needs two curves:
+    #   1) the clip-model reference curve (minlost_lo)
+    #   2) the current model curve (minlost_hi)
+    # so clipping does not depend on the cache lookup of the clip-model's curve 
+    if clipping_cfg in ['corpsepose', 'plankpose']:
+        transform_curvegens = [othermodels[clipmodel].curvegen, curr_curvegen]
+
+    # Pass the prepared curve generator(s) into transform
+    # In the corpsepose/plankpose case this supplies two curves
+    # Otherwise it preserves the original single-curve behavior 
     if clipping_cfg and specconf.get('goodmoney', False):
-        final_curvegen = curvegen.TransformCurveGenerator(transform, "Clipping and Good Money transformation", curr_curvegen)
+        final_curvegen = curvegen.TransformCurveGenerator(transform, "Clipping and Good Money transformation", *transform_curvegens)
     elif clipping_cfg:
-        final_curvegen = curvegen.TransformCurveGenerator(transform, "Clipping transformation", curr_curvegen)
+        final_curvegen = curvegen.TransformCurveGenerator(transform, "Clipping transformation", *transform_curvegens)
     elif specconf.get('goodmoney', False):
-        final_curvegen = curvegen.TransformCurveGenerator(transform, "Good Money transformation", curr_curvegen)
+        final_curvegen = curvegen.TransformCurveGenerator(transform, "Good Money transformation", *transform_curvegens)
     else:
-        final_curvegen = curvegen.TransformCurveGenerator(transform, "Smart curve transformation", curr_curvegen)
+        final_curvegen = curvegen.TransformCurveGenerator(transform, "Smart curve transformation", *transform_curvegens)
         final_curvegen.deltamethod_passthrough = True
 
     if covariator:
         final_curvegen = curvegen.FarmerCurveGenerator(final_curvegen, covariator, farmer)
 
     return final_curvegen
-
-def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', specconf=None, config=None):
-    """
-
-    Parameters
-    ----------
-    csvv : dict
-        Various parameters and curve descriptions from CSVV file.
-    weatherbundle : generate.weather.DailyWeatherBundle
-    economicmodel : adaptation.econmodel.SSPEconomicModel
-    qvals : generate.pvalses.ConstantDictionary
-    farmer : {'full', 'noadapt', 'incadapt'}, optional
-        Type of farmer adaptation.
-    specconf : dict, optional
-        Specification configuration.
-    config : dict, optional
-
-    Returns
-    -------
-    calculation : openest.generate.stdlib.SpanInstabase
-    list
-    object
-    """
-    if specconf is None:
-        specconf = {}
-    if config is None:
-        config = {}
-    user_assert('depenunit' in specconf, "Specification configuration missing 'depenunit' string.")
-    user_assert('calculation' in specconf, "Specification configuration missing 'calculation' list.")
-    user_assert('description' in specconf, "Specification configuration missing 'description' list.")
-
-
-    if config.get('report-variance', False):
-        csvv['gamma'] = np.zeros(len(csvv['gamma'])) # So no mistaken results
-    else:
-        csvvfile.collapse_bang(
-            csvv,
-            seed=qvals.get_seed('csvv'),
-            method=config.get("mvn-method", "svd")
-        )
-    
-    depenunit = specconf['depenunit']
-    
-    covariator = create_covariator(specconf, weatherbundle, economicmodel, config, farmer=farmer)
-
-    # Subset to regions (i.e. hierids) to act on.
-    target_regions = configs.get_regions(weatherbundle.regions, config.get('filter-region'))
-
-    final_curvegen = create_curvegen(csvv, covariator, target_regions, farmer=farmer, specconf=specconf)
-
-    extras = dict(output_unit=depenunit, units=depenunit, curve_description=specconf['description'], errorvar=csvvfile.get_errorvar(csvv))
-    calculation = calculator.create_postspecification(specconf['calculation'], {'default': final_curvegen}, None, extras=extras)
-        
-    if covariator is None:
-        return calculation, [], lambda region: {}
-    else:
-        return calculation, [], covariator.get_current
