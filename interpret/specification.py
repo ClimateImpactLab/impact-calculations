@@ -376,7 +376,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
             curve_global_extrema = curve_extrema(curve)
             baselineexts = {r: curve_global_extrema for r in regions}
 
-    # instead of accepting exactly one curve, tansform can now accept one or more curves
+    # instead of accepting exactly one curve, transform can now accept one or more curves
     def transform(region, *curves):
         # for the special corpsepose/plankpose clipping configurations, we need both current model curve and clip-model curve to perform transform 
         if clipping_cfg in ['corpsepose', 'plankpose']:
@@ -501,3 +501,61 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
         final_curvegen = curvegen.FarmerCurveGenerator(final_curvegen, covariator, farmer)
 
     return final_curvegen
+
+
+def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full', specconf=None, config=None):
+    """
+
+    Parameters
+    ----------
+    csvv : dict
+        Various parameters and curve descriptions from CSVV file.
+    weatherbundle : generate.weather.DailyWeatherBundle
+    economicmodel : adaptation.econmodel.SSPEconomicModel
+    qvals : generate.pvalses.ConstantDictionary
+    farmer : {'full', 'noadapt', 'incadapt'}, optional
+        Type of farmer adaptation.
+    specconf : dict, optional
+        Specification configuration.
+    config : dict, optional
+
+    Returns
+    -------
+    calculation : openest.generate.stdlib.SpanInstabase
+    list
+    object
+    """
+    if specconf is None:
+        specconf = {}
+    if config is None:
+        config = {}
+    user_assert('depenunit' in specconf, "Specification configuration missing 'depenunit' string.")
+    user_assert('calculation' in specconf, "Specification configuration missing 'calculation' list.")
+    user_assert('description' in specconf, "Specification configuration missing 'description' list.")
+
+
+    if config.get('report-variance', False):
+        csvv['gamma'] = np.zeros(len(csvv['gamma'])) # So no mistaken results
+    else:
+        csvvfile.collapse_bang(
+            csvv,
+            seed=qvals.get_seed('csvv'),
+            method=config.get("mvn-method", "svd")
+        )
+    
+    depenunit = specconf['depenunit']
+    
+    covariator = create_covariator(specconf, weatherbundle, economicmodel, config, farmer=farmer)
+
+    # Subset to regions (i.e. hierids) to act on.
+    target_regions = configs.get_regions(weatherbundle.regions, config.get('filter-region'))
+
+    final_curvegen = create_curvegen(csvv, covariator, target_regions, farmer=farmer, specconf=specconf)
+
+    extras = dict(output_unit=depenunit, units=depenunit, curve_description=specconf['description'], errorvar=csvvfile.get_errorvar(csvv))
+    calculation = calculator.create_postspecification(specconf['calculation'], {'default': final_curvegen}, None, extras=extras)
+        
+    if covariator is None:
+        return calculation, [], lambda region: {}
+    else:
+        return calculation, [], covariator.get_current
