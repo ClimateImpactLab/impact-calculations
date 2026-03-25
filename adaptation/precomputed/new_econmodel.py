@@ -225,6 +225,84 @@ class NewSSPEconomicModel(object):
         return shares[available[-1]]
 
 
+class PrecomputedAgeShareBipartiteData(object):
+    """Drop-in replacement for agecohorts.SpaceTimeBipartiteData backed by
+    hierid-level annual age shares from NewSSPEconomicModel.
+
+    Only supports shareonly=True (the case used by mortality).
+    """
+
+    _col_map = {'age0-4': 0, 'age5-64': 1, 'age65+': 2}
+
+    def __init__(self, economicmodel):
+        self.economicmodel = economicmodel
+        self.regions = list(economicmodel._age_shares.keys())
+        self.dependencies = []
+
+    def load(self, year0, year1, model, scenario, agegroup, shareonly=False):
+        """Return SpaceTimeLazyData with age shares for one age group.
+
+        Parameters
+        ----------
+        year0, year1 : int
+            Year range (inclusive).
+        model, scenario : str
+            Ignored (data already loaded from the correct SSP/IAM).
+        agegroup : str
+            One of 'age0-4', 'age5-64', 'age65+'.
+        shareonly : bool
+            Must be True (population-weighted shares not implemented).
+        """
+        assert shareonly, "PrecomputedAgeShareBipartiteData only supports shareonly=True"
+        col_idx = self._col_map[agegroup]
+
+        # Precompute all timeseries up front for O(1) lookup in get_time
+        all_ts = {}
+        for region in self.regions:
+            all_ts[region] = self._build_timeseries(region, year0, year1, col_idx)
+
+        # Mean across all regions for fallback
+        valid = [ts for ts in all_ts.values() if ts is not None]
+        mean_ts = np.mean(valid, axis=0) if valid else np.zeros(year1 - year0 + 1)
+
+        def get_time(region):
+            ts = all_ts.get(region)
+            if ts is not None:
+                return ts
+            # Try ISO3 fallback
+            iso = region[:3]
+            candidates = self.economicmodel._iso_to_hierids.get(iso, [])
+            for h in candidates:
+                if h in all_ts:
+                    return all_ts[h]
+            return mean_ts
+
+        from datastore.spacetime import SpaceTimeLazyData
+        return SpaceTimeLazyData(year0, year1, self.regions, get_time)
+
+    def _build_timeseries(self, region, year0, year1, col_idx):
+        """Build annual timeseries array for one region and age column."""
+        shares = self.economicmodel._age_shares.get(region)
+        if shares is None:
+            return None
+
+        n_years = year1 - year0 + 1
+        result = np.zeros(n_years)
+        available = sorted(shares.keys())
+        if not available:
+            return result
+
+        last_val = shares[available[0]][col_idx]
+        for i, year in enumerate(range(year0, year1 + 1)):
+            if year in shares:
+                last_val = shares[year][col_idx]
+            elif year < available[0]:
+                last_val = shares[available[0]][col_idx]
+            result[i] = last_val
+
+        return result
+
+
 def iterate_econmodels_new(config, data_dir):
     """Yield (model, scenario, NewSSPEconomicModel) for each SSP/IAM
     combination.

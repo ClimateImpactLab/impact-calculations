@@ -125,7 +125,11 @@ def produce(targetdir, weatherbundle, economicmodel, pvals, config, push_callbac
                     if assumption != '':
                         if config['do_farmers'] == 'always' or not config['do_farmers'] or weatherbundle.is_historical():
                             continue
-                    halfweight = agecohorts.SpaceTimeBipartiteData(1950, 2100, None)
+                    if hasattr(economicmodel, '_age_shares'):
+                        from adaptation.precomputed.new_econmodel import PrecomputedAgeShareBipartiteData
+                        halfweight = PrecomputedAgeShareBipartiteData(economicmodel)
+                    else:
+                        halfweight = agecohorts.SpaceTimeBipartiteData(1950, 2100, None)
                     basenames = [basename + '-' + agegroup + assumption + suffix for agegroup in agegroups]
                     get_stweights = [lambda year0, year1: halfweight.load(year0, year1, economicmodel.model, economicmodel.scenario, 'age0-4', shareonly=True), lambda year0, year1: halfweight.load(year0, year1, economicmodel.model, economicmodel.scenario, 'age5-64', shareonly=True), lambda year0, year1: halfweight.load(year0, year1, economicmodel.model, economicmodel.scenario, 'age65+', shareonly=True)]
                     if check_doit(targetdir, basename + '-combined' + assumption, suffix, config):
