@@ -7,8 +7,8 @@ files instead of reconstructing GDPpc from growth rates and nightlights.
 Population is also loaded from the same CSV, replacing the old separate
 population data store.
 
-Population-weighted population density (popop) continues to come from
-the existing popop_baseline.csv, unchanged.
+Population density (popop) is read from the year-2020 row of the same
+CSV (GHS-POP base year), eliminating the dependency on popop_baseline.csv.
 """
 
 import os
@@ -17,10 +17,9 @@ import pandas as pd
 
 from impactcommon.exogenous_economy.provider import BySpaceTimeFromSpaceProvider
 from .precomputed_provider import PrecomputedGDPpcProvider, _build_filepath
-from datastore import popdensity
 
 
-# The four SSP/IAM combinations available in the new data.
+# The four SSP/IAM combinations available in the new data
 _COMBINATIONS = [
     ("high", "SSP2"),
     ("low", "SSP2"),
@@ -107,8 +106,9 @@ class NewSSPEconomicModel(object):
                 self._iso_to_hierids[iso] = []
             self._iso_to_hierids[iso].append(hierid)
 
-        # -- Popop (population-weighted population density) -------------------
-        self.densities = {}
+        # -- Popop (population density from GHS-POP base year 2020) -----------
+        baseline = df[df["year"] == 2020]
+        self.densities = dict(zip(baseline["hierid"], baseline["pop_wtd_density"]))
 
     def reset(self):
         """Reset cached income timeseries."""
@@ -123,8 +123,6 @@ class NewSSPEconomicModel(object):
         window, and passes through the averaging function (typically a
         Bartlett smoother).
         """
-        if not self.densities:
-            self.densities = popdensity.load_popop()
         mean_density = np.mean(list(self.densities.values()))
 
         econ_predictors = {}
@@ -165,13 +163,10 @@ class NewSSPEconomicModel(object):
         """Return population-weighted population density for a region and
         year.
 
-        Scales the base popop density by the ratio of the region's
-        population in the given year to its population in 2010, matching
-        the original SSPEconomicModel behavior.
+        Scales the base popop density (from year 2020) by the ratio of
+        the region's population in the given year to its population in
+        2020, so that get_popop_year(region, 2020) == densities[region].
         """
-        if not self.densities:
-            self.densities = popdensity.load_popop()
-
         if region not in self.pop_future_years:
             if region in self.densities:
                 return self.densities[region]
@@ -181,9 +176,9 @@ class NewSSPEconomicModel(object):
 
         pop_dict = self.pop_future_years[region]
         if year in pop_dict:
-            in2010 = pop_dict.get(2010, 0)
-            if in2010 > 0:
-                return pop_dict[year] * self.densities[region] / in2010
+            in2020 = pop_dict.get(2020, 0)
+            if in2020 > 0:
+                return pop_dict[year] * self.densities[region] / in2020
 
         return None
 
