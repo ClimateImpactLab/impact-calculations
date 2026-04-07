@@ -298,6 +298,133 @@ class PrecomputedAgeShareBipartiteData(object):
         return result
 
 
+class PrecomputedAgeCohortBipartiteData(object):
+    """Drop-in replacement for agecohorts.SpaceTimeBipartiteData that reads
+    hierid-level annual population by age cohort from ir_combined CSVs.
+
+    Unlike PrecomputedAgeShareBipartiteData (which wraps a NewSSPEconomicModel
+    and only supports shareonly=True), this class reads directly from CSV files
+    and supports both shareonly=True (age shares) and shareonly=False
+    (age-specific population counts), plus agegroup='total'.
+
+    Intended for use by the aggregation step (generate/aggregate.py) where no
+    NewSSPEconomicModel instance is available.
+
+    Parameters
+    ----------
+    data_dir : str
+        Directory containing the ir_combined_*_v4.csv files.
+    """
+
+    _col_map = {'age0-4': 'pop0to4', 'age5-64': 'pop5to64', 'age65+': 'pop65plus'}
+
+    def __init__(self, data_dir):
+        self.data_dir = data_dir
+        self.year0 = 1981
+        self.year1 = 2100
+        self.regions = None  # lazily populated on first load
+        self.dependencies = []
+        self._csv_cache = {}  # (model, scenario) -> DataFrame
+
+    def _load_csv(self, model, scenario):
+        """Load and cache the CSV for a given model/scenario."""
+        key = (model, scenario)
+        if key not in self._csv_cache:
+            filepath = _build_filepath(self.data_dir, scenario, model)
+            self._csv_cache[key] = pd.read_csv(filepath)
+        return self._csv_cache[key]
+
+    def load(self, year0, year1, model, scenario, agegroup='total', shareonly=False):
+        """Return a SpaceTimeLazyData with population weights.
+
+        Parameters
+        ----------
+        year0, year1 : int
+            Year range (inclusive).
+        model : str
+            IAM label: "high" or "low".
+        scenario : str
+            SSP label: "SSP2" or "SSP3".
+        agegroup : str
+            One of 'age0-4', 'age5-64', 'age65+', or 'total'.
+        shareonly : bool
+            If True, return age share (fraction of total pop).
+            If False, return age-specific population count.
+            Ignored when agegroup='total'.
+        """
+        df = self._load_csv(model, scenario)
+
+        if self.regions is None:
+            self.regions = df['hierid'].unique().tolist()
+
+        # Build per-hierid timeseries
+        all_ts = {}
+        iso_to_hierids = {}
+        for hierid, g in df.groupby('hierid'):
+            g = g.sort_values('year')
+            years = g['year'].values.astype(int)
+            pop = g['pop'].values.astype(np.float64)
+
+            if agegroup == 'total':
+                values = pop
+            else:
+                col = self._col_map[agegroup]
+                age_pop = g[col].values.astype(np.float64)
+                if shareonly:
+                    safe_pop = np.where(pop > 0, pop, 1.0)
+                    values = age_pop / safe_pop
+                    values[pop <= 0] = 0.0
+                else:
+                    values = age_pop
+
+            all_ts[hierid] = _expand_to_annual(years, values, year0, year1)
+
+            iso = hierid[:3]
+            if iso not in iso_to_hierids:
+                iso_to_hierids[iso] = []
+            iso_to_hierids[iso].append(hierid)
+
+        # Mean across all regions for fallback
+        valid = [ts for ts in all_ts.values() if ts is not None]
+        mean_ts = np.mean(valid, axis=0) if valid else np.zeros(year1 - year0 + 1)
+
+        def get_time(region):
+            ts = all_ts.get(region)
+            if ts is not None:
+                return ts
+            # ISO3 fallback
+            iso = region[:3]
+            candidates = iso_to_hierids.get(iso, [])
+            for h in candidates:
+                if h in all_ts:
+                    return all_ts[h]
+            return mean_ts
+
+        from datastore.spacetime import SpaceTimeLazyData
+        return SpaceTimeLazyData(year0, year1, self.regions, get_time)
+
+
+def _expand_to_annual(csv_years, csv_values, year0, year1):
+    """Expand year/value pairs to a contiguous annual array [year0, year1].
+
+    Forward-fills gaps; back-fills years before the first available value.
+    """
+    n = year1 - year0 + 1
+    result = np.zeros(n)
+    lookup = dict(zip(csv_years, csv_values))
+    available = sorted(lookup.keys())
+    if not available:
+        return result
+    last_val = lookup[available[0]]
+    for i, yr in enumerate(range(year0, year1 + 1)):
+        if yr in lookup:
+            last_val = lookup[yr]
+        elif yr < available[0]:
+            last_val = lookup[available[0]]
+        result[i] = last_val
+    return result
+
+
 def iterate_econmodels_new(config, data_dir):
     """Yield (model, scenario, NewSSPEconomicModel) for each SSP/IAM
     combination.

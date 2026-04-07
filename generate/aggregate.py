@@ -93,6 +93,11 @@ def main(config, config_name, statman=None):
         halfweight_levels = weights.interpret_halfweight(config['weighting'])
         halfweight_aggregate = halfweight_levels
         halfweight_aggregate_denom = None # Same as numerator
+        # Use new precomputed hierid-level population data when available
+        if config.get('socioeconomic_data_dir') and config['weighting'] == 'agecohorts':
+            from adaptation.precomputed.new_econmodel import PrecomputedAgeCohortBipartiteData
+            halfweight_levels = PrecomputedAgeCohortBipartiteData(config['socioeconomic_data_dir'])
+            halfweight_aggregate = halfweight_levels
         assert ('aggregated-unit' in config and 'levels-unit' in config), "the weighting option requires aggregated-unit and level-unit options"
         assert 'levels-weighting' not in config, "Cannot have both a weighting and levels-weighting option."
         assert 'aggregate-weighting' not in config, "Cannot have both a weighting and aggregate-weighting option."
