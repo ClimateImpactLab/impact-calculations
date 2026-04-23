@@ -329,7 +329,7 @@ class ConfigDict(MutableMapping):
     Acts just like a dict, except that every time a key of this or a
     child dict or list is accessed, that information is logged (in
     self.accessed). This can then be checked for completeness with
-    `check_usage.
+    `check_usage`.
 
     Parameters
     ----------
