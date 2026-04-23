@@ -34,10 +34,13 @@ included in the generate configuration file.
    a median or monte carlo run, but setting this to `false` will skip
    them.
 
- - `do_farmers`: true, false, or 'always'; if true, alternative
-   assumptions of adaptation (income-only and no-adaptation) will be
-   generated.  If 'always', alternative adaptation assumptions will be
-   calculated even with historical climate.
+ - `do_farmers`: true, false, 'always', or a list of 'noadapt',
+   'incadapt', 'global', 'histclim-noadapt', 'histclim-incadapt', and
+   'histclim-global'; if true, alternative assumptions of adaptation
+   (income-only and no-adaptation) will be generated.  If 'always',
+   alternative adaptation assumptions will be calculated even with
+   historical climate. To generate arbitrary adaptation assumptions,
+   provide a list, e.g., ['noadapt', 'incadapt', 'global'].
 
  - `do_single`: true or false (default): Should we stop after a single
    target directory?

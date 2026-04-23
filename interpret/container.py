@@ -38,6 +38,18 @@ def check_doit(targetdir, basename, suffix, config, deletebad=False):
 
     return False
 
+def check_dofarmer(farmer, config, weatherbundle):
+    farmers = config.get('do_farmers', [])
+    if farmers == False:
+        farmers = []
+    elif farmers == True:
+        farmers = ['noadapt', 'incadapt']
+    elif farmers == 'always':
+        farmers = ['noadapt', 'incadapt', 'global', 'histclim-noadapt', 'histclim-incadapt', 'histclim-global']
+
+    timedfarmer = ('histclim-' + farmer) if weatherbundle.is_historical() else farmer
+    return timedfarmer in farmers
+
 def get_modules(config):
     models = config['models']
     for model in models:
@@ -125,17 +137,17 @@ def produce_csvv(basename, csvv, module, specconf, targetdir, weatherbundle, eco
         
     if profile:
         return
-        
-    if config.get('do_farmers', False) and (not weatherbundle.is_historical() or config['do_farmers'] == 'always'):
-        # Lock in the values
-        pvals[basename].lock()
 
-        if check_doit(targetdir, basename + "-noadapt", suffix, config):
-            print("No adaptation")
-            calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals[basename], specconf=specconf, farmer='noadapt', config=config, standard=False)
-            effectset.generate(targetdir, basename + "-noadapt" + suffix, weatherbundle, calculation, specconf['description'] + ", with no adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, basename), deltamethod_vcv=deltamethod_vcv)
+    # Do farmers, if requested
+    suffixes = {'noadapt': "with no adaptation",
+                'incadapt': "with interpolation and only environmental adaptation",
+                'global': "with no adaptation and global covariates"}
 
-        if check_doit(targetdir, basename + "-incadapt", suffix, config):
-            print("Income-only adaptation")
-            calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals[basename], specconf=specconf, farmer='incadapt', config=config, standard=False)
-            effectset.generate(targetdir, basename + "-incadapt" + suffix, weatherbundle, calculation, specconf['description'] + ", with interpolation and only environmental adaptation.", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, basename), deltamethod_vcv=deltamethod_vcv)
+    for farmer, explain in suffixes.items():
+        if check_dofarmer(farmer, config, weatherbundle) and check_doit(targetdir, basename + "-" + farmer, suffix, config):
+            # Lock in the values
+            pvals[basename].lock()
+
+            print("Limited adaptation: " + explain)
+            calculation, dependencies, baseline_get_predictors = caller.call_prepare_interp(csvv, module, weatherbundle, economicmodel, pvals[basename], specconf=specconf, farmer=farmer, config=config, standard=False)
+            effectset.generate(targetdir, basename + "-" + farmer + suffix, weatherbundle, calculation, specconf['description'] + ", " + explain + ".", dependencies + weatherbundle.dependencies + economicmodel.dependencies, config, push_callback=lambda reg, yr, app: push_callback(reg, yr, app, baseline_get_predictors, basename), deltamethod_vcv=deltamethod_vcv)

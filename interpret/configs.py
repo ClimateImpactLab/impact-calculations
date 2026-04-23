@@ -431,8 +431,8 @@ class MergedConfigDict(MutableMapping):
 
     """
     def __init__(self, parent, child):
-        self.parent = parent
-        self.child = child
+        self.parent = wrap_config(parent)
+        self.child = wrap_config(child)
 
     def __repr__(self):
         class_name = type(self).__name__
@@ -472,7 +472,10 @@ class MergedConfigDict(MutableMapping):
         copydict = dict(self.parent.items())
         copydict.update(dict(self.child.items()))
         return copydict.items()
-            
+
+    def check_usage(self):
+        return self.parent.check_usage().union(self.child.check_usage())
+        
 class ConfigList(MutableSequence):
     """Wrapper on lists contained in configuration dictionaries to monitor key access.
 
