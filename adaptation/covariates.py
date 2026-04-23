@@ -1388,6 +1388,7 @@ class GlobalAggregatedCovariator(Covariator):
         self.year_of_cache = None
         self.byregion_cache = None # {region: { key-local: value }}
         self.global_cache = None # {key: value }
+        self.keep_local = ['ir-share']
 
     def get_current(self, region):
         """
@@ -1400,14 +1401,21 @@ class GlobalAggregatedCovariator(Covariator):
         dict
         """
         if self.byregion_cache:
-            return {**{(key + '-local'): self.byregion_cache[region][key] for key in self.byregion_cache[region]}, **self.global_cache}
+            return {**{(key + '-local'): self.byregion_cache[region][key] for key in self.byregion_cache[region] if key not in self.keep_local},
+                    **{key: self.byregion_cache[region][key] for key in self.byregion_cache[region] if key in self.keep_local},
+                    **self.global_cache}
 
         self.byregion_cache = {region: self.source.get_current(region) for region in self.regions}
-        
+
+        pop_baseline = np.array(self.pop_baseline)
+
         self.global_cache = {}
         for key in self.byregion_cache[list(self.regions)[0]]:
-            regionvalues = [self.byregion_cache[region][key] for region in self.regions]
-            self.global_cache[key] = np.average(regionvalues, weights=self.pop_baseline)
+            if key in self.keep_local:
+                continue
+            regionvalues = np.array([self.byregion_cache[region][key] for region in self.regions])
+            indices = ~np.isnan(regionvalues)
+            self.global_cache[key] = np.average(regionvalues[indices], weights=pop_baseline[indices])
 
         return self.get_current(region)
 
