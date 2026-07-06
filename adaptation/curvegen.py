@@ -197,7 +197,7 @@ class FarmerCurveGenerator(DelayedCurveGenerator):
     def __init__(self, curvegen, covariator, farmer='full', save_curve=True, endbaseline=2015):
         super(FarmerCurveGenerator, self).__init__(curvegen)
         if farmer == 'global':
-            self.covariator = GlobalAggregatedCovariator(covariator, endbaseline)
+            self.covariator = GlobalAggregatedCovariator(covariator, endbaseline, farmer)
         else:
             self.covariator = covariator
         self.farmer = farmer
@@ -240,7 +240,7 @@ class FarmerCurveGenerator(DelayedCurveGenerator):
         if self.farmer == 'full':
             covariates = self.covariator.offer_update(region, year, kwargs['weather'])
             curve = self.curvegen.get_curve(region, year, covariates)
-        elif self.farmer in ['noadapt', 'global']:
+        elif self.farmer in ['noadapt', 'global', 'glocal']:
             curve = self.last_curves[region]
         elif self.farmer == 'incadapt':
             covariates = self.covariator.offer_update(region, year, None)

@@ -137,7 +137,7 @@ def create_covariator(specconf, weatherbundle, economicmodel, config=None, quiet
     if config is None:
         config = {}
 
-    if farmer == 'global':
+    if farmer == 'global' or famer == 'glocal':
         # Need all regions in covariates for global
         if 'filter-region' in config:
             config = configs.shallow_copy(config)
@@ -174,7 +174,7 @@ def create_curvegen(csvv, covariator, regions, farmer='full', specconf=None, get
         Various parameters and curve descriptions from CSVV file.
     covariator : adaptation.covariates.Covariator or None
     regions : xarray.Dataset
-    farmer : {'full', 'noadapt', 'incadapt', 'global'}, optional
+    farmer : {'full', 'noadapt', 'incadapt', 'global', 'glocal'}, optional
         Type of farmer adaptation.
     specconf : dict, optional
         Specification configuration.
@@ -485,7 +485,7 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer='full',
     weatherbundle : generate.weather.DailyWeatherBundle
     economicmodel : adaptation.econmodel.SSPEconomicModel
     qvals : generate.pvalses.ConstantDictionary
-    farmer : {'full', 'noadapt', 'incadapt', 'global'}, optional
+    farmer : {'full', 'noadapt', 'incadapt', 'global', 'glocal'}, optional
         Type of farmer adaptation.
     specconf : dict, optional
         Specification configuration.

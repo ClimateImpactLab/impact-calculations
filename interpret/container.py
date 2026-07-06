@@ -45,7 +45,7 @@ def check_dofarmer(farmer, config, weatherbundle):
     elif farmers == True:
         farmers = ['noadapt', 'incadapt']
     elif farmers == 'always':
-        farmers = ['noadapt', 'incadapt', 'global', 'histclim-noadapt', 'histclim-incadapt', 'histclim-global']
+        farmers = ['noadapt', 'incadapt', 'global', 'glocal', 'histclim-noadapt', 'histclim-incadapt', 'histclim-global', 'histclim-glocal']
 
     timedfarmer = ('histclim-' + farmer) if weatherbundle.is_historical() else farmer
     return timedfarmer in farmers
@@ -141,7 +141,8 @@ def produce_csvv(basename, csvv, module, specconf, targetdir, weatherbundle, eco
     # Do farmers, if requested
     suffixes = {'noadapt': "with no adaptation",
                 'incadapt': "with interpolation and only environmental adaptation",
-                'global': "with no adaptation and global covariates"}
+                'global': "with no adaptation and global covariates",
+                'glocal': "with no adaptation and global income but local weather covariates"}
 
     for farmer, explain in suffixes.items():
         if check_dofarmer(farmer, config, weatherbundle) and check_doit(targetdir, basename + "-" + farmer, suffix, config):

@@ -35,7 +35,7 @@ included in the generate configuration file.
    them.
 
  - `do_farmers`: true, false, 'always', or a list of 'noadapt',
-   'incadapt', 'global', 'histclim-noadapt', 'histclim-incadapt', and
+   'incadapt', 'global', 'glocal', 'histclim-noadapt', 'histclim-incadapt', and
    'histclim-global'; if true, alternative assumptions of adaptation
    (income-only and no-adaptation) will be generated.  If 'always',
    alternative adaptation assumptions will be calculated even with
