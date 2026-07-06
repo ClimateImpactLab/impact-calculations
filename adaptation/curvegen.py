@@ -34,6 +34,7 @@ import bottleneck as bn
 from openest.generate.curvegen import *
 from openest.generate import checks, fast_dataset, formatting, smart_curve, formattools
 from openest.models.curve import FlatCurve
+from .covariates import GlobalAggregatedCovariator
 
 region_curves = {}
 
@@ -195,7 +196,10 @@ class FarmerCurveGenerator(DelayedCurveGenerator):
     """
     def __init__(self, curvegen, covariator, farmer='full', save_curve=True, endbaseline=2015):
         super(FarmerCurveGenerator, self).__init__(curvegen)
-        self.covariator = covariator
+        if farmer == 'global':
+            self.covariator = GlobalAggregatedCovariator(covariator, endbaseline)
+        else:
+            self.covariator = covariator
         self.farmer = farmer
         self.save_curve = save_curve
         self.lincom_last_covariates = {}
@@ -236,7 +240,7 @@ class FarmerCurveGenerator(DelayedCurveGenerator):
         if self.farmer == 'full':
             covariates = self.covariator.offer_update(region, year, kwargs['weather'])
             curve = self.curvegen.get_curve(region, year, covariates)
-        elif self.farmer == 'noadapt':
+        elif self.farmer in ['noadapt', 'global']:
             curve = self.last_curves[region]
         elif self.farmer == 'incadapt':
             covariates = self.covariator.offer_update(region, year, None)

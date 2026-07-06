@@ -41,9 +41,9 @@ def each_future_population(model, scenario, dependencies):
 
             yield region, year, value
 
-def population_baseline_data(year0, year1, dependencies):
+def population_baseline_data(year0, year1, dependencies, add_adm0=True):
     global population_baseline_cache
-    if (year0, year1) in population_baseline_cache:
+    if add_adm0 and (year0, year1) in population_baseline_cache:
         return population_baseline_cache[year0, year1]
     
     baselinedata = {} # {region: {year: value}}
@@ -66,14 +66,18 @@ def population_baseline_data(year0, year1, dependencies):
 
             if len(region) > 3 and region[3] == '.':
                 if region[:3] not in adm0s:
-                    adm0s[region[:3]] = 0
-                adm0s[region[:3]] += value
+                    adm0s[region[:3]] = {}
+                if year not in adm0s[region[:3]]:
+                    adm0s[region[:3]][year] = 0
+                adm0s[region[:3]][year] += value
 
-        for adm0 in adm0s:
-            assert adm0 not in baselinedata
-            baselinedata[adm0] = adm0s[adm0]
+        if add_adm0:
+            for adm0 in adm0s:
+                assert adm0 not in baselinedata
+                baselinedata[adm0] = adm0s[adm0]
 
-    population_baseline_cache[year0, year1] = baselinedata
+    if add_adm0: # Only save if we have ADM0 as well
+        population_baseline_cache[year0, year1] = baselinedata
     return baselinedata
 
 def extend_population_future(baselinedata, year0, year1, regions, model, scenario, dependencies):

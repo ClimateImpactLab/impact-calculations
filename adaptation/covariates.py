@@ -32,7 +32,7 @@ from pandas import read_csv
 from openest.generate import fast_dataset
 from impactlab_tools.utils import files
 from .econmodel import *
-from datastore import agecohorts, irvalues, irregions
+from datastore import agecohorts, irvalues, irregions, population
 from climate.yearlyreader import RandomYearlyAccess
 from interpret import averages, configs
 
@@ -1370,3 +1370,68 @@ class PowerCovariator(Covariator):
         """
         covars = self.source.get_current(region)
         return self.make_power(covars)
+
+class GlobalAggregatedCovariator(Covariator):
+    """Spatially average the covariates across all regions.
+
+    Parameters
+    ----------
+    source
+    maxbaseline
+    """
+    def __init__(self, source, maxbaseline, config=None):
+        super(GlobalAggregatedCovariator, self).__init__(maxbaseline, config=config)
+        pop_baseline_withyear = population.population_baseline_data(2000, maxbaseline, [], add_adm0=False)
+        self.regions = pop_baseline_withyear.keys()
+        self.pop_baseline = [np.mean(list(pop_baseline_withyear[region].values())) for region in self.regions]
+        self.source = source
+        self.year_of_cache = None
+        self.byregion_cache = None # {region: { key-local: value }}
+        self.global_cache = None # {key: value }
+        self.keep_local = ['ir-share']
+
+    def get_current(self, region):
+        """
+        Parameters
+        ----------
+        country : str
+
+        Returns
+        -------
+        dict
+        """
+        if self.byregion_cache:
+            return {**{(key + '-local'): self.byregion_cache[region][key] for key in self.byregion_cache[region] if key not in self.keep_local},
+                    **{key: self.byregion_cache[region][key] for key in self.byregion_cache[region] if key in self.keep_local},
+                    **self.global_cache}
+
+        self.byregion_cache = {region: self.source.get_current(region) for region in self.regions}
+
+        pop_baseline = np.array(self.pop_baseline)
+
+        self.global_cache = {}
+        for key in self.byregion_cache[list(self.regions)[0]]:
+            if key in self.keep_local:
+                continue
+            regionvalues = np.array([self.byregion_cache[region][key] for region in self.regions])
+            indices = ~np.isnan(regionvalues)
+            self.global_cache[key] = np.average(regionvalues[indices], weights=pop_baseline[indices])
+
+        return self.get_current(region)
+
+    def get_update(self, region, year, ds):
+        """
+        Parameters
+        ----------
+        region : str
+        year : int
+        ds : xarray.Dataset
+        """
+        self.source.get_update(region, year, ds)
+        
+        if self.year_of_cache == year:
+            return # already done
+
+        self.year_of_cache = year
+        self.byregion_cache = None
+        self.global_cache = None
