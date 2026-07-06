@@ -66,7 +66,11 @@ def prepare_interp_raw(csvv, weatherbundle, economicmodel, qvals, farmer="full",
 
     models = {}
     extras = dict(errorvar=csvvfile.get_errorvar(csvv))
-    for key in specconf["specifications"]:
+
+    # Use a specified order of specifications, if given
+    specorder = specconf.get("specorder", specconf["specifications"].keys())
+    
+    for key in specorder:
         modelspecconf = configs.merge(specconf, specconf["specifications"][key])
 
         this_csvv = deepcopy(csvv)
