@@ -11,9 +11,23 @@ single_clim_scenario = 'rcp85'
 single_econ_model = 'high'
 single_econ_scenario = 'SSP3'
 
-def single(bundle_iterator):
+def single(bundle_iterator, config=None):
+    """Return the one (climate, economic) realization for single mode.
+
+    The realization defaults to the module-level single_* constants; the
+    config keys only-rcp, only-models, only-ssp, and only-iam override
+    them. The config is also passed to the economic-model discovery, so
+    single mode honors socioeconomic_data_dir like the other modes.
+    """
+    if config is None:
+        config = {}
+    target_clim_scenario = config.get('only-rcp', single_clim_scenario)
+    target_clim_models = config.get('only-models', [single_clim_model])
+    target_econ_scenario = config.get('only-ssp', single_econ_scenario)
+    target_econ_model = config.get('only-iam', single_econ_model)
+
     allecons = []
-    for econ_model, econ_scenario, economicmodel in covariates.iterate_econmodels():
+    for econ_model, econ_scenario, economicmodel in covariates.iterate_econmodels(config):
         allecons.append((econ_scenario, econ_model, economicmodel))
 
     allclims = []
@@ -23,10 +37,10 @@ def single(bundle_iterator):
     allexogenous = []
     for econ_scenario, econ_model, economicmodel in allecons:
         for clim_scenario, clim_model, weatherbundle in allclims:
-            if clim_scenario != single_clim_scenario or clim_model != single_clim_model:
+            if clim_scenario != target_clim_scenario or clim_model not in target_clim_models:
                 continue
-            if single_econ_scenario is not None:
-                if econ_scenario[:4] == single_econ_scenario and econ_model == single_econ_model:
+            if target_econ_scenario is not None:
+                if econ_scenario[:4] == target_econ_scenario[:4] and econ_model == target_econ_model:
                     return clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
                 continue
 

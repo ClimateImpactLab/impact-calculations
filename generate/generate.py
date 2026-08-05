@@ -80,7 +80,7 @@ def main(config, config_name=None, statman=None):
         return iterate_parallel
 
     def iterate_nosideeffects():
-        clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel = loadmodels.single(mod.get_bundle_iterator(config))
+        clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel = loadmodels.single(mod.get_bundle_iterator(config), config)
         pvals = pvalses.ConstantPvals(.5)
 
         yield None, pvals, clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel
@@ -90,7 +90,7 @@ def main(config, config_name=None, statman=None):
             config['only-rcp'] = loadmodels.single_clim_scenario
         if 'only-models' not in config:
             config['only-models'] = [loadmodels.single_clim_model]
-        clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel = loadmodels.single(mod.get_bundle_iterator(config))
+        clim_scenario, clim_model, weatherbundle, econ_scenario, econ_model, economicmodel = loadmodels.single(mod.get_bundle_iterator(config), config)
         pvals = pvalses.ConstantPvals(.5)
 
         # Check if this already exists and delete if so
