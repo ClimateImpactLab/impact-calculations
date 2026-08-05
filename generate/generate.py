@@ -313,6 +313,8 @@ if __name__ == '__main__':
         print(f"an unknown error occurred, details are logged at {statman.logpath}")
         exit()
 
-    missing_usage = file_configs.check_usage()
-    if missing_usage:
-        warnings.warn(f"Some configuration entries were not used: " + ', '.join(missing_usage))
+    # Import-style configs (MergedConfigDict) do not track key usage.
+    if hasattr(file_configs, 'check_usage'):
+        missing_usage = file_configs.check_usage()
+        if missing_usage:
+            warnings.warn(f"Some configuration entries were not used: " + ', '.join(missing_usage))
