@@ -45,19 +45,25 @@ def read_byext(filepath):
 # Singleton to describe weights that sum to 1.
 HALFWEIGHT_SUMTO1 = "Sum to 1"
 
-def interpret_halfweight(weighting):
+def interpret_halfweight(weighting, config=None):
     """Interpret the text of a configuration weighting scheme.
 
     Parameters
     ----------
     weighting : str
         A weighting description. See docs/aggregator.md for allowed options.
+    config : dict, optional
+        Run configuration. When it contains socioeconomic_data_dir, the
+        'population' and 'income' weightings are served from the
+        precomputed ir_combined CSVs instead of the legacy providers, so
+        aggregation weights match the socioeconomics used in generation.
+        Without it, behavior is unchanged.
 
     Returns
     -------
     spacetime.SpaceTimeData
         Must have a valid `load` function, producing an object on which `get_time` can be called.
-        
+
     """
     if weighting.lower() == 'sum-to-1':
         return HALFWEIGHT_SUMTO1
@@ -96,9 +102,9 @@ def interpret_halfweight(weighting):
 
     parts = re.split(r"\s+([*/])\s+", weighting)
     if len(parts) > 1:
-        halfweight = interpret_halfweight(parts[0])
+        halfweight = interpret_halfweight(parts[0], config)
         for ii in range(2, len(parts), 2):
-            factor = interpret_halfweight(parts[ii])
+            factor = interpret_halfweight(parts[ii], config)
             combiner = lambda x, y: x * y
             if parts[ii-1] == '/':
                 combiner = lambda x, y: np.array(x, dtype=float) / np.array(y, dtype=float)
@@ -109,12 +115,30 @@ def interpret_halfweight(weighting):
     if match:
         return spacetime.SpaceTimeConstantData(float(match.group(1)))
     if weighting == 'population':
+        if config and config.get('socioeconomic_data_dir'):
+            from adaptation.precomputed.new_econmodel import PrecomputedAgeCohortBipartiteData
+            return PrecomputedAgeCohortBipartiteData(
+                config['socioeconomic_data_dir'],
+                config.get('socioeconomic_filename'))
         return population.SpaceTimeBipartiteData(1950, 2100, None)
     if weighting == 'population_jo2016':
         return population_jo2016.SpaceTimeBipartiteData(1950, 2100, None)
     if weighting in ['agecohorts'] + agecohorts.columns:
         return agecohorts.SpaceTimeBipartiteData(1950, 2100, None)
     if weighting == 'income':
+        if config and config.get('socioeconomic_data_dir'):
+            from adaptation.precomputed.precomputed_provider import PrecomputedGDPpcProvider
+            data_dir = config['socioeconomic_data_dir']
+            pattern = config.get('socioeconomic_filename')
+
+            def make_provider(model, scenario):
+                return PrecomputedGDPpcProvider.from_config(
+                    iam=model, ssp=scenario, data_dir=data_dir,
+                    filename_pattern=pattern)
+            # Same year frame as the legacy wrapper: the provider starts at
+            # 2010 and the wrapper back-fills 2000-2009 with the first value.
+            return spacetime.SpaceTimeBipartiteFromProviderData(
+                make_provider, 2000, 2100, None)
         return spacetime.SpaceTimeBipartiteFromProviderData(gdppc.GDPpcProvider, 2000, 2100, None)
     if weighting == 'area':
         dependencies = []
@@ -134,7 +158,7 @@ def interpret(config):
         regions = df['regions'].unique()
         return lambda year0, year1: spacetime.SpaceTimeLazyData(year0, year1, regions, lambda region: df[df.region == region])
 
-    return interpret_halfweight(config['weighting'])
+    return interpret_halfweight(config['weighting'], config)
 
 def get_weight_args(config):
     econ_model = config['iam']

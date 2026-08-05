@@ -90,13 +90,15 @@ def main(config, config_name, statman=None):
     
     if 'weighting' in config:
         # Same weighting for levels and aggregate
-        halfweight_levels = weights.interpret_halfweight(config['weighting'])
+        halfweight_levels = weights.interpret_halfweight(config['weighting'], config)
         halfweight_aggregate = halfweight_levels
         halfweight_aggregate_denom = None # Same as numerator
         # Use new precomputed hierid-level population data when available
         if config.get('socioeconomic_data_dir') and config['weighting'] == 'agecohorts':
             from adaptation.precomputed.new_econmodel import PrecomputedAgeCohortBipartiteData
-            halfweight_levels = PrecomputedAgeCohortBipartiteData(config['socioeconomic_data_dir'])
+            halfweight_levels = PrecomputedAgeCohortBipartiteData(
+                config['socioeconomic_data_dir'],
+                config.get('socioeconomic_filename'))
             halfweight_aggregate = halfweight_levels
         assert ('aggregated-unit' in config and 'levels-unit' in config), "the weighting option requires aggregated-unit and level-unit options"
         assert 'levels-weighting' not in config, "Cannot have both a weighting and levels-weighting option."
@@ -105,14 +107,14 @@ def main(config, config_name, statman=None):
     else:
         # Levels weighting
         if 'levels-weighting' in config:
-            halfweight_levels = weights.interpret_halfweight(config['levels-weighting'])
+            halfweight_levels = weights.interpret_halfweight(config['levels-weighting'], config)
             assert 'levels-unit' in config, "the levels-weighting option requires the level-unit option"
         else:
             halfweight_levels = None
 
         # Aggregate weighting
         if 'aggregate-weighting' in config:
-            halfweight_aggregate = weights.interpret_halfweight(config['aggregate-weighting'])
+            halfweight_aggregate = weights.interpret_halfweight(config['aggregate-weighting'], config)
             halfweight_aggregate_denom = None # Same as numerator
             assert 'aggregated-unit' in config, "the aggregate-weighting option requires the aggregated-unit option"
             assert 'aggregate-weighting-numerator' not in config, "Cannot have both a aggregate-weighting and aggregate-weighting-numerator option."
@@ -120,8 +122,8 @@ def main(config, config_name, statman=None):
             # Separate numerator and denominator
             if 'aggregate-weighting-numerator' in config:
                 assert 'aggregated-unit' in config, "the aggregate-weighting-numerator option requires the aggregated-unit option"
-                halfweight_aggregate = weights.interpret_halfweight(config['aggregate-weighting-numerator'])
-                halfweight_aggregate_denom = weights.interpret_halfweight(config['aggregate-weighting-denominator'])
+                halfweight_aggregate = weights.interpret_halfweight(config['aggregate-weighting-numerator'], config)
+                halfweight_aggregate_denom = weights.interpret_halfweight(config['aggregate-weighting-denominator'], config)
             else:
                 halfweight_aggregate = None
                 halfweight_aggregate_denom = None
