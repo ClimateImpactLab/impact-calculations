@@ -17,15 +17,33 @@ from impactcommon.exogenous_economy.provider import BySpaceProvider
 # iam "high" = OECD, iam "low" = IIASA (Carleton et al. convention).
 _IAM_TO_LABEL = {"high": "OECD", "low": "IIASA"}
 
-# Default file pattern. {ssp} and {iam_label} are substituted at runtime.
-_DEFAULT_FILENAME = "ir_combined_{ssp}_{iam_label}_v4.csv"
+# Filename patterns tried in order; {ssp} and {iam_label} are substituted at
+# runtime. The first is what the CIL 2.0 pipeline writes; the second is the
+# book-reproduction naming.
+_FILENAME_PATTERNS = [
+    "ir_combined_{ssp}_{iam_label}.csv",
+    "ir_combined_{ssp}_{iam_label}_v4.csv",
+]
 
 
-def _build_filepath(data_dir, ssp, iam):
-    """Return the full path to the CSV for a given SSP/IAM combination."""
+def _build_filepath(data_dir, ssp, iam, pattern=None):
+    """Return the full path to the CSV for a given SSP/IAM combination.
+
+    With an explicit pattern (the socioeconomic_filename config key), only
+    that pattern is used; otherwise the known patterns are probed in order
+    and the first existing file wins.
+    """
     iam_label = _IAM_TO_LABEL[iam]
-    filename = _DEFAULT_FILENAME.format(ssp=ssp, iam_label=iam_label)
-    return os.path.join(data_dir, filename)
+    patterns = [pattern] if pattern else _FILENAME_PATTERNS
+    for pat in patterns:
+        path = os.path.join(data_dir, pat.format(ssp=ssp, iam_label=iam_label))
+        if os.path.exists(path):
+            return path
+    raise FileNotFoundError(
+        "no socioeconomic CSV for %s/%s in %s; tried %s" % (
+            ssp, iam_label, data_dir,
+            ", ".join(p.format(ssp=ssp, iam_label=iam_label)
+                      for p in patterns)))
 
 
 class PrecomputedGDPpcProvider(BySpaceProvider):
@@ -119,7 +137,8 @@ class PrecomputedGDPpcProvider(BySpaceProvider):
         self._global_mean = global_weighted_sum / safe_global_pop
 
     @classmethod
-    def from_config(cls, iam, ssp, data_dir, startyear=2010, stopyear=2100):
+    def from_config(cls, iam, ssp, data_dir, startyear=2010, stopyear=2100,
+                    filename_pattern=None):
         """Construct from config parameters by loading the appropriate CSV.
 
         Parameters
@@ -132,12 +151,16 @@ class PrecomputedGDPpcProvider(BySpaceProvider):
             Directory containing the ir_combined CSV files.
         startyear : int, optional
         stopyear : int, optional
+        filename_pattern : str, optional
+            Explicit filename pattern with {ssp} and {iam_label} slots
+            (the socioeconomic_filename config key); defaults to probing
+            the known patterns.
 
         Returns
         -------
         PrecomputedGDPpcProvider
         """
-        filepath = _build_filepath(data_dir, ssp, iam)
+        filepath = _build_filepath(data_dir, ssp, iam, filename_pattern)
         df = pd.read_csv(filepath)
         return cls(iam=iam, ssp=ssp, df=df, startyear=startyear, stopyear=stopyear)
 

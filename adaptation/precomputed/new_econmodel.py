@@ -46,12 +46,15 @@ class NewSSPEconomicModel(object):
     scenario : str
         SSP label: "SSP2" or "SSP3".
     data_dir : str
-        Directory containing the ir_combined_*_v4.csv files.
+        Directory containing the ir_combined CSV files.
     config : dict, optional
         Run configuration.  Recognised keys:
         - endbaseline (int, default 2015): last year for baseline pop data.
         - startyear (int, default 2010): first year of GDPpc series.
         - stopyear (int, default 2100): last year of GDPpc series.
+        - socioeconomic_filename (str, optional): explicit CSV filename
+          pattern with {ssp} and {iam_label} slots; defaults to probing
+          the known patterns.
     """
 
     def __init__(self, model, scenario, data_dir, config=None):
@@ -65,16 +68,18 @@ class NewSSPEconomicModel(object):
 
         startyear = config.get("startyear", 2010)
         stopyear = config.get("stopyear", 2100)
+        filename_pattern = config.get("socioeconomic_filename")
 
         # -- GDPpc provider --------------------------------------------------
         self._gdppc_provider = PrecomputedGDPpcProvider.from_config(
             iam=model, ssp=scenario, data_dir=data_dir,
             startyear=startyear, stopyear=stopyear,
+            filename_pattern=filename_pattern,
         )
         self.income_model = BySpaceTimeFromSpaceProvider(self._gdppc_provider)
 
         # -- Population -------------------------------------------------------
-        filepath = _build_filepath(data_dir, scenario, model)
+        filepath = _build_filepath(data_dir, scenario, model, filename_pattern)
         df = pd.read_csv(filepath)
 
         self.pop_future_years = {
@@ -313,13 +318,17 @@ class PrecomputedAgeCohortBipartiteData(object):
     Parameters
     ----------
     data_dir : str
-        Directory containing the ir_combined_*_v4.csv files.
+        Directory containing the ir_combined CSV files.
+    filename_pattern : str, optional
+        Explicit filename pattern (the socioeconomic_filename config key);
+        defaults to probing the known patterns.
     """
 
     _col_map = {'age0-4': 'pop0to4', 'age5-64': 'pop5to64', 'age65+': 'pop65plus'}
 
-    def __init__(self, data_dir):
+    def __init__(self, data_dir, filename_pattern=None):
         self.data_dir = data_dir
+        self.filename_pattern = filename_pattern
         self.year0 = 1981
         self.year1 = 2100
         self.regions = None  # lazily populated on first load
@@ -330,7 +339,8 @@ class PrecomputedAgeCohortBipartiteData(object):
         """Load and cache the CSV for a given model/scenario."""
         key = (model, scenario)
         if key not in self._csv_cache:
-            filepath = _build_filepath(self.data_dir, scenario, model)
+            filepath = _build_filepath(self.data_dir, scenario, model,
+                                       self.filename_pattern)
             self._csv_cache[key] = pd.read_csv(filepath)
         return self._csv_cache[key]
 
@@ -434,7 +444,7 @@ def iterate_econmodels_new(config, data_dir):
     config : dict
         Run configuration (passed through to NewSSPEconomicModel).
     data_dir : str
-        Directory containing ir_combined_*_v4.csv files.
+        Directory containing the ir_combined CSV files.
 
     Yields
     ------
