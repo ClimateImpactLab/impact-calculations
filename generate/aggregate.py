@@ -671,13 +671,8 @@ def make_levels(targetdir, filename, outfilename, halfweight, weight_args, dimen
             for ii in range(len(regions)):
                 wws = np.array(stweight.get_time(regions[ii]))
 
-                if len(wws.shape) == 1 and wws.shape[0] != dstvalues.shape[0]:
-                    # Shorten to the minimum of the two years
-                    wws = wws[:min(wws.shape[0], srcvalues.shape[0])]
-                    srcvalues = srcvalues[:min(wws.shape[0], srcvalues.shape[0]), :]
-                    dstvalues[:len(wws), ii] = wws * srcvalues[:, ii]
-                else:
-                    dstvalues[:, ii] = wws * srcvalues[:, ii]
+                minlen = min(srcvalues.shape[0], dstvalues.shape[0], len(wws))
+                dstvalues[:minlen, ii] = wws[:minlen] * srcvalues[:minlen, ii]
         else:
             # Handle deltamethod files
             coeffvalues = np.zeros((vcv.shape[0], len(years), len(regions)))
@@ -686,7 +681,8 @@ def make_levels(targetdir, filename, outfilename, halfweight, weight_args, dimen
             # Iterates over regions
             for ii in range(len(regions)):
                 wws = stweight.get_time(regions[ii])
-                for tt in range(len(years)):
+                minlen = min(srcvalues.shape[1], len(years), len(wws))
+                for tt in range(minlen):
                     # Generate both the BCDE values and the variances
                     coeffvalues[:, tt, ii] = srcvalues[:, tt, ii] * wws[tt]
                     dstvalues[tt, ii] = vcv.dot(coeffvalues[:, tt, ii]).dot(coeffvalues[:, tt, ii])
