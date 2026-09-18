@@ -16,7 +16,7 @@ from datastore import population, popdensity
 
 def iterate_econmodels(config=None):
     """Discover and yield each known scenario as a SSPEconomicModel.
-    
+
     Parameters
     ----------
     config : dict (optional)
@@ -29,6 +29,13 @@ def iterate_econmodels(config=None):
     """
     if config is None:
         config = {}
+
+    if config.get('socioeconomic_data_dir'):
+        from adaptation.precomputed.new_econmodel import iterate_econmodels_new
+        for result in iterate_econmodels_new(config, config['socioeconomic_data_dir']):
+            yield result
+        return
+
     modelscenarios = set() # keep track of model-scenario pairs
 
     dependencies = []
