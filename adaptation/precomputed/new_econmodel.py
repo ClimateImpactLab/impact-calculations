@@ -19,13 +19,10 @@ from impactcommon.exogenous_economy.provider import BySpaceTimeFromSpaceProvider
 from .precomputed_provider import PrecomputedGDPpcProvider, _build_filepath
 
 
-# The four SSP/IAM combinations available in the new data
-_COMBINATIONS = [
-    ("high", "SSP2"),
-    ("low", "SSP2"),
-    ("high", "SSP3"),
-    ("low", "SSP3"),
-]
+# Candidate SSPs and IAMs. Only the combinations that have their CSV in
+# socioeconomic_data_dir are used (see iterate_econmodels_new).
+_SSPS = ["SSP1", "SSP2", "SSP3", "SSP4", "SSP5"]
+_IAMS = ["high", "low"]
 
 
 class NewSSPEconomicModel(object):
@@ -437,7 +434,7 @@ def _expand_to_annual(csv_years, csv_values, year0, year1):
 
 def iterate_econmodels_new(config, data_dir):
     """Yield (model, scenario, NewSSPEconomicModel) for each SSP/IAM
-    combination.
+    combination that has its CSV in data_dir.
 
     Parameters
     ----------
@@ -450,7 +447,15 @@ def iterate_econmodels_new(config, data_dir):
     ------
     tuple of (str, str, NewSSPEconomicModel)
         (model, scenario, economic_model) where model is "high"/"low"
-        and scenario is "SSP2"/"SSP3".
+        and scenario is one of "SSP1" to "SSP5".
     """
-    for model, scenario in _COMBINATIONS:
-        yield model, scenario, NewSSPEconomicModel(model, scenario, data_dir, config)
+    filename_pattern = config.get("socioeconomic_filename")
+    for scenario in _SSPS:
+        for model in _IAMS:
+            # Skip combinations without a CSV, using the same file names
+            # the model loads.
+            try:
+                _build_filepath(data_dir, scenario, model, filename_pattern)
+            except FileNotFoundError:
+                continue
+            yield model, scenario, NewSSPEconomicModel(model, scenario, data_dir, config)
