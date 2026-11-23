@@ -6,7 +6,7 @@ import os, shutil, csv, yaml, tempfile, warnings
 from collections import OrderedDict
 import numpy as np
 from . import loadmodels
-from . import weather, pvalses, timing
+from . import weather, pvalses, timing, periodic_gc
 from interpret import configs
 from openest.generate import diagnostic
 from impactlab_tools.utils import files, paralog
@@ -29,6 +29,7 @@ def main(config, config_name=None, statman=None):
     global do_single
     
     print("Initializing...")
+    periodic_gc.start(config.get("gc-interval", 60))
 
     if config_name is None:
         config_name = config["config_name"]
