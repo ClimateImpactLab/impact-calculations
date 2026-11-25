@@ -12,6 +12,8 @@ CSV (GHS-POP base year), eliminating the dependency on popop_baseline.csv.
 """
 
 import os
+from collections.abc import Mapping
+
 import numpy as np
 import pandas as pd
 
@@ -19,13 +21,10 @@ from impactcommon.exogenous_economy.provider import BySpaceTimeFromSpaceProvider
 from .precomputed_provider import PrecomputedGDPpcProvider, _build_filepath
 
 
-# The four SSP/IAM combinations available in the new data
-_COMBINATIONS = [
-    ("high", "SSP2"),
-    ("low", "SSP2"),
-    ("high", "SSP3"),
-    ("low", "SSP3"),
-]
+# Candidate SSPs and IAMs. Only the combinations that have their CSV in
+# socioeconomic_data_dir are used (see iterate_econmodels_new).
+_SSPS = ["SSP1", "SSP2", "SSP3", "SSP4", "SSP5"]
+_IAMS = ["high", "low"]
 
 
 class NewSSPEconomicModel(object):
@@ -82,30 +81,21 @@ class NewSSPEconomicModel(object):
         filepath = _build_filepath(data_dir, scenario, model, filename_pattern)
         df = pd.read_csv(filepath)
 
-        self.pop_future_years = {
-            hierid: dict(zip(g["year"].values, g["pop"].values))
-            for hierid, g in df.groupby("hierid")
-        }
+        # One regions x years array instead of a dict per region.
+        self.pop_future_years = _PopulationTable(df)
 
-        # -- Age cohorts (vectorized) -----------------------------------------
-        age_cols = ["pop0to4", "pop5to64", "pop65plus"]
-        total_pop = df["pop"].values.astype(np.float64)
-        safe_total = np.where(total_pop > 0, total_pop, 1.0)
-        shares_arr = df[age_cols].values.astype(np.float64) / safe_total[:, np.newaxis]
-        shares_arr[total_pop <= 0] = 0.0
-
-        year_col = df["year"].values.astype(int)
-        self._age_shares = {}
-        for hierid, g in df.groupby("hierid"):
-            idx = g.index.values
-            years = year_col[idx]
-            self._age_shares[hierid] = {
-                int(years[i]): shares_arr[idx[i]] for i in range(len(idx))
-            }
+        # -- Age cohorts ------------------------------------------------------
+        # Only mortality reads the age shares. Built for every model they
+        # take about 0.5 GB each, so they are read from the CSV on first use
+        # (see the _age_shares property).
+        self._age_shares_path = filepath
+        self._age_shares_cache = None
 
         # -- ISO index for age share fallback ---------------------------------
+        # The age shares have the same regions as the population, in the
+        # same order.
         self._iso_to_hierids = {}
-        for hierid in self._age_shares:
+        for hierid in self.pop_future_years:
             iso = hierid[:3]
             if iso not in self._iso_to_hierids:
                 self._iso_to_hierids[iso] = []
@@ -114,6 +104,17 @@ class NewSSPEconomicModel(object):
         # -- Popop (population density from GHS-POP base year 2020) -----------
         baseline = df[df["year"] == 2020]
         self.densities = dict(zip(baseline["hierid"], baseline["pop_wtd_density"]))
+
+    @property
+    def _age_shares(self):
+        """{hierid: {year: [share 0-4, 5-64, 65+]}}, read from the CSV on first use."""
+        if self._age_shares_cache is None:
+            self._age_shares_cache = _age_shares_from_frame(pd.read_csv(self._age_shares_path))
+        return self._age_shares_cache
+
+    @_age_shares.setter
+    def _age_shares(self, value):
+        self._age_shares_cache = value
 
     def reset(self):
         """Reset cached income timeseries."""
@@ -179,22 +180,17 @@ class NewSSPEconomicModel(object):
         if region not in self.densities:
             return None
 
-        pop_dict = self.pop_future_years[region]
-        if year in pop_dict:
-            in2020 = pop_dict.get(2020, 0)
+        pop = self.pop_future_years.value(region, year, _MISSING)
+        if pop is not _MISSING:
+            in2020 = self.pop_future_years.value(region, 2020, 0)
             if in2020 > 0:
-                return pop_dict[year] * self.densities[region] / in2020
+                return pop * self.densities[region] / in2020
 
         return None
 
     def get_population_year(self, region, year):
-        """Return total population for a region and year."""
-        if region not in self.pop_future_years:
-            return np.nan
-        pop_dict = self.pop_future_years[region]
-        if year not in pop_dict:
-            return np.nan
-        return pop_dict[year]
+        """Return total population for a region and year (NaN when missing)."""
+        return self.pop_future_years.value(region, year, np.nan)
 
     def get_age_shares(self, region, year):
         """Return age cohort shares [age0-4, age5-64, age65+] for a region
@@ -223,6 +219,115 @@ class NewSSPEconomicModel(object):
         if year < available[0]:
             return shares[available[0]]
         return shares[available[-1]]
+
+
+# Default for lookups that find nothing, distinct from any stored value.
+_MISSING = object()
+
+
+class _PopulationTable(Mapping):
+    """Population by region and year, held in one regions x years array.
+
+    Replaces a {hierid: {year: pop}} dict per region, which kept a numpy
+    scalar for every region-year (about 300 MB for each economic model).
+    value() returns the same numpy values the dicts held. It reads like the
+    old dict: `hierid in table`, iteration in the same region order, and
+    table[hierid] gives that region's {year: pop} dict (years in order).
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        ir_combined rows with hierid, year (integers) and pop columns.
+    """
+
+    def __init__(self, df):
+        grouped = df.groupby("hierid")
+        # Group numbers follow the order of iterating over the groupby. Rows
+        # without a hierid get no group, as in the groupby.
+        codes = np.asarray(grouped.ngroup(), dtype=np.float64)
+        keep = codes >= 0
+        codes = codes[keep].astype(np.int64)
+        hierids = np.asarray(df["hierid"].values, dtype=object)[keep]
+        years = np.asarray(df["year"].values)[keep]
+        pops = np.asarray(df["pop"].values)[keep]
+        if years.dtype.kind not in "iu":
+            raise ValueError("ir_combined years must be integers, not %s" % years.dtype)
+
+        _, first = np.unique(codes, return_index=True)
+        self._hierids = list(hierids[first])
+        self._row = {hierid: row for row, hierid in enumerate(self._hierids)}
+        self._year_dtype = years.dtype
+        self._year0 = int(years.min()) if len(years) else 0
+        self._ncols = int(years.max()) - self._year0 + 1 if len(years) else 0
+
+        # A repeated (hierid, year) keeps its last row, as dict(zip()) did.
+        cells = codes * self._ncols + (years.astype(np.int64) - self._year0)
+        _, last_reversed = np.unique(cells[::-1], return_index=True)
+        last = len(cells) - 1 - last_reversed
+        shape = (len(self._hierids), self._ncols)
+        values = np.zeros(shape[0] * shape[1], dtype=pops.dtype)
+        present = np.zeros(shape[0] * shape[1], dtype=bool)
+        values[cells[last]] = pops[last]
+        present[cells[last]] = True
+        self._values = values.reshape(shape)
+        self._present = present.reshape(shape)
+
+    def value(self, hierid, year, default=None):
+        """Population of hierid in year, or default when the CSV has no such row."""
+        row = self._row.get(hierid)
+        if row is None:
+            return default
+        col = self._column(year)
+        if col is None or not self._present[row, col]:
+            return default
+        return self._values[row, col]
+
+    def _column(self, year):
+        """Column of year, or None when no row can have it (like 2020.5 or '2020')."""
+        try:
+            col = int(year) - self._year0
+        except (TypeError, ValueError, OverflowError):
+            return None
+        if not 0 <= col < self._ncols or year != col + self._year0:
+            return None
+        return col
+
+    def __getitem__(self, hierid):
+        row = self._row[hierid]
+        cols = np.flatnonzero(self._present[row])
+        years = (cols + self._year0).astype(self._year_dtype)
+        return dict(zip(years, self._values[row, cols]))
+
+    def __contains__(self, hierid):
+        return hierid in self._row
+
+    def __iter__(self):
+        return iter(self._hierids)
+
+    def __len__(self):
+        return len(self._hierids)
+
+
+def _age_shares_from_frame(df):
+    """{hierid: {year: [share 0-4, 5-64, 65+]}} from ir_combined rows.
+
+    One numpy row view per region-year, as NewSSPEconomicModel always built.
+    """
+    age_cols = ["pop0to4", "pop5to64", "pop65plus"]
+    total_pop = df["pop"].values.astype(np.float64)
+    safe_total = np.where(total_pop > 0, total_pop, 1.0)
+    shares_arr = df[age_cols].values.astype(np.float64) / safe_total[:, np.newaxis]
+    shares_arr[total_pop <= 0] = 0.0
+
+    year_col = df["year"].values.astype(int)
+    age_shares = {}
+    for hierid, g in df.groupby("hierid"):
+        idx = g.index.values
+        years = year_col[idx]
+        age_shares[hierid] = {
+            int(years[i]): shares_arr[idx[i]] for i in range(len(idx))
+        }
+    return age_shares
 
 
 class PrecomputedAgeShareBipartiteData(object):
@@ -437,7 +542,7 @@ def _expand_to_annual(csv_years, csv_values, year0, year1):
 
 def iterate_econmodels_new(config, data_dir):
     """Yield (model, scenario, NewSSPEconomicModel) for each SSP/IAM
-    combination.
+    combination that has its CSV in data_dir.
 
     Parameters
     ----------
@@ -450,7 +555,15 @@ def iterate_econmodels_new(config, data_dir):
     ------
     tuple of (str, str, NewSSPEconomicModel)
         (model, scenario, economic_model) where model is "high"/"low"
-        and scenario is "SSP2"/"SSP3".
+        and scenario is one of "SSP1" to "SSP5".
     """
-    for model, scenario in _COMBINATIONS:
-        yield model, scenario, NewSSPEconomicModel(model, scenario, data_dir, config)
+    filename_pattern = config.get("socioeconomic_filename")
+    for scenario in _SSPS:
+        for model in _IAMS:
+            # Skip combinations without a CSV, using the same file names
+            # the model loads.
+            try:
+                _build_filepath(data_dir, scenario, model, filename_pattern)
+            except FileNotFoundError:
+                continue
+            yield model, scenario, NewSSPEconomicModel(model, scenario, data_dir, config)
